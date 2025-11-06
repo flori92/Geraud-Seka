@@ -1,0 +1,9 @@
+{
+  "supplier_key": "TEST MANUEL",
+  "supplier_label": "TEST MANUEL",
+  "supplier_account": "401-TEST",
+  "expense_account": "607",
+  "vat_account": "445",
+  "vat_rate": 18,
+  "currency": "XOF"
+}

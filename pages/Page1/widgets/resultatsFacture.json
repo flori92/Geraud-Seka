@@ -1,0 +1,778 @@
+{
+  "animateLoading": true,
+  "autoGenerateForm": true,
+  "backgroundColor": "#fff",
+  "borderColor": "#E0DEDE",
+  "borderRadius": "{{appsmith.theme.borderRadius.appBorderRadius}}",
+  "borderWidth": "1",
+  "bottomRow": 107,
+  "boxShadow": "{{appsmith.theme.boxShadow.appBoxShadow}}",
+  "childStylesheet": {
+    "ARRAY": {
+      "accentColor": "{{appsmith.theme.colors.primaryColor}}",
+      "borderRadius": "{{appsmith.theme.borderRadius.appBorderRadius}}",
+      "boxShadow": "none",
+      "cellBorderRadius": "{{appsmith.theme.borderRadius.appBorderRadius}}",
+      "cellBoxShadow": "none"
+    },
+    "CHECKBOX": {
+      "accentColor": "{{appsmith.theme.colors.primaryColor}}",
+      "borderRadius": "{{appsmith.theme.borderRadius.appBorderRadius}}"
+    },
+    "CURRENCY_INPUT": {
+      "accentColor": "{{appsmith.theme.colors.primaryColor}}",
+      "borderRadius": "{{appsmith.theme.borderRadius.appBorderRadius}}",
+      "boxShadow": "none"
+    },
+    "DATEPICKER": {
+      "accentColor": "{{appsmith.theme.colors.primaryColor}}",
+      "borderRadius": "{{appsmith.theme.borderRadius.appBorderRadius}}",
+      "boxShadow": "none"
+    },
+    "EMAIL_INPUT": {
+      "accentColor": "{{appsmith.theme.colors.primaryColor}}",
+      "borderRadius": "{{appsmith.theme.borderRadius.appBorderRadius}}",
+      "boxShadow": "none"
+    },
+    "MULTILINE_TEXT_INPUT": {
+      "accentColor": "{{appsmith.theme.colors.primaryColor}}",
+      "borderRadius": "{{appsmith.theme.borderRadius.appBorderRadius}}",
+      "boxShadow": "none"
+    },
+    "MULTISELECT": {
+      "accentColor": "{{appsmith.theme.colors.primaryColor}}",
+      "borderRadius": "{{appsmith.theme.borderRadius.appBorderRadius}}",
+      "boxShadow": "none"
+    },
+    "NUMBER_INPUT": {
+      "accentColor": "{{appsmith.theme.colors.primaryColor}}",
+      "borderRadius": "{{appsmith.theme.borderRadius.appBorderRadius}}",
+      "boxShadow": "none"
+    },
+    "OBJECT": {
+      "borderRadius": "{{appsmith.theme.borderRadius.appBorderRadius}}",
+      "boxShadow": "none",
+      "cellBorderRadius": "{{appsmith.theme.borderRadius.appBorderRadius}}",
+      "cellBoxShadow": "none"
+    },
+    "PASSWORD_INPUT": {
+      "accentColor": "{{appsmith.theme.colors.primaryColor}}",
+      "borderRadius": "{{appsmith.theme.borderRadius.appBorderRadius}}",
+      "boxShadow": "none"
+    },
+    "PHONE_NUMBER_INPUT": {
+      "accentColor": "{{appsmith.theme.colors.primaryColor}}",
+      "borderRadius": "{{appsmith.theme.borderRadius.appBorderRadius}}",
+      "boxShadow": "none"
+    },
+    "RADIO_GROUP": {
+      "accentColor": "{{appsmith.theme.colors.primaryColor}}",
+      "boxShadow": "none"
+    },
+    "SELECT": {
+      "accentColor": "{{appsmith.theme.colors.primaryColor}}",
+      "borderRadius": "{{appsmith.theme.borderRadius.appBorderRadius}}",
+      "boxShadow": "none"
+    },
+    "SWITCH": {
+      "accentColor": "{{appsmith.theme.colors.primaryColor}}",
+      "boxShadow": "none"
+    },
+    "TEXT_INPUT": {
+      "accentColor": "{{appsmith.theme.colors.primaryColor}}",
+      "borderRadius": "{{appsmith.theme.borderRadius.appBorderRadius}}",
+      "boxShadow": "none"
+    }
+  },
+  "disabledWhenInvalid": true,
+  "dynamicBindingPathList": [
+    {
+      "key": "borderRadius"
+    },
+    {
+      "key": "boxShadow"
+    },
+    {
+      "key": "submitButtonStyles.buttonColor"
+    },
+    {
+      "key": "submitButtonStyles.borderRadius"
+    },
+    {
+      "key": "resetButtonStyles.buttonColor"
+    },
+    {
+      "key": "resetButtonStyles.borderRadius"
+    },
+    {
+      "key": "sourceData"
+    },
+    {
+      "key": "schema.__root_schema__.children.facture_num.defaultValue"
+    },
+    {
+      "key": "schema.__root_schema__.children.facture_num.accentColor"
+    },
+    {
+      "key": "schema.__root_schema__.children.facture_num.borderRadius"
+    },
+    {
+      "key": "schema.__root_schema__.children.date.defaultValue"
+    },
+    {
+      "key": "schema.__root_schema__.children.date.accentColor"
+    },
+    {
+      "key": "schema.__root_schema__.children.date.borderRadius"
+    },
+    {
+      "key": "schema.__root_schema__.children.date_echeance.defaultValue"
+    },
+    {
+      "key": "schema.__root_schema__.children.date_echeance.accentColor"
+    },
+    {
+      "key": "schema.__root_schema__.children.date_echeance.borderRadius"
+    },
+    {
+      "key": "schema.__root_schema__.children.fournisseur.defaultValue"
+    },
+    {
+      "key": "schema.__root_schema__.children.fournisseur.accentColor"
+    },
+    {
+      "key": "schema.__root_schema__.children.fournisseur.borderRadius"
+    },
+    {
+      "key": "schema.__root_schema__.children.client.defaultValue"
+    },
+    {
+      "key": "schema.__root_schema__.children.client.accentColor"
+    },
+    {
+      "key": "schema.__root_schema__.children.client.borderRadius"
+    },
+    {
+      "key": "schema.__root_schema__.children.montant_ht.defaultValue"
+    },
+    {
+      "key": "schema.__root_schema__.children.montant_ht.accentColor"
+    },
+    {
+      "key": "schema.__root_schema__.children.montant_ht.borderRadius"
+    },
+    {
+      "key": "schema.__root_schema__.children.tva_totale.defaultValue"
+    },
+    {
+      "key": "schema.__root_schema__.children.tva_totale.accentColor"
+    },
+    {
+      "key": "schema.__root_schema__.children.tva_totale.borderRadius"
+    },
+    {
+      "key": "schema.__root_schema__.children.montant_ttc.defaultValue"
+    },
+    {
+      "key": "schema.__root_schema__.children.montant_ttc.accentColor"
+    },
+    {
+      "key": "schema.__root_schema__.children.montant_ttc.borderRadius"
+    },
+    {
+      "key": "schema.__root_schema__.children.lignes.children.__array_item__.children.description.accentColor"
+    },
+    {
+      "key": "schema.__root_schema__.children.lignes.children.__array_item__.children.description.borderRadius"
+    },
+    {
+      "key": "schema.__root_schema__.children.lignes.children.__array_item__.children.quantite.accentColor"
+    },
+    {
+      "key": "schema.__root_schema__.children.lignes.children.__array_item__.children.quantite.borderRadius"
+    },
+    {
+      "key": "schema.__root_schema__.children.lignes.children.__array_item__.children.prix_unitaire.accentColor"
+    },
+    {
+      "key": "schema.__root_schema__.children.lignes.children.__array_item__.children.prix_unitaire.borderRadius"
+    },
+    {
+      "key": "schema.__root_schema__.children.lignes.children.__array_item__.children.taux_tva.accentColor"
+    },
+    {
+      "key": "schema.__root_schema__.children.lignes.children.__array_item__.children.taux_tva.borderRadius"
+    },
+    {
+      "key": "schema.__root_schema__.children.lignes.children.__array_item__.children.montant_ht.accentColor"
+    },
+    {
+      "key": "schema.__root_schema__.children.lignes.children.__array_item__.children.montant_ht.borderRadius"
+    },
+    {
+      "key": "schema.__root_schema__.children.lignes.children.__array_item__.children.montant_tva.accentColor"
+    },
+    {
+      "key": "schema.__root_schema__.children.lignes.children.__array_item__.children.montant_tva.borderRadius"
+    },
+    {
+      "key": "schema.__root_schema__.children.lignes.children.__array_item__.children.montant_ttc.accentColor"
+    },
+    {
+      "key": "schema.__root_schema__.children.lignes.children.__array_item__.children.montant_ttc.borderRadius"
+    },
+    {
+      "key": "schema.__root_schema__.children.lignes.children.__array_item__.borderRadius"
+    },
+    {
+      "key": "schema.__root_schema__.children.lignes.children.__array_item__.cellBorderRadius"
+    },
+    {
+      "key": "schema.__root_schema__.children.lignes.defaultValue"
+    },
+    {
+      "key": "schema.__root_schema__.children.lignes.accentColor"
+    },
+    {
+      "key": "schema.__root_schema__.children.lignes.borderRadius"
+    },
+    {
+      "key": "schema.__root_schema__.children.lignes.cellBorderRadius"
+    },
+    {
+      "key": "schema.__root_schema__.children.currency.defaultValue"
+    },
+    {
+      "key": "schema.__root_schema__.children.currency.accentColor"
+    },
+    {
+      "key": "schema.__root_schema__.children.currency.borderRadius"
+    },
+    {
+      "key": "schema.__root_schema__.defaultValue"
+    },
+    {
+      "key": "schema.__root_schema__.borderRadius"
+    },
+    {
+      "key": "schema.__root_schema__.cellBorderRadius"
+    }
+  ],
+  "dynamicHeight": "AUTO_HEIGHT",
+  "dynamicPropertyPathList": [
+    {
+      "key": "sourceData"
+    },
+    {
+      "key": "schema.__root_schema__.children.date.defaultValue"
+    }
+  ],
+  "dynamicTriggerPathList": [
+    {
+      "key": "onSubmit"
+    }
+  ],
+  "fieldLimitExceeded": false,
+  "fixedFooter": true,
+  "flexVerticalAlignment": "start",
+  "isLoading": false,
+  "isVisible": true,
+  "key": "ocho8i6juu",
+  "leftColumn": 4,
+  "maxDynamicHeight": 9000,
+  "minDynamicHeight": 4,
+  "minWidth": 450,
+  "mobileBottomRow": 64,
+  "mobileLeftColumn": 5,
+  "mobileRightColumn": 30,
+  "mobileTopRow": 23,
+  "needsErrorInfo": false,
+  "onSubmit": "{{saveFacture.run().then(() => {\n  showAlert('Facture enregistrée', '');\n});}}",
+  "originalBottomRow": 166,
+  "originalTopRow": 13,
+  "parentColumnSpace": 4.40625,
+  "parentId": "0",
+  "parentRowSpace": 10,
+  "renderMode": "CANVAS",
+  "resetButtonLabel": "Reset",
+  "resetButtonStyles": {
+    "borderRadius": "{{appsmith.theme.borderRadius.appBorderRadius}}",
+    "boxShadow": "none",
+    "buttonColor": "{{appsmith.theme.colors.primaryColor}}",
+    "buttonVariant": "SECONDARY"
+  },
+  "responsiveBehavior": "fill",
+  "rightColumn": 56,
+  "schema": {
+    "__root_schema__": {
+      "accessor": "__root_schema__",
+      "borderRadius": "{{((sourceData, formData, fieldState) => ((appsmith.theme.borderRadius.appBorderRadius)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+      "boxShadow": "none",
+      "cellBorderRadius": "{{((sourceData, formData, fieldState) => ((appsmith.theme.borderRadius.appBorderRadius)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+      "cellBoxShadow": "none",
+      "children": {
+        "client": {
+          "accentColor": "{{((sourceData, formData, fieldState) => ((appsmith.theme.colors.primaryColor)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+          "accessor": "client",
+          "borderRadius": "{{((sourceData, formData, fieldState) => ((appsmith.theme.borderRadius.appBorderRadius)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+          "boxShadow": "none",
+          "children": {},
+          "dataType": "string",
+          "defaultValue": "{{((sourceData, formData, fieldState) => (sourceData.client))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+          "fieldType": "Text Input",
+          "iconAlign": "left",
+          "identifier": "client",
+          "isCustomField": false,
+          "isDisabled": false,
+          "isRequired": false,
+          "isSpellCheck": false,
+          "isVisible": true,
+          "label": "Client",
+          "labelTextSize": "0.875rem",
+          "originalIdentifier": "client",
+          "position": 4,
+          "sourceData": "Romuald BAMIKOLE"
+        },
+        "currency": {
+          "accentColor": "{{((sourceData, formData, fieldState) => ((appsmith.theme.colors.primaryColor)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+          "accessor": "currency",
+          "borderRadius": "{{((sourceData, formData, fieldState) => ((appsmith.theme.borderRadius.appBorderRadius)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+          "boxShadow": "none",
+          "children": {},
+          "dataType": "string",
+          "defaultValue": "{{((sourceData, formData, fieldState) => (sourceData.currency))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+          "fieldType": "Text Input",
+          "iconAlign": "left",
+          "identifier": "currency",
+          "isCustomField": false,
+          "isDisabled": false,
+          "isRequired": false,
+          "isSpellCheck": false,
+          "isVisible": true,
+          "label": "Currency",
+          "labelTextSize": "0.875rem",
+          "originalIdentifier": "currency",
+          "position": 9,
+          "sourceData": "XOF"
+        },
+        "date": {
+          "accentColor": "{{((sourceData, formData, fieldState) => ((appsmith.theme.colors.primaryColor)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+          "accessor": "date",
+          "borderRadius": "{{((sourceData, formData, fieldState) => ((appsmith.theme.borderRadius.appBorderRadius)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+          "boxShadow": "none",
+          "children": {},
+          "closeOnSelection": false,
+          "convertToISO": false,
+          "dataType": "string",
+          "dateFormat": "YYYY-MM-DD",
+          "defaultValue": "{{((sourceData, formData, fieldState) => (moment(sourceData.date, \"YYYY-MM-DD\").format(\"YYYY-MM-DDTHH:mm:ss.sssZ\")))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+          "fieldType": "Datepicker",
+          "identifier": "date",
+          "isCustomField": false,
+          "isDisabled": false,
+          "isRequired": false,
+          "isVisible": true,
+          "label": "Date",
+          "labelTextSize": "0.875rem",
+          "maxDate": "2121-12-31T18:29:00.000Z",
+          "minDate": "1920-12-31T18:30:00.000Z",
+          "originalIdentifier": "date",
+          "position": 1,
+          "shortcuts": false,
+          "sourceData": "2025-08-09",
+          "timePrecision": "minute"
+        },
+        "date_echeance": {
+          "accentColor": "{{((sourceData, formData, fieldState) => ((appsmith.theme.colors.primaryColor)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+          "accessor": "date_echeance",
+          "borderRadius": "{{((sourceData, formData, fieldState) => ((appsmith.theme.borderRadius.appBorderRadius)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+          "boxShadow": "none",
+          "children": {},
+          "dataType": "null",
+          "defaultValue": "{{((sourceData, formData, fieldState) => (sourceData.date_echeance))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+          "fieldType": "Text Input",
+          "iconAlign": "left",
+          "identifier": "date_echeance",
+          "isCustomField": false,
+          "isDisabled": false,
+          "isRequired": false,
+          "isSpellCheck": false,
+          "isVisible": true,
+          "label": "Date Echeance",
+          "labelTextSize": "0.875rem",
+          "originalIdentifier": "date_echeance",
+          "position": 2
+        },
+        "facture_num": {
+          "accentColor": "{{((sourceData, formData, fieldState) => ((appsmith.theme.colors.primaryColor)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+          "accessor": "facture_num",
+          "borderRadius": "{{((sourceData, formData, fieldState) => ((appsmith.theme.borderRadius.appBorderRadius)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+          "boxShadow": "none",
+          "children": {},
+          "dataType": "null",
+          "defaultValue": "{{((sourceData, formData, fieldState) => (sourceData.facture_num))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+          "fieldType": "Text Input",
+          "iconAlign": "left",
+          "identifier": "facture_num",
+          "isCustomField": false,
+          "isDisabled": false,
+          "isRequired": false,
+          "isSpellCheck": false,
+          "isVisible": true,
+          "label": "Facture Num",
+          "labelTextSize": "0.875rem",
+          "originalIdentifier": "facture_num",
+          "position": 0
+        },
+        "fournisseur": {
+          "accentColor": "{{((sourceData, formData, fieldState) => ((appsmith.theme.colors.primaryColor)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+          "accessor": "fournisseur",
+          "borderRadius": "{{((sourceData, formData, fieldState) => ((appsmith.theme.borderRadius.appBorderRadius)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+          "boxShadow": "none",
+          "children": {},
+          "dataType": "string",
+          "defaultValue": "{{((sourceData, formData, fieldState) => (sourceData.fournisseur))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+          "fieldType": "Text Input",
+          "iconAlign": "left",
+          "identifier": "fournisseur",
+          "isCustomField": false,
+          "isDisabled": false,
+          "isRequired": false,
+          "isSpellCheck": false,
+          "isVisible": true,
+          "label": "Fournisseur",
+          "labelTextSize": "0.875rem",
+          "originalIdentifier": "fournisseur",
+          "position": 3,
+          "sourceData": "SEKA SARL"
+        },
+        "lignes": {
+          "accentColor": "{{((sourceData, formData, fieldState) => ((appsmith.theme.colors.primaryColor)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+          "accessor": "lignes",
+          "backgroundColor": "#FAFAFA",
+          "borderRadius": "{{((sourceData, formData, fieldState) => ((appsmith.theme.borderRadius.appBorderRadius)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+          "boxShadow": "none",
+          "cellBorderRadius": "{{((sourceData, formData, fieldState) => ((appsmith.theme.borderRadius.appBorderRadius)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+          "cellBoxShadow": "none",
+          "children": {
+            "__array_item__": {
+              "accessor": "__array_item__",
+              "borderRadius": "{{((sourceData, formData, fieldState) => ((appsmith.theme.borderRadius.appBorderRadius)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+              "boxShadow": "none",
+              "cellBorderRadius": "{{((sourceData, formData, fieldState) => ((appsmith.theme.borderRadius.appBorderRadius)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+              "cellBoxShadow": "none",
+              "children": {
+                "description": {
+                  "accentColor": "{{((sourceData, formData, fieldState) => ((appsmith.theme.colors.primaryColor)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+                  "accessor": "description",
+                  "borderRadius": "{{((sourceData, formData, fieldState) => ((appsmith.theme.borderRadius.appBorderRadius)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+                  "boxShadow": "none",
+                  "children": {},
+                  "dataType": "string",
+                  "fieldType": "Text Input",
+                  "iconAlign": "left",
+                  "identifier": "description",
+                  "isCustomField": false,
+                  "isDisabled": false,
+                  "isRequired": false,
+                  "isSpellCheck": false,
+                  "isVisible": true,
+                  "label": "Description",
+                  "labelTextSize": "0.875rem",
+                  "originalIdentifier": "description",
+                  "position": 0,
+                  "sourceData": "Licence logiciel SEKA — 1 an"
+                },
+                "montant_ht": {
+                  "accentColor": "{{((sourceData, formData, fieldState) => ((appsmith.theme.colors.primaryColor)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+                  "accessor": "montant_ht",
+                  "borderRadius": "{{((sourceData, formData, fieldState) => ((appsmith.theme.borderRadius.appBorderRadius)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+                  "boxShadow": "none",
+                  "children": {},
+                  "dataType": "number",
+                  "fieldType": "Number Input",
+                  "iconAlign": "left",
+                  "identifier": "montant_ht",
+                  "isCustomField": false,
+                  "isDisabled": false,
+                  "isRequired": false,
+                  "isSpellCheck": false,
+                  "isVisible": true,
+                  "label": "Montant Ht",
+                  "labelTextSize": "0.875rem",
+                  "originalIdentifier": "montant_ht",
+                  "position": 4,
+                  "sourceData": 100000
+                },
+                "montant_ttc": {
+                  "accentColor": "{{((sourceData, formData, fieldState) => ((appsmith.theme.colors.primaryColor)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+                  "accessor": "montant_ttc",
+                  "borderRadius": "{{((sourceData, formData, fieldState) => ((appsmith.theme.borderRadius.appBorderRadius)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+                  "boxShadow": "none",
+                  "children": {},
+                  "dataType": "number",
+                  "fieldType": "Number Input",
+                  "iconAlign": "left",
+                  "identifier": "montant_ttc",
+                  "isCustomField": false,
+                  "isDisabled": false,
+                  "isRequired": false,
+                  "isSpellCheck": false,
+                  "isVisible": true,
+                  "label": "Montant Ttc",
+                  "labelTextSize": "0.875rem",
+                  "originalIdentifier": "montant_ttc",
+                  "position": 6,
+                  "sourceData": 118000
+                },
+                "montant_tva": {
+                  "accentColor": "{{((sourceData, formData, fieldState) => ((appsmith.theme.colors.primaryColor)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+                  "accessor": "montant_tva",
+                  "borderRadius": "{{((sourceData, formData, fieldState) => ((appsmith.theme.borderRadius.appBorderRadius)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+                  "boxShadow": "none",
+                  "children": {},
+                  "dataType": "number",
+                  "fieldType": "Number Input",
+                  "iconAlign": "left",
+                  "identifier": "montant_tva",
+                  "isCustomField": false,
+                  "isDisabled": false,
+                  "isRequired": false,
+                  "isSpellCheck": false,
+                  "isVisible": true,
+                  "label": "Montant Tva",
+                  "labelTextSize": "0.875rem",
+                  "originalIdentifier": "montant_tva",
+                  "position": 5,
+                  "sourceData": 18000
+                },
+                "prix_unitaire": {
+                  "accentColor": "{{((sourceData, formData, fieldState) => ((appsmith.theme.colors.primaryColor)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+                  "accessor": "prix_unitaire",
+                  "borderRadius": "{{((sourceData, formData, fieldState) => ((appsmith.theme.borderRadius.appBorderRadius)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+                  "boxShadow": "none",
+                  "children": {},
+                  "dataType": "number",
+                  "fieldType": "Number Input",
+                  "iconAlign": "left",
+                  "identifier": "prix_unitaire",
+                  "isCustomField": false,
+                  "isDisabled": false,
+                  "isRequired": false,
+                  "isSpellCheck": false,
+                  "isVisible": true,
+                  "label": "Prix Unitaire",
+                  "labelTextSize": "0.875rem",
+                  "originalIdentifier": "prix_unitaire",
+                  "position": 2,
+                  "sourceData": 100000
+                },
+                "quantite": {
+                  "accentColor": "{{((sourceData, formData, fieldState) => ((appsmith.theme.colors.primaryColor)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+                  "accessor": "quantite",
+                  "borderRadius": "{{((sourceData, formData, fieldState) => ((appsmith.theme.borderRadius.appBorderRadius)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+                  "boxShadow": "none",
+                  "children": {},
+                  "dataType": "number",
+                  "fieldType": "Number Input",
+                  "iconAlign": "left",
+                  "identifier": "quantite",
+                  "isCustomField": false,
+                  "isDisabled": false,
+                  "isRequired": false,
+                  "isSpellCheck": false,
+                  "isVisible": true,
+                  "label": "Quantite",
+                  "labelTextSize": "0.875rem",
+                  "originalIdentifier": "quantite",
+                  "position": 1,
+                  "sourceData": 1
+                },
+                "taux_tva": {
+                  "accentColor": "{{((sourceData, formData, fieldState) => ((appsmith.theme.colors.primaryColor)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+                  "accessor": "taux_tva",
+                  "borderRadius": "{{((sourceData, formData, fieldState) => ((appsmith.theme.borderRadius.appBorderRadius)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+                  "boxShadow": "none",
+                  "children": {},
+                  "dataType": "number",
+                  "fieldType": "Number Input",
+                  "iconAlign": "left",
+                  "identifier": "taux_tva",
+                  "isCustomField": false,
+                  "isDisabled": false,
+                  "isRequired": false,
+                  "isSpellCheck": false,
+                  "isVisible": true,
+                  "label": "Taux Tva",
+                  "labelTextSize": "0.875rem",
+                  "originalIdentifier": "taux_tva",
+                  "position": 3,
+                  "sourceData": 18
+                }
+              },
+              "dataType": "object",
+              "fieldType": "Object",
+              "identifier": "__array_item__",
+              "isCustomField": false,
+              "isDisabled": false,
+              "isRequired": false,
+              "isVisible": true,
+              "label": "Array Item",
+              "labelTextSize": "0.875rem",
+              "originalIdentifier": "__array_item__",
+              "position": -1,
+              "sourceData": {
+                "description": "Licence logiciel SEKA — 1 an",
+                "montant_ht": 100000,
+                "montant_ttc": 118000,
+                "montant_tva": 18000,
+                "prix_unitaire": 100000,
+                "quantite": 1,
+                "taux_tva": 18
+              }
+            }
+          },
+          "dataType": "array",
+          "defaultValue": "{{((sourceData, formData, fieldState) => (sourceData.lignes))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+          "fieldType": "Array",
+          "identifier": "lignes",
+          "isCollapsible": true,
+          "isCustomField": false,
+          "isDisabled": false,
+          "isRequired": false,
+          "isVisible": true,
+          "label": "Lignes",
+          "labelTextSize": "0.875rem",
+          "originalIdentifier": "lignes",
+          "position": 8,
+          "sourceData": [
+            {
+              "description": "Licence logiciel SEKA — 1 an",
+              "montant_ht": 100000,
+              "montant_ttc": 118000,
+              "montant_tva": 18000,
+              "prix_unitaire": 100000,
+              "quantite": 1,
+              "taux_tva": 18
+            }
+          ]
+        },
+        "montant_ht": {
+          "accentColor": "{{((sourceData, formData, fieldState) => ((appsmith.theme.colors.primaryColor)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+          "accessor": "montant_ht",
+          "borderRadius": "{{((sourceData, formData, fieldState) => ((appsmith.theme.borderRadius.appBorderRadius)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+          "boxShadow": "none",
+          "children": {},
+          "dataType": "number",
+          "defaultValue": "{{((sourceData, formData, fieldState) => (sourceData.montant_ht))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+          "fieldType": "Number Input",
+          "iconAlign": "left",
+          "identifier": "montant_ht",
+          "isCustomField": false,
+          "isDisabled": false,
+          "isRequired": false,
+          "isSpellCheck": false,
+          "isVisible": true,
+          "label": "Montant Ht",
+          "labelTextSize": "0.875rem",
+          "originalIdentifier": "montant_ht",
+          "position": 5,
+          "sourceData": 100000
+        },
+        "montant_ttc": {
+          "accentColor": "{{((sourceData, formData, fieldState) => ((appsmith.theme.colors.primaryColor)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+          "accessor": "montant_ttc",
+          "borderRadius": "{{((sourceData, formData, fieldState) => ((appsmith.theme.borderRadius.appBorderRadius)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+          "boxShadow": "none",
+          "children": {},
+          "dataType": "number",
+          "defaultValue": "{{((sourceData, formData, fieldState) => (sourceData.montant_ttc))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+          "fieldType": "Number Input",
+          "iconAlign": "left",
+          "identifier": "montant_ttc",
+          "isCustomField": false,
+          "isDisabled": false,
+          "isRequired": false,
+          "isSpellCheck": false,
+          "isVisible": true,
+          "label": "Montant Ttc",
+          "labelTextSize": "0.875rem",
+          "originalIdentifier": "montant_ttc",
+          "position": 7,
+          "sourceData": 118000
+        },
+        "tva_totale": {
+          "accentColor": "{{((sourceData, formData, fieldState) => ((appsmith.theme.colors.primaryColor)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+          "accessor": "tva_totale",
+          "borderRadius": "{{((sourceData, formData, fieldState) => ((appsmith.theme.borderRadius.appBorderRadius)))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+          "boxShadow": "none",
+          "children": {},
+          "dataType": "number",
+          "defaultValue": "{{((sourceData, formData, fieldState) => (sourceData.tva_totale))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+          "fieldType": "Number Input",
+          "iconAlign": "left",
+          "identifier": "tva_totale",
+          "isCustomField": false,
+          "isDisabled": false,
+          "isRequired": false,
+          "isSpellCheck": false,
+          "isVisible": true,
+          "label": "Tva Totale",
+          "labelTextSize": "0.875rem",
+          "originalIdentifier": "tva_totale",
+          "position": 6,
+          "sourceData": 18000
+        }
+      },
+      "dataType": "object",
+      "defaultValue": "{{((sourceData, formData, fieldState) => (sourceData))(resultatsFacture.sourceData, resultatsFacture.formData, resultatsFacture.fieldState)}}",
+      "fieldType": "Object",
+      "identifier": "__root_schema__",
+      "isCustomField": false,
+      "isDisabled": false,
+      "isRequired": false,
+      "isVisible": true,
+      "label": "",
+      "labelTextSize": "0.875rem",
+      "originalIdentifier": "__root_schema__",
+      "position": -1,
+      "sourceData": {
+        "client": "Romuald BAMIKOLE",
+        "currency": "XOF",
+        "date": "2025-08-09",
+        "fournisseur": "SEKA SARL",
+        "lignes": [
+          {
+            "description": "Licence logiciel SEKA — 1 an",
+            "montant_ht": 100000,
+            "montant_ttc": 118000,
+            "montant_tva": 18000,
+            "prix_unitaire": 100000,
+            "quantite": 1,
+            "taux_tva": 18
+          }
+        ],
+        "montant_ht": 100000,
+        "montant_ttc": 118000,
+        "tva_totale": 18000
+      }
+    }
+  },
+  "scrollContents": true,
+  "showReset": true,
+  "sourceData": "{{uploadFactureAPI.data.parsed}}",
+  "submitButtonLabel": "Submit",
+  "submitButtonStyles": {
+    "borderRadius": "{{appsmith.theme.borderRadius.appBorderRadius}}",
+    "boxShadow": "none",
+    "buttonColor": "{{appsmith.theme.colors.primaryColor}}",
+    "buttonVariant": "PRIMARY"
+  },
+  "title": "Résultats de l'analyse",
+  "topRow": 13,
+  "type": "JSON_FORM_WIDGET",
+  "useSourceData": true,
+  "version": 1,
+  "widgetId": "q0stw6212u",
+  "widgetName": "resultatsFacture"
+}

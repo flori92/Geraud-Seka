@@ -1,0 +1,8 @@
+{
+  "supplier_label": "{{currentRow.supplier_name}}",
+  "supplier_account": "401000",
+  "expense_account": "607000",
+  "vat_account": "445660",
+  "vat_rate": 18,
+  "currency": "XOF"
+}

@@ -1,0 +1,11 @@
+{
+  "filename": "{{uploadFactureAPI.data.filename}}",
+  "lang": "{{uploadFactureAPI.data.lang}}",
+  "source": "{{uploadFactureAPI.data.source}}",
+  "confidence": {{uploadFactureAPI.data.confidence}},
+  "parsed": {{uploadFactureAPI.data.parsed}},
+  "checks": {{uploadFactureAPI.data.checks}},
+  "text": "{{uploadFactureAPI.data.text}}",
+  "gpt_raw": "{{uploadFactureAPI.data.gpt_raw}}",
+  "currency": "{{uploadFactureAPI.data.parsed.currency || 'XOF'}}"
+}
