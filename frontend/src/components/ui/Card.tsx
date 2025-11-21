@@ -15,3 +15,15 @@ export function Card({ className = "", hoverable = false, children, ...props }: 
         </div>
     );
 }
+
+export function CardHeader({ className, children }: any) {
+    return <div className={`flex flex-col space-y-1.5 p-6 ${className}`}>{children}</div>;
+}
+
+export function CardTitle({ className, children }: any) {
+    return <h3 className={`font-semibold leading-none tracking-tight ${className}`}>{children}</h3>;
+}
+
+export function CardContent({ className, children }: any) {
+    return <div className={`p-6 pt-0 ${className}`}>{children}</div>;
+}

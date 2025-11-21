@@ -2,6 +2,21 @@ import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import type { ReactNode } from "react";
+import {
+  LayoutDashboard,
+  FileText,
+  Users,
+  Settings,
+  LogOut,
+  Menu,
+  X,
+  Bell,
+  Search,
+  Package,
+  Activity,
+  FileDown,
+  BrainCircuit
+} from "lucide-react";
 
 interface DashboardLayoutProps {
   title?: string;
@@ -16,12 +31,12 @@ export function DashboardLayout({ title, children }: DashboardLayoutProps) {
 
 
   const menuItems = [
-    { href: "/dashboard", label: "Tableau de bord" },
-    { href: "/documents", label: "Documents" },
-    { href: "/clients", label: "Clients" },
-    { href: "/activities", label: "Activités" },
-    { href: "/stock", label: "Stock" },
-    { href: "/exports", label: "Exports" },
+    { name: "Clients", href: "/clients", icon: Users },
+    { name: "Documents", href: "/documents", icon: FileText },
+    { name: "Produits & Services", href: "/products", icon: Package },
+    { name: "Activités", href: "/activities", icon: Activity },
+    { name: "Exports Comptables", href: "/exports", icon: FileDown },
+    { name: "Intelligence", href: "/intelligence", icon: BrainCircuit }, // New
   ];
 
   return (
@@ -45,12 +60,17 @@ export function DashboardLayout({ title, children }: DashboardLayoutProps) {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${isActive(item.href)
-                  ? "bg-accents-2 text-foreground"
-                  : "text-accents-5 hover:bg-accents-1 hover:text-foreground"
+                className={`group flex items-center rounded-md px-2 py-2 text-sm font-medium ${isActive(item.href)
+                  ? "bg-gray-100 text-gray-900"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                   }`}
               >
-                {item.label}
+                <item.icon
+                  className={`mr-3 h-5 w-5 flex-shrink-0 ${isActive(item.href) ? "text-gray-500" : "text-gray-400 group-hover:text-gray-500"
+                    }`}
+                  aria-hidden="true"
+                />
+                {item.name}
               </Link>
             ))}
           </div>

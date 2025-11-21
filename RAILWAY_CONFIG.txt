@@ -1,0 +1,51 @@
+=== 1. SERVICE BACKEND (FastAPI) ===
+
+1. Créez un service "GitHub Repo" : duareg/appsmith-seka
+2. Allez dans Settings > Root Directory : /backend
+3. Allez dans Variables > RAW Editor (en haut à droite)
+4. Collez tout ceci :
+
+PROJECT_NAME=SEKA Production
+ENVIRONMENT=production
+DEBUG=false
+SECRET_KEY=YOUR_SECRET_KEY_HERE
+ACCESS_TOKEN_EXPIRE_MINUTES=60
+REFRESH_TOKEN_EXPIRE_MINUTES=10080
+TOKEN_ALGORITHM=HS256
+DATABASE_URL=${{Postgres.DATABASE_URL}}
+BACKEND_CORS_ORIGINS=["https://app.sekagestion.com","https://sekagestion.com","http://localhost:3000"]
+DOMAIN=sekagestion.com
+FRONTEND_URL=https://app.sekagestion.com
+MINDEE_API_KEY=md_YOUR_MINDEE_KEY_HERE
+STRIPE_API_KEY=pk_test_YOUR_STRIPE_PUBLIC_KEY_HERE
+STRIPE_SECRET_KEY=sk_test_YOUR_STRIPE_SECRET_KEY_HERE
+KKIAPAY_PUBLIC_KEY=YOUR_KKIAPAY_PUBLIC_KEY
+KKIAPAY_PRIVATE_KEY=YOUR_KKIAPAY_PRIVATE_KEY
+KKIAPAY_SECRET=YOUR_KKIAPAY_SECRET
+RESEND_API_KEY=re_YOUR_RESEND_KEY_HERE
+RESEND_FROM_EMAIL=noreply@sekagestion.com
+RESEND_FROM_NAME=SEKA
+
+5. Allez dans Settings > Deploy > Deploy Command :
+alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+
+=== 2. SERVICE FRONTEND (Next.js) ===
+
+1. Créez un service "GitHub Repo" : duareg/appsmith-seka
+2. Allez dans Settings > Root Directory : /frontend
+3. Allez dans Variables > RAW Editor
+4. Collez ceci (remplacez l'URL par celle de votre backend une fois déployé) :
+
+NODE_ENV=production
+NEXT_PUBLIC_API_URL=https://seka-backend.up.railway.app
+
+
+=== 3. DOMAINES ===
+
+1. Service Backend > Settings > Networking > Custom Domain : api.sekagestion.com
+2. Service Frontend > Settings > Networking > Custom Domain : app.sekagestion.com
+
+=== 4. POSTGRESQL ===
+
+Créez simplement un service "Database" > "PostgreSQL". C'est tout !
+Le backend se connectera automatiquement grâce à ${{Postgres.DATABASE_URL}}
