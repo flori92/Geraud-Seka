@@ -76,64 +76,113 @@ export default function LandingPage() {
                     </div>
                 </div>
 
-                {/* Features */}
-                <div id="features" className="py-24 sm:py-32">
-                    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                {/* Features - Premium Dark Cards */}
+                <div id="features" className="relative overflow-hidden bg-black py-24 sm:py-32">
+                    {/* Background effects */}
+                    <div className="absolute inset-0">
+                        <div className="absolute left-1/4 top-0 h-96 w-96 rounded-full bg-white opacity-5 blur-3xl"></div>
+                        <div className="absolute right-1/4 bottom-0 h-96 w-96 rounded-full bg-white opacity-5 blur-3xl"></div>
+                    </div>
+
+                    <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                         <div className="mx-auto max-w-2xl lg:text-center">
-                            <h2 className="text-base font-semibold leading-7 text-gray-900">Une solution complète</h2>
-                            <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+                            <h2 className="text-base font-semibold leading-7 text-gray-400">Une solution complète</h2>
+                            <p className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">
                                 Tout ce dont vous avez besoin pour gérer votre entreprise
                             </p>
                         </div>
                         <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-none">
-                            <dl className="grid max-w-xl grid-cols-1 gap-x-8 gap-y-16 lg:max-w-none lg:grid-cols-3">
-                                <div className="flex flex-col">
-                                    <dt className="text-base font-semibold leading-7 text-gray-900">
-                                        Comptabilité intelligente
-                                    </dt>
-                                    <dd className="mt-1 flex flex-auto flex-col text-base leading-7 text-gray-600">
-                                        <p className="flex-auto">Extraction automatique des données avec OCR. Génération d'écritures comptables conformes au plan SYSCOHADA.</p>
-                                    </dd>
+                            <dl className="grid max-w-xl grid-cols-1 gap-6 lg:max-w-none lg:grid-cols-3">
+                                {/* Card 1 */}
+                                <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-sm transition-all duration-300 hover:border-white/30 hover:bg-white/10 hover:shadow-2xl hover:shadow-white/20">
+                                    {/* Light effect on hover */}
+                                    <div className="absolute -inset-px rounded-2xl bg-gradient-to-r from-white/0 via-white/20 to-white/0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"></div>
+                                    {/* Shine effect */}
+                                    <div className="absolute -top-24 -right-24 h-48 w-48 rounded-full bg-white opacity-0 blur-3xl transition-opacity duration-500 group-hover:opacity-10"></div>
+
+                                    <div className="relative">
+                                        <dt className="text-base font-semibold leading-7 text-white">
+                                            Comptabilité intelligente
+                                        </dt>
+                                        <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-400">
+                                            <p className="flex-auto">Extraction automatique des données avec OCR. Génération d'écritures comptables conformes au plan SYSCOHADA.</p>
+                                        </dd>
+                                    </div>
                                 </div>
-                                <div className="flex flex-col">
-                                    <dt className="text-base font-semibold leading-7 text-gray-900">
-                                        Trésorerie prédictive
-                                    </dt>
-                                    <dd className="mt-1 flex flex-auto flex-col text-base leading-7 text-gray-600">
-                                        <p className="flex-auto">Prévisions de flux de trésorerie basées sur l'historique. Alertes automatiques en cas de risque de rupture.</p>
-                                    </dd>
+
+                                {/* Card 2 */}
+                                <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-sm transition-all duration-300 hover:border-white/30 hover:bg-white/10 hover:shadow-2xl hover:shadow-white/20">
+                                    <div className="absolute -inset-px rounded-2xl bg-gradient-to-r from-white/0 via-white/20 to-white/0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"></div>
+                                    <div className="absolute -top-24 -right-24 h-48 w-48 rounded-full bg-white opacity-0 blur-3xl transition-opacity duration-500 group-hover:opacity-10"></div>
+
+                                    <div className="relative">
+                                        <dt className="text-base font-semibold leading-7 text-white">
+                                            Trésorerie prédictive
+                                        </dt>
+                                        <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-400">
+                                            <p className="flex-auto">Prévisions de flux de trésorerie basées sur l'historique. Alertes automatiques en cas de risque de rupture.</p>
+                                        </dd>
+                                    </div>
                                 </div>
-                                <div className="flex flex-col">
-                                    <dt className="text-base font-semibold leading-7 text-gray-900">
-                                        CRM avancé
-                                    </dt>
-                                    <dd className="mt-1 flex flex-auto flex-col text-base leading-7 text-gray-600">
-                                        <p className="flex-auto">Lead scoring automatique. Prédiction du churn. Recommandations personnalisées pour vos clients.</p>
-                                    </dd>
+
+                                {/* Card 3 */}
+                                <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-sm transition-all duration-300 hover:border-white/30 hover:bg-white/10 hover:shadow-2xl hover:shadow-white/20">
+                                    <div className="absolute -inset-px rounded-2xl bg-gradient-to-r from-white/0 via-white/20 to-white/0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"></div>
+                                    <div className="absolute -top-24 -right-24 h-48 w-48 rounded-full bg-white opacity-0 blur-3xl transition-opacity duration-500 group-hover:opacity-10"></div>
+
+                                    <div className="relative">
+                                        <dt className="text-base font-semibold leading-7 text-white">
+                                            CRM avancé
+                                        </dt>
+                                        <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-400">
+                                            <p className="flex-auto">Lead scoring automatique. Prédiction du churn. Recommandations personnalisées pour vos clients.</p>
+                                        </dd>
+                                    </div>
                                 </div>
-                                <div className="flex flex-col">
-                                    <dt className="text-base font-semibold leading-7 text-gray-900">
-                                        Gestion de stock
-                                    </dt>
-                                    <dd className="mt-1 flex flex-auto flex-col text-base leading-7 text-gray-600">
-                                        <p className="flex-auto">Optimisation des niveaux de stock. Prédiction de la demande. Alertes de rupture automatiques.</p>
-                                    </dd>
+
+                                {/* Card 4 */}
+                                <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-sm transition-all duration-300 hover:border-white/30 hover:bg-white/10 hover:shadow-2xl hover:shadow-white/20">
+                                    <div className="absolute -inset-px rounded-2xl bg-gradient-to-r from-white/0 via-white/20 to-white/0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"></div>
+                                    <div className="absolute -top-24 -right-24 h-48 w-48 rounded-full bg-white opacity-0 blur-3xl transition-opacity duration-500 group-hover:opacity-10"></div>
+
+                                    <div className="relative">
+                                        <dt className="text-base font-semibold leading-7 text-white">
+                                            Gestion de stock
+                                        </dt>
+                                        <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-400">
+                                            <p className="flex-auto">Optimisation des niveaux de stock. Prédiction de la demande. Alertes de rupture automatiques.</p>
+                                        </dd>
+                                    </div>
                                 </div>
-                                <div className="flex flex-col">
-                                    <dt className="text-base font-semibold leading-7 text-gray-900">
-                                        Paiements mobiles
-                                    </dt>
-                                    <dd className="mt-1 flex flex-auto flex-col text-base leading-7 text-gray-600">
-                                        <p className="flex-auto">Intégration complète avec Orange Money, MTN, Moov, Wave. Paiements par carte via Stripe.</p>
-                                    </dd>
+
+                                {/* Card 5 */}
+                                <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-sm transition-all duration-300 hover:border-white/30 hover:bg-white/10 hover:shadow-2xl hover:shadow-white/20">
+                                    <div className="absolute -inset-px rounded-2xl bg-gradient-to-r from-white/0 via-white/20 to-white/0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"></div>
+                                    <div className="absolute -top-24 -right-24 h-48 w-48 rounded-full bg-white opacity-0 blur-3xl transition-opacity duration-500 group-hover:opacity-10"></div>
+
+                                    <div className="relative">
+                                        <dt className="text-base font-semibold leading-7 text-white">
+                                            Paiements mobiles
+                                        </dt>
+                                        <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-400">
+                                            <p className="flex-auto">Intégration complète avec Orange Money, MTN, Moov, Wave. Paiements par carte via Stripe.</p>
+                                        </dd>
+                                    </div>
                                 </div>
-                                <div className="flex flex-col">
-                                    <dt className="text-base font-semibold leading-7 text-gray-900">
-                                        Intelligence artificielle
-                                    </dt>
-                                    <dd className="mt-1 flex flex-auto flex-col text-base leading-7 text-gray-600">
-                                        <p className="flex-auto">Détection d'anomalies. Recommandations fiscales. Insights automatiques sur vos données.</p>
-                                    </dd>
+
+                                {/* Card 6 */}
+                                <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-sm transition-all duration-300 hover:border-white/30 hover:bg-white/10 hover:shadow-2xl hover:shadow-white/20">
+                                    <div className="absolute -inset-px rounded-2xl bg-gradient-to-r from-white/0 via-white/20 to-white/0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"></div>
+                                    <div className="absolute -top-24 -right-24 h-48 w-48 rounded-full bg-white opacity-0 blur-3xl transition-opacity duration-500 group-hover:opacity-10"></div>
+
+                                    <div className="relative">
+                                        <dt className="text-base font-semibold leading-7 text-white">
+                                            Intelligence artificielle
+                                        </dt>
+                                        <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-400">
+                                            <p className="flex-auto">Détection d'anomalies. Recommandations fiscales. Insights automatiques sur vos données.</p>
+                                        </dd>
+                                    </div>
                                 </div>
                             </dl>
                         </div>
