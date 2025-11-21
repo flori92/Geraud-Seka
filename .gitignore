@@ -38,3 +38,4 @@ htmlcov/
 # Appsmith exports
 *.tar.gz
 check_railway.py
+create_test_user.py
