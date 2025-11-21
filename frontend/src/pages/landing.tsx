@@ -213,45 +213,43 @@ export default function LandingPage() {
                                 },
                                 {
                                     icon: '💰',
-                                    title: 'Trés
-
-orerie Prédictive',
+                                    title: 'Trésorerie Prédictive',
                                     description: 'Prévisions de flux par ML. Alertes automatiques sur les risques.',
-                            gradient: 'from-green-500 to-emerald-500'
+                                    gradient: 'from-green-500 to-emerald-500'
                                 },
-                            {
-                                icon: '👥',
-                            title: 'CRM Avancé',
-                            description: 'Lead scoring IA. Prédiction du churn. Recommandations personnalisées.',
-                            gradient: 'from-purple-500 to-pink-500'
+                                {
+                                    icon: '👥',
+                                    title: 'CRM Avancé',
+                                    description: 'Lead scoring IA. Prédiction du churn. Recommandations personnalisées.',
+                                    gradient: 'from-purple-500 to-pink-500'
                                 },
-                            {
-                                icon: '📦',
-                            title: 'Gestion Stock',
-                            description: 'Optimisation automatique. Prédiction demande. Alertes rupture.',
-                            gradient: 'from-orange-500 to-red-500'
+                                {
+                                    icon: '📦',
+                                    title: 'Gestion Stock',
+                                    description: 'Optimisation automatique. Prédiction demande. Alertes rupture.',
+                                    gradient: 'from-orange-500 to-red-500'
                                 },
-                            {
-                                icon: '💳',
-                            title: 'Paiements Mobiles',
-                            description: 'Orange Money, MTN, Moov, Wave. Stripe. Facturation auto.',
-                            gradient: 'from-red-500 to-pink-500'
+                                {
+                                    icon: '💳',
+                                    title: 'Paiements Mobiles',
+                                    description: 'Orange Money, MTN, Moov, Wave. Stripe. Facturation auto.',
+                                    gradient: 'from-red-500 to-pink-500'
                                 },
-                            {
-                                icon: '🤖',
-                            title: 'Intelligence IA',
-                            description: 'Détection anomalies. Insights automatiques. Conseils fiscaux.',
-                            gradient: 'from-indigo-500 to-purple-500'
+                                {
+                                    icon: '🤖',
+                                    title: 'Intelligence IA',
+                                    description: 'Détection anomalies. Insights automatiques. Conseils fiscaux.',
+                                    gradient: 'from-indigo-500 to-purple-500'
                                 }
                             ].map((feature) => (
-                            <div key={feature.title} className="group relative overflow-hidden rounded-3xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2">
-                                <div className={`absolute -top-12 -right-12 h-32 w-32 rounded-full bg-gradient-to-br ${feature.gradient} opacity-10 blur-2xl transition-all group-hover:opacity-20`}></div>
-                                <div className="relative">
-                                    <div className="text-5xl mb-4">{feature.icon}</div>
-                                    <h3 className="text-xl font-bold text-gray-900">{feature.title}</h3>
-                                    <p className="mt-3 text-gray-600">{feature.description}</p>
+                                <div key={feature.title} className="group relative overflow-hidden rounded-3xl border border-gray-200 bg-white p-8 transition-all duration-300 hover:shadow-2xl hover:-translate-y-2">
+                                    <div className={`absolute -top-12 -right-12 h-32 w-32 rounded-full bg-gradient-to-br ${feature.gradient} opacity-10 blur-2xl transition-all group-hover:opacity-20`}></div>
+                                    <div className="relative">
+                                        <div className="text-5xl mb-4">{feature.icon}</div>
+                                        <h3 className="text-xl font-bold text-gray-900">{feature.title}</h3>
+                                        <p className="mt-3 text-gray-600">{feature.description}</p>
+                                    </div>
                                 </div>
-                            </div>
                             ))}
                         </div>
                     </div>
