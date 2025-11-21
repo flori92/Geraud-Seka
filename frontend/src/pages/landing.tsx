@@ -44,17 +44,19 @@ export default function LandingPage() {
 
                 {/* Hero - Dark */}
                 <div className="relative overflow-hidden bg-black">
-                    {/* Background effects */}
+                    {/* Background effects - reduced opacity for better readability */}
                     <div className="absolute inset-0">
-                        <div className="absolute left-1/2 top-0 h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-white opacity-5 blur-3xl"></div>
-                        <div className="absolute bottom-0 left-1/4 h-96 w-96 rounded-full bg-white opacity-3 blur-3xl"></div>
-                        <div className="absolute bottom-0 right-1/4 h-96 w-96 rounded-full bg-white opacity-3 blur-3xl"></div>
+                        <div className="absolute left-1/2 top-0 h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-white opacity-[0.02] blur-3xl"></div>
+                        <div className="absolute bottom-0 left-1/4 h-96 w-96 rounded-full bg-white opacity-[0.015] blur-3xl"></div>
+                        <div className="absolute bottom-0 right-1/4 h-96 w-96 rounded-full bg-white opacity-[0.015] blur-3xl"></div>
                     </div>
 
                     <div className="relative mx-auto max-w-4xl px-4 py-24 sm:px-6 lg:px-8 lg:py-32">
                         <div className="text-center">
                             <h1 className="text-5xl font-bold tracking-tight text-white sm:text-6xl lg:text-7xl">
-                                ERP & CRM pour l'Afrique
+                                Votre solution tout-en-un
+                                <br />
+                                de gestion d'entreprise
                             </h1>
                             <p className="mx-auto mt-6 max-w-2xl text-xl leading-8 text-gray-400">
                                 Simplifiez votre gestion avec une solution complète : comptabilité conforme SYSCOHADA, trésorerie, clients et RH en un seul endroit.
