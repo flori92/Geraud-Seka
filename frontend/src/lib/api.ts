@@ -253,3 +253,34 @@ export async function updateProduct(id: string, data: ProductUpdate, accessToken
   });
   return response.data;
 }
+
+export interface CashFlowPrediction {
+  projection: {
+    date: string;
+    balance: number;
+    daily_change: number;
+  }[];
+  trend: "up" | "down" | "stable";
+  min_balance: number;
+  max_balance: number;
+  risk_alert: boolean;
+}
+
+export interface Anomaly {
+  type: string;
+  severity: "high" | "medium" | "low";
+  description: string;
+  entry_id: string;
+  date: string;
+  amount: number;
+}
+
+export const getCashFlowPrediction = async (days: number = 30) => {
+  const response = await api.get<CashFlowPrediction>(`/analytics/cash-flow-prediction?days=${days}`);
+  return response.data;
+};
+
+export const getAnomalies = async () => {
+  const response = await api.get<Anomaly[]>("/analytics/anomalies");
+  return response.data;
+};
