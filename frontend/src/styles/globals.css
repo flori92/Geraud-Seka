@@ -2,6 +2,28 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --font-inter: 'Inter', sans-serif;
+}
+
 body {
-  @apply bg-slate-50 text-slate-900;
+  @apply bg-background text-foreground font-sans antialiased;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-accents-2 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-accents-3;
 }

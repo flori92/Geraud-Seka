@@ -1,19 +1,22 @@
 import { FormEvent, useState } from "react";
 import Head from "next/head";
+import { useRouter } from "next/router";
 
 import { getCurrentUser, login, type User } from "@/lib/api";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Card } from "@/components/ui/Card";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [user, setUser] = useState<User | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
-    setUser(null);
     setLoading(true);
 
     try {
@@ -23,8 +26,8 @@ export default function LoginPage() {
         localStorage.setItem("seka_refresh_token", tokens.refresh_token);
       }
 
-      const me = await getCurrentUser(tokens.access_token);
-      setUser(me);
+      await getCurrentUser(tokens.access_token);
+      router.push("/dashboard");
     } catch (err) {
       setError("Échec de la connexion. Vérifiez vos identifiants.");
     } finally {
@@ -37,61 +40,60 @@ export default function LoginPage() {
       <Head>
         <title>Connexion – SEKA</title>
       </Head>
-      <main className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
-        <section className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-8 shadow-sm">
-          <h1 className="text-2xl font-semibold text-slate-900">Connexion</h1>
-          <p className="mt-2 text-sm text-slate-600">
-            Connectez-vous avec votre compte SEKA.
-          </p>
+      <main className="flex min-h-screen flex-col items-center justify-center bg-accents-1 p-4 font-sans text-foreground">
+        <div className="mb-8 flex items-center gap-2">
+          <div className="h-8 w-8 rounded-full bg-foreground"></div>
+          <span className="text-xl font-bold tracking-tight">SEKA</span>
+        </div>
 
-          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
-              />
-            </div>
+        <Card className="w-full max-w-md p-8 shadow-geist">
+          <div className="mb-6 text-center">
+            <h1 className="text-2xl font-semibold tracking-tight">Bon retour</h1>
+            <p className="mt-2 text-sm text-accents-5">
+              Entrez vos identifiants pour accéder à votre espace.
+            </p>
+          </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-700">
-                Mot de passe
-              </label>
-              <input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
-              />
-            </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Input
+              id="email"
+              type="email"
+              label="Email"
+              placeholder="nom@exemple.com"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
 
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            <Input
+              id="password"
+              type="password"
+              label="Mot de passe"
+              placeholder="••••••••"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
 
-            <button
+            {error && (
+              <div className="rounded-md bg-error-lighter p-3 text-sm text-error-dark">
+                {error}
+              </div>
+            )}
+
+            <Button
               type="submit"
-              disabled={loading}
-              className="flex w-full items-center justify-center rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-70"
+              className="w-full"
+              loading={loading}
             >
-              {loading ? "Connexion en cours..." : "Se connecter"}
-            </button>
+              Se connecter
+            </Button>
           </form>
 
-          {user && (
-            <div className="mt-6 rounded-md bg-slate-50 p-4 text-sm text-slate-800">
-              <p className="font-medium">Connecté en tant que :</p>
-              <p className="mt-1">{user.email}</p>
-              {user.full_name && <p className="mt-1">{user.full_name}</p>}
-            </div>
-          )}
-        </section>
+          <p className="mt-6 text-center text-xs text-accents-4">
+            Vous n'avez pas de compte ? <a href="#" className="text-foreground underline hover:text-accents-6">Contactez le support</a>
+          </p>
+        </Card>
       </main>
     </>
   );

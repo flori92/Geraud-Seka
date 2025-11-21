@@ -30,9 +30,24 @@ class Settings(BaseSettings):
 
     mindee_api_key: Optional[str] = None
     sentry_dsn: Optional[str] = None
+    
+    # Payment Providers
     stripe_api_key: Optional[str] = None
+    stripe_secret_key: Optional[str] = None
+    stripe_webhook_secret: Optional[str] = None
+    
+    kkiapay_public_key: Optional[str] = None
     kkiapay_private_key: Optional[str] = None
+    kkiapay_secret: Optional[str] = None
+    
+    # Email
     resend_api_key: Optional[str] = None
+    resend_from_email: str = "noreply@sekagestion.com"
+    resend_from_name: str = "SEKA"
+    
+    # Domain
+    domain: str = "sekagestion.com"
+    frontend_url: str = "https://app.sekagestion.com"
 
     model_config = SettingsConfigDict(
         env_file=("../.env", ".env"),
