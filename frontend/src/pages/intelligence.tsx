@@ -107,13 +107,13 @@ export default function IntelligencePage() {
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between">
                                         <span className="text-sm text-gray-500">Tendance</span>
-                                        <Badge variant={prediction?.trend === 'up' ? 'default' : prediction?.trend === 'down' ? 'destructive' : 'secondary'}>
+                                        <Badge variant={prediction?.trend === 'up' ? 'success' : prediction?.trend === 'down' ? 'error' : 'default'}>
                                             {prediction?.trend === 'up' ? '↗ En hausse' : prediction?.trend === 'down' ? '↘ En baisse' : '→ Stable'}
                                         </Badge>
                                     </div>
                                     <div className="flex items-center justify-between">
                                         <span className="text-sm text-gray-500">Risque de rupture</span>
-                                        <Badge variant={prediction?.risk_alert ? 'destructive' : 'default'}>
+                                        <Badge variant={prediction?.risk_alert ? 'error' : 'success'}>
                                             {prediction?.risk_alert ? '⚠️ ÉLEVÉ' : 'FAIBLE'}
                                         </Badge>
                                     </div>
@@ -175,7 +175,7 @@ export default function IntelligencePage() {
                                                     </p>
                                                 </div>
                                             </div>
-                                            <Badge variant={anomaly.severity === 'high' ? 'destructive' : 'secondary'}>
+                                            <Badge variant={anomaly.severity === 'high' ? 'error' : 'warning'}>
                                                 {anomaly.severity === 'high' ? 'CRITIQUE' : 'SUSPECT'}
                                             </Badge>
                                         </div>
