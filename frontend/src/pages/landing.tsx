@@ -27,14 +27,14 @@ export default function LandingPage() {
                             <div className="flex items-center">
                                 <h1 className="text-xl font-semibold text-gray-900">SEKA</h1>
                             </div>
-                            <div className="hidden md:flex md:items-center md:space-x-6">
-                                <a href="#features" className="text-sm font-medium text-gray-700 hover:text-gray-900">Fonctionnalités</a>
-                                <a href="#pricing" className="text-sm font-medium text-gray-700 hover:text-gray-900">Tarifs</a>
-                                <a href="#contact" className="text-sm font-medium text-gray-700 hover:text-gray-900">Contact</a>
-                                <Link href="/login" className="text-sm font-medium text-gray-700 hover:text-gray-900">
+                            <div className="hidden md:flex md:items-center md:space-x-1">
+                                <a href="#features" className="rounded-full px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-900">Fonctionnalités</a>
+                                <a href="#pricing" className="rounded-full px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-900">Tarifs</a>
+                                <a href="#contact" className="rounded-full px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-900">Contact</a>
+                                <Link href="/login" className="rounded-full px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-900">
                                     Connexion
                                 </Link>
-                                <Link href="/register" className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-gray-800 hover:shadow-lg">
+                                <Link href="/register" className="ml-4 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-gray-800 hover:shadow-lg">
                                     Essai Gratuit
                                 </Link>
                             </div>
