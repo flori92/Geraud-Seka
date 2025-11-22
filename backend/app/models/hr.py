@@ -61,10 +61,20 @@ class Employee(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    contracts = relationship("Contract", back_populates="employee")
-    payslips = relationship("Payslip", back_populates="employee")
-    leaves = relationship("LeaveRequest", back_populates="employee")
-    manager = relationship("Employee", remote_side=[id])
+    contracts = relationship("Contract", back_populates="employee", cascade="all, delete-orphan")
+    payslips = relationship("Payslip", back_populates="employee", cascade="all, delete-orphan")
+    leaves = relationship(
+        "LeaveRequest",
+        back_populates="employee",
+        cascade="all, delete-orphan",
+        foreign_keys="LeaveRequest.employee_id",
+    )
+    approved_leaves = relationship(
+        "LeaveRequest",
+        back_populates="approver",
+        foreign_keys="LeaveRequest.approved_by_id",
+    )
+    manager = relationship("Employee", remote_side=[id], backref="reports")
 
 class Contract(Base):
     __tablename__ = "contracts"
@@ -137,4 +147,13 @@ class LeaveRequest(Base):
     
     created_at = Column(DateTime, default=datetime.utcnow)
     
-    employee = relationship("Employee", back_populates="leaves")
+    employee = relationship(
+        "Employee",
+        back_populates="leaves",
+        foreign_keys=[employee_id],
+    )
+    approver = relationship(
+        "Employee",
+        back_populates="approved_leaves",
+        foreign_keys=[approved_by_id],
+    )
