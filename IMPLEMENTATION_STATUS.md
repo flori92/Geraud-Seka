@@ -59,7 +59,7 @@
     *   Actions exécutables via le chat.
 
 ### 5. 💰 **Module Ventes & Finance**
-**Statut :** 🚧 En cours (75% complété)
+**Statut :** 🚧 En cours (90% complété)
 
 *   **Modèles** (`backend/app/models/`) : ✅ Terminé
     *   `Quote` & `QuoteItem` : Devis avec conversion facture
@@ -72,7 +72,7 @@
     *   Validation complète avec Decimal handling
     *   Nested item schemas
 *   **CRUD Operations** (`backend/app/crud/`) : ✅ Terminé
-    *   50+ opérations (get, get_multi, create, update, delete)
+    *   60+ opérations (get, get_multi, create, update, delete)
     *   Fonctions spéciales :
         - `convert_to_invoice()` : Quote → SalesInvoice
         - `record_payment()` : Enregistrement paiements
@@ -80,7 +80,16 @@
         - `validate_delivery()` : Validation livraison
     *   Auto-numérotation : QUOTE-2024-001, FAC-2024-001, BC-2024-001, BL-2024-001
     *   Calculs automatiques (HT, TVA, TTC)
-*   **Routes API** : ⏳ Prochaine étape
+*   **Routes API** : ✅ Terminé
+    *   `/quotes` : 10 endpoints (CRUD + send/accept/reject/convert)
+    *   `/sales-invoices` : 12 endpoints (CRUD + send/validate/cancel + payments + overdue/unpaid)
+    *   `/purchase-orders` : 10 endpoints (CRUD + send/confirm + receive + pending-delivery)
+    *   `/delivery-notes` : 10 endpoints (CRUD + delivered/validate/reject + pending-validation)
+    *   40+ endpoints REST complets avec multi-tenant et autorisation
+*   **Migration Base de Données** : ✅ Terminé
+    *   Migration Alembic créée pour toutes les tables Sales
+    *   9 tables : quotes, quote_items, sales_invoices, sales_invoice_items, payments, purchase_orders, purchase_order_items, delivery_notes, delivery_note_items
+    *   Index optimisés pour les requêtes fréquentes
 *   **Génération PDF** : ⏳ À implémenter
 *   **Intégrations** : ✅ Stripe et KKiaPay (Mobile Money)
 

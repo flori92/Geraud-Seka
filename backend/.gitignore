@@ -45,4 +45,4 @@ media/
 logs/
 
 # Alembic
-alembic/versions/
+# alembic/versions/  # COMMENTED: Migration files should be versioned
