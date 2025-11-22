@@ -12,7 +12,12 @@ class Settings(BaseSettings):
     debug: bool = True
 
     api_v1_prefix: str = "/api/v1"
-    backend_cors_origins: List[str] = ["http://localhost:3000"]
+    backend_cors_origins: List[str] = [
+        "http://localhost:3000", 
+        "https://www.sekagestion.com", 
+        "https://sekagestion.com",
+        "https://app.sekagestion.com"
+    ]
 
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/seka"
     redis_url: str = "redis://localhost:6379/0"
