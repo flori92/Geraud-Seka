@@ -18,4 +18,8 @@ class Client(Base, TimestampMixin):
 
     tenant = relationship("Tenant", back_populates="clients")
 
+    # Relations Module Ventes
+    quotes = relationship("Quote", back_populates="client", cascade="all, delete-orphan")
+    sales_invoices = relationship("SalesInvoice", back_populates="client", cascade="all, delete-orphan")
+
     __table_args__ = ({"sqlite_autoincrement": True},)

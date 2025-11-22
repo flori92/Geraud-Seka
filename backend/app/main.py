@@ -1,8 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+import os
 
 from app.api.v1.router import api_router
 from app.core.config import get_settings
+from app.middleware.monitoring import MonitoringMiddleware
+from app.services.monitoring import monitoring_service
 
 
 def create_application() -> FastAPI:
@@ -48,15 +52,41 @@ def create_application() -> FastAPI:
         debug=settings.debug
     )
 
+    # CORS Middleware
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=settings.backend_cors_origins if settings.environment == "production" else ["*"],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
-
+    
+    # Monitoring Middleware
+    app.add_middleware(MonitoringMiddleware)
+    
+    # Servir les fichiers statiques (uploads locaux)
+    if os.path.exists("uploads"):
+        app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+    
+    # Routes API
     app.include_router(api_router, prefix=settings.api_v1_prefix)
+    
+    # Event handlers
+    @app.on_event("startup")
+    async def startup_event():
+        monitoring_service.log_business_event(
+            event_type="application_startup",
+            description="SEKA Backend démarré avec succès",
+            tenant_id="system"
+        )
+    
+    @app.on_event("shutdown") 
+    async def shutdown_event():
+        monitoring_service.log_business_event(
+            event_type="application_shutdown",
+            description="SEKA Backend arrêté",
+            tenant_id="system"
+        )
 
     return app
 

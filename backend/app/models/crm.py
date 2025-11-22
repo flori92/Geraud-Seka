@@ -1,0 +1,423 @@
+"""
+Modèles CRM Avancés pour SEKA Enterprise
+Pipeline de vente intelligent avec IA
+"""
+
+import uuid
+import enum
+from datetime import datetime, date
+from typing import Optional
+from sqlalchemy import Column, String, Float, Integer, DateTime, Boolean, ForeignKey, Text, JSON, Date, Numeric
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
+
+from app.db.base import Base, TimestampMixin
+
+
+class LeadSource(str, enum.Enum):
+    """Sources de génération des leads"""
+    WEBSITE = "website"
+    REFERRAL = "referral"
+    SOCIAL_MEDIA = "social_media"
+    EMAIL_MARKETING = "email_marketing"
+    COLD_CALLING = "cold_calling"
+    TRADE_SHOW = "trade_show"
+    ADVERTISING = "advertising"
+    PARTNER = "partner"
+    DIRECT = "direct"
+
+
+class LeadStatus(str, enum.Enum):
+    """États du lead dans le funnel"""
+    NEW = "new"
+    CONTACTED = "contacted"
+    QUALIFIED = "qualified"
+    PROPOSAL_SENT = "proposal_sent"
+    NEGOTIATION = "negotiation"
+    CONVERTED = "converted"
+    LOST = "lost"
+    UNQUALIFIED = "unqualified"
+
+
+class OpportunityStage(str, enum.Enum):
+    """Étapes du pipeline de vente"""
+    QUALIFICATION = "qualification"
+    NEEDS_ANALYSIS = "needs_analysis"
+    PROPOSAL = "proposal"
+    NEGOTIATION = "negotiation"
+    CLOSING = "closing"
+    WON = "won"
+    LOST = "lost"
+
+
+class ActivityType(str, enum.Enum):
+    """Types d'activités CRM"""
+    CALL = "call"
+    EMAIL = "email"
+    MEETING = "meeting"
+    TASK = "task"
+    NOTE = "note"
+    DEMO = "demo"
+    PROPOSAL = "proposal"
+    FOLLOW_UP = "follow_up"
+
+
+class Priority(str, enum.Enum):
+    """Niveaux de priorité"""
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    URGENT = "urgent"
+
+
+class Lead(Base, TimestampMixin):
+    """Prospects/Leads avec scoring IA"""
+    __tablename__ = "leads"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    # Informations personnelles
+    first_name = Column(String(100), nullable=False)
+    last_name = Column(String(100), nullable=False)
+    full_name = Column(String(255))  # Auto-généré
+    email = Column(String(255), nullable=False, index=True)
+    phone = Column(String(20))
+    mobile = Column(String(20))
+    
+    # Informations professionnelles
+    company = Column(String(255), index=True)
+    job_title = Column(String(100))
+    industry = Column(String(100))
+    company_size = Column(String(50))  # 1-10, 11-50, 51-200, 200+
+    annual_revenue = Column(String(50))  # Range de CA
+    
+    # Adresse
+    address = Column(Text)
+    city = Column(String(100))
+    country = Column(String(100))
+    
+    # Qualification et scoring
+    status = Column(String(20), nullable=False, default=LeadStatus.NEW, index=True)
+    source = Column(String(50), nullable=False, default=LeadSource.DIRECT, index=True)
+    score = Column(Integer, default=0, index=True)  # Score IA 0-100
+    quality_grade = Column(String(2))  # A, B, C, D based on score
+    
+    # Tracking comportemental
+    email_opens = Column(Integer, default=0)
+    email_clicks = Column(Integer, default=0)
+    website_visits = Column(Integer, default=0)
+    last_activity_date = Column(DateTime)
+    
+    # Qualification
+    budget_range = Column(String(50))
+    timeline = Column(String(50))  # immediate, 1-3months, 3-6months, 6+months
+    pain_points = Column(JSON)  # Array de pain points identifiés
+    
+    # Suivi commercial
+    last_contact_date = Column(DateTime)
+    next_action_date = Column(DateTime, index=True)
+    notes = Column(Text)
+    tags = Column(JSON)  # Tags flexibles
+    
+    # Conversion
+    converted_at = Column(DateTime)
+    converted_to_client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id"))
+    conversion_value = Column(Numeric(15, 2))
+    
+    # Relations
+    assigned_to = Column(UUID(as_uuid=True), ForeignKey("users.id"), index=True)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    
+    # Relations inverses
+    assignee = relationship("User", back_populates="assigned_leads")
+    tenant = relationship("Tenant")
+    converted_client = relationship("Client", foreign_keys=[converted_to_client_id])
+    activities = relationship("CRMActivity", back_populates="lead", cascade="all, delete-orphan")
+    opportunities = relationship("Opportunity", back_populates="lead")
+
+    @property
+    def full_display_name(self) -> str:
+        """Nom complet formaté pour affichage"""
+        return f"{self.first_name} {self.last_name}"
+    
+    @property
+    def days_since_last_contact(self) -> Optional[int]:
+        """Nombre de jours depuis le dernier contact"""
+        if self.last_contact_date:
+            return (datetime.utcnow() - self.last_contact_date).days
+        return None
+
+    @property
+    def is_hot_lead(self) -> bool:
+        """Détermine si c'est un lead chaud basé sur le score et l'activité"""
+        return self.score >= 70 and (self.last_activity_date and 
+               (datetime.utcnow() - self.last_activity_date).days <= 7)
+
+
+class Opportunity(Base, TimestampMixin):
+    """Opportunités commerciales dans le pipeline"""
+    __tablename__ = "opportunities"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    # Identification
+    name = Column(String(255), nullable=False)
+    description = Column(Text)
+    reference = Column(String(100), unique=True)  # Référence unique
+    
+    # Valeur commerciale
+    amount = Column(Numeric(15, 2), nullable=False)
+    currency = Column(String(3), default="XOF")  # Franc CFA par défaut
+    probability = Column(Integer, default=50)  # % de chance de closing
+    
+    # Pipeline
+    stage = Column(String(50), nullable=False, default=OpportunityStage.QUALIFICATION, index=True)
+    stage_changed_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Dates importantes
+    created_date = Column(Date, default=date.today)
+    expected_close_date = Column(Date, index=True)
+    actual_close_date = Column(Date)
+    last_activity_date = Column(DateTime)
+    
+    # Détails business
+    products_interested = Column(JSON)  # Liste des produits/services d'intérêt
+    requirements = Column(Text)
+    budget_confirmed = Column(Boolean, default=False)
+    decision_maker_identified = Column(Boolean, default=False)
+    
+    # Compétition
+    competitors = Column(JSON)  # Liste des concurrents identifiés
+    competitive_advantage = Column(Text)
+    
+    # Suivi
+    forecast_category = Column(String(20), default="pipeline")  # commit, best_case, pipeline, omitted
+    next_action = Column(Text)
+    loss_reason = Column(String(255))  # Si perdu
+    
+    # Relations
+    lead_id = Column(UUID(as_uuid=True), ForeignKey("leads.id"))
+    client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id"))  # Si client existant
+    assigned_to = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    
+    # Relations
+    lead = relationship("Lead", back_populates="opportunities")
+    client = relationship("Client")
+    assignee = relationship("User")
+    tenant = relationship("Tenant")
+    activities = relationship("CRMActivity", back_populates="opportunity")
+    quotes = relationship("Quote", back_populates="opportunity")
+
+    @property
+    def weighted_amount(self) -> float:
+        """Montant pondéré par la probabilité"""
+        return float(self.amount) * (self.probability / 100)
+
+    @property
+    def days_in_stage(self) -> int:
+        """Nombre de jours dans l'étape actuelle"""
+        return (datetime.utcnow() - self.stage_changed_at).days
+
+    @property
+    def is_stale(self) -> bool:
+        """Détermine si l'opportunité stagne"""
+        return self.days_in_stage > 30  # Plus de 30 jours dans la même étape
+
+
+class CRMActivity(Base, TimestampMixin):
+    """Activités CRM (interactions avec prospects/clients)"""
+    __tablename__ = "crm_activities"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    # Type et contenu
+    type = Column(String(50), nullable=False, default=ActivityType.NOTE)
+    subject = Column(String(255), nullable=False)
+    description = Column(Text)
+    
+    # Planification
+    due_date = Column(DateTime)
+    duration_minutes = Column(Integer)  # Durée prévue en minutes
+    
+    # État
+    is_completed = Column(Boolean, default=False)
+    completed_at = Column(DateTime)
+    priority = Column(String(20), default=Priority.MEDIUM)
+    
+    # Résultat
+    outcome = Column(String(50))  # successful, no_answer, rescheduled, etc.
+    next_action_required = Column(Boolean, default=False)
+    next_action_description = Column(Text)
+    
+    # Métriques
+    call_duration = Column(Integer)  # Pour les appels
+    email_opened = Column(Boolean)  # Pour les emails
+    meeting_attended = Column(Boolean)  # Pour les meetings
+    
+    # Relations
+    lead_id = Column(UUID(as_uuid=True), ForeignKey("leads.id"))
+    client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id"))
+    opportunity_id = Column(UUID(as_uuid=True), ForeignKey("opportunities.id"))
+    assigned_to = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    
+    # Relations
+    lead = relationship("Lead", back_populates="activities")
+    client = relationship("Client")
+    opportunity = relationship("Opportunity", back_populates="activities")
+    assignee = relationship("User")
+    tenant = relationship("Tenant")
+
+
+class CampaignType(str, enum.Enum):
+    """Types de campagnes marketing"""
+    EMAIL = "email"
+    SMS = "sms"
+    SOCIAL = "social"
+    WEBINAR = "webinar"
+    EVENT = "event"
+    CONTENT = "content"
+
+
+class Campaign(Base, TimestampMixin):
+    """Campagnes marketing pour génération de leads"""
+    __tablename__ = "campaigns"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    # Identification
+    name = Column(String(255), nullable=False)
+    description = Column(Text)
+    type = Column(String(50), nullable=False)
+    
+    # Planification
+    start_date = Column(DateTime, nullable=False)
+    end_date = Column(DateTime)
+    budget = Column(Numeric(15, 2))
+    
+    # Contenu
+    message = Column(Text)
+    call_to_action = Column(String(255))
+    landing_page_url = Column(String(500))
+    
+    # Ciblage
+    target_audience = Column(JSON)  # Critères de ciblage
+    expected_reach = Column(Integer)
+    
+    # État
+    status = Column(String(20), default="draft")  # draft, active, paused, completed
+    
+    # Métriques
+    total_sent = Column(Integer, default=0)
+    total_opened = Column(Integer, default=0)
+    total_clicked = Column(Integer, default=0)
+    total_converted = Column(Integer, default=0)
+    total_cost = Column(Numeric(15, 2), default=0)
+    
+    # Relations
+    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    
+    creator = relationship("User")
+    tenant = relationship("Tenant")
+
+    @property
+    def open_rate(self) -> float:
+        """Taux d'ouverture"""
+        if self.total_sent > 0:
+            return (self.total_opened / self.total_sent) * 100
+        return 0
+
+    @property
+    def click_rate(self) -> float:
+        """Taux de clic"""
+        if self.total_sent > 0:
+            return (self.total_clicked / self.total_sent) * 100
+        return 0
+
+    @property
+    def conversion_rate(self) -> float:
+        """Taux de conversion"""
+        if self.total_sent > 0:
+            return (self.total_converted / self.total_sent) * 100
+        return 0
+
+    @property
+    def roi(self) -> Optional[float]:
+        """Retour sur investissement"""
+        if self.total_cost > 0:
+            # Calculer le ROI basé sur la valeur des leads convertis
+            # À implémenter avec les données de conversion
+            pass
+        return None
+
+
+class LeadScoring(Base, TimestampMixin):
+    """Configuration du scoring automatique des leads"""
+    __tablename__ = "lead_scoring"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    # Configuration
+    name = Column(String(100), nullable=False)
+    description = Column(Text)
+    
+    # Critères de scoring (JSON flexible)
+    scoring_rules = Column(JSON, nullable=False)
+    
+    # Exemple de scoring_rules:
+    # {
+    #   "company_size": {"1-10": 10, "11-50": 20, "51-200": 30, "200+": 40},
+    #   "industry": {"technology": 30, "finance": 25, "healthcare": 20},
+    #   "email_engagement": {"opens": 5, "clicks": 10},
+    #   "website_behavior": {"pricing_page": 25, "demo_request": 50}
+    # }
+    
+    # État
+    is_active = Column(Boolean, default=True)
+    
+    # Relations
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    tenant = relationship("Tenant")
+
+
+# Extension du modèle User pour CRM
+from sqlalchemy.ext.declarative import declared_attr
+
+class UserCRMExtension:
+    """Extension CRM pour le modèle User"""
+    
+    @declared_attr
+    def assigned_leads(cls):
+        return relationship("Lead", back_populates="assignee")
+    
+    @declared_attr  
+    def assigned_opportunities(cls):
+        return relationship("Opportunity", back_populates="assignee")
+
+
+# Extension du modèle Client pour CRM  
+class ClientCRMExtension:
+    """Extension CRM pour le modèle Client"""
+    
+    @declared_attr
+    def opportunities(cls):
+        return relationship("Opportunity", back_populates="client")
+    
+    @declared_attr
+    def crm_activities(cls):
+        return relationship("CRMActivity", back_populates="client")
+
+
+# Mise à jour du modèle Quote existant pour lier aux opportunités
+class QuoteExtension:
+    """Extension Quote pour opportunités"""
+    
+    @declared_attr
+    def opportunity_id(cls):
+        return Column(UUID(as_uuid=True), ForeignKey("opportunities.id"))
+    
+    @declared_attr
+    def opportunity(cls):
+        return relationship("Opportunity", back_populates="quotes")

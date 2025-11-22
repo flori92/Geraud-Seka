@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# Script de démarrage pour Railway
+echo "🚀 Démarrage de SEKA Backend..."
+
+# Vérification des variables d'environnement critiques
+if [ -z "$PORT" ]; then
+    echo "❌ Variable PORT non définie, utilisation du port 8000 par défaut"
+    export PORT=8000
+fi
+
+if [ -z "$DATABASE_URL" ]; then
+    echo "⚠️  Variable DATABASE_URL non définie"
+fi
+
+echo "📡 Port d'écoute: $PORT"
+echo "🗄️  Base de données: ${DATABASE_URL:0:30}..."
+
+# Exécuter les migrations automatiquement au démarrage
+echo "🔄 Exécution des migrations de base de données..."
+python3 migrate.py
+
+if [ $? -eq 0 ]; then
+    echo "✅ Migrations terminées avec succès"
+else
+    echo "❌ Échec des migrations, arrêt du démarrage"
+    exit 1
+fi
+
+# Démarrage de l'API
+echo "🌟 Lancement de l'API SEKA..."
+exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1

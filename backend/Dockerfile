@@ -15,13 +15,18 @@ COPY pyproject.toml ./
 COPY app ./app
 COPY alembic.ini ./
 COPY alembic ./alembic
+COPY migrate.py ./
+COPY start.sh ./
 
 # Install dependencies
 COPY requirements.txt ./
 RUN pip install --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
+# Rendre le script de démarrage exécutable
+RUN chmod +x start.sh
+
 EXPOSE 8000
 
-# Default command: API FastAPI
-CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
+# Default command: Run migrations then start server
+CMD ["./start.sh"]
