@@ -16,6 +16,8 @@ class Tenant(Base, TimestampMixin):
     country = Column(String(64), nullable=True)
     is_active = Column(Boolean, nullable=False, default=True)
     plan = Column(String(50), nullable=False, default="basic")
+    stripe_customer_id = Column(String(255), nullable=True)
+    subscription_status = Column(String(50), default="active")
 
     users = relationship(
         "User",

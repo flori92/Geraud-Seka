@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Optional, List
 from sqlalchemy import Column, String, Integer, Float, Boolean, ForeignKey, Date, DateTime, JSON, Text
 from sqlalchemy.orm import relationship
-from app.db.base_class import Base
+from app.db.base import Base
 import uuid
 
 class EmployeeStatus(str, Enum):

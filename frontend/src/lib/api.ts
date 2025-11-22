@@ -284,3 +284,50 @@ export const getAnomalies = async () => {
   const response = await api.get<Anomaly[]>("/analytics/anomalies");
   return response.data;
 };
+
+// Payments
+export interface StripeCustomerCreate {
+  email: string;
+  name: string;
+  metadata?: Record<string, any>;
+}
+
+export interface StripeSubscriptionCreate {
+  customer_id: string;
+  price_id: string;
+  trial_days?: number;
+}
+
+export interface KKiaPayLinkCreate {
+  amount: number;
+  reason: string;
+  callback_url: string;
+}
+
+export async function createStripeCustomer(data: StripeCustomerCreate, accessToken: string): Promise<any> {
+  const response = await api.post("/api/v1/payments/stripe/customer", data, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function createStripeSubscription(data: StripeSubscriptionCreate, accessToken: string): Promise<any> {
+  const response = await api.post("/api/v1/payments/stripe/subscribe", data, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function createKKiaPayLink(data: KKiaPayLinkCreate, accessToken: string): Promise<any> {
+  const response = await api.post("/api/v1/payments/kkiapay/link", data, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function verifyKKiaPayTransaction(transactionId: string, accessToken: string): Promise<any> {
+  const response = await api.post("/api/v1/payments/kkiapay/verify", { transaction_id: transactionId }, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
