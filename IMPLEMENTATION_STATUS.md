@@ -69,6 +69,21 @@
     *   Envoi par email.
 *   **Paiements** : Intégration Stripe et KKiaPay (Mobile Money).
 
+### 6. 💳 **Système de Paiement & Abonnements**
+**Statut :** ✅ Terminé
+
+*   **Backend (`/api/v1/payments`)** :
+    *   Routes Stripe : Création client, abonnement, webhooks
+    *   Routes KKiaPay : Liens de paiement, vérification, webhooks
+    *   Mise à jour automatique du statut d'abonnement
+*   **Frontend** :
+    *   Page `/pricing` : 3 plans (Starter, Business, Enterprise)
+    *   Toggle Stripe/KKiaPay pour choix du mode de paiement
+    *   Page `/billing` : Gestion abonnement et historique
+    *   Page `/payment/callback` : Vérification paiement KKiaPay
+*   **Base de données** :
+    *   Champs `stripe_customer_id` et `subscription_status` sur Tenant
+
 ---
 
 ## 🚧 EN COURS D'AMÉLIORATION
@@ -81,6 +96,21 @@
 ---
 
 ## 📋 PROCHAINES ÉTAPES (Post-Lancement)
+
+### **Court Terme (Cette Semaine)**
+1. ✅ ~~Configurer toutes les clés API~~ **FAIT**
+2. ✅ ~~Créer routes API pour paiements~~ **FAIT**
+3. ✅ ~~Webhooks Stripe + KKiaPay~~ **FAIT**
+4. ✅ ~~Page pricing frontend~~ **FAIT**
+5. ⏳ **Tester les paiements en production**
+6. ⏳ **Configurer les URLs de webhook sur Stripe/KKiaPay**
+
+### **Moyen Terme (Ce Mois)**
+1. ⏳ **Limites d'usage par plan** (nombre de clients, utilisateurs, etc.)
+2. ⏳ **Auto-upgrade/downgrade** selon le plan
+3. ⏳ **Historique paiements** complet avec factures PDF
+4. ⏳ **Notifications email** pour paiements et renouvellements
+5. ⏳ **Dashboard analytics** des revenus
 
 ### **Phase 1 : Expansion Mobile**
 *   Développement de l'application mobile (React Native ou PWA avancée).
