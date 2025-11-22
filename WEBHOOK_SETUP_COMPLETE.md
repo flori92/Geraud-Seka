@@ -14,7 +14,7 @@
 - **URL**: `https://appsmith-seka-production.up.railway.app/api/v1/payments/stripe/webhook`
 - **Status**: ✅ Actif (enabled)
 - **Mode**: Test
-- **Secret**: `whsec_Oqh7XjtlhA8AzJahj804gF4QVkCwvwSw`
+- **Secret**: `whsec_***************************` (voir Railway Variables)
 
 **Événements écoutés**:
 - ✅ `invoice.payment_succeeded` - Paiement réussi
@@ -27,8 +27,10 @@
 
 Le secret webhook a été ajouté à `backend/.env`:
 ```bash
-STRIPE_WEBHOOK_SECRET=whsec_Oqh7XjtlhA8AzJahj804gF4QVkCwvwSw
+STRIPE_WEBHOOK_SECRET=whsec_***************************
 ```
+
+**Note**: Le secret réel est stocké de manière sécurisée. Consultez Railway Variables pour la valeur complète.
 
 ---
 
@@ -39,8 +41,10 @@ STRIPE_WEBHOOK_SECRET=whsec_Oqh7XjtlhA8AzJahj804gF4QVkCwvwSw
 Allez sur Railway et ajoutez cette variable d'environnement:
 
 ```
-STRIPE_WEBHOOK_SECRET=whsec_Oqh7XjtlhA8AzJahj804gF4QVkCwvwSw
+STRIPE_WEBHOOK_SECRET=whsec_***************************
 ```
+
+**Note**: Utilisez le secret réel fourni lors de la création du webhook (voir logs ou Stripe Dashboard).
 
 **Comment faire**:
 1. Ouvrir Railway Dashboard
@@ -99,7 +103,7 @@ KKiaPay ne fournit pas d'API pour créer des webhooks. Configuration manuelle:
 
 ```bash
 curl https://api.stripe.com/v1/webhook_endpoints \
-  -u "sk_test_YOUR_STRIPE_SECRET_KEY:"
+  -u "sk_test_***YOUR_STRIPE_SECRET_KEY***:"
 ```
 
 ### Logs Railway
