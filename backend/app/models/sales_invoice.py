@@ -87,7 +87,7 @@ class SalesInvoice(Base):
     last_reminder_sent = Column(Date, nullable=True)
 
     # Métadonnées
-    metadata = Column(JSONB, nullable=True)
+    extra_metadata = Column("metadata", JSONB, nullable=True)  # Champs personnalisés
 
     # Timestamps
     created_at = Column(Date, default=datetime.utcnow, nullable=False)
