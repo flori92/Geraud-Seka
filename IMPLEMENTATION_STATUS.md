@@ -59,15 +59,30 @@
     *   Actions exécutables via le chat.
 
 ### 5. 💰 **Module Ventes & Finance**
-**Statut :** ✅ Terminé
+**Statut :** 🚧 En cours (75% complété)
 
-*   **Modèles** : `Quote`, `SalesInvoice`, `Payment`, `PurchaseOrder`.
-*   **Fonctionnalités** :
-    *   Devis & Facturation complets.
-    *   Numérotation automatique.
-    *   Génération PDF.
-    *   Envoi par email.
-*   **Paiements** : Intégration Stripe et KKiaPay (Mobile Money).
+*   **Modèles** (`backend/app/models/`) : ✅ Terminé
+    *   `Quote` & `QuoteItem` : Devis avec conversion facture
+    *   `SalesInvoice` & `SalesInvoiceItem` : Factures vente
+    *   `Payment` : Paiements reçus (tracking complet)
+    *   `PurchaseOrder` & `PurchaseOrderItem` : Bons de commande achat
+    *   `DeliveryNote` & `DeliveryNoteItem` : Bons de livraison
+*   **Schemas Pydantic** (`backend/app/schemas/`) : ✅ Terminé
+    *   40+ schemas (Create, Update, Response pour chaque entité)
+    *   Validation complète avec Decimal handling
+    *   Nested item schemas
+*   **CRUD Operations** (`backend/app/crud/`) : ✅ Terminé
+    *   50+ opérations (get, get_multi, create, update, delete)
+    *   Fonctions spéciales :
+        - `convert_to_invoice()` : Quote → SalesInvoice
+        - `record_payment()` : Enregistrement paiements
+        - `update_received_quantity()` : Suivi réception
+        - `validate_delivery()` : Validation livraison
+    *   Auto-numérotation : QUOTE-2024-001, FAC-2024-001, BC-2024-001, BL-2024-001
+    *   Calculs automatiques (HT, TVA, TTC)
+*   **Routes API** : ⏳ Prochaine étape
+*   **Génération PDF** : ⏳ À implémenter
+*   **Intégrations** : ✅ Stripe et KKiaPay (Mobile Money)
 
 ### 6. 💳 **Système de Paiement & Abonnements**
 **Statut :** ✅ Terminé
