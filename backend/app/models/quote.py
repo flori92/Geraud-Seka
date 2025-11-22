@@ -84,7 +84,8 @@ class Quote(Base):
     items = relationship("QuoteItem", back_populates="quote", cascade="all, delete-orphan")
     sales_invoice = relationship(
         "SalesInvoice",
-        foreign_keys=[sales_invoice_id],
+        back_populates="quote",
+        primaryjoin="Quote.sales_invoice_id==SalesInvoice.id",
         uselist=False,
     )
 
