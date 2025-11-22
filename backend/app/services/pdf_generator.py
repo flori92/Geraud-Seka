@@ -9,8 +9,10 @@ import uuid
 try:
     from weasyprint import HTML, CSS
     WEASYPRINT_AVAILABLE = True
-except ImportError:
+except (ImportError, OSError):
     WEASYPRINT_AVAILABLE = False
+    HTML = None
+    CSS = None
 
 
 class PDFGenerator:
@@ -19,12 +21,7 @@ class PDFGenerator:
     def __init__(self, storage_service=None):
         """Initialize PDF generator with optional storage service."""
         self.storage_service = storage_service
-
-        if not WEASYPRINT_AVAILABLE:
-            raise ImportError(
-                "WeasyPrint is not installed. "
-                "Install it with: pip install weasyprint"
-            )
+        self.available = WEASYPRINT_AVAILABLE
 
     def generate_quote_pdf(self, quote, tenant) -> str:
         """
@@ -37,6 +34,8 @@ class PDFGenerator:
         Returns:
             str: Path to generated PDF file or URL if uploaded to storage
         """
+        if not self.available:
+            raise RuntimeError("PDF generation is not available. WeasyPrint dependencies are missing.")
         html_content = self._render_quote_template(quote, tenant)
         return self._generate_pdf_from_html(
             html_content,
@@ -54,6 +53,8 @@ class PDFGenerator:
         Returns:
             str: Path to generated PDF file or URL if uploaded to storage
         """
+        if not self.available:
+            raise RuntimeError("PDF generation is not available. WeasyPrint dependencies are missing.")
         html_content = self._render_invoice_template(invoice, tenant)
         return self._generate_pdf_from_html(
             html_content,
