@@ -23,4 +23,7 @@ class Product(Base, TimestampMixin):
     client = relationship("Client")
     tenant = relationship("Tenant")
 
+    # Note: Product est référencé par QuoteItem, SalesInvoiceItem, PurchaseOrderItem, DeliveryNoteItem
+    # Les relations inverses sont gérées automatiquement par SQLAlchemy via les ForeignKeys
+
     __table_args__ = ({"sqlite_autoincrement": True},)

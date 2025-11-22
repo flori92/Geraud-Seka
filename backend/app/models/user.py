@@ -20,3 +20,9 @@ class User(Base, TimestampMixin):
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"))
 
     tenant = relationship("Tenant", back_populates="users")
+
+    # Relations Module Ventes
+    quotes = relationship("Quote", back_populates="user")
+    sales_invoices = relationship("SalesInvoice", back_populates="user")
+    purchase_orders = relationship("PurchaseOrder", back_populates="user")
+    delivery_notes = relationship("DeliveryNote", back_populates="user")

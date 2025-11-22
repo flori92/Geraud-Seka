@@ -25,4 +25,8 @@ class Supplier(Base, TimestampMixin):
     client = relationship("Client", backref="suppliers")
     documents = relationship("Document", back_populates="supplier")
 
+    # Relations Module Ventes
+    purchase_orders = relationship("PurchaseOrder", back_populates="supplier")
+    delivery_notes = relationship("DeliveryNote", back_populates="supplier")
+
     __table_args__ = ({"sqlite_autoincrement": True},)
