@@ -1,4 +1,5 @@
-"""Schemas Pydantic pour validation et sérialisation des données."""
+# -*- coding: utf-8 -*-
+"""Pydantic schemas for data validation and serialization."""
 
 # Base schemas
 from .base import ORMBase, TimestampSchema, IDSchema
