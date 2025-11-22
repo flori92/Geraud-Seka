@@ -92,3 +92,9 @@ class LeaveRequestResponse(LeaveRequestCreate):
 
     class Config:
         from_attributes = True
+
+# Aliases for backward compatibility
+Employee = EmployeeResponse
+Contract = ContractResponse
+Payslip = PayslipResponse
+LeaveRequest = LeaveRequestResponse
