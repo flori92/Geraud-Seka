@@ -58,11 +58,32 @@ def run_migrations():
             tables = [row[0] for row in result]
             print(f"📋 Tables dans la base: {tables}")
 
-        # Puis exécuter les migrations Alembic
-        alembic_cfg = Config("alembic.ini")
-        command.upgrade(alembic_cfg, "head")
+            # Vérifier si alembic_version existe et a des migrations appliquées
+            if 'alembic_version' in tables:
+                try:
+                    version_result = conn.execute(text("SELECT version_num FROM alembic_version"))
+                    current_version = version_result.scalar()
+                    if current_version:
+                        print(f"ℹ️  Migration Alembic déjà appliquée: {current_version}")
+                        print("✅ Aucune migration nécessaire")
+                        return True
+                except Exception:
+                    pass  # Table existe mais vide
 
-        print("✅ Migrations appliquées avec succès")
+        # Configuration Alembic
+        alembic_cfg = Config("alembic.ini")
+
+        # Si les tables existent déjà, juste marquer la migration comme appliquée
+        if 'tenants' in tables and 'users' in tables:
+            print("📌 Tables existantes détectées, marquage de la migration comme appliquée...")
+            command.stamp(alembic_cfg, "head")
+            print("✅ Migration marquée comme appliquée")
+        else:
+            # Sinon, exécuter les migrations normalement
+            print("🔄 Application des migrations...")
+            command.upgrade(alembic_cfg, "head")
+            print("✅ Migrations appliquées avec succès")
+
         return True
 
     except Exception as e:
@@ -160,7 +181,7 @@ def main():
     
     # 2. Exécuter les migrations
     if not run_migrations():
-        print("❌ Échec des migrations")
+        print("❌ Échec des migrations, arrêt du démarrage")
         sys.exit(1)
     
     # 3. Créer les données initiales
