@@ -47,6 +47,14 @@ class ContractBase(BaseModel):
 class ContractCreate(ContractBase):
     pass
 
+class ContractUpdate(BaseModel):
+    type: Optional[ContractType] = None
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    base_salary: Optional[float] = None
+    currency: Optional[str] = None
+    allowances: Optional[Dict[str, float]] = None
+
 class ContractResponse(ContractBase):
     id: str
     is_active: bool
@@ -56,12 +64,31 @@ class ContractResponse(ContractBase):
         from_attributes = True
 
 # Payslip Schemas
+class PayslipBase(BaseModel):
+    employee_id: str
+    period_start: date
+    period_end: date
+    gross_salary: float
+    net_salary: float
+    earnings: Dict[str, Any] = {}
+    deductions: Dict[str, Any] = {}
+
+class PayslipCreate(PayslipBase):
+    pass
+
+class PayslipUpdate(BaseModel):
+    gross_salary: Optional[float] = None
+    net_salary: Optional[float] = None
+    earnings: Optional[Dict[str, Any]] = None
+    deductions: Optional[Dict[str, Any]] = None
+    status: Optional[str] = None
+
 class PayslipGenerate(BaseModel):
     employee_id: str
     period_start: date
     period_end: date
 
-class PayslipResponse(BaseModel):
+class PayslipResponse(PayslipBase):
     id: str
     employee_id: str
     period_start: date
@@ -77,7 +104,7 @@ class PayslipResponse(BaseModel):
         from_attributes = True
 
 # Leave Schemas
-class LeaveRequestCreate(BaseModel):
+class LeaveRequestBase(BaseModel):
     employee_id: str
     type: LeaveType
     start_date: date
@@ -85,7 +112,18 @@ class LeaveRequestCreate(BaseModel):
     days_count: float
     reason: Optional[str] = None
 
-class LeaveRequestResponse(LeaveRequestCreate):
+class LeaveRequestCreate(LeaveRequestBase):
+    pass
+
+class LeaveRequestUpdate(BaseModel):
+    type: Optional[LeaveType] = None
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    days_count: Optional[float] = None
+    reason: Optional[str] = None
+    status: Optional[LeaveStatus] = None
+
+class LeaveRequestResponse(LeaveRequestBase):
     id: str
     status: LeaveStatus
     created_at: datetime
