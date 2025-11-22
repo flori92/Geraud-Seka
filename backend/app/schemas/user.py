@@ -30,5 +30,9 @@ class UserRead(UserBase, IDSchema, TimestampSchema):
     pass
 
 
+# Alias pour compatibilité
+User = UserRead
+
+
 class UserInDB(UserBase, IDSchema):
     hashed_password: str

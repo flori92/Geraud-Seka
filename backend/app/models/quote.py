@@ -82,7 +82,11 @@ class Quote(Base):
     client = relationship("Client", back_populates="quotes")
     user = relationship("User", back_populates="quotes")
     items = relationship("QuoteItem", back_populates="quote", cascade="all, delete-orphan")
-    sales_invoice = relationship("SalesInvoice", back_populates="quote", foreign_keys=[sales_invoice_id])
+    sales_invoice = relationship(
+        "SalesInvoice",
+        foreign_keys=[sales_invoice_id],
+        uselist=False,
+    )
 
 
 class QuoteItem(Base):
