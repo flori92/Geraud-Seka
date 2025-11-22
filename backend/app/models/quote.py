@@ -71,7 +71,7 @@ class Quote(Base):
     sales_invoice_id = Column(UUID(as_uuid=True), ForeignKey("sales_invoices.id", ondelete="SET NULL"), nullable=True)
 
     # Métadonnées
-    metadata = Column(JSONB, nullable=True)  # Champs personnalisés
+    extra_metadata = Column("metadata", JSONB, nullable=True)  # Champs personnalisés
 
     # Timestamps
     created_at = Column(Date, default=datetime.utcnow, nullable=False)

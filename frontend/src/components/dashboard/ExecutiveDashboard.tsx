@@ -20,6 +20,11 @@ import {
 } from 'lucide-react';
 
 import { MetricCard } from './MetricCard';
+import SalesChart from '../charts/SalesChart';
+import CashFlowChart from '../charts/CashFlowChart';
+import { InsightsPanel } from './InsightsPanel';
+import { AlertsPanel } from './AlertsPanel';
+import { ConversionFunnel } from './ConversionFunnel';
 
 interface DashboardProps {
   tenantId: string;
@@ -332,7 +337,7 @@ export function ExecutiveDashboard({ tenantId, userId }: DashboardProps) {
             </p>
           </div>
           <div className="p-6">
-            <AlertsPanel alerts={alerts} onMarkAsRead={(id) => {
+            <AlertsPanel alerts={alerts} onMarkAsRead={(id: string) => {
               // TODO: Appeler API pour marquer comme lu
               setAlerts(alerts.map(alert => 
                 alert.id === id ? { ...alert, is_read: true } : alert
