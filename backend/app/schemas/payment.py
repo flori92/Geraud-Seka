@@ -1,6 +1,33 @@
 from typing import Optional, Dict, Any
-from pydantic import BaseModel
+from uuid import UUID
+from datetime import date
+from decimal import Decimal
+from pydantic import BaseModel, ConfigDict
 
+# Legacy Payment schemas (for backward compatibility)
+class PaymentBase(BaseModel):
+    amount: Decimal
+    payment_date: date
+    payment_method: Optional[str] = None
+    reference: Optional[str] = None
+
+class PaymentCreate(PaymentBase):
+    invoice_id: UUID
+
+class PaymentUpdate(BaseModel):
+    amount: Optional[Decimal] = None
+    payment_date: Optional[date] = None
+    payment_method: Optional[str] = None
+    reference: Optional[str] = None
+
+class Payment(PaymentBase):
+    id: UUID
+    invoice_id: UUID
+    tenant_id: UUID
+    
+    model_config = ConfigDict(from_attributes=True)
+
+# Stripe/KKiaPay schemas
 class StripeCustomerCreate(BaseModel):
     email: str
     name: str

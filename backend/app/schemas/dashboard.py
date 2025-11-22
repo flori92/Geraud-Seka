@@ -15,3 +15,11 @@ class ClientDashboardStats(BaseModel):
     client_name: str
     documents_pending: int
     last_activity: Optional[str]
+
+
+class FinancialMetrics(BaseModel):
+    total_revenue: float
+    total_expenses: float
+    net_profit: float
+    outstanding_invoices: float
+    cash_balance: float
