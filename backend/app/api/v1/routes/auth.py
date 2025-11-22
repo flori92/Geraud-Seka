@@ -49,10 +49,14 @@ def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db_session),
 ):
+    print(f"Login attempt for: {form_data.username}")
     user = user_crud.authenticate(db, email=form_data.username, password=form_data.password)
+    print(f"User found: {user}")
     if not user:
+        print("Authentication failed")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect credentials")
     if not user.is_active:
+        print("User inactive")
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user")
 
     access = create_access_token(str(user.id))
