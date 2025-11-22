@@ -1,0 +1,35 @@
+version: '3'
+
+services:
+  appsmith:
+    image: appsmith/appsmith-ce:latest
+    container_name: appsmith
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./stacks:/appsmith-stacks
+    environment:
+      - APPSMITH_ENCRYPTION_PASSWORD=${APPSMITH_ENCRYPTION_PASSWORD}
+      - APPSMITH_ENCRYPTION_SALT=${APPSMITH_ENCRYPTION_SALT}
+      - APPSMITH_MONGODB_URI=mongodb://mongo:27017/appsmith
+    depends_on:
+      - mongo
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:5.0
+    container_name: appsmith-mongo
+    volumes:
+      - ./mongo-data:/data/db
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    container_name: seka-backend
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - SECRET_KEY=${SECRET_KEY}
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
