@@ -21,6 +21,17 @@ class AccountingEntryCreate(AccountingEntryBase):
     client_id: UUID
 
 
+class AccountingEntryUpdate(BaseModel):
+    journal_code: Optional[str] = None
+    account_number: Optional[str] = None
+    label: Optional[str] = None
+    debit: Optional[float] = None
+    credit: Optional[float] = None
+    date: Optional[date] = None
+    due_date: Optional[date] = None
+    reference: Optional[str] = None
+
+
 class AccountingEntry(AccountingEntryBase):
     id: UUID
     document_id: Optional[UUID] = None
