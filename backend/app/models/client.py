@@ -21,5 +21,9 @@ class Client(Base, TimestampMixin):
     # Relations Module Ventes
     quotes = relationship("Quote", back_populates="client", cascade="all, delete-orphan")
     sales_invoices = relationship("SalesInvoice", back_populates="client", cascade="all, delete-orphan")
+    
+    # Relations Module CRM
+    opportunities = relationship("Opportunity", back_populates="client", cascade="all, delete-orphan")
+    crm_activities = relationship("CRMActivity", back_populates="client", cascade="all, delete-orphan")
 
     __table_args__ = ({"sqlite_autoincrement": True},)

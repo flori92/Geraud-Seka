@@ -18,6 +18,8 @@ from app.models.supplier import Supplier
 from app.models.client import Client
 # Import Treasury models AFTER SalesInvoice and PurchaseOrder (which they reference)
 from app.models.treasury import BankAccount, BankTransaction, PaymentSchedule
+# Import CRM models
+from app.models.crm import Lead, Opportunity, CRMActivity
 
 __all__ = [
     "Tenant",
@@ -44,4 +46,7 @@ __all__ = [
     "BankAccount",
     "BankTransaction",
     "PaymentSchedule",
+    "Lead",
+    "Opportunity",
+    "CRMActivity",
 ]

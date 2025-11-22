@@ -41,6 +41,8 @@ try:
     from app.models.activity import Activity  # noqa
     from app.models.accounting import AccountingEntry  # noqa
     from app.models.hr import Employee, Contract, Payslip, LeaveRequest  # noqa
+    # Import CRM models
+    from app.models.crm import Lead, Opportunity, CRMActivity  # noqa
 except ImportError:
     pass  # Some models might not exist yet
 

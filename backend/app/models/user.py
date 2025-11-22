@@ -26,3 +26,7 @@ class User(Base, TimestampMixin):
     sales_invoices = relationship("SalesInvoice", back_populates="user")
     purchase_orders = relationship("PurchaseOrder", back_populates="user")
     delivery_notes = relationship("DeliveryNote", back_populates="user")
+    
+    # Relations Module CRM
+    assigned_leads = relationship("Lead", back_populates="assignee", foreign_keys="Lead.assignee_id")
+    assigned_opportunities = relationship("Opportunity", back_populates="assignee", foreign_keys="Opportunity.assignee_id")

@@ -203,8 +203,8 @@ class Opportunity(Base, TimestampMixin):
     
     # Relations
     lead = relationship("Lead", back_populates="opportunities")
-    client = relationship("Client")
-    assignee = relationship("User")
+    client = relationship("Client", back_populates="opportunities")
+    assignee = relationship("User", back_populates="assigned_opportunities")
     tenant = relationship("Tenant")
     activities = relationship("CRMActivity", back_populates="opportunity")
     quotes = relationship("Quote", back_populates="opportunity")
@@ -264,7 +264,7 @@ class CRMActivity(Base, TimestampMixin):
     
     # Relations
     lead = relationship("Lead", back_populates="activities")
-    client = relationship("Client")
+    client = relationship("Client", back_populates="crm_activities")
     opportunity = relationship("Opportunity", back_populates="activities")
     assignee = relationship("User")
     tenant = relationship("Tenant")
@@ -382,42 +382,5 @@ class LeadScoring(Base, TimestampMixin):
     tenant = relationship("Tenant")
 
 
-# Extension du modèle User pour CRM
-from sqlalchemy.ext.declarative import declared_attr
-
-class UserCRMExtension:
-    """Extension CRM pour le modèle User"""
-    
-    @declared_attr
-    def assigned_leads(cls):
-        return relationship("Lead", back_populates="assignee")
-    
-    @declared_attr  
-    def assigned_opportunities(cls):
-        return relationship("Opportunity", back_populates="assignee")
-
-
-# Extension du modèle Client pour CRM  
-class ClientCRMExtension:
-    """Extension CRM pour le modèle Client"""
-    
-    @declared_attr
-    def opportunities(cls):
-        return relationship("Opportunity", back_populates="client")
-    
-    @declared_attr
-    def crm_activities(cls):
-        return relationship("CRMActivity", back_populates="client")
-
-
-# Mise à jour du modèle Quote existant pour lier aux opportunités
-class QuoteExtension:
-    """Extension Quote pour opportunités"""
-    
-    @declared_attr
-    def opportunity_id(cls):
-        return Column(UUID(as_uuid=True), ForeignKey("opportunities.id"))
-    
-    @declared_attr
-    def opportunity(cls):
-        return relationship("Opportunity", back_populates="quotes")
+# Extensions CRM supprimées - les relations sont maintenant directement 
+# intégrées dans les modèles User, Client et Quote correspondants

@@ -15,7 +15,7 @@ from app.schemas.sales_invoice import (
     SalesInvoiceCreate,
     SalesInvoiceUpdate,
     SalesInvoiceWithDetails,
-    SalesPaymentCreate,
+    PaymentCreate,
 )
 from app.crud import sales_invoice as invoice_crud
 from app.services.pdf_generator import PDFGenerator
