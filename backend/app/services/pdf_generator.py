@@ -125,13 +125,13 @@ class PDFGenerator:
                 <div class="header">
                     <div class="company-info">
                         <h1>{tenant.name}</h1>
-                        <p>Pays: {tenant.country or 'Côte d\'Ivoire'}</p>
+                        <p>Pays: {tenant.country or "Côte d'Ivoire"}</p>
                     </div>
                     <div class="document-info">
                         <h2>DEVIS</h2>
                         <p><strong>N°:</strong> {quote.quote_number}</p>
                         <p><strong>Date:</strong> {self._format_date(quote.quote_date)}</p>
-                        {f'<p><strong>Valable jusqu\'au:</strong> {self._format_date(quote.valid_until)}</p>' if quote.valid_until else ''}
+                        {f"<p><strong>Valable jusqu'au:</strong> {self._format_date(quote.valid_until)}</p>" if quote.valid_until else ''}
                     </div>
                 </div>
 
@@ -259,13 +259,13 @@ class PDFGenerator:
                 <div class="header">
                     <div class="company-info">
                         <h1>{tenant.name}</h1>
-                        <p>Pays: {tenant.country or 'Côte d\'Ivoire'}</p>
+                        <p>Pays: {tenant.country or "Côte d'Ivoire"}</p>
                     </div>
                     <div class="document-info">
                         <h2>FACTURE</h2>
                         <p><strong>N°:</strong> {invoice.invoice_number}</p>
                         <p><strong>Date:</strong> {self._format_date(invoice.invoice_date)}</p>
-                        {f'<p><strong>Date d\'échéance:</strong> {self._format_date(invoice.due_date)}</p>' if invoice.due_date else ''}
+                        {f"<p><strong>Date d'échéance:</strong> {self._format_date(invoice.due_date)}</p>" if invoice.due_date else ''}
                         <p><strong>Statut:</strong> <span class="status status-{invoice.payment_status}">{self._format_status(invoice.payment_status)}</span></p>
                     </div>
                 </div>
