@@ -61,3 +61,25 @@ class Tenant(Base, TimestampMixin):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+
+    # Relations Module Trésorerie
+    bank_accounts = relationship(
+        "BankAccount",
+        back_populates="tenant",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+    bank_transactions = relationship(
+        "BankTransaction",
+        back_populates="tenant",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+    payment_schedules = relationship(
+        "PaymentSchedule",
+        back_populates="tenant",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )

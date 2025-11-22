@@ -16,6 +16,8 @@ from app.models.purchase_order import PurchaseOrder, PurchaseOrderItem, Delivery
 from app.models.supplier import Supplier
 # Now import Client (which references Quote and SalesInvoice)
 from app.models.client import Client
+# Import Treasury models AFTER SalesInvoice and PurchaseOrder (which they reference)
+from app.models.treasury import BankAccount, BankTransaction, PaymentSchedule
 
 __all__ = [
     "Tenant",
@@ -39,4 +41,7 @@ __all__ = [
     "PurchaseOrderItem",
     "DeliveryNote",
     "DeliveryNoteItem",
+    "BankAccount",
+    "BankTransaction",
+    "PaymentSchedule",
 ]

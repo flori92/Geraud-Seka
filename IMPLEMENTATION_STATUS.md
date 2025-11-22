@@ -113,6 +113,26 @@
 *   **Base de données** :
     *   Champs `stripe_customer_id` et `subscription_status` sur Tenant
 
+### 7. 💰 **Module Trésorerie (Cash Management)**
+**Statut :** ✅ Modèles créés (40% complété)
+
+*   **Modèles** (`backend/app/models/treasury.py`) : ✅ Terminé
+    *   `BankAccount` : Comptes bancaires multi-devises
+    *   `BankTransaction` : Transactions avec rapprochement bancaire
+    *   `PaymentSchedule` : Échéanciers de paiement (à recevoir/payer)
+*   **Fonctionnalités** :
+    *   Gestion multi-comptes (courant, épargne, carte, prêt)
+    *   Suivi du solde en temps réel
+    *   Catégorisation des transactions
+    *   Rapprochement bancaire
+    *   Alertes sur échéances
+    *   Paiements récurrents
+    *   Lien avec factures et bons de commande
+*   **Schemas Pydantic** : ⏳ À implémenter
+*   **CRUD Operations** : ⏳ À implémenter
+*   **Routes API** : ⏳ À implémenter
+*   **Prévisions de trésorerie** : ⏳ À implémenter
+
 ---
 
 ## 🚧 EN COURS D'AMÉLIORATION
