@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.security import decode_token
 from app.crud import user as user_crud
 from app.db.session import get_db
+from app.models.tenant import Tenant
 from app.schemas.auth import TokenPayload
 
 reuseable_oauth = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
@@ -33,3 +34,29 @@ def get_current_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Inactive user")
 
     return user
+
+
+def get_current_tenant(
+    current_user = Depends(get_current_user),
+    db: Session = Depends(get_db_session),
+):
+    """Récupère le tenant courant à partir de l'utilisateur authentifié."""
+    if not getattr(current_user, "tenant_id", None):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Aucun tenant associé à cet utilisateur",
+        )
+
+    tenant = (
+        db.query(Tenant)
+        .filter(Tenant.id == current_user.tenant_id, Tenant.is_active.is_(True))
+        .first()
+    )
+
+    if not tenant:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tenant introuvable ou inactif",
+        )
+
+    return tenant

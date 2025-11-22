@@ -20,11 +20,6 @@ import {
 } from 'lucide-react';
 
 import { MetricCard } from './MetricCard';
-import { SalesChart } from './charts/SalesChart';
-import { CashFlowChart } from './charts/CashFlowChart';
-import { ConversionFunnel } from './charts/ConversionFunnel';
-import { InsightsPanel } from './InsightsPanel';
-import { AlertsPanel } from './AlertsPanel';
 
 interface DashboardProps {
   tenantId: string;

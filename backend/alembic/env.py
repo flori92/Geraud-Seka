@@ -10,7 +10,21 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 from app.core.config import get_settings
 from app.db.base import Base
-from app.models import User, Tenant, Client, Document, Supplier, AccountingEntry, Activity, Product
+from app.models import (
+    User,
+    Tenant,
+    Client,
+    Document,
+    Supplier,
+    AccountingEntry,
+    Activity,
+    Product,
+    Quote,
+    QuoteItem,
+    SalesInvoice,
+    SalesInvoiceItem,
+    Payment,
+)
 
 # Alembic Config object
 config = context.config

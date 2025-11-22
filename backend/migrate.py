@@ -21,13 +21,23 @@ from app.db.base import Base
 from app.db.session import engine
 
 # Import all models so they're registered with Base.metadata
+# IMPORTANT: Import order matters for SQLAlchemy relationships
+# Import Quote and SalesInvoice BEFORE Client to avoid mapper initialization errors
 from app.models.tenant import Tenant  # noqa
 from app.models.user import User  # noqa
 try:
+    # Import models that Client depends on FIRST
+    from app.models.quote import Quote, QuoteItem  # noqa
+    from app.models.sales_invoice import SalesInvoice, SalesInvoiceItem, Payment  # noqa
+    # Now import Client (which references Quote and SalesInvoice)
     from app.models.client import Client  # noqa
+    # Import other models
     from app.models.document import Document  # noqa
     from app.models.product import Product  # noqa
     from app.models.activity import Activity  # noqa
+    from app.models.supplier import Supplier  # noqa
+    from app.models.accounting import AccountingEntry  # noqa
+    from app.models.hr import Employee, Contract, Payslip, LeaveRequest  # noqa
 except ImportError:
     pass  # Some models might not exist yet
 
@@ -81,6 +91,12 @@ def create_initial_data():
     """Crée les données initiales nécessaires"""
     try:
         print("📋 Création des données initiales...")
+        
+        # Import all models first to ensure SQLAlchemy relationships are configured
+        # This must be done before creating any SQLAlchemy session
+        from app.models.quote import Quote, QuoteItem  # noqa
+        from app.models.sales_invoice import SalesInvoice, SalesInvoiceItem, Payment  # noqa
+        from app.models.client import Client  # noqa
         
         from app.db.session import SessionLocal
         from app.models.tenant import Tenant
