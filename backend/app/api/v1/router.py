@@ -1,6 +1,24 @@
 from fastapi import APIRouter
 
-from app.api.v1.routes import auth, health, documents, dashboard, clients, activities, products, exports, analytics, crm, bot, hr, payments
+from app.api.v1.routes import (
+    auth,
+    health,
+    documents,
+    dashboard,
+    clients,
+    activities,
+    products,
+    exports,
+    analytics,
+    crm,
+    bot,
+    hr,
+    payments,
+    quotes,
+    sales_invoices,
+    purchase_orders,
+    delivery_notes,
+)
 
 api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
@@ -15,3 +33,9 @@ api_router.include_router(crm.router, prefix="/crm", tags=["crm"])
 api_router.include_router(bot.router, prefix="/bot", tags=["bot"])
 api_router.include_router(hr.router, prefix="/hr", tags=["hr"])
 api_router.include_router(payments.router, prefix="/payments", tags=["payments"])
+
+# Sales Module Routes
+api_router.include_router(quotes.router, prefix="/quotes", tags=["sales", "quotes"])
+api_router.include_router(sales_invoices.router, prefix="/sales-invoices", tags=["sales", "invoices"])
+api_router.include_router(purchase_orders.router, prefix="/purchase-orders", tags=["purchases", "orders"])
+api_router.include_router(delivery_notes.router, prefix="/delivery-notes", tags=["purchases", "deliveries"])
