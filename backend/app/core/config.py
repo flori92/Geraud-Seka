@@ -56,6 +56,18 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    from pydantic import field_validator
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def assemble_db_connection(cls, v: Optional[str]) -> str:
+        if isinstance(v, str):
+            if v.startswith("postgres://"):
+                return v.replace("postgres://", "postgresql+psycopg://", 1)
+            if v.startswith("postgresql://") and "psycopg" not in v:
+                return v.replace("postgresql://", "postgresql+psycopg://", 1)
+        return v
+
 
 @lru_cache
 def get_settings() -> Settings:
