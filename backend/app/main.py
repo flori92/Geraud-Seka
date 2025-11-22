@@ -2,11 +2,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
+import logging
 
 from app.api.v1.router import api_router
 from app.core.config import get_settings
 from app.middleware.monitoring import MonitoringMiddleware
 from app.services.monitoring import monitoring_service
+
+logger = logging.getLogger(__name__)
 
 
 def create_application() -> FastAPI:
@@ -52,13 +55,19 @@ def create_application() -> FastAPI:
         debug=settings.debug
     )
 
-    # CORS Middleware
+    # CORS Middleware - IMPORTANT: Must be added BEFORE other middleware
+    # Log CORS configuration for debugging
+    cors_origins = settings.backend_cors_origins
+    logger.info(f"🌐 CORS Configuration - Environment: {settings.environment}")
+    logger.info(f"🌐 CORS Allowed Origins: {cors_origins}")
+
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.backend_cors_origins if settings.environment == "production" else ["*"],
+        allow_origins=cors_origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=["*"],
     )
     
     # Monitoring Middleware
@@ -70,7 +79,23 @@ def create_application() -> FastAPI:
     
     # Routes API
     app.include_router(api_router, prefix=settings.api_v1_prefix)
-    
+
+    # Root endpoint for health check and CORS verification
+    @app.get("/")
+    async def root():
+        return {
+            "status": "ok",
+            "message": "SEKA API is running",
+            "version": "1.0.0-alpha",
+            "environment": settings.environment,
+            "cors_origins": settings.backend_cors_origins
+        }
+
+    # Health check endpoint
+    @app.get("/health")
+    async def health():
+        return {"status": "healthy"}
+
     # Event handlers
     @app.on_event("startup")
     async def startup_event():

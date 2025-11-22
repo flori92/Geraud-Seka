@@ -1,11 +1,13 @@
 from functools import lru_cache
 from typing import List, Optional
+import json
+import os
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """Configuration principale de l’application."""
+    """Configuration principale de l'application."""
 
     project_name: str = "SEKA Backend"
     environment: str = "local"
@@ -13,8 +15,8 @@ class Settings(BaseSettings):
 
     api_v1_prefix: str = "/api/v1"
     backend_cors_origins: List[str] = [
-        "http://localhost:3000", 
-        "https://www.sekagestion.com", 
+        "http://localhost:3000",
+        "https://www.sekagestion.com",
         "https://sekagestion.com",
         "https://app.sekagestion.com"
     ]
@@ -62,6 +64,21 @@ class Settings(BaseSettings):
     )
 
     from pydantic import field_validator
+
+    @field_validator("backend_cors_origins", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, v):
+        """Parse CORS origins from environment variable (can be JSON string or list)."""
+        if isinstance(v, str):
+            try:
+                # Try to parse as JSON array
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return parsed
+            except json.JSONDecodeError:
+                # If not JSON, treat as comma-separated string
+                return [origin.strip() for origin in v.split(",") if origin.strip()]
+        return v
 
     @field_validator("database_url", mode="before")
     @classmethod

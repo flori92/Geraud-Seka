@@ -43,9 +43,43 @@ NEXT_PUBLIC_API_BASE_URL=https://api.sekagestion.com
 === 3. DOMAINES ===
 
 1. Service Backend > Settings > Networking > Custom Domain : api.sekagestion.com
-2. Service Frontend > Settings > Networking > Custom Domain : app.sekagestion.com
+2. Service Frontend > Settings > Networking > Custom Domain :
+   - app.sekagestion.com (primary)
+   - www.sekagestion.com (if using this domain for frontend)
+
+   IMPORTANT: Ensure ALL frontend domains are included in BACKEND_CORS_ORIGINS above!
 
 === 4. POSTGRESQL ===
 
 Créez simplement un service "Database" > "PostgreSQL". C'est tout !
 Le backend se connectera automatiquement grâce à ${{Postgres.DATABASE_URL}}
+
+=== 5. DÉPANNAGE CORS ===
+
+Si vous rencontrez des erreurs CORS, vérifiez :
+
+1. **Vérifier les variables d'environnement Railway** :
+   - Assurez-vous que ENVIRONMENT=production
+   - Vérifiez que BACKEND_CORS_ORIGINS contient tous les domaines frontend
+   - Format: ["https://www.sekagestion.com","https://app.sekagestion.com"]
+
+2. **Vérifier les logs Railway** :
+   - Cherchez "🌐 CORS Configuration" dans les logs au démarrage
+   - Vérifiez que les origines configurées sont correctes
+
+3. **Tester avec le script** :
+   ```bash
+   cd backend
+   ./test_cors.sh
+   ```
+
+4. **Cloudflare (si utilisé)** :
+   - Vérifiez que le WAF ne bloque pas les requêtes
+   - Désactivez temporairement "Browser Integrity Check" dans Security > Settings
+   - Vérifiez les règles de pare-feu (Firewall Rules)
+
+5. **Vérifier l'endpoint de santé** :
+   ```bash
+   curl https://api.sekagestion.com/
+   ```
+   Devrait retourner la configuration CORS actuelle
