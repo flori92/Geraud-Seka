@@ -88,7 +88,7 @@ class BankAccount(Base):
     notes = Column(Text, nullable=True)
 
     # Métadonnées
-    metadata = Column(JSONB, nullable=True)
+    extra_metadata = Column("metadata", JSONB, nullable=True)
 
     # Timestamps
     created_at = Column(Date, default=datetime.utcnow, nullable=False)
@@ -145,7 +145,7 @@ class BankTransaction(Base):
     notes = Column(Text, nullable=True)
 
     # Métadonnées
-    metadata = Column(JSONB, nullable=True)
+    extra_metadata = Column("metadata", JSONB, nullable=True)
 
     # Timestamps
     created_at = Column(Date, default=datetime.utcnow, nullable=False)
@@ -208,7 +208,7 @@ class PaymentSchedule(Base):
     notes = Column(Text, nullable=True)
 
     # Métadonnées
-    metadata = Column(JSONB, nullable=True)
+    extra_metadata = Column("metadata", JSONB, nullable=True)
 
     # Timestamps
     created_at = Column(Date, default=datetime.utcnow, nullable=False)

@@ -59,7 +59,7 @@ class Metric(Base, TimestampMixin):
     tenant = relationship("Tenant")
 
     # Métadonnées supplémentaires JSON
-    metadata = Column(JSON)  # Stockage flexible pour données spécifiques
+    extra_metadata = Column("metadata", JSON)  # Stockage flexible pour données spécifiques
 
     @property
     def change_percentage(self) -> Optional[float]:

@@ -65,7 +65,7 @@ class PurchaseOrder(Base):
     pdf_url = Column(String(512), nullable=True)
 
     # Métadonnées
-    metadata = Column(JSONB, nullable=True)
+    extra_metadata = Column("metadata", JSONB, nullable=True)
 
     # Timestamps
     created_at = Column(Date, default=datetime.utcnow, nullable=False)
@@ -154,7 +154,7 @@ class DeliveryNote(Base):
     pdf_url = Column(String(512), nullable=True)
 
     # Métadonnées
-    metadata = Column(JSONB, nullable=True)
+    extra_metadata = Column("metadata", JSONB, nullable=True)
 
     # Timestamps
     created_at = Column(Date, default=datetime.utcnow, nullable=False)
