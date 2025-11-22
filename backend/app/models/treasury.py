@@ -216,3 +216,105 @@ class PaymentSchedule(Base):
 
     # Relations
     tenant = relationship("Tenant", back_populates="payment_schedules")
+
+
+
+class CashFlowForecast(Base):
+    """Prévision de flux de trésorerie générée par ML."""
+    __tablename__ = "cash_flow_forecasts"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+
+    # Relations
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    # Date de prévision
+    forecast_date = Column(Date, nullable=False, index=True)
+
+    # Prévisions
+    predicted_balance = Column(Numeric(15, 2), nullable=False)
+    predicted_income = Column(Numeric(15, 2), nullable=False, default=0)
+    predicted_expenses = Column(Numeric(15, 2), nullable=False, default=0)
+
+    # Intervalles de confiance
+    confidence_lower = Column(Numeric(15, 2), nullable=False)  # Borne inférieure
+    confidence_upper = Column(Numeric(15, 2), nullable=False)  # Borne supérieure
+
+    # Scénario
+    scenario = Column(String(20), nullable=False, default="realistic", index=True)  # optimistic, realistic, pessimistic
+
+    # Métadonnées du modèle
+    model_type = Column(String(20), nullable=False)  # prophet, lstm, linear
+    model_accuracy = Column(Numeric(5, 4), nullable=True)  # Score de précision (0-1)
+
+    # Timestamps
+    created_at = Column(Date, default=datetime.utcnow, nullable=False, index=True)
+
+    # Relations
+    tenant = relationship("Tenant", back_populates="cash_flow_forecasts")
+
+
+class TreasuryAlert(Base):
+    """Alerte de trésorerie."""
+    __tablename__ = "treasury_alerts"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+
+    # Relations
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    # Type et sévérité
+    alert_type = Column(String(50), nullable=False, index=True)  # low_balance, overdue_payment, negative_forecast, anomaly
+    severity = Column(String(20), nullable=False, default="info", index=True)  # info, warning, critical
+
+    # Contenu
+    title = Column(String(255), nullable=False)
+    message = Column(Text, nullable=False)
+
+    # Entité liée (optionnel)
+    related_entity_type = Column(String(50), nullable=True)  # bank_account, transaction, payment_schedule
+    related_entity_id = Column(UUID(as_uuid=True), nullable=True)
+
+    # Statut
+    is_read = Column(Boolean, nullable=False, default=False, index=True)
+    is_resolved = Column(Boolean, nullable=False, default=False, index=True)
+
+    # Timestamps
+    created_at = Column(Date, default=datetime.utcnow, nullable=False, index=True)
+    resolved_at = Column(Date, nullable=True)
+
+    # Relations
+    tenant = relationship("Tenant", back_populates="treasury_alerts")
+
+
+class BankStatementImport(Base):
+    """Import de relevé bancaire."""
+    __tablename__ = "bank_statement_imports"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+
+    # Relations
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
+    bank_account_id = Column(UUID(as_uuid=True), ForeignKey("bank_accounts.id", ondelete="CASCADE"), nullable=False, index=True)
+
+    # Fichier
+    file_name = Column(String(255), nullable=False)
+    file_url = Column(String(512), nullable=True)
+
+    # Statut de l'import
+    import_date = Column(Date, default=datetime.utcnow, nullable=False)
+    status = Column(String(20), nullable=False, default="pending", index=True)  # pending, processing, completed, failed
+
+    # Statistiques
+    total_lines = Column(Numeric(10, 0), nullable=False, default=0)
+    matched_lines = Column(Numeric(10, 0), nullable=False, default=0)
+    unmatched_lines = Column(Numeric(10, 0), nullable=False, default=0)
+
+    # Erreurs
+    error_message = Column(Text, nullable=True)
+
+    # Timestamps
+    created_at = Column(Date, default=datetime.utcnow, nullable=False)
+
+    # Relations
+    tenant = relationship("Tenant", back_populates="bank_statement_imports")

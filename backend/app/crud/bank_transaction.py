@@ -229,3 +229,106 @@ def get_total_by_type(
     result = query.all()
     total = sum(t.amount for t in result)
     return Decimal(str(total))
+
+
+
+def get_by_date_range(
+    db: Session,
+    *,
+    tenant_id: UUID,
+    start_date: date,
+    end_date: date,
+    bank_account_id: Optional[UUID] = None,
+) -> List[BankTransaction]:
+    """Get transactions within a date range."""
+    query = db.query(BankTransaction).filter(
+        and_(
+            BankTransaction.tenant_id == tenant_id,
+            BankTransaction.transaction_date >= start_date,
+            BankTransaction.transaction_date <= end_date
+        )
+    )
+
+    if bank_account_id:
+        query = query.filter(BankTransaction.bank_account_id == bank_account_id)
+
+    return query.order_by(BankTransaction.transaction_date).all()
+
+
+def bulk_reconcile(
+    db: Session,
+    *,
+    transaction_ids: List[UUID],
+    reconciliation_date: Optional[date] = None,
+    bank_statement_lines: Optional[dict] = None,
+) -> List[BankTransaction]:
+    """Bulk reconcile multiple transactions."""
+    reconciled_transactions = []
+    rec_date = reconciliation_date or date.today()
+
+    for transaction_id in transaction_ids:
+        transaction = get(db, transaction_id)
+        if transaction:
+            transaction.is_reconciled = True
+            transaction.reconciliation_date = rec_date
+            if bank_statement_lines and str(transaction_id) in bank_statement_lines:
+                transaction.bank_statement_line = bank_statement_lines[str(transaction_id)]
+            db.add(transaction)
+            reconciled_transactions.append(transaction)
+
+    db.commit()
+    for transaction in reconciled_transactions:
+        db.refresh(transaction)
+
+    return reconciled_transactions
+
+
+def update_balance_after(db: Session, *, transaction: BankTransaction) -> BankTransaction:
+    """Recalculate and update the balance_after field for a transaction."""
+    from app.crud import bank_account as ba_crud
+
+    bank_account = ba_crud.get(db, transaction.bank_account_id)
+    if bank_account:
+        transaction.balance_after = bank_account.balance
+        db.add(transaction)
+        db.commit()
+        db.refresh(transaction)
+
+    return transaction
+
+
+def get_recent(
+    db: Session,
+    *,
+    tenant_id: UUID,
+    limit: int = 10,
+    bank_account_id: Optional[UUID] = None,
+) -> List[BankTransaction]:
+    """Get the most recent transactions."""
+    query = db.query(BankTransaction).filter(BankTransaction.tenant_id == tenant_id)
+
+    if bank_account_id:
+        query = query.filter(BankTransaction.bank_account_id == bank_account_id)
+
+    return query.order_by(desc(BankTransaction.transaction_date), desc(BankTransaction.created_at)).limit(limit).all()
+
+
+def get_count(
+    db: Session,
+    *,
+    tenant_id: UUID,
+    bank_account_id: Optional[UUID] = None,
+    status: Optional[str] = None,
+    is_reconciled: Optional[bool] = None,
+) -> int:
+    """Get count of transactions with optional filters."""
+    query = db.query(BankTransaction).filter(BankTransaction.tenant_id == tenant_id)
+
+    if bank_account_id:
+        query = query.filter(BankTransaction.bank_account_id == bank_account_id)
+    if status:
+        query = query.filter(BankTransaction.status == status)
+    if is_reconciled is not None:
+        query = query.filter(BankTransaction.is_reconciled == is_reconciled)
+
+    return query.count()

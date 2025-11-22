@@ -37,8 +37,15 @@
 ### 💰 **Comptabilité & Finance**
 - **SYSCOHADA** : Conformité totale avec les normes comptables OHADA.
 - **OCR Intelligent** : Saisie automatique des factures (Mindee).
-- **Trésorerie Prédictive** : Prévisions de cash-flow à 6 mois (Machine Learning).
 - **Paiements Intégrés** : Stripe (CB) et KKiaPay (Mobile Money: Orange, MTN, Moov, Wave).
+
+### 💳 **Module Trésorerie & Prévisions** ✨ NOUVEAU
+- **Prévisions IA** : Cash flow sur 6 mois avec Prophet (Meta) - 3 scénarios (optimiste, réaliste, pessimiste).
+- **Alertes Automatiques** : Solde faible, paiements en retard, risques de trésorerie négative.
+- **Cash Runway** : Calcul automatique des jours de trésorerie disponible.
+- **Rapprochement Bancaire** : Matching automatique avec scoring de correspondance.
+- **Multi-Comptes** : Gestion de plusieurs comptes bancaires multi-devises.
+- **Dashboard Temps Réel** : KPIs, graphiques interactifs, échéanciers de paiement.
 
 ---
 
@@ -71,8 +78,7 @@
 
 - [État d'Implémentation](./IMPLEMENTATION_STATUS.md) : Détail des modules complétés.
 - [Architecture Technique](./ARCHITECTURE.md) : Design multi-tenant et sécurité.
-- [Guide Intégrations](./INTEGRATIONS.md) : Configuration des services tiers.
-- [Roadmap](./ROADMAP.md) : Vision future et prochaines étapes.
+- [Module Trésorerie](./.kiro/specs/treasury-management/IMPLEMENTATION_COMPLETE.md) : Documentation complète du module trésorerie.
 
 ---
 

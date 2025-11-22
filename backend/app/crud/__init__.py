@@ -10,6 +10,7 @@ from . import (
     bank_account,
     bank_transaction,
     payment_schedule,
+    cash_flow_forecast,
 )
 
 __all__ = [
@@ -22,4 +23,5 @@ __all__ = [
     "bank_account",
     "bank_transaction",
     "payment_schedule",
+    "cash_flow_forecast",
 ]

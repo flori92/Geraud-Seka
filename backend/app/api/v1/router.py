@@ -18,6 +18,11 @@ from app.api.v1.routes import (
     sales_invoices,
     purchase_orders,
     delivery_notes,
+    bank_accounts,
+    bank_transactions,
+    payment_schedules,
+    treasury_forecast,
+    treasury_dashboard,
 )
 
 api_router = APIRouter()
@@ -39,3 +44,10 @@ api_router.include_router(quotes.router, prefix="/quotes", tags=["sales", "quote
 api_router.include_router(sales_invoices.router, prefix="/sales-invoices", tags=["sales", "invoices"])
 api_router.include_router(purchase_orders.router, prefix="/purchase-orders", tags=["purchases", "orders"])
 api_router.include_router(delivery_notes.router, prefix="/delivery-notes", tags=["purchases", "deliveries"])
+
+# Treasury Module Routes
+api_router.include_router(bank_accounts.router, prefix="/treasury/accounts", tags=["treasury", "accounts"])
+api_router.include_router(bank_transactions.router, prefix="/treasury/transactions", tags=["treasury", "transactions"])
+api_router.include_router(payment_schedules.router, prefix="/treasury/payment-schedules", tags=["treasury", "schedules"])
+api_router.include_router(treasury_forecast.router, prefix="/treasury/forecast", tags=["treasury", "forecast"])
+api_router.include_router(treasury_dashboard.router, prefix="/treasury/dashboard", tags=["treasury", "dashboard"])

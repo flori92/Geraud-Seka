@@ -83,3 +83,24 @@ class Tenant(Base, TimestampMixin):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+
+    cash_flow_forecasts = relationship(
+        "CashFlowForecast",
+        back_populates="tenant",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+    treasury_alerts = relationship(
+        "TreasuryAlert",
+        back_populates="tenant",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+    bank_statement_imports = relationship(
+        "BankStatementImport",
+        back_populates="tenant",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )

@@ -113,25 +113,43 @@
 *   **Base de données** :
     *   Champs `stripe_customer_id` et `subscription_status` sur Tenant
 
-### 7. 💰 **Module Trésorerie (Cash Management)**
-**Statut :** ✅ Modèles créés (40% complété)
+### 7. 💰 **Module Trésorerie & Prévisions de Cash Flow** ✨ NOUVEAU
+**Statut :** ✅ Terminé (100% complété)
 
 *   **Modèles** (`backend/app/models/treasury.py`) : ✅ Terminé
     *   `BankAccount` : Comptes bancaires multi-devises
     *   `BankTransaction` : Transactions avec rapprochement bancaire
     *   `PaymentSchedule` : Échéanciers de paiement (à recevoir/payer)
-*   **Fonctionnalités** :
-    *   Gestion multi-comptes (courant, épargne, carte, prêt)
-    *   Suivi du solde en temps réel
-    *   Catégorisation des transactions
-    *   Rapprochement bancaire
-    *   Alertes sur échéances
-    *   Paiements récurrents
-    *   Lien avec factures et bons de commande
-*   **Schemas Pydantic** : ⏳ À implémenter
-*   **CRUD Operations** : ⏳ À implémenter
-*   **Routes API** : ⏳ À implémenter
-*   **Prévisions de trésorerie** : ⏳ À implémenter
+    *   `CashFlowForecast` : Prévisions ML avec scénarios multiples
+    *   `TreasuryAlert` : Système d'alertes automatiques
+    *   `BankStatementImport` : Tracking des imports de relevés
+*   **Services** (`backend/app/services/`) : ✅ Terminé
+    *   `TreasuryService` : Dashboard, KPIs, alertes, cash runway
+    *   `ForecastingService` : Prévisions ML avec Prophet + fallback linéaire
+    *   `ReconciliationService` : Rapprochement bancaire automatique
+*   **CRUD Operations** : ✅ Terminé
+    *   60+ opérations complètes (get, get_multi, create, update, delete)
+    *   Fonctions spéciales : bulk_reconcile, generate_recurring, save_forecast
+*   **Routes API** : ✅ Terminé
+    *   `/treasury/dashboard` : Dashboard complet avec KPIs
+    *   `/treasury/accounts` : Gestion des comptes bancaires
+    *   `/treasury/transactions` : Gestion des transactions
+    *   `/treasury/payment-schedules` : Gestion des échéanciers
+    *   `/treasury/forecast` : Prévisions ML sur 6 mois
+    *   30+ endpoints REST complets avec multi-tenant
+*   **Frontend** : ✅ Terminé
+    *   Page `/treasury` : Dashboard avec KPIs et alertes
+    *   Page `/treasury/forecast` : Graphiques interactifs avec 3 scénarios
+    *   Page `/treasury/accounts` : Gestion des comptes bancaires
+    *   Page `/treasury/transactions` : Historique avec filtres avancés
+*   **Fonctionnalités Clés** :
+    *   Prévisions IA avec Prophet (Meta) sur 6 mois
+    *   3 scénarios : optimiste, réaliste, pessimiste
+    *   Alertes automatiques (solde faible, retards, risques)
+    *   Cash runway (jours de trésorerie disponible)
+    *   Rapprochement bancaire avec matching automatique
+    *   Multi-comptes et multi-devises
+*   **Documentation** : [Guide Complet](./.kiro/specs/treasury-management/IMPLEMENTATION_COMPLETE.md)
 
 ---
 
@@ -177,10 +195,11 @@
 
 ## 📊 STATISTIQUES DU PROJET
 
-*   **Tables Base de Données** : 26 tables
-*   **Endpoints API** : 50+ routes
-*   **Services IA** : 3 (Scoring, Forecasting, Chatbot)
+*   **Tables Base de Données** : 29 tables
+*   **Endpoints API** : 80+ routes
+*   **Services IA** : 4 (Scoring, Forecasting ML, Chatbot, Prévisions Trésorerie)
 *   **Intégrations** : 4 (Stripe, KKiaPay, Mindee, Resend)
+*   **Pages Frontend** : 15+ pages React/Next.js
 
 ---
 

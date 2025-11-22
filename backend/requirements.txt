@@ -59,3 +59,7 @@ urllib3==2.5.0
 uvicorn==0.38.0
 weasyprint==63.1
 # Force rebuild - 1763761864
+
+# Treasury Module - ML Forecasting
+prophet==1.1.6
+python-dateutil==2.9.0.post0

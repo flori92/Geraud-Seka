@@ -258,3 +258,160 @@ class BankReconciliation(BaseModel):
     book_balance: Decimal
     unreconciled_transactions: List[ReconciliationItem]
     difference: Decimal
+
+
+# ========== Cash Flow Forecast Schemas (ML) ==========
+
+class CashFlowForecastCreate(BaseModel):
+    """Schema for creating a cash flow forecast request."""
+    forecast_horizon_days: int = Field(default=180, ge=30, le=365)
+    scenario: str = Field(default="realistic")  # optimistic, realistic, pessimistic
+    model_type: Optional[str] = Field(default="auto")  # auto, prophet, lstm, linear
+
+
+class CashFlowForecastResponse(BaseModel):
+    """Schema for cash flow forecast response."""
+    forecast_date: date
+    predicted_balance: Decimal
+    predicted_income: Decimal
+    predicted_expenses: Decimal
+    confidence_lower: Decimal
+    confidence_upper: Decimal
+    scenario: str
+    model_type: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CashFlowForecastSummary(BaseModel):
+    """Summary of forecast results."""
+    tenant_id: UUID
+    generated_at: date
+    forecast_horizon_days: int
+    model_type: str
+    model_accuracy: Optional[float] = None
+    forecasts: List[CashFlowForecastResponse]
+    risks_detected: List[str]
+    recommendations: List[str]
+
+
+# ========== Bank Reconciliation Match Schemas ==========
+
+class BankReconciliationMatch(BaseModel):
+    """Schema for a reconciliation match suggestion."""
+    system_transaction_id: UUID
+    bank_statement_line: str
+    bank_date: date
+    bank_amount: Decimal
+    bank_description: str
+    match_score: float = Field(ge=0.0, le=1.0)  # 0.0 to 1.0
+    match_type: str  # exact, fuzzy, manual
+    confidence: str  # high, medium, low
+
+
+class BankReconciliationApply(BaseModel):
+    """Schema for applying reconciliation matches."""
+    bank_account_id: UUID
+    matches: List[dict]  # List of {transaction_id, bank_statement_line}
+    reconciliation_date: date
+
+
+class BankStatementLine(BaseModel):
+    """Schema for a line from a bank statement."""
+    line_number: int
+    transaction_date: date
+    value_date: Optional[date] = None
+    description: str
+    amount: Decimal
+    balance: Optional[Decimal] = None
+    reference: Optional[str] = None
+
+
+class BankStatementImportResponse(BaseModel):
+    """Response after importing a bank statement."""
+    import_id: UUID
+    bank_account_id: UUID
+    file_name: str
+    total_lines: int
+    parsed_lines: int
+    errors: List[str]
+    status: str  # pending, processing, completed, failed
+
+
+# ========== Treasury Dashboard Schemas ==========
+
+class TreasuryAlert(BaseModel):
+    """Schema for treasury alert."""
+    id: UUID
+    alert_type: str  # low_balance, overdue_payment, negative_forecast, anomaly
+    severity: str  # info, warning, critical
+    title: str
+    message: str
+    related_entity_type: Optional[str] = None
+    related_entity_id: Optional[UUID] = None
+    is_read: bool
+    is_resolved: bool
+    created_at: date
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class TreasuryDashboardResponse(BaseModel):
+    """Complete dashboard data for treasury."""
+    total_balance: Decimal
+    total_balance_by_currency: dict  # {currency: balance}
+    accounts_summary: List[BankAccount]
+    recent_transactions: List[BankTransaction]
+    upcoming_payments: List[PaymentSchedule]
+    cash_runway_days: int
+    alerts: List[TreasuryAlert]
+    cash_flow_summary: Optional[CashFlowSummary] = None
+
+
+class TreasuryKPIs(BaseModel):
+    """Key Performance Indicators for treasury."""
+    total_balance: Decimal
+    monthly_income: Decimal
+    monthly_expenses: Decimal
+    net_cash_flow: Decimal
+    cash_runway_days: int
+    accounts_count: int
+    pending_payments_count: int
+    overdue_payments_count: int
+    alerts_count: int
+
+
+# ========== Currency Exchange Schemas ==========
+
+class ExchangeRateRequest(BaseModel):
+    """Request for exchange rate."""
+    from_currency: str = Field(..., max_length=3)
+    to_currency: str = Field(..., max_length=3)
+    date: Optional[date] = None  # If None, use current date
+
+
+class ExchangeRateResponse(BaseModel):
+    """Response with exchange rate."""
+    from_currency: str
+    to_currency: str
+    rate: Decimal
+    date: date
+    source: str  # API source name
+
+
+class CurrencyConversionRequest(BaseModel):
+    """Request for currency conversion."""
+    amount: Decimal
+    from_currency: str = Field(..., max_length=3)
+    to_currency: str = Field(..., max_length=3)
+    date: Optional[date] = None
+
+
+class CurrencyConversionResponse(BaseModel):
+    """Response with converted amount."""
+    original_amount: Decimal
+    converted_amount: Decimal
+    from_currency: str
+    to_currency: str
+    exchange_rate: Decimal
+    date: date

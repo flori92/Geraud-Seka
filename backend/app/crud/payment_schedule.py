@@ -303,3 +303,122 @@ def create_recurring_schedules(db: Session, *, template_schedule_id: UUID) -> Li
         created_schedules.append(new_schedule)
 
     return created_schedules
+
+
+
+def get_upcoming(db: Session, *, tenant_id: UUID, days_ahead: int = 30) -> List[PaymentSchedule]:
+    """Get upcoming payment schedules within the next N days."""
+    today = date.today()
+    end_date = today + timedelta(days=days_ahead)
+
+    return db.query(PaymentSchedule).filter(
+        and_(
+            PaymentSchedule.tenant_id == tenant_id,
+            PaymentSchedule.status.in_(["pending", "partial"]),
+            PaymentSchedule.due_date >= today,
+            PaymentSchedule.due_date <= end_date
+        )
+    ).order_by(PaymentSchedule.due_date).all()
+
+
+def update_remaining_amount(db: Session, *, schedule: PaymentSchedule) -> PaymentSchedule:
+    """Recalculate and update the remaining_amount field."""
+    schedule.remaining_amount = schedule.total_amount - schedule.paid_amount
+
+    # Update status based on remaining amount
+    if schedule.remaining_amount <= 0:
+        schedule.status = "paid"
+    elif schedule.paid_amount > 0:
+        schedule.status = "partial"
+
+    db.add(schedule)
+    db.commit()
+    db.refresh(schedule)
+    return schedule
+
+
+def generate_recurring(db: Session, *, schedule_id: UUID, periods: int = 12) -> List[PaymentSchedule]:
+    """Generate recurring payment schedules for N periods."""
+    template = get(db, schedule_id)
+    if not template or not template.is_recurring:
+        return []
+
+    created_schedules = []
+    current_due_date = template.due_date
+
+    # Determine increment based on recurrence pattern
+    increment_days = {
+        "weekly": 7,
+        "biweekly": 14,
+        "monthly": 30,
+        "quarterly": 90,
+        "semiannual": 180,
+        "yearly": 365,
+    }
+
+    days = increment_days.get(template.recurrence_pattern, 30)
+
+    # Create schedules for N periods
+    for i in range(periods):
+        current_due_date += timedelta(days=days)
+
+        # Stop if we exceed the recurrence end date
+        if template.recurrence_end_date and current_due_date > template.recurrence_end_date:
+            break
+
+        # Create new schedule based on template
+        new_schedule_data = PaymentScheduleCreate(
+            description=f"{template.description} (Period {i+1})",
+            is_income=template.is_income,
+            total_amount=template.total_amount,
+            currency=template.currency,
+            due_date=current_due_date,
+            counterparty_name=template.counterparty_name,
+            counterparty_reference=template.counterparty_reference,
+            payment_method=template.payment_method,
+            category=template.category,
+            is_recurring=False,  # Don't make the copies recurring
+            send_reminder=template.send_reminder,
+            reminder_days_before=template.reminder_days_before,
+            notes=template.notes,
+            sales_invoice_id=template.sales_invoice_id,
+            purchase_order_id=template.purchase_order_id,
+            bank_account_id=template.bank_account_id,
+        )
+
+        new_schedule = create(db, obj_in=new_schedule_data, tenant_id=template.tenant_id)
+        created_schedules.append(new_schedule)
+
+    return created_schedules
+
+
+def get_by_invoice(db: Session, *, sales_invoice_id: UUID) -> Optional[PaymentSchedule]:
+    """Get payment schedule linked to a sales invoice."""
+    return db.query(PaymentSchedule).filter(
+        PaymentSchedule.sales_invoice_id == sales_invoice_id
+    ).first()
+
+
+def get_by_purchase_order(db: Session, *, purchase_order_id: UUID) -> Optional[PaymentSchedule]:
+    """Get payment schedule linked to a purchase order."""
+    return db.query(PaymentSchedule).filter(
+        PaymentSchedule.purchase_order_id == purchase_order_id
+    ).first()
+
+
+def get_count(
+    db: Session,
+    *,
+    tenant_id: UUID,
+    is_income: Optional[bool] = None,
+    status: Optional[str] = None,
+) -> int:
+    """Get count of payment schedules with optional filters."""
+    query = db.query(PaymentSchedule).filter(PaymentSchedule.tenant_id == tenant_id)
+
+    if is_income is not None:
+        query = query.filter(PaymentSchedule.is_income == is_income)
+    if status:
+        query = query.filter(PaymentSchedule.status == status)
+
+    return query.count()

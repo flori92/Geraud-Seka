@@ -49,3 +49,19 @@ class Document(DocumentBase):
 
     class Config:
         from_attributes = True
+
+
+class DocumentUploadResponse(BaseModel):
+    id: UUID
+    filename: str
+    file_path: str
+    status: DocumentStatus
+
+
+class OCRExtractionRequest(BaseModel):
+    document_id: UUID
+
+
+class OCRExtractionResponse(BaseModel):
+    document_id: UUID
+    extracted_data: dict
