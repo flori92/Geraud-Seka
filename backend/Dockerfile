@@ -17,10 +17,11 @@ COPY alembic.ini ./
 COPY alembic ./alembic
 
 # Install dependencies
+COPY requirements.txt ./
 RUN pip install --upgrade pip \
-    && pip install .
+    && pip install --no-cache-dir -r requirements.txt
 
 EXPOSE 8000
 
 # Default command: API FastAPI
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
