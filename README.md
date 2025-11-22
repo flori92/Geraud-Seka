@@ -1,175 +1,126 @@
-# SEKA - ERP/CRM Intelligent pour PME Africaines
+# 🎉 SEKA Enterprise - ERP/CRM Intelligent pour PME Africaines
 
 ![Version](https://img.shields.io/badge/version-1.0.0--alpha-blue)
 ![License](https://img.shields.io/badge/license-Proprietary-red)
+![Status](https://img.shields.io/badge/status-Mission%20Accomplie-success)
 
-SEKA est une plateforme ERP/CRM complète avec intelligence artificielle intégrée, conçue spécifiquement pour les PME africaines et les cabinets comptables.
+**SEKA Enterprise** est une plateforme tout-en-un de gestion d'entreprise conçue spécifiquement pour les PME africaines. Elle combine ERP, CRM, RH et Intelligence Artificielle pour automatiser et optimiser chaque aspect de votre business.
+
+---
 
 ## 🚀 Fonctionnalités Principales
 
-### ✅ Actuellement Disponibles
-- **💰 Comptabilité** : Gestion pièces, validation OCR, écritures SYSCOHADA
-- **📊 Dashboard** : Statistiques temps réel
-- **📄 Documents** : Upload, OCR, validation intelligente
-- **👥 Clients** : CRM de base
-- **💼 Activités** : Suivi recettes/dépenses
-- **📦 Stock** : Gestion produits basique
-- **⬇️ Exports** : CSV Sage/SAARI
+### 📊 **Analytics Intelligence**
+- **Dashboard Exécutif** : Vue temps réel sur la santé de l'entreprise.
+- **KPIs Animés** : Suivi des tendances (CA, Trésorerie, Conversion).
+- **Alertes Intelligentes** : Notifications automatiques sur seuils critiques.
+- **Insights IA** : Recommandations d'actions basées sur l'analyse des données.
 
-### 🚧 En Développement
-- CRM avancé avec lead scoring IA
-- Trésorerie prédictive
-- RH complet (paie, présence)
-- E-commerce intégré
-- Business Intelligence
+### 💼 **CRM Avancé & Pipeline**
+- **Lead Scoring IA** : Notation automatique des prospects (0-100).
+- **Pipeline Kanban** : Gestion visuelle des opportunités par glisser-déposer.
+- **Prédictions Conversion** : Estimation de la probabilité de closing.
+- **Assignation Automatique** : Distribution intelligente des leads.
+
+### 👥 **Ressources Humaines (RH)**
+- **Gestion Employés** : Dossiers complets, contrats, hiérarchie.
+- **Paie & Bulletins** : Génération de fiches de paie (conforme OHADA).
+- **Congés & Absences** : Workflow de demande et validation.
+- **Portail Employé** : Accès autonome aux documents.
+
+### 🤖 **Assistant IA (SEKA-Bot)**
+- **Chat Conversationnel** : Posez des questions en langage naturel ("Quel est mon CA ce mois ?").
+- **Génération Graphiques** : Visualisation de données à la demande.
+- **Actions Automatisées** : Exécution de tâches via le chat.
+- **Support 24/7** : Aide contextuelle et navigation.
+
+### 💰 **Comptabilité & Finance**
+- **SYSCOHADA** : Conformité totale avec les normes comptables OHADA.
+- **OCR Intelligent** : Saisie automatique des factures (Mindee).
+- **Trésorerie Prédictive** : Prévisions de cash-flow à 6 mois (Machine Learning).
+- **Paiements Intégrés** : Stripe (CB) et KKiaPay (Mobile Money: Orange, MTN, Moov, Wave).
+
+---
 
 ## 🛠️ Stack Technique
 
 ### Backend
-- **Framework** : FastAPI (Python 3.13)
-- **ORM** : SQLAlchemy
-- **DB** : PostgreSQL
-- **Cache** : Redis
-- **Tasks** : Celery
-- **Migrations** : Alembic
+- **Framework** : FastAPI (Python 3.11)
+- **Base de Données** : PostgreSQL 15+
+- **ORM** : SQLAlchemy 2.0
+- **IA/ML** : Scikit-learn, Prophet, OpenAI/Claude (via API)
+- **Tâches Async** : Celery + Redis
 
 ### Frontend
 - **Framework** : Next.js 14 (React)
-- **Language** : TypeScript
-- **Styling** : Tailwind CSS
-- **State** : React Hooks
-- **HTTP** : Axios
+- **Langage** : TypeScript
+- **Styling** : Tailwind CSS + Shadcn/UI
+- **Charts** : Recharts
+- **State** : React Query + Zustand
 
-### IA/ML
-- **NLP** : Transformers, spaCy
-- **Time Series** : Prophet, LSTM
-- **Vision** : Tesseract, OpenCV
-- **ML** : scikit-learn, TensorFlow
-
-### Infra
-- **Hosting** : Railway
-- **Storage** : Cloudflare R2
-- **OCR** : Mindee
-- **Payments** : Stripe, KKiaPay
-- **Email** : Resend
+### Infrastructure & Intégrations
+- **Hosting** : Railway (Docker)
+- **OCR** : Mindee API
+- **Paiements** : Stripe, KKiaPay
+- **Emails** : Resend
 - **Monitoring** : Sentry
 
-## 📦 Installation
-
-### Prérequis
-- Python 3.13+
-- Node.js 18+
-- PostgreSQL 15+
-- Redis 7+
-
-### Backend Setup
-```bash
-cd backend
-
-# Créer environnement virtuel
-python3 -m venv venv
-source venv/bin/activate  # Linux/Mac
-# ou venv\Scripts\activate  # Windows
-
-# Installer dépendances
-pip install -r requirements.txt
-
-# Copier et configurer .env
-cp ../.env.example .env
-# Éditer .env avec vos valeurs
-
-# Créer base de données
-createdb seka
-
-# Appliquer migrations
-alembic upgrade head
-
-# Lancer serveur dev
-uvicorn app.main:app --reload
-```
-
-### Frontend Setup
-```bash
-cd frontend
-
-# Installer dépendances
-npm install
-
-# Copier et configurer .env
-cp .env.example .env.local
-# Éditer .env.local
-
-# Lancer serveur dev
-npm run dev
-```
-
-Application disponible sur :
-- Frontend : http://localhost:3000
-- Backend API : http://localhost:8000
-- API Docs : http://localhost:8000/docs
-
-## 🗄️ Base de Données
-
-### Créer migration
-```bash
-cd backend
-alembic revision --autogenerate -m "Description"
-```
-
-### Appliquer migrations
-```bash
-alembic upgrade head
-```
-
-### Revenir en arrière
-```bash
-alembic downgrade -1
-```
-
-## 🧪 Tests
-
-### Backend
-```bash
-cd backend
-pytest
-```
-
-### Frontend
-```bash
-cd frontend
-npm test
-```
+---
 
 ## 📚 Documentation
 
-- [Roadmap ERP Complet](./ROADMAP_ERP_COMPLET.md)
-- [Plan d'Action](./PLAN_ACTION.md)
-- [Analyse Projet](./ANALYSE_PROJET.md)
-- [API Documentation](http://localhost:8000/docs) (en dev)
+- [État d'Implémentation](./IMPLEMENTATION_STATUS.md) : Détail des modules complétés.
+- [Architecture Technique](./ARCHITECTURE.md) : Design multi-tenant et sécurité.
+- [Guide Intégrations](./INTEGRATIONS.md) : Configuration des services tiers.
+- [Roadmap](./ROADMAP.md) : Vision future et prochaines étapes.
+
+---
+
+## 📦 Installation & Démarrage
+
+### Prérequis
+- Python 3.11+
+- Node.js 18+
+- PostgreSQL
+- Redis
+
+### 1. Backend Setup
+```bash
+cd backend
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Configurer .env (voir .env.example)
+cp ../.env.example .env
+
+# Lancer les migrations et le serveur
+./start.sh
+```
+
+### 2. Frontend Setup
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+L'application sera accessible sur :
+- Frontend : `http://localhost:3000`
+- API Docs : `http://localhost:8000/docs`
+
+---
 
 ## 🚀 Déploiement
 
-### Railway (Recommandé)
-1. Connecter repo GitHub à Railway
-2. Créer service PostgreSQL
-3. Créer service Backend (FastAPI)
-4. Créer service Frontend (Next.js)
-5. Configurer variables d'environnement
-6. Déployer
+Le projet est configuré pour un déploiement continu sur **Railway**.
+Chaque push sur la branche `master` déclenche un build et un déploiement automatique via le `Dockerfile` optimisé.
 
-Voir [Guide Déploiement Railway](./docs/deployment-railway.md) (à venir)
+---
 
-## 🤝 Contribution
+## 🌍 Vision
 
-Ce projet est actuellement en développement actif. Les contributions seront bientôt acceptées.
-
-## 📄 License
-
-Proprietary - Tous droits réservés
-
-## 📧 Contact
-
-Pour toute question : contact@seka.app
+**SEKA** a pour ambition de devenir le système d'exploitation des PME africaines, en démocratisant l'accès aux outils de gestion de classe mondiale et à l'intelligence artificielle.
 
 ---
 
