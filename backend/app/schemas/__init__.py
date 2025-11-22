@@ -125,6 +125,29 @@ from .delivery_note import (
     DeliveryNoteWithItems,
 )
 
+# Treasury schemas
+from .treasury import (
+    BankAccountBase,
+    BankAccountCreate,
+    BankAccountUpdate,
+    BankAccount,
+    BankTransactionBase,
+    BankTransactionCreate,
+    BankTransactionUpdate,
+    BankTransaction,
+    BankTransactionWithAccount,
+    PaymentScheduleBase,
+    PaymentScheduleCreate,
+    PaymentScheduleUpdate,
+    PaymentSchedule,
+    PaymentScheduleWithDetails,
+    CashFlowSummary,
+    CashFlowByCategory,
+    CashFlowForecast,
+    BankReconciliation,
+    ReconciliationItem,
+)
+
 __all__ = [
     # Base
     "ORMBase",
@@ -238,4 +261,24 @@ __all__ = [
     "DeliveryNoteUpdate",
     "DeliveryNote",
     "DeliveryNoteWithItems",
+    # Treasury
+    "BankAccountBase",
+    "BankAccountCreate",
+    "BankAccountUpdate",
+    "BankAccount",
+    "BankTransactionBase",
+    "BankTransactionCreate",
+    "BankTransactionUpdate",
+    "BankTransaction",
+    "BankTransactionWithAccount",
+    "PaymentScheduleBase",
+    "PaymentScheduleCreate",
+    "PaymentScheduleUpdate",
+    "PaymentSchedule",
+    "PaymentScheduleWithDetails",
+    "CashFlowSummary",
+    "CashFlowByCategory",
+    "CashFlowForecast",
+    "BankReconciliation",
+    "ReconciliationItem",
 ]

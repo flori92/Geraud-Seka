@@ -7,6 +7,9 @@ from . import (
     sales_invoice,
     purchase_order,
     delivery_note,
+    bank_account,
+    bank_transaction,
+    payment_schedule,
 )
 
 __all__ = [
@@ -16,4 +19,7 @@ __all__ = [
     "sales_invoice",
     "purchase_order",
     "delivery_note",
+    "bank_account",
+    "bank_transaction",
+    "payment_schedule",
 ]
