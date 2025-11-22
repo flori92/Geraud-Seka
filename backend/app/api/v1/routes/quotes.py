@@ -3,6 +3,7 @@ from typing import List, Any, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.core import deps
@@ -14,6 +15,7 @@ from app.schemas.quote import (
     QuoteWithItems,
 )
 from app.crud import quote as quote_crud
+from app.services.pdf_generator import PDFGenerator
 
 router = APIRouter()
 
@@ -219,3 +221,32 @@ def convert_quote_to_invoice(
         raise HTTPException(status_code=400, detail="Failed to convert quote. Quote must be accepted first.")
 
     return invoice
+
+
+@router.get("/{quote_id}/pdf")
+def generate_quote_pdf(
+    *,
+    db: Session = Depends(deps.get_db_session),
+    quote_id: UUID,
+    current_user: User = Depends(deps.get_current_user),
+) -> FileResponse:
+    """
+    Generate and download PDF for this quote.
+    """
+    quote = quote_crud.get(db, quote_id=quote_id)
+    if not quote:
+        raise HTTPException(status_code=404, detail="Quote not found")
+    if quote.tenant_id != current_user.tenant_id:
+        raise HTTPException(status_code=403, detail="Not authorized to access this quote")
+
+    try:
+        pdf_gen = PDFGenerator()
+        pdf_path = pdf_gen.generate_quote_pdf(quote, current_user.tenant)
+
+        return FileResponse(
+            pdf_path,
+            media_type='application/pdf',
+            filename=f"devis_{quote.quote_number}.pdf"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate PDF: {str(e)}")

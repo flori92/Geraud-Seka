@@ -59,7 +59,7 @@
     *   Actions exécutables via le chat.
 
 ### 5. 💰 **Module Ventes & Finance**
-**Statut :** 🚧 En cours (90% complété)
+**Statut :** ✅ Terminé (100% complété)
 
 *   **Modèles** (`backend/app/models/`) : ✅ Terminé
     *   `Quote` & `QuoteItem` : Devis avec conversion facture
@@ -90,7 +90,12 @@
     *   Migration Alembic créée pour toutes les tables Sales
     *   9 tables : quotes, quote_items, sales_invoices, sales_invoice_items, payments, purchase_orders, purchase_order_items, delivery_notes, delivery_note_items
     *   Index optimisés pour les requêtes fréquentes
-*   **Génération PDF** : ⏳ À implémenter
+*   **Génération PDF** : ✅ Terminé
+    *   Service PDFGenerator avec WeasyPrint
+    *   Templates HTML/CSS professionnels (français)
+    *   Endpoints : `GET /quotes/{id}/pdf` et `GET /sales-invoices/{id}/pdf`
+    *   Mise en page A4 avec logo, TVA, totaux, paiements
+    *   Support multi-tenant, statuts colorés, historique paiements
 *   **Intégrations** : ✅ Stripe et KKiaPay (Mobile Money)
 
 ### 6. 💳 **Système de Paiement & Abonnements**

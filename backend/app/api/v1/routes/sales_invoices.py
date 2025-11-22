@@ -4,6 +4,7 @@ from uuid import UUID
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
@@ -17,6 +18,7 @@ from app.schemas.sales_invoice import (
     SalesPaymentCreate,
 )
 from app.crud import sales_invoice as invoice_crud
+from app.services.pdf_generator import PDFGenerator
 
 router = APIRouter()
 
@@ -267,3 +269,32 @@ def get_unpaid_invoices(
     """
     invoices = invoice_crud.get_unpaid(db, tenant_id=current_user.tenant_id)
     return invoices
+
+
+@router.get("/{invoice_id}/pdf")
+def generate_invoice_pdf(
+    *,
+    db: Session = Depends(deps.get_db_session),
+    invoice_id: UUID,
+    current_user: User = Depends(deps.get_current_user),
+) -> FileResponse:
+    """
+    Generate and download PDF for this invoice.
+    """
+    invoice = invoice_crud.get(db, invoice_id=invoice_id)
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    if invoice.tenant_id != current_user.tenant_id:
+        raise HTTPException(status_code=403, detail="Not authorized to access this invoice")
+
+    try:
+        pdf_gen = PDFGenerator()
+        pdf_path = pdf_gen.generate_invoice_pdf(invoice, current_user.tenant)
+
+        return FileResponse(
+            pdf_path,
+            media_type='application/pdf',
+            filename=f"facture_{invoice.invoice_number}.pdf"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate PDF: {str(e)}")
