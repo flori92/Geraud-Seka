@@ -118,18 +118,15 @@ export function CreateQuoteModal({ isOpen, onClose, onSuccess }: CreateQuoteModa
 
       await createQuote(
         {
+          title: "Devis", // Titre par défaut
           client_id: formData.client_id,
-          date: formData.date,
-          valid_until: formData.valid_until,
-          status: formData.status,
+          issue_date: formData.date,
+          expiry_date: formData.valid_until,
           items: items.map((item) => ({
             description: item.description,
             quantity: item.quantity,
             unit_price: item.unit_price,
-            total: item.quantity * item.unit_price,
           })),
-          notes: formData.notes || undefined,
-          amount: calculateTotal(),
         },
         token
       );
