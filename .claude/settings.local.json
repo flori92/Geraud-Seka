@@ -21,7 +21,10 @@
       "Bash(alembic current:*)",
       "Bash(git check-ignore:*)",
       "Bash(chmod:*)",
-      "Bash(dig:*)"
+      "Bash(dig:*)",
+      "Bash(git clone:*)",
+      "Bash(npm install:*)",
+      "Bash(git reset:*)"
     ],
     "deny": [],
     "ask": []
