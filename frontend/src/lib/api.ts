@@ -446,13 +446,12 @@ export interface CRMActivity {
 
 export interface CRMActivityCreate {
   type: "call" | "meeting" | "email" | "task";
-  title: string;
+  subject: string;
+  description?: string;
+  due_date?: string;
+  duration_minutes?: number;
   client_id?: string;
-  contact_id?: string;
-  date: string;
-  duration?: string;
-  status?: string;
-  notes?: string;
+  assigned_to: string;
 }
 
 export async function getCRMActivities(accessToken: string): Promise<CRMActivity[]> {

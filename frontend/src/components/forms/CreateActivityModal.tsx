@@ -58,7 +58,6 @@ export function CreateActivityModal({ isOpen, onClose, onSuccess }: CreateActivi
           duration_minutes: formData.duration ? parseInt(formData.duration) : undefined,
           client_id: formData.client_id || undefined,
           assigned_to: "00000000-0000-0000-0000-000000000000", // À corriger avec l'utilisateur connecté
-          contact_id: formData.contact_id || undefined,
         },
         token
       );
