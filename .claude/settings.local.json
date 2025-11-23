@@ -24,7 +24,10 @@
       "Bash(dig:*)",
       "Bash(git clone:*)",
       "Bash(npm install:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(.gitignore)",
+      "Bash(git rm:*)",
+      "Bash(npm run dev:*)"
     ],
     "deny": [],
     "ask": []
