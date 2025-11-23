@@ -1,23 +1,62 @@
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { Alert } from "@/components/ui/Alert";
+import { getSalesReport, SalesReport } from "@/lib/api";
 import { Download, TrendingUp, TrendingDown, DollarSign, ShoppingCart } from "lucide-react";
 
 export default function SalesReportsPage() {
-  const stats = [
-    { label: "CA du mois", value: "2.4M FCFA", trend: "+12.5%", trending: "up", icon: DollarSign, color: "bg-green-600" },
-    { label: "Nombre de ventes", value: "142", trend: "+8.3%", trending: "up", icon: ShoppingCart, color: "bg-blue-600" },
-    { label: "Panier moyen", value: "16.9K FCFA", trend: "-2.1%", trending: "down", icon: TrendingDown, color: "bg-orange-600" },
-    { label: "Taux conversion", value: "34.2%", trend: "+5.7%", trending: "up", icon: TrendingUp, color: "bg-purple-600" },
-  ];
+  const [report, setReport] = useState<SalesReport | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [period, setPeriod] = useState("month");
 
-  const topProducts = [
-    { name: "Produit A", sales: 45, revenue: 675000 },
-    { name: "Produit B", sales: 38, revenue: 570000 },
-    { name: "Produit C", sales: 29, revenue: 435000 },
-    { name: "Produit D", sales: 22, revenue: 330000 },
-    { name: "Produit E", sales: 18, revenue: 270000 },
+  useEffect(() => {
+    fetchReport();
+  }, [period]);
+
+  const fetchReport = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("seka_access_token");
+      if (!token) {
+        setError("Vous devez être connecté");
+        return;
+      }
+      const data = await getSalesReport(token, period);
+      setReport(data);
+      setError(null);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || "Erreur lors du chargement du rapport");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <DashboardLayout title="Rapports des ventes">
+        <Card><Skeleton className="h-96" /></Card>
+      </DashboardLayout>
+    );
+  }
+
+  if (!report || error) {
+    return (
+      <DashboardLayout title="Rapports des ventes">
+        <Alert variant="error">{error || "Aucune donnée disponible"}</Alert>
+      </DashboardLayout>
+    );
+  }
+
+  const stats = [
+    { label: "CA du mois", value: `${Math.round(report.total_revenue / 1000000)}M FCFA`, trend: "+12.5%", trending: "up" as const, icon: DollarSign, color: "bg-green-600" },
+    { label: "Nombre de ventes", value: report.total_sales.toString(), trend: "+8.3%", trending: "up" as const, icon: ShoppingCart, color: "bg-blue-600" },
+    { label: "Panier moyen", value: `${Math.round(report.average_order_value / 1000)}K FCFA`, trend: "-2.1%", trending: "down" as const, icon: TrendingDown, color: "bg-orange-600" },
+    { label: "Taux conversion", value: `${report.conversion_rate}%`, trend: "+5.7%", trending: "up" as const, icon: TrendingUp, color: "bg-purple-600" },
   ];
 
   return (
@@ -29,7 +68,7 @@ export default function SalesReportsPage() {
           <p className="text-sm text-accents-5">Vue d'ensemble des performances commerciales</p>
         </div>
         <div className="flex gap-3">
-          <Select>
+          <Select value={period} onChange={(e) => setPeriod(e.target.value)}>
             <option value="month">Ce mois</option>
             <option value="quarter">Ce trimestre</option>
             <option value="year">Cette année</option>
@@ -68,7 +107,7 @@ export default function SalesReportsPage() {
         <Card>
           <h3 className="text-lg font-semibold text-foreground mb-4">Top 5 Produits</h3>
           <div className="space-y-3">
-            {topProducts.map((product, idx) => (
+            {report.top_products.map((product, idx) => (
               <div key={idx} className="flex items-center justify-between p-3 rounded bg-accents-1">
                 <div>
                   <p className="font-medium text-foreground">{product.name}</p>
@@ -84,33 +123,20 @@ export default function SalesReportsPage() {
         <Card>
           <h3 className="text-lg font-semibold text-foreground mb-4">Ventes par canal</h3>
           <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 rounded bg-accents-1">
-              <span className="font-medium text-foreground">En ligne</span>
-              <div className="flex items-center gap-3">
-                <div className="h-2 w-32 rounded-full bg-accents-2">
-                  <div className="h-full rounded-full bg-success" style={{ width: "65%" }} />
+            {report.sales_by_channel.map((channel, idx) => (
+              <div key={idx} className="flex items-center justify-between p-3 rounded bg-accents-1">
+                <span className="font-medium text-foreground">{channel.channel}</span>
+                <div className="flex items-center gap-3">
+                  <div className="h-2 w-32 rounded-full bg-accents-2">
+                    <div
+                      className={`h-full rounded-full ${idx === 0 ? "bg-success" : idx === 1 ? "bg-blue-500" : "bg-orange-500"}`}
+                      style={{ width: `${channel.percentage}%` }}
+                    />
+                  </div>
+                  <span className="font-bold text-foreground w-12 text-right">{channel.percentage}%</span>
                 </div>
-                <span className="font-bold text-foreground w-12 text-right">65%</span>
               </div>
-            </div>
-            <div className="flex items-center justify-between p-3 rounded bg-accents-1">
-              <span className="font-medium text-foreground">Magasin</span>
-              <div className="flex items-center gap-3">
-                <div className="h-2 w-32 rounded-full bg-accents-2">
-                  <div className="h-full rounded-full bg-blue-500" style={{ width: "25%" }} />
-                </div>
-                <span className="font-bold text-foreground w-12 text-right">25%</span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between p-3 rounded bg-accents-1">
-              <span className="font-medium text-foreground">Téléphone</span>
-              <div className="flex items-center gap-3">
-                <div className="h-2 w-32 rounded-full bg-accents-2">
-                  <div className="h-full rounded-full bg-orange-500" style={{ width: "10%" }} />
-                </div>
-                <span className="font-bold text-foreground w-12 text-right">10%</span>
-              </div>
-            </div>
+            ))}
           </div>
         </Card>
       </div>

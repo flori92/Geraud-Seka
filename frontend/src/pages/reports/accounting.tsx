@@ -1,35 +1,56 @@
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { Alert } from "@/components/ui/Alert";
+import { getAccountingReport, AccountingReport } from "@/lib/api";
 import { Download, TrendingUp, TrendingDown } from "lucide-react";
 
 export default function AccountingReportsPage() {
-  const profitLoss = {
-    revenue: {
-      sales: 2400000,
-      services: 800000,
-      other: 150000,
-      total: 3350000,
-    },
-    expenses: {
-      salaries: 1200000,
-      rent: 300000,
-      supplies: 450000,
-      utilities: 120000,
-      other: 180000,
-      total: 2250000,
-    },
-    netProfit: 1100000,
+  const [report, setReport] = useState<AccountingReport | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [period, setPeriod] = useState("month");
+
+  useEffect(() => {
+    fetchReport();
+  }, [period]);
+
+  const fetchReport = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("seka_access_token");
+      if (!token) {
+        setError("Vous devez être connecté");
+        return;
+      }
+      const data = await getAccountingReport(token, period);
+      setReport(data);
+      setError(null);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || "Erreur lors du chargement du rapport");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const cashFlow = [
-    { month: "Juil", operating: 850000, investing: -200000, financing: 100000 },
-    { month: "Août", operating: 920000, investing: -150000, financing: 50000 },
-    { month: "Sept", operating: 1050000, investing: -300000, financing: 150000 },
-    { month: "Oct", operating: 980000, investing: -100000, financing: 0 },
-    { month: "Nov", operating: 1100000, investing: -250000, financing: 200000 },
-  ];
+  if (loading) {
+    return (
+      <DashboardLayout title="Rapports comptables">
+        <Card><Skeleton className="h-96" /></Card>
+      </DashboardLayout>
+    );
+  }
+
+  if (!report || error) {
+    return (
+      <DashboardLayout title="Rapports comptables">
+        <Alert variant="error">{error || "Aucune donnée disponible"}</Alert>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout title="Rapports comptables">
@@ -40,7 +61,7 @@ export default function AccountingReportsPage() {
           <p className="text-sm text-accents-5">Performance comptable et financière</p>
         </div>
         <div className="flex gap-3">
-          <Select>
+          <Select value={period} onChange={(e) => setPeriod(e.target.value)}>
             <option value="month">Ce mois</option>
             <option value="quarter">Ce trimestre</option>
             <option value="year">Cette année</option>
@@ -62,19 +83,19 @@ export default function AccountingReportsPage() {
           <div className="space-y-3">
             <div className="flex items-center justify-between p-3 rounded bg-accents-1">
               <span className="text-sm text-accents-6">Ventes</span>
-              <span className="font-medium text-foreground">{profitLoss.revenue.sales.toLocaleString()} FCFA</span>
+              <span className="font-medium text-foreground">{report.revenue.sales.toLocaleString()} FCFA</span>
             </div>
             <div className="flex items-center justify-between p-3 rounded bg-accents-1">
               <span className="text-sm text-accents-6">Services</span>
-              <span className="font-medium text-foreground">{profitLoss.revenue.services.toLocaleString()} FCFA</span>
+              <span className="font-medium text-foreground">{report.revenue.services.toLocaleString()} FCFA</span>
             </div>
             <div className="flex items-center justify-between p-3 rounded bg-accents-1">
               <span className="text-sm text-accents-6">Autres</span>
-              <span className="font-medium text-foreground">{profitLoss.revenue.other.toLocaleString()} FCFA</span>
+              <span className="font-medium text-foreground">{report.revenue.other.toLocaleString()} FCFA</span>
             </div>
             <div className="flex items-center justify-between p-3 rounded bg-success/10 border border-success/20">
               <span className="text-sm font-semibold text-foreground">Total Produits</span>
-              <span className="text-lg font-bold text-success">{profitLoss.revenue.total.toLocaleString()} FCFA</span>
+              <span className="text-lg font-bold text-success">{report.revenue.total.toLocaleString()} FCFA</span>
             </div>
           </div>
         </Card>
@@ -87,19 +108,19 @@ export default function AccountingReportsPage() {
           <div className="space-y-3">
             <div className="flex items-center justify-between p-3 rounded bg-accents-1">
               <span className="text-sm text-accents-6">Salaires</span>
-              <span className="font-medium text-foreground">{profitLoss.expenses.salaries.toLocaleString()} FCFA</span>
+              <span className="font-medium text-foreground">{report.expenses.salaries.toLocaleString()} FCFA</span>
             </div>
             <div className="flex items-center justify-between p-3 rounded bg-accents-1">
               <span className="text-sm text-accents-6">Loyer</span>
-              <span className="font-medium text-foreground">{profitLoss.expenses.rent.toLocaleString()} FCFA</span>
+              <span className="font-medium text-foreground">{report.expenses.rent.toLocaleString()} FCFA</span>
             </div>
             <div className="flex items-center justify-between p-3 rounded bg-accents-1">
               <span className="text-sm text-accents-6">Fournitures</span>
-              <span className="font-medium text-foreground">{profitLoss.expenses.supplies.toLocaleString()} FCFA</span>
+              <span className="font-medium text-foreground">{report.expenses.supplies.toLocaleString()} FCFA</span>
             </div>
             <div className="flex items-center justify-between p-3 rounded bg-error/10 border border-error/20">
               <span className="text-sm font-semibold text-foreground">Total Charges</span>
-              <span className="text-lg font-bold text-error">{profitLoss.expenses.total.toLocaleString()} FCFA</span>
+              <span className="text-lg font-bold text-error">{report.expenses.total.toLocaleString()} FCFA</span>
             </div>
           </div>
         </Card>
@@ -113,7 +134,7 @@ export default function AccountingReportsPage() {
             <p className="text-sm text-accents-5">Produits - Charges</p>
           </div>
           <div className="text-right">
-            <p className="text-3xl font-bold text-success">{profitLoss.netProfit.toLocaleString()} FCFA</p>
+            <p className="text-3xl font-bold text-success">{report.net_profit.toLocaleString()} FCFA</p>
             <p className="text-sm text-success">+32.8% vs mois précédent</p>
           </div>
         </div>
@@ -134,7 +155,7 @@ export default function AccountingReportsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-accents-2">
-              {cashFlow.map((row) => {
+              {report.cash_flow.map((row) => {
                 const total = row.operating + row.investing + row.financing;
                 return (
                   <tr key={row.month}>

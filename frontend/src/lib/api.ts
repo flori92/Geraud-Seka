@@ -828,3 +828,175 @@ export async function createStockMovement(data: StockMovementCreate, accessToken
   });
   return response.data;
 }
+
+// ========== SALES APIs (Extended) ==========
+
+// Purchase Orders
+export interface PurchaseOrder {
+  id: string;
+  number: string;
+  supplier_id: string;
+  supplier_name?: string;
+  date: string;
+  delivery_date: string;
+  amount: number;
+  status: "draft" | "pending" | "approved" | "received" | "cancelled";
+  items_count?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PurchaseOrderCreate {
+  supplier_id: string;
+  date: string;
+  delivery_date: string;
+  items: {
+    description: string;
+    quantity: number;
+    unit_price: number;
+  }[];
+  notes?: string;
+}
+
+export async function getPurchaseOrders(accessToken: string): Promise<PurchaseOrder[]> {
+  const response = await api.get<PurchaseOrder[]>("/api/v1/sales/purchase-orders/", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function createPurchaseOrder(data: PurchaseOrderCreate, accessToken: string): Promise<PurchaseOrder> {
+  const response = await api.post<PurchaseOrder>("/api/v1/sales/purchase-orders/", data, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+// Delivery Notes
+export interface DeliveryNote {
+  id: string;
+  number: string;
+  client_id: string;
+  client_name?: string;
+  date: string;
+  items_count: number;
+  status: "preparing" | "in_transit" | "delivered" | "cancelled";
+  tracking_number?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DeliveryNoteCreate {
+  client_id: string;
+  date: string;
+  items: {
+    product_id: string;
+    quantity: number;
+  }[];
+  notes?: string;
+}
+
+export async function getDeliveryNotes(accessToken: string): Promise<DeliveryNote[]> {
+  const response = await api.get<DeliveryNote[]>("/api/v1/sales/delivery-notes/", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function createDeliveryNote(data: DeliveryNoteCreate, accessToken: string): Promise<DeliveryNote> {
+  const response = await api.post<DeliveryNote>("/api/v1/sales/delivery-notes/", data, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+// ========== REPORTS APIs ==========
+
+export interface SalesReport {
+  period: string;
+  total_revenue: number;
+  total_sales: number;
+  average_order_value: number;
+  conversion_rate: number;
+  top_products: Array<{
+    name: string;
+    sales: number;
+    revenue: number;
+  }>;
+  sales_by_channel: Array<{
+    channel: string;
+    percentage: number;
+    revenue: number;
+  }>;
+}
+
+export async function getSalesReport(accessToken: string, period?: string): Promise<SalesReport> {
+  const params = period ? `?period=${period}` : "";
+  const response = await api.get<SalesReport>(`/api/v1/reports/sales${params}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export interface AccountingReport {
+  period: string;
+  revenue: {
+    sales: number;
+    services: number;
+    other: number;
+    total: number;
+  };
+  expenses: {
+    salaries: number;
+    rent: number;
+    supplies: number;
+    utilities: number;
+    other: number;
+    total: number;
+  };
+  net_profit: number;
+  cash_flow: Array<{
+    month: string;
+    operating: number;
+    investing: number;
+    financing: number;
+  }>;
+}
+
+export async function getAccountingReport(accessToken: string, period?: string): Promise<AccountingReport> {
+  const params = period ? `?period=${period}` : "";
+  const response = await api.get<AccountingReport>(`/api/v1/reports/accounting${params}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export interface HRReport {
+  period: string;
+  total_employees: number;
+  new_hires: number;
+  attendance_rate: number;
+  total_payroll: number;
+  headcount_by_department: Array<{
+    department: string;
+    count: number;
+    change: string;
+  }>;
+  attendance_trend: Array<{
+    month: string;
+    present: number;
+    absent: number;
+    leaves: number;
+  }>;
+  turnover_rate: number;
+  retention_rate: number;
+  average_tenure: number;
+}
+
+export async function getHRReport(accessToken: string, period?: string): Promise<HRReport> {
+  const params = period ? `?period=${period}` : "";
+  const response = await api.get<HRReport>(`/api/v1/reports/hr${params}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}

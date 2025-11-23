@@ -1,31 +1,62 @@
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { Alert } from "@/components/ui/Alert";
+import { getHRReport, HRReport } from "@/lib/api";
 import { Download, Users, Briefcase, TrendingUp } from "lucide-react";
 
 export default function HRReportsPage() {
-  const headcountData = [
-    { department: "IT", count: 25, change: "+3" },
-    { department: "Sales", count: 18, change: "+2" },
-    { department: "Marketing", count: 12, change: "0" },
-    { department: "Operations", count: 22, change: "+1" },
-    { department: "Finance", count: 8, change: "0" },
-  ];
+  const [report, setReport] = useState<HRReport | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [period, setPeriod] = useState("month");
 
-  const attendanceData = [
-    { month: "Juillet", present: 98, absent: 2, leaves: 5 },
-    { month: "Août", present: 97, absent: 3, leaves: 6 },
-    { month: "Septembre", present: 99, absent: 1, leaves: 4 },
-    { month: "Octobre", present: 96, absent: 4, leaves: 8 },
-    { month: "Novembre", present: 98, absent: 2, leaves: 5 },
-  ];
+  useEffect(() => {
+    fetchReport();
+  }, [period]);
+
+  const fetchReport = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("seka_access_token");
+      if (!token) {
+        setError("Vous devez être connecté");
+        return;
+      }
+      const data = await getHRReport(token, period);
+      setReport(data);
+      setError(null);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || "Erreur lors du chargement du rapport");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <DashboardLayout title="Rapports RH">
+        <Card><Skeleton className="h-96" /></Card>
+      </DashboardLayout>
+    );
+  }
+
+  if (!report || error) {
+    return (
+      <DashboardLayout title="Rapports RH">
+        <Alert variant="error">{error || "Aucune donnée disponible"}</Alert>
+      </DashboardLayout>
+    );
+  }
 
   const stats = [
-    { label: "Employés actifs", value: "85", icon: Users, color: "bg-blue-600" },
-    { label: "Nouveaux (ce mois)", value: "6", icon: TrendingUp, color: "bg-green-600" },
-    { label: "Taux de présence", value: "98%", icon: Briefcase, color: "bg-purple-600" },
-    { label: "Masse salariale", value: "42.5M", icon: Download, color: "bg-orange-600" },
+    { label: "Employés actifs", value: report.total_employees.toString(), icon: Users, color: "bg-blue-600" },
+    { label: "Nouveaux (ce mois)", value: report.new_hires.toString(), icon: TrendingUp, color: "bg-green-600" },
+    { label: "Taux de présence", value: `${report.attendance_rate}%`, icon: Briefcase, color: "bg-purple-600" },
+    { label: "Masse salariale", value: `${Math.round(report.total_payroll / 1000000)}M`, icon: Download, color: "bg-orange-600" },
   ];
 
   return (
@@ -37,7 +68,7 @@ export default function HRReportsPage() {
           <p className="text-sm text-accents-5">Performance et indicateurs des ressources humaines</p>
         </div>
         <div className="flex gap-3">
-          <Select>
+          <Select value={period} onChange={(e) => setPeriod(e.target.value)}>
             <option value="month">Ce mois</option>
             <option value="quarter">Ce trimestre</option>
             <option value="year">Cette année</option>
@@ -71,7 +102,7 @@ export default function HRReportsPage() {
         <Card>
           <h3 className="text-lg font-semibold text-foreground mb-4">Effectif par département</h3>
           <div className="space-y-3">
-            {headcountData.map((dept) => (
+            {report.headcount_by_department.map((dept) => (
               <div key={dept.department} className="flex items-center justify-between p-3 rounded bg-accents-1">
                 <span className="font-medium text-foreground">{dept.department}</span>
                 <div className="flex items-center gap-3">
@@ -99,7 +130,7 @@ export default function HRReportsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-accents-2">
-                {attendanceData.map((row) => (
+                {report.attendance_trend.map((row) => (
                   <tr key={row.month}>
                     <td className="px-3 py-2 text-sm font-medium text-foreground">{row.month}</td>
                     <td className="px-3 py-2 text-sm text-right text-success">{row.present}%</td>
@@ -118,7 +149,7 @@ export default function HRReportsPage() {
         <Card>
           <div className="space-y-2">
             <p className="text-sm text-accents-5">Taux de rotation</p>
-            <p className="text-3xl font-bold text-foreground">8.5%</p>
+            <p className="text-3xl font-bold text-foreground">{report.turnover_rate}%</p>
             <p className="text-sm text-success">-2.3% vs année précédente</p>
           </div>
         </Card>
@@ -126,7 +157,7 @@ export default function HRReportsPage() {
         <Card>
           <div className="space-y-2">
             <p className="text-sm text-accents-5">Taux de rétention</p>
-            <p className="text-3xl font-bold text-foreground">91.5%</p>
+            <p className="text-3xl font-bold text-foreground">{report.retention_rate}%</p>
             <p className="text-sm text-success">+2.3% vs année précédente</p>
           </div>
         </Card>
@@ -134,7 +165,7 @@ export default function HRReportsPage() {
         <Card>
           <div className="space-y-2">
             <p className="text-sm text-accents-5">Ancienneté moyenne</p>
-            <p className="text-3xl font-bold text-foreground">3.2 ans</p>
+            <p className="text-3xl font-bold text-foreground">{report.average_tenure} ans</p>
             <p className="text-sm text-accents-6">Stable</p>
           </div>
         </Card>

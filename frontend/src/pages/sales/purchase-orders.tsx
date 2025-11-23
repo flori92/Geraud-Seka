@@ -1,41 +1,79 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { Alert } from "@/components/ui/Alert";
+import { getPurchaseOrders, PurchaseOrder } from "@/lib/api";
 import { Plus, Eye, Download } from "lucide-react";
 
 export default function PurchaseOrdersPage() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock data for now - will be connected to API when backend is ready
-  const purchaseOrders = [
-    { id: "BC001", supplier: "Fournisseur A", date: "2025-11-20", delivery_date: "2025-11-27", amount: 750000, status: "Validé" },
-    { id: "BC002", supplier: "Fournisseur B", date: "2025-11-19", delivery_date: "2025-11-25", amount: 1200000, status: "En attente" },
-    { id: "BC003", supplier: "Fournisseur C", date: "2025-11-18", delivery_date: "2025-11-26", amount: 450000, status: "Reçu" },
-  ];
+  useEffect(() => {
+    fetchPurchaseOrders();
+  }, []);
+
+  const fetchPurchaseOrders = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("seka_access_token");
+      if (!token) {
+        setError("Vous devez être connecté");
+        return;
+      }
+      const data = await getPurchaseOrders(token);
+      setPurchaseOrders(data);
+      setError(null);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || "Erreur lors du chargement des bons de commande");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const stats = [
     { label: "Total BC", value: purchaseOrders.length.toString(), color: "bg-blue-600" },
-    { label: "En attente", value: purchaseOrders.filter(p => p.status === "En attente").length.toString(), color: "bg-orange-600" },
-    { label: "Validés", value: purchaseOrders.filter(p => p.status === "Validé").length.toString(), color: "bg-green-600" },
+    { label: "En attente", value: purchaseOrders.filter(p => p.status === "pending").length.toString(), color: "bg-orange-600" },
+    { label: "Approuvés", value: purchaseOrders.filter(p => p.status === "approved").length.toString(), color: "bg-green-600" },
     { label: "Montant total", value: Math.round(purchaseOrders.reduce((sum, p) => sum + p.amount, 0) / 1000) + "K", color: "bg-purple-600" },
   ];
 
   const getStatusVariant = (status: string): "default" | "success" | "warning" | "error" => {
     const variants: Record<string, "default" | "success" | "warning" | "error"> = {
-      "En attente": "warning",
-      "Validé": "success",
-      "Reçu": "success",
-      "Annulé": "error",
+      "draft": "default",
+      "pending": "warning",
+      "approved": "success",
+      "received": "success",
+      "cancelled": "error",
     };
     return variants[status] || "default";
   };
 
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      "draft": "Brouillon",
+      "pending": "En attente",
+      "approved": "Approuvé",
+      "received": "Reçu",
+      "cancelled": "Annulé",
+    };
+    return labels[status] || status;
+  };
+
   return (
     <DashboardLayout title="Bons de commande">
+      {error && (
+        <Alert variant="error" className="mb-6">
+          {error}
+        </Alert>
+      )}
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-4 mb-6">
         {stats.map((stat, idx) => (
@@ -76,51 +114,57 @@ export default function PurchaseOrdersPage() {
 
       {/* Table */}
       <Card>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="border-b border-accents-2">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-accents-5">Numéro</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-accents-5">Fournisseur</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-accents-5">Date commande</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-accents-5">Date livraison</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-accents-5">Montant</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-accents-5">Statut</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-accents-5">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-accents-2">
-              {purchaseOrders.map((order) => (
-                <tr key={order.id} className="hover:bg-accents-1 transition-colors">
-                  <td className="px-4 py-3 text-sm font-medium text-foreground">{order.id}</td>
-                  <td className="px-4 py-3 text-sm text-foreground">{order.supplier}</td>
-                  <td className="px-4 py-3 text-sm text-accents-6">
-                    {new Date(order.date).toLocaleDateString("fr-FR")}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-accents-6">
-                    {new Date(order.delivery_date).toLocaleDateString("fr-FR")}
-                  </td>
-                  <td className="px-4 py-3 text-sm font-medium text-foreground">
-                    {order.amount.toLocaleString()} FCFA
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <button className="rounded p-1 hover:bg-accents-2 transition-colors">
-                        <Eye className="h-4 w-4 text-accents-5" />
-                      </button>
-                      <button className="rounded p-1 hover:bg-accents-2 transition-colors">
-                        <Download className="h-4 w-4 text-accents-5" />
-                      </button>
-                    </div>
-                  </td>
+        {loading ? (
+          <div className="p-6">
+            <Skeleton className="h-96 w-full" />
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="border-b border-accents-2">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-accents-5">Numéro</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-accents-5">Fournisseur</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-accents-5">Date commande</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-accents-5">Date livraison</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-accents-5">Montant</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-accents-5">Statut</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-accents-5">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-accents-2">
+                {purchaseOrders.map((order) => (
+                  <tr key={order.id} className="hover:bg-accents-1 transition-colors">
+                    <td className="px-4 py-3 text-sm font-medium text-foreground">{order.number}</td>
+                    <td className="px-4 py-3 text-sm text-foreground">{order.supplier_name || order.supplier_id}</td>
+                    <td className="px-4 py-3 text-sm text-accents-6">
+                      {new Date(order.date).toLocaleDateString("fr-FR")}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-accents-6">
+                      {new Date(order.delivery_date).toLocaleDateString("fr-FR")}
+                    </td>
+                    <td className="px-4 py-3 text-sm font-medium text-foreground">
+                      {order.amount.toLocaleString()} FCFA
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge variant={getStatusVariant(order.status)}>{getStatusLabel(order.status)}</Badge>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <button className="rounded p-1 hover:bg-accents-2 transition-colors">
+                          <Eye className="h-4 w-4 text-accents-5" />
+                        </button>
+                        <button className="rounded p-1 hover:bg-accents-2 transition-colors">
+                          <Download className="h-4 w-4 text-accents-5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
     </DashboardLayout>
   );
