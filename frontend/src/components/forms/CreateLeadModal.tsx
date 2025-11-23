@@ -16,12 +16,12 @@ interface CreateLeadModalProps {
 
 export function CreateLeadModal({ isOpen, onClose, onSuccess }: CreateLeadModalProps) {
   const [formData, setFormData] = useState<LeadCreate>({
-    name: "",
-    company: "",
+    first_name: "",
+    last_name: "",
     email: "",
     phone: "",
-    source: "Site web",
-    status: "Nouveau",
+    company: "",
+    source: "direct",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,12 +41,12 @@ export function CreateLeadModal({ isOpen, onClose, onSuccess }: CreateLeadModalP
 
       // Reset form
       setFormData({
-        name: "",
-        company: "",
+        first_name: "",
+        last_name: "",
         email: "",
         phone: "",
-        source: "Site web",
-        status: "Nouveau",
+        company: "",
+        source: "direct",
       });
       onSuccess();
       onClose();
@@ -68,10 +68,18 @@ export function CreateLeadModal({ isOpen, onClose, onSuccess }: CreateLeadModalP
 
         <div className="space-y-4">
           <Input
-            label="Nom complet"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            placeholder="Ex: Sophie Bernard"
+            label="Prénom"
+            value={formData.first_name}
+            onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+            placeholder="Ex: Sophie"
+            required
+          />
+
+          <Input
+            label="Nom"
+            value={formData.last_name}
+            onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+            placeholder="Ex: Bernard"
             required
           />
 
@@ -106,23 +114,13 @@ export function CreateLeadModal({ isOpen, onClose, onSuccess }: CreateLeadModalP
             onChange={(e) => setFormData({ ...formData, source: e.target.value })}
             required
           >
-            <option value="Site web">Site web</option>
-            <option value="Recommandation">Recommandation</option>
-            <option value="LinkedIn">LinkedIn</option>
-            <option value="Publicité">Publicité</option>
-            <option value="Salon">Salon professionnel</option>
-            <option value="Autre">Autre</option>
-          </Select>
-
-          <Select
-            label="Statut"
-            value={formData.status || "Nouveau"}
-            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-          >
-            <option value="Nouveau">Nouveau</option>
-            <option value="Contacté">Contacté</option>
-            <option value="Qualifié">Qualifié</option>
-            <option value="Non qualifié">Non qualifié</option>
+            <option value="direct">Direct</option>
+            <option value="website">Site web</option>
+            <option value="referral">Recommandation</option>
+            <option value="social">LinkedIn</option>
+            <option value="advertising">Publicité</option>
+            <option value="event">Salon professionnel</option>
+            <option value="other">Autre</option>
           </Select>
         </div>
 

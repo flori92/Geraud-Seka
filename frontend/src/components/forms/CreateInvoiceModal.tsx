@@ -63,7 +63,10 @@ export function CreateInvoiceModal({ isOpen, onClose, onSuccess }: CreateInvoice
       }
 
       const data: InvoiceCreate = {
-        ...formData,
+        title: "Facture", // Titre par défaut requis
+        client_id: formData.client_id,
+        issue_date: formData.date,
+        due_date: formData.due_date,
         items: items.filter((item) => item.description && item.quantity > 0),
       };
 
