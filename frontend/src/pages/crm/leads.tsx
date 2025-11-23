@@ -1,50 +1,44 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
-import { Plus, Mail, Phone, MapPin } from "lucide-react";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { Alert } from "@/components/ui/Alert";
+import { CreateLeadModal } from "@/components/forms/CreateLeadModal";
+import { getLeads, Lead } from "@/lib/api";
+import { Plus, Mail, Phone } from "lucide-react";
 
 export default function LeadsPage() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const leads = [
-    {
-      id: "LEAD-001",
-      name: "Sophie Bernard",
-      company: "StartUp InnoTech",
-      email: "sophie@innotech.com",
-      phone: "+229 97 12 34 56",
-      source: "Site web",
-      status: "Nouveau",
-      score: 85,
-      createdAt: "2025-11-20",
-    },
-    {
-      id: "LEAD-002",
-      name: "Thomas Kouassi",
-      company: "Commerce GrandMarché",
-      email: "thomas@grandmarche.bj",
-      phone: "+229 96 45 67 89",
-      source: "Recommandation",
-      status: "Contacté",
-      score: 72,
-      createdAt: "2025-11-18",
-    },
-    {
-      id: "LEAD-003",
-      name: "Aminata Diallo",
-      company: "Restaurant Le Palais",
-      email: "aminata@lepalais.com",
-      phone: "+229 95 23 45 67",
-      source: "LinkedIn",
-      status: "Qualifié",
-      score: 90,
-      createdAt: "2025-11-15",
-    },
-  ];
+  useEffect(() => {
+    fetchLeads();
+  }, []);
+
+  const fetchLeads = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("seka_access_token");
+      if (!token) {
+        setError("Vous devez être connecté");
+        return;
+      }
+      const data = await getLeads(token);
+      setLeads(data);
+      setError(null);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || "Erreur lors du chargement des leads");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const stats = [
     { label: "Total leads", value: "24", color: "bg-blue-600" },
@@ -71,6 +65,12 @@ export default function LeadsPage() {
 
   return (
     <DashboardLayout title="Leads">
+      {error && (
+        <Alert variant="error" className="mb-6">
+          {error}
+        </Alert>
+      )}
+
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-4 mb-6">
         {stats.map((stat, idx) => (
@@ -102,7 +102,7 @@ export default function LeadsPage() {
               <option value="qualifie">Qualifié</option>
             </Select>
           </div>
-          <Button variant="primary" size="md">
+          <Button variant="primary" size="md" onClick={() => setIsModalOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Nouveau lead
           </Button>
@@ -110,8 +110,17 @@ export default function LeadsPage() {
       </Card>
 
       {/* Leads Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {leads.map((lead) => (
+      {loading ? (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Card key={i}>
+              <Skeleton className="h-40" />
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {leads.map((lead) => (
           <Card key={lead.id} hoverable>
             <div className="space-y-4">
               {/* Header */}
@@ -155,7 +164,7 @@ export default function LeadsPage() {
                   Source: {lead.source}
                 </span>
                 <span className="text-xs text-accents-5">
-                  {new Date(lead.createdAt).toLocaleDateString("fr-FR")}
+                  {new Date(lead.created_at).toLocaleDateString("fr-FR")}
                 </span>
               </div>
 
@@ -171,7 +180,15 @@ export default function LeadsPage() {
             </div>
           </Card>
         ))}
-      </div>
+        </div>
+      )}
+
+      {/* Create Lead Modal */}
+      <CreateLeadModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={fetchLeads}
+      />
     </DashboardLayout>
   );
 }

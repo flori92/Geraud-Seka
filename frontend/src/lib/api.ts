@@ -331,3 +331,205 @@ export async function verifyKKiaPayTransaction(transactionId: string, accessToke
   });
   return response.data;
 }
+
+// ========== CRM APIs ==========
+
+// Opportunities
+export interface Opportunity {
+  id: string;
+  title: string;
+  client_id: string;
+  client_name?: string;
+  value: number;
+  stage: string;
+  probability: number;
+  close_date: string;
+  owner_id?: string;
+  owner_name?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OpportunityCreate {
+  title: string;
+  client_id: string;
+  value: number;
+  stage: string;
+  probability: number;
+  close_date: string;
+  description?: string;
+}
+
+export async function getOpportunities(accessToken: string): Promise<Opportunity[]> {
+  const response = await api.get<Opportunity[]>("/api/v1/crm/opportunities/", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function createOpportunity(data: OpportunityCreate, accessToken: string): Promise<Opportunity> {
+  const response = await api.post<Opportunity>("/api/v1/crm/opportunities/", data, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+// Leads
+export interface Lead {
+  id: string;
+  name: string;
+  company: string;
+  email: string;
+  phone?: string;
+  source: string;
+  status: string;
+  score: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LeadCreate {
+  name: string;
+  company: string;
+  email: string;
+  phone?: string;
+  source: string;
+  status?: string;
+}
+
+export async function getLeads(accessToken: string): Promise<Lead[]> {
+  const response = await api.get<Lead[]>("/api/v1/crm/leads/", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function createLead(data: LeadCreate, accessToken: string): Promise<Lead> {
+  const response = await api.post<Lead>("/api/v1/crm/leads/", data, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+// CRM Activities
+export interface CRMActivity {
+  id: string;
+  type: "call" | "meeting" | "email" | "task";
+  title: string;
+  client_id?: string;
+  client_name?: string;
+  date: string;
+  duration?: string;
+  status: "scheduled" | "completed" | "pending" | "cancelled";
+  notes?: string;
+  owner_id?: string;
+  owner_name?: string;
+  created_at: string;
+}
+
+export interface CRMActivityCreate {
+  type: "call" | "meeting" | "email" | "task";
+  title: string;
+  client_id?: string;
+  date: string;
+  duration?: string;
+  status?: string;
+  notes?: string;
+}
+
+export async function getCRMActivities(accessToken: string): Promise<CRMActivity[]> {
+  const response = await api.get<CRMActivity[]>("/api/v1/crm/activities/", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function createCRMActivity(data: CRMActivityCreate, accessToken: string): Promise<CRMActivity> {
+  const response = await api.post<CRMActivity>("/api/v1/crm/activities/", data, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+// ========== SALES APIs ==========
+
+// Quotes
+export interface Quote {
+  id: string;
+  number: string;
+  client_id: string;
+  client_name?: string;
+  date: string;
+  valid_until: string;
+  amount: number;
+  status: string;
+  items_count?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface QuoteCreate {
+  client_id: string;
+  date: string;
+  valid_until: string;
+  items: {
+    description: string;
+    quantity: number;
+    unit_price: number;
+  }[];
+}
+
+export async function getQuotes(accessToken: string): Promise<Quote[]> {
+  const response = await api.get<Quote[]>("/api/v1/sales/quotes/", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function createQuote(data: QuoteCreate, accessToken: string): Promise<Quote> {
+  const response = await api.post<Quote>("/api/v1/sales/quotes/", data, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+// Invoices
+export interface Invoice {
+  id: string;
+  number: string;
+  client_id: string;
+  client_name?: string;
+  date: string;
+  due_date: string;
+  amount: number;
+  paid: number;
+  status: string;
+  overdue: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface InvoiceCreate {
+  client_id: string;
+  date: string;
+  due_date: string;
+  items: {
+    description: string;
+    quantity: number;
+    unit_price: number;
+  }[];
+}
+
+export async function getInvoices(accessToken: string): Promise<Invoice[]> {
+  const response = await api.get<Invoice[]>("/api/v1/sales/invoices/", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function createInvoice(data: InvoiceCreate, accessToken: string): Promise<Invoice> {
+  const response = await api.post<Invoice>("/api/v1/sales/invoices/", data, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -6,59 +6,61 @@ import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Alert } from "@/components/ui/Alert";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { CreateInvoiceModal } from "@/components/forms/CreateInvoiceModal";
+import { getInvoices, Invoice } from "@/lib/api";
 import { Plus, Download, Send, Eye, AlertCircle } from "lucide-react";
 
 export default function InvoicesPage() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const invoices = [
-    {
-      id: "FACT-2025-001",
-      client: "SARL TechnoSoft",
-      date: "2025-11-20",
-      dueDate: "2025-12-20",
-      amount: 125000,
-      paid: 0,
-      status: "Impayée",
-      overdue: false,
-    },
-    {
-      id: "FACT-2025-002",
-      client: "Cabinet Avocat Legalis",
-      date: "2025-11-15",
-      dueDate: "2025-12-15",
-      amount: 85000,
-      paid: 85000,
-      status: "Payée",
-      overdue: false,
-    },
-    {
-      id: "FACT-2025-003",
-      client: "Entreprise ABC",
-      date: "2025-11-10",
-      dueDate: "2025-12-10",
-      amount: 200000,
-      paid: 100000,
-      status: "Partiellement payée",
-      overdue: false,
-    },
-    {
-      id: "FACT-2025-004",
-      client: "Restaurant Le Palais",
-      date: "2025-10-15",
-      dueDate: "2025-11-15",
-      amount: 45000,
-      paid: 0,
-      status: "Impayée",
-      overdue: true,
-    },
-  ];
+  useEffect(() => {
+    fetchInvoices();
+  }, []);
+
+  const fetchInvoices = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("seka_access_token");
+      if (!token) {
+        setError("Vous devez être connecté");
+        return;
+      }
+      const data = await getInvoices(token);
+      setInvoices(data);
+      setError(null);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || "Erreur lors du chargement des factures");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const stats = [
-    { label: "Total factures", value: "24", color: "bg-blue-600" },
-    { label: "Impayées", value: "8", color: "bg-red-600" },
-    { label: "En retard", value: "3", color: "bg-orange-600" },
-    { label: "CA ce mois", value: "320K", color: "bg-green-600" },
+    {
+      label: "Total factures",
+      value: invoices.length.toString(),
+      color: "bg-blue-600"
+    },
+    {
+      label: "Impayées",
+      value: invoices.filter(inv => inv.status === "Impayée" || inv.status === "unpaid").length.toString(),
+      color: "bg-red-600"
+    },
+    {
+      label: "En retard",
+      value: invoices.filter(inv => inv.overdue).length.toString(),
+      color: "bg-orange-600"
+    },
+    {
+      label: "CA ce mois",
+      value: Math.round(invoices.reduce((sum, inv) => sum + inv.paid, 0) / 1000) + "K",
+      color: "bg-green-600"
+    },
   ];
 
   const getStatusVariant = (status: string) => {
@@ -117,7 +119,7 @@ export default function InvoicesPage() {
               <option value="payee">Payée</option>
             </Select>
           </div>
-          <Button variant="primary" size="md">
+          <Button variant="primary" size="md" onClick={() => setIsModalOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Nouvelle facture
           </Button>
@@ -126,8 +128,13 @@ export default function InvoicesPage() {
 
       {/* Invoices List */}
       <Card>
-        <div className="overflow-x-auto">
-          <table className="w-full">
+        {loading ? (
+          <div className="p-6">
+            <Skeleton className="h-96 w-full" />
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
             <thead className="border-b border-accents-2">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-accents-5">Numéro</th>
@@ -154,12 +161,12 @@ export default function InvoicesPage() {
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-sm text-foreground">{invoice.client}</td>
+                  <td className="px-4 py-3 text-sm text-foreground">{invoice.client_name || invoice.number}</td>
                   <td className="px-4 py-3 text-sm text-accents-6">
                     {new Date(invoice.date).toLocaleDateString("fr-FR")}
                   </td>
                   <td className="px-4 py-3 text-sm text-accents-6">
-                    {new Date(invoice.dueDate).toLocaleDateString("fr-FR")}
+                    {new Date(invoice.due_date).toLocaleDateString("fr-FR")}
                   </td>
                   <td className="px-4 py-3 text-sm font-medium text-foreground">
                     {invoice.amount.toLocaleString()} FCFA
@@ -199,8 +206,16 @@ export default function InvoicesPage() {
               ))}
             </tbody>
           </table>
-        </div>
+          </div>
+        )}
       </Card>
+
+      {/* Create Invoice Modal */}
+      <CreateInvoiceModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={fetchInvoices}
+      />
     </DashboardLayout>
   );
 }
