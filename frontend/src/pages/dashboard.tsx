@@ -110,7 +110,11 @@ export default function DashboardPage() {
           <h3 className="font-semibold text-foreground">Prochaines étapes</h3>
           <ul className="mt-4 space-y-3 text-sm text-accents-6">
             <li className="flex items-center gap-2">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-success-lighter text-xs text-success-dark">✓</span>
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-success-lighter text-xs text-success-dark">
+                <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </span>
               <span>Connecter l'API Dashboard</span>
             </li>
             <li className="flex items-center gap-2">

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { DashboardLayout } from "../components/DashboardLayout";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/Card";
 import { getCashFlowPrediction, getAnomalies, CashFlowPrediction, Anomaly } from "../lib/api";
+import { AlertTriangle, CheckCircle, Bot } from 'lucide-react';
 import {
     LineChart,
     Line,
@@ -114,7 +115,7 @@ export default function IntelligencePage() {
                                     <div className="flex items-center justify-between">
                                         <span className="text-sm text-gray-500">Risque de rupture</span>
                                         <Badge variant={prediction?.risk_alert ? 'error' : 'success'}>
-                                            {prediction?.risk_alert ? '⚠️ ÉLEVÉ' : 'FAIBLE'}
+                                            {prediction?.risk_alert ? 'ÉLEVÉ' : 'FAIBLE'}
                                         </Badge>
                                     </div>
                                     <div className="pt-4 border-t">
@@ -131,7 +132,7 @@ export default function IntelligencePage() {
                             <CardContent className="pt-6">
                                 <div className="flex items-start space-x-4">
                                     <div className="rounded-full bg-purple-100 p-2">
-                                        <span className="text-xl">🤖</span>
+                                        <Bot className="h-5 w-5 text-purple-600" />
                                     </div>
                                     <div>
                                         <h3 className="font-semibold text-purple-900">Conseil IA</h3>
@@ -155,7 +156,7 @@ export default function IntelligencePage() {
                             {anomalies.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-12 text-center">
                                     <div className="rounded-full bg-green-100 p-3">
-                                        <span className="text-2xl">✅</span>
+                                        <CheckCircle className="h-8 w-8 text-green-600" />
                                     </div>
                                     <h3 className="mt-4 text-lg font-medium text-gray-900">Aucune anomalie détectée</h3>
                                     <p className="mt-2 text-gray-500">Toutes les écritures comptables semblent conformes.</p>
@@ -165,8 +166,8 @@ export default function IntelligencePage() {
                                     {anomalies.map((anomaly, index) => (
                                         <div key={index} className="flex items-center justify-between p-6 hover:bg-gray-50">
                                             <div className="flex items-start space-x-4">
-                                                <div className={`rounded-full p-2 ${anomaly.severity === 'high' ? 'bg-red-100 text-red-600' : 'bg-yellow-100 text-yellow-600'}`}>
-                                                    ⚠️
+                                                <div className={`rounded-full p-2 ${anomaly.severity === 'high' ? 'bg-red-100' : 'bg-yellow-100'}`}>
+                                                    <AlertTriangle className={`h-5 w-5 ${anomaly.severity === 'high' ? 'text-red-600' : 'text-yellow-600'}`} />
                                                 </div>
                                                 <div>
                                                     <p className="font-medium text-gray-900">{anomaly.description}</p>
