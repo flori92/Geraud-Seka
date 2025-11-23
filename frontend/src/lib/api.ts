@@ -406,12 +406,12 @@ export interface Lead {
 }
 
 export interface LeadCreate {
-  name: string;
-  company: string;
+  first_name: string;
+  last_name: string;
   email: string;
   phone?: string;
+  company?: string;
   source: string;
-  status?: string;
 }
 
 export async function getLeads(accessToken: string): Promise<Lead[]> {
