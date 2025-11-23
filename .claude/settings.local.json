@@ -19,7 +19,9 @@
       "Bash(git push:*)",
       "Bash(cat:*)",
       "Bash(alembic current:*)",
-      "Bash(git check-ignore:*)"
+      "Bash(git check-ignore:*)",
+      "Bash(chmod:*)",
+      "Bash(dig:*)"
     ],
     "deny": [],
     "ask": []
