@@ -533,3 +533,298 @@ export async function createInvoice(data: InvoiceCreate, accessToken: string): P
   });
   return response.data;
 }
+
+// ========== HR APIs ==========
+
+// Employees
+export interface Employee {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
+  position: string;
+  department?: string;
+  hire_date: string;
+  salary?: number;
+  status: "active" | "inactive" | "on_leave";
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EmployeeCreate {
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
+  position: string;
+  department?: string;
+  hire_date: string;
+  salary?: number;
+  status?: string;
+}
+
+export async function getEmployees(accessToken: string): Promise<Employee[]> {
+  const response = await api.get<Employee[]>("/api/v1/hr/employees/", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function createEmployee(data: EmployeeCreate, accessToken: string): Promise<Employee> {
+  const response = await api.post<Employee>("/api/v1/hr/employees/", data, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+// Contracts
+export interface Contract {
+  id: string;
+  employee_id: string;
+  employee_name?: string;
+  contract_type: "CDI" | "CDD" | "Stage" | "Freelance";
+  start_date: string;
+  end_date?: string;
+  salary: number;
+  status: "active" | "expired" | "terminated";
+  document_url?: string;
+  created_at: string;
+}
+
+export interface ContractCreate {
+  employee_id: string;
+  contract_type: "CDI" | "CDD" | "Stage" | "Freelance";
+  start_date: string;
+  end_date?: string;
+  salary: number;
+  terms?: string;
+}
+
+export async function getContracts(accessToken: string): Promise<Contract[]> {
+  const response = await api.get<Contract[]>("/api/v1/hr/contracts/", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function createContract(data: ContractCreate, accessToken: string): Promise<Contract> {
+  const response = await api.post<Contract>("/api/v1/hr/contracts/", data, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+// Payslips
+export interface Payslip {
+  id: string;
+  employee_id: string;
+  employee_name?: string;
+  period_start: string;
+  period_end: string;
+  gross_salary: number;
+  net_salary: number;
+  deductions: number;
+  bonuses: number;
+  status: "draft" | "paid" | "pending";
+  document_url?: string;
+  created_at: string;
+}
+
+export interface PayslipCreate {
+  employee_id: string;
+  period_start: string;
+  period_end: string;
+  gross_salary: number;
+  deductions?: number;
+  bonuses?: number;
+}
+
+export async function getPayslips(accessToken: string): Promise<Payslip[]> {
+  const response = await api.get<Payslip[]>("/api/v1/hr/payslips/", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function createPayslip(data: PayslipCreate, accessToken: string): Promise<Payslip> {
+  const response = await api.post<Payslip>("/api/v1/hr/payslips/", data, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+// Leaves
+export interface Leave {
+  id: string;
+  employee_id: string;
+  employee_name?: string;
+  leave_type: "vacation" | "sick" | "personal" | "maternity" | "unpaid";
+  start_date: string;
+  end_date: string;
+  days_count: number;
+  status: "pending" | "approved" | "rejected";
+  reason?: string;
+  created_at: string;
+}
+
+export interface LeaveCreate {
+  employee_id: string;
+  leave_type: "vacation" | "sick" | "personal" | "maternity" | "unpaid";
+  start_date: string;
+  end_date: string;
+  reason?: string;
+}
+
+export async function getLeaves(accessToken: string): Promise<Leave[]> {
+  const response = await api.get<Leave[]>("/api/v1/hr/leaves/", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function createLeave(data: LeaveCreate, accessToken: string): Promise<Leave> {
+  const response = await api.post<Leave>("/api/v1/hr/leaves/", data, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+// ========== ACCOUNTING APIs ==========
+
+// Journal Entries
+export interface JournalEntry {
+  id: string;
+  entry_number: string;
+  date: string;
+  description: string;
+  debit_account: string;
+  credit_account: string;
+  amount: number;
+  reference?: string;
+  created_at: string;
+}
+
+export interface JournalEntryCreate {
+  date: string;
+  description: string;
+  debit_account: string;
+  credit_account: string;
+  amount: number;
+  reference?: string;
+}
+
+export async function getJournalEntries(accessToken: string): Promise<JournalEntry[]> {
+  const response = await api.get<JournalEntry[]>("/api/v1/accounting/journal/", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function createJournalEntry(data: JournalEntryCreate, accessToken: string): Promise<JournalEntry> {
+  const response = await api.post<JournalEntry>("/api/v1/accounting/journal/", data, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+// Balance Sheet
+export interface BalanceSheet {
+  assets: {
+    current_assets: number;
+    fixed_assets: number;
+    total_assets: number;
+  };
+  liabilities: {
+    current_liabilities: number;
+    long_term_liabilities: number;
+    total_liabilities: number;
+  };
+  equity: {
+    share_capital: number;
+    retained_earnings: number;
+    total_equity: number;
+  };
+  period: string;
+}
+
+export async function getBalanceSheet(accessToken: string, period?: string): Promise<BalanceSheet> {
+  const params = period ? `?period=${period}` : "";
+  const response = await api.get<BalanceSheet>(`/api/v1/accounting/balance${params}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+// Ledger
+export interface LedgerAccount {
+  id: string;
+  account_code: string;
+  account_name: string;
+  account_type: "asset" | "liability" | "equity" | "revenue" | "expense";
+  balance: number;
+  currency: string;
+}
+
+export async function getLedgerAccounts(accessToken: string): Promise<LedgerAccount[]> {
+  const response = await api.get<LedgerAccount[]>("/api/v1/accounting/ledger/", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+// ========== STOCK APIs ==========
+
+// Inventory
+export interface InventoryItem {
+  id: string;
+  product_id: string;
+  product_name: string;
+  sku: string;
+  quantity: number;
+  location?: string;
+  last_updated: string;
+  status: "in_stock" | "low_stock" | "out_of_stock";
+}
+
+export async function getInventory(accessToken: string): Promise<InventoryItem[]> {
+  const response = await api.get<InventoryItem[]>("/api/v1/stock/inventory/", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+// Stock Movements
+export interface StockMovement {
+  id: string;
+  product_id: string;
+  product_name?: string;
+  movement_type: "in" | "out" | "adjustment" | "transfer";
+  quantity: number;
+  reference?: string;
+  reason?: string;
+  created_at: string;
+  created_by?: string;
+}
+
+export interface StockMovementCreate {
+  product_id: string;
+  movement_type: "in" | "out" | "adjustment" | "transfer";
+  quantity: number;
+  reference?: string;
+  reason?: string;
+}
+
+export async function getStockMovements(accessToken: string): Promise<StockMovement[]> {
+  const response = await api.get<StockMovement[]>("/api/v1/stock/movements/", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function createStockMovement(data: StockMovementCreate, accessToken: string): Promise<StockMovement> {
+  const response = await api.post<StockMovement>("/api/v1/stock/movements/", data, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
