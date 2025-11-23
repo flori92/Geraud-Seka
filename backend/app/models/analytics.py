@@ -139,8 +139,8 @@ class Alert(Base, TimestampMixin):
     # Relations
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
-    
-    user = relationship("User")
+
+    user = relationship("User", foreign_keys=[user_id])
     tenant = relationship("Tenant")
     resolver = relationship("User", foreign_keys=[resolved_by])
 
