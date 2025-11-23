@@ -59,15 +59,13 @@ export function CreateOpportunityModal({ isOpen, onClose, onSuccess }: CreateOpp
 
       await createOpportunity(
         {
-          name: formData.title,
+          title: formData.title,
           description: formData.description || undefined,
           client_id: formData.client_id,
-          amount: parseFloat(formData.value),
+          value: parseFloat(formData.value),
           stage: formData.stage,
           probability: parseInt(formData.probability),
-          expected_close_date: formData.close_date,
-          notes: formData.notes || undefined,
-          assigned_to: formData.client_id, // À corriger selon la logique métier
+          close_date: formData.close_date,
         },
         token
       );
