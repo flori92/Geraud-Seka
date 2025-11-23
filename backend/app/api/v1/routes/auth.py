@@ -66,4 +66,4 @@ def login(
 
 @router.get("/me", response_model=UserRead)
 def read_me(current_user=Depends(get_current_user)):
-    return UserRead.model_validate(current_user)
+    return current_user

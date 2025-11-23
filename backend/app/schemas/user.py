@@ -3,10 +3,10 @@ from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field
 
-from app.schemas.base import IDSchema, TimestampSchema
+from app.schemas.base import IDSchema, TimestampSchema, ORMBase
 
 
-class UserBase(BaseModel):
+class UserBase(ORMBase):
     email: EmailStr
     full_name: Optional[str] = Field(None, max_length=255)
     role: str = Field("client", max_length=50)
