@@ -431,6 +431,7 @@ export interface CRMActivityCreate {
   type: "call" | "meeting" | "email" | "task";
   title: string;
   client_id?: string;
+  contact_id?: string;
   date: string;
   duration?: string;
   status?: string;

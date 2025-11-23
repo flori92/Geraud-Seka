@@ -53,7 +53,7 @@ export function CreateActivityModal({ isOpen, onClose, onSuccess }: CreateActivi
         {
           type: formData.type,
           title: formData.title,
-          description: formData.description || undefined,
+          notes: formData.description || undefined,
           date: formData.date,
           duration: formData.duration || undefined,
           status: formData.status,
