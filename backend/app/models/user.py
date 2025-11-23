@@ -28,5 +28,5 @@ class User(Base, TimestampMixin):
     delivery_notes = relationship("DeliveryNote", back_populates="user")
     
     # Relations Module CRM
-    assigned_leads = relationship("Lead", back_populates="assignee", foreign_keys="Lead.assignee_id")
-    assigned_opportunities = relationship("Opportunity", back_populates="assignee", foreign_keys="Opportunity.assignee_id")
+    assigned_leads = relationship("Lead", back_populates="assignee", foreign_keys="Lead.assigned_to")
+    assigned_opportunities = relationship("Opportunity", back_populates="assignee", foreign_keys="Opportunity.assigned_to")
