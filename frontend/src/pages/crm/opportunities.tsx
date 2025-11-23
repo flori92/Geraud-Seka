@@ -1,55 +1,67 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { Table } from "@/components/ui/Table";
-import { Plus, Search, Filter, TrendingUp } from "lucide-react";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { Alert } from "@/components/ui/Alert";
+import { CreateOpportunityModal } from "@/components/forms/CreateOpportunityModal";
+import { Plus, Filter } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { getOpportunities, Opportunity } from "@/lib/api";
 
 export default function OpportunitiesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const opportunities = [
-    {
-      id: "OPP-001",
-      title: "Accompagnement fiscal PME",
-      client: "SARL TechnoSoft",
-      value: 125000,
-      stage: "Négociation",
-      probability: 70,
-      closeDate: "2025-12-15",
-      owner: "Jean Dupont",
-    },
-    {
-      id: "OPP-002",
-      title: "Audit comptable annuel",
-      client: "Cabinet Avocat Legalis",
-      value: 85000,
-      stage: "Proposition",
-      probability: 50,
-      closeDate: "2025-11-30",
-      owner: "Marie Martin",
-    },
-    {
-      id: "OPP-003",
-      title: "Conseil stratégique",
-      client: "Entreprise ABC",
-      value: 200000,
-      stage: "Qualification",
-      probability: 30,
-      closeDate: "2026-01-20",
-      owner: "Jean Dupont",
-    },
-  ];
+  useEffect(() => {
+    fetchOpportunities();
+  }, []);
+
+  const fetchOpportunities = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("seka_access_token");
+      if (!token) {
+        setError("Vous devez être connecté");
+        return;
+      }
+      const data = await getOpportunities(token);
+      setOpportunities(data);
+      setError(null);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || "Erreur lors du chargement des opportunités");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const stats = [
-    { label: "Total opportunités", value: "12", trend: "+15%" },
-    { label: "Valeur pipeline", value: "850K FCFA", trend: "+8%" },
-    { label: "Taux conversion", value: "68%", trend: "+3%" },
-    { label: "CA prévu ce mois", value: "320K FCFA", trend: "+12%" },
+    {
+      label: "Total opportunités",
+      value: opportunities.length.toString(),
+      trend: "+15%"
+    },
+    {
+      label: "Valeur pipeline",
+      value: Math.round(opportunities.reduce((sum, opp) => sum + opp.value, 0) / 1000) + "K FCFA",
+      trend: "+8%"
+    },
+    {
+      label: "Taux conversion",
+      value: "68%",
+      trend: "+3%"
+    },
+    {
+      label: "CA prévu ce mois",
+      value: "320K FCFA",
+      trend: "+12%"
+    },
   ];
 
   const getStageVariant = (stage: string) => {
@@ -65,6 +77,12 @@ export default function OpportunitiesPage() {
 
   return (
     <DashboardLayout title="Opportunités">
+      {error && (
+        <Alert variant="error" className="mb-6">
+          {error}
+        </Alert>
+      )}
+
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-4 mb-6">
         {stats.map((stat, idx) => (
@@ -101,7 +119,7 @@ export default function OpportunitiesPage() {
               <Filter className="h-4 w-4" />
             </Button>
           </div>
-          <Button variant="primary" size="md">
+          <Button variant="primary" size="md" onClick={() => setIsModalOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Nouvelle opportunité
           </Button>
@@ -110,8 +128,13 @@ export default function OpportunitiesPage() {
 
       {/* Opportunities List */}
       <Card>
-        <div className="overflow-x-auto">
-          <table className="w-full">
+        {loading ? (
+          <div className="p-6">
+            <Skeleton className="h-96 w-full" />
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
             <thead className="border-b border-accents-2">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-accents-5">ID</th>
@@ -129,7 +152,7 @@ export default function OpportunitiesPage() {
                 <tr key={opp.id} className="hover:bg-accents-1 cursor-pointer transition-colors">
                   <td className="px-4 py-3 text-sm font-medium text-foreground">{opp.id}</td>
                   <td className="px-4 py-3 text-sm text-foreground">{opp.title}</td>
-                  <td className="px-4 py-3 text-sm text-accents-6">{opp.client}</td>
+                  <td className="px-4 py-3 text-sm text-accents-6">{opp.client_name || opp.client_id}</td>
                   <td className="px-4 py-3 text-sm font-medium text-foreground">
                     {opp.value.toLocaleString()} FCFA
                   </td>
@@ -148,15 +171,23 @@ export default function OpportunitiesPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-sm text-accents-6">
-                    {new Date(opp.closeDate).toLocaleDateString("fr-FR")}
+                    {new Date(opp.close_date).toLocaleDateString("fr-FR")}
                   </td>
-                  <td className="px-4 py-3 text-sm text-accents-6">{opp.owner}</td>
+                  <td className="px-4 py-3 text-sm text-accents-6">{opp.owner_name || "-"}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+          </div>
+        )}
       </Card>
+
+      {/* Create Opportunity Modal */}
+      <CreateOpportunityModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={fetchOpportunities}
+      />
     </DashboardLayout>
   );
 }

@@ -1,58 +1,43 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/Tabs";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { Alert } from "@/components/ui/Alert";
+import { CreateActivityModal } from "@/components/forms/CreateActivityModal";
+import { getCRMActivities, CRMActivity } from "@/lib/api";
 import { Plus, Phone, Mail, Calendar, MessageSquare, CheckCircle, Clock } from "lucide-react";
 
 export default function ActivitiesPage() {
-  const activities = [
-    {
-      id: 1,
-      type: "call",
-      title: "Appel téléphonique avec Sophie Bernard",
-      client: "StartUp InnoTech",
-      date: "2025-11-23T14:30:00",
-      duration: "25 min",
-      status: "completed",
-      notes: "Discussion sur les besoins en accompagnement fiscal. Client intéressé.",
-      owner: "Jean Dupont",
-    },
-    {
-      id: 2,
-      type: "meeting",
-      title: "Réunion de présentation",
-      client: "Cabinet Avocat Legalis",
-      date: "2025-11-25T10:00:00",
-      duration: "1h",
-      status: "scheduled",
-      notes: "Présentation de nos services d'audit comptable.",
-      owner: "Marie Martin",
-    },
-    {
-      id: 3,
-      type: "email",
-      title: "Envoi proposition commerciale",
-      client: "Entreprise ABC",
-      date: "2025-11-22T16:45:00",
-      duration: "-",
-      status: "completed",
-      notes: "Proposition envoyée pour conseil stratégique.",
-      owner: "Jean Dupont",
-    },
-    {
-      id: 4,
-      type: "task",
-      title: "Relance paiement facture",
-      client: "SARL Transport DEF",
-      date: "2025-11-24T09:00:00",
-      duration: "-",
-      status: "pending",
-      notes: "Facture impayée depuis 15 jours.",
-      owner: "Marie Martin",
-    },
-  ];
+  const [activities, setActivities] = useState<CRMActivity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  useEffect(() => {
+    fetchActivities();
+  }, []);
+
+  const fetchActivities = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("seka_access_token");
+      if (!token) {
+        setError("Vous devez être connecté");
+        return;
+      }
+      const data = await getCRMActivities(token);
+      setActivities(data);
+      setError(null);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || "Erreur lors du chargement des activités");
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   const getActivityIcon = (type: string) => {
     const icons = {
@@ -99,6 +84,12 @@ export default function ActivitiesPage() {
 
   return (
     <DashboardLayout title="Activités CRM">
+      {error && (
+        <Alert variant="error" className="mb-6">
+          {error}
+        </Alert>
+      )}
+
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-4 mb-6">
         <Card>
@@ -149,7 +140,7 @@ export default function ActivitiesPage() {
 
       {/* Actions */}
       <div className="mb-6 flex justify-end">
-        <Button variant="primary" size="md">
+        <Button variant="primary" size="md" onClick={() => setIsModalOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Nouvelle activité
         </Button>
@@ -170,7 +161,16 @@ export default function ActivitiesPage() {
         </TabsList>
 
         <TabsContent value="upcoming">
-          <div className="space-y-4">
+          {loading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <Card key={i}>
+                  <Skeleton className="h-32" />
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-4">
             {upcomingActivities.map((activity) => {
               const Icon = getActivityIcon(activity.type);
               return (
@@ -183,7 +183,7 @@ export default function ActivitiesPage() {
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">
                           <h3 className="font-semibold text-foreground">{activity.title}</h3>
-                          <p className="text-sm text-accents-5">{activity.client}</p>
+                          <p className="text-sm text-accents-5">{activity.client_name || "-"}</p>
                         </div>
                         <Badge variant={getStatusVariant(activity.status)}>
                           {getStatusLabel(activity.status)}
@@ -199,10 +199,10 @@ export default function ActivitiesPage() {
                             minute: "2-digit",
                           })}
                         </div>
-                        {activity.duration !== "-" && (
+                        {activity.duration && activity.duration !== "-" && (
                           <span>• Durée: {activity.duration}</span>
                         )}
-                        <span>• {activity.owner}</span>
+                        <span>• {activity.owner_name || "-"}</span>
                       </div>
                       {activity.notes && (
                         <p className="mt-2 text-sm text-accents-6">{activity.notes}</p>
@@ -213,10 +213,20 @@ export default function ActivitiesPage() {
               );
             })}
           </div>
+          )}
         </TabsContent>
 
         <TabsContent value="completed">
-          <div className="space-y-4">
+          {loading ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <Card key={i}>
+                  <Skeleton className="h-32" />
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-4">
             {completedActivities.map((activity) => {
               const Icon = getActivityIcon(activity.type);
               return (
@@ -229,7 +239,7 @@ export default function ActivitiesPage() {
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">
                           <h3 className="font-semibold text-foreground">{activity.title}</h3>
-                          <p className="text-sm text-accents-5">{activity.client}</p>
+                          <p className="text-sm text-accents-5">{activity.client_name || "-"}</p>
                         </div>
                         <Badge variant={getStatusVariant(activity.status)}>
                           {getStatusLabel(activity.status)}
@@ -245,10 +255,10 @@ export default function ActivitiesPage() {
                             minute: "2-digit",
                           })}
                         </div>
-                        {activity.duration !== "-" && (
+                        {activity.duration && activity.duration !== "-" && (
                           <span>• Durée: {activity.duration}</span>
                         )}
-                        <span>• {activity.owner}</span>
+                        <span>• {activity.owner_name || "-"}</span>
                       </div>
                       {activity.notes && (
                         <p className="mt-2 text-sm text-accents-6">{activity.notes}</p>
@@ -259,10 +269,20 @@ export default function ActivitiesPage() {
               );
             })}
           </div>
+          )}
         </TabsContent>
 
         <TabsContent value="all">
-          <div className="space-y-4">
+          {loading ? (
+            <div className="space-y-4">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Card key={i}>
+                  <Skeleton className="h-32" />
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-4">
             {activities.map((activity) => {
               const Icon = getActivityIcon(activity.type);
               return (
@@ -275,7 +295,7 @@ export default function ActivitiesPage() {
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">
                           <h3 className="font-semibold text-foreground">{activity.title}</h3>
-                          <p className="text-sm text-accents-5">{activity.client}</p>
+                          <p className="text-sm text-accents-5">{activity.client_name || "-"}</p>
                         </div>
                         <Badge variant={getStatusVariant(activity.status)}>
                           {getStatusLabel(activity.status)}
@@ -291,10 +311,10 @@ export default function ActivitiesPage() {
                             minute: "2-digit",
                           })}
                         </div>
-                        {activity.duration !== "-" && (
+                        {activity.duration && activity.duration !== "-" && (
                           <span>• Durée: {activity.duration}</span>
                         )}
-                        <span>• {activity.owner}</span>
+                        <span>• {activity.owner_name || "-"}</span>
                       </div>
                       {activity.notes && (
                         <p className="mt-2 text-sm text-accents-6">{activity.notes}</p>
@@ -305,8 +325,16 @@ export default function ActivitiesPage() {
               );
             })}
           </div>
+          )}
         </TabsContent>
       </Tabs>
+
+      {/* Create Activity Modal */}
+      <CreateActivityModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={fetchActivities}
+      />
     </DashboardLayout>
   );
 }

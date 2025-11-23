@@ -1,59 +1,66 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { Alert } from "@/components/ui/Alert";
+import { CreateQuoteModal } from "@/components/forms/CreateQuoteModal";
+import { getQuotes, Quote } from "@/lib/api";
 import { Plus, Download, Send, Eye } from "lucide-react";
 
 export default function QuotesPage() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const quotes = [
-    {
-      id: "DEV-2025-001",
-      client: "SARL TechnoSoft",
-      date: "2025-11-15",
-      validUntil: "2025-12-15",
-      amount: 125000,
-      status: "En attente",
-      items: 5,
-    },
-    {
-      id: "DEV-2025-002",
-      client: "Cabinet Avocat Legalis",
-      date: "2025-11-10",
-      validUntil: "2025-12-10",
-      amount: 85000,
-      status: "Accepté",
-      items: 3,
-    },
-    {
-      id: "DEV-2025-003",
-      client: "Entreprise ABC",
-      date: "2025-11-05",
-      validUntil: "2025-12-05",
-      amount: 200000,
-      status: "Brouillon",
-      items: 8,
-    },
-    {
-      id: "DEV-2025-004",
-      client: "Restaurant Le Palais",
-      date: "2025-10-28",
-      validUntil: "2025-11-28",
-      amount: 45000,
-      status: "Expiré",
-      items: 2,
-    },
-  ];
+  useEffect(() => {
+    fetchQuotes();
+  }, []);
+
+  const fetchQuotes = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("seka_access_token");
+      if (!token) {
+        setError("Vous devez être connecté");
+        return;
+      }
+      const data = await getQuotes(token);
+      setQuotes(data);
+      setError(null);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || "Erreur lors du chargement des devis");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const stats = [
-    { label: "Total devis", value: "24", color: "bg-blue-600" },
-    { label: "En attente", value: "8", color: "bg-orange-600" },
-    { label: "Acceptés", value: "12", color: "bg-green-600" },
-    { label: "Montant total", value: "850K", color: "bg-purple-600" },
+    {
+      label: "Total devis",
+      value: quotes.length.toString(),
+      color: "bg-blue-600"
+    },
+    {
+      label: "En attente",
+      value: quotes.filter(q => q.status === "En attente" || q.status === "pending").length.toString(),
+      color: "bg-orange-600"
+    },
+    {
+      label: "Acceptés",
+      value: quotes.filter(q => q.status === "Accepté" || q.status === "accepted").length.toString(),
+      color: "bg-green-600"
+    },
+    {
+      label: "Montant total",
+      value: Math.round(quotes.reduce((sum, q) => sum + q.amount, 0) / 1000) + "K",
+      color: "bg-purple-600"
+    },
   ];
 
   const getStatusVariant = (status: string) => {
@@ -76,6 +83,12 @@ export default function QuotesPage() {
 
   return (
     <DashboardLayout title="Devis">
+      {error && (
+        <Alert variant="error" className="mb-6">
+          {error}
+        </Alert>
+      )}
+
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-4 mb-6">
         {stats.map((stat, idx) => (
@@ -108,7 +121,7 @@ export default function QuotesPage() {
               <option value="refuse">Refusé</option>
             </Select>
           </div>
-          <Button variant="primary" size="md">
+          <Button variant="primary" size="md" onClick={() => setIsModalOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Nouveau devis
           </Button>
@@ -117,8 +130,13 @@ export default function QuotesPage() {
 
       {/* Quotes List */}
       <Card>
-        <div className="overflow-x-auto">
-          <table className="w-full">
+        {loading ? (
+          <div className="p-6">
+            <Skeleton className="h-96 w-full" />
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
             <thead className="border-b border-accents-2">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-accents-5">Numéro</th>
@@ -134,20 +152,20 @@ export default function QuotesPage() {
             <tbody className="divide-y divide-accents-2">
               {quotes.map((quote) => (
                 <tr key={quote.id} className="hover:bg-accents-1 transition-colors">
-                  <td className="px-4 py-3 text-sm font-medium text-foreground">{quote.id}</td>
-                  <td className="px-4 py-3 text-sm text-foreground">{quote.client}</td>
+                  <td className="px-4 py-3 text-sm font-medium text-foreground">{quote.number}</td>
+                  <td className="px-4 py-3 text-sm text-foreground">{quote.client_name || quote.client_id}</td>
                   <td className="px-4 py-3 text-sm text-accents-6">
                     {new Date(quote.date).toLocaleDateString("fr-FR")}
                   </td>
                   <td className="px-4 py-3 text-sm text-accents-6">
                     <div className="flex items-center gap-2">
-                      {new Date(quote.validUntil).toLocaleDateString("fr-FR")}
-                      {isExpiringSoon(quote.validUntil) && (
+                      {new Date(quote.valid_until).toLocaleDateString("fr-FR")}
+                      {isExpiringSoon(quote.valid_until) && (
                         <Badge variant="warning">Expire bientôt</Badge>
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-sm text-accents-6">{quote.items}</td>
+                  <td className="px-4 py-3 text-sm text-accents-6">{quote.items_count || "-"}</td>
                   <td className="px-4 py-3 text-sm font-medium text-foreground">
                     {quote.amount.toLocaleString()} FCFA
                   </td>
@@ -171,8 +189,16 @@ export default function QuotesPage() {
               ))}
             </tbody>
           </table>
-        </div>
+          </div>
+        )}
       </Card>
+
+      {/* Create Quote Modal */}
+      <CreateQuoteModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={fetchQuotes}
+      />
     </DashboardLayout>
   );
 }
