@@ -27,7 +27,7 @@ RESEND_FROM_EMAIL=noreply@sekagestion.com
 RESEND_FROM_NAME=SEKA
 
 5. Allez dans Settings > Deploy > Deploy Command :
-alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+python3 run_migrations_safe.py && uvicorn app.main:app --host 0.0.0.0 --port $PORT
 
 === 2. SERVICE FRONTEND (Next.js) ===
 
@@ -54,7 +54,21 @@ NEXT_PUBLIC_API_BASE_URL=https://api.sekagestion.com
 Créez simplement un service "Database" > "PostgreSQL". C'est tout !
 Le backend se connectera automatiquement grâce à ${{Postgres.DATABASE_URL}}
 
-=== 5. DÉPANNAGE CORS ===
+=== 5. DÉPANNAGE DATABASE MIGRATIONS ===
+
+Si vous voyez des erreurs "relation already exists" dans les logs :
+
+1. Le problème : Multiple replicas essaient de créer les tables en même temps
+2. La solution : Utiliser `run_migrations_safe.py` (déjà configuré ci-dessus)
+3. Ce script utilise des PostgreSQL advisory locks pour éviter les race conditions
+4. Si les migrations échouent encore, vous pouvez les réinitialiser :
+   ```bash
+   # Se connecter à la base de données Railway
+   # Supprimer la table alembic_version si nécessaire
+   # Puis redéployer
+   ```
+
+=== 6. DÉPANNAGE CORS ===
 
 Si vous rencontrez des erreurs CORS, vérifiez :
 
