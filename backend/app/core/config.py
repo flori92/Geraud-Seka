@@ -18,7 +18,8 @@ class Settings(BaseSettings):
         "http://localhost:3000",
         "https://www.sekagestion.com",
         "https://sekagestion.com",
-        "https://app.sekagestion.com"
+        "https://app.sekagestion.com",
+        "https://api.sekagestion.com"
     ]
 
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/seka"
