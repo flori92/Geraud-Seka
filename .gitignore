@@ -40,3 +40,4 @@ htmlcov/
 check_railway.py
 create_test_user.py
 WEBHOOK_SETUP_COMPLETE.md
+.sentryclirc

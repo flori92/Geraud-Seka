@@ -18,8 +18,8 @@ export default withSentryConfig(
 
     // Suppresses source map uploading logs during build
     silent: true,
-    org: "seka",
-    project: "seka-frontend",
+    org: "seka-9e",
+    project: "javascript-nextjs",
   },
   {
     // For all available options, see:
