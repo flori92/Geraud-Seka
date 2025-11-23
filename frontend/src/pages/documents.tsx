@@ -96,7 +96,8 @@ export default function DocumentsPage() {
                                             {new Date(doc.created_at).toLocaleDateString('fr-FR')}
                                         </TableCell>
                                         <TableCell>
-                                            {doc.total_amount ? `${doc.total_amount.toLocaleString()} FCFA` : "-"}
+                                            {doc.amount_ttc ? `${doc.amount_ttc.toLocaleString()} FCFA` :
+                                             doc.total_amount ? `${doc.total_amount.toLocaleString()} FCFA` : "-"}
                                         </TableCell>
                                         <TableCell>{getStatusBadge(doc.status)}</TableCell>
                                         <TableCell>

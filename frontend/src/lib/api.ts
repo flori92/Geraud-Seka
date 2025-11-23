@@ -97,9 +97,23 @@ export interface Document {
   filename: string;
   status: string;
   file_path?: string;
+  content_type?: string;
+  file_size?: number;
+  reference_number?: string;
+  date?: string;
+  due_date?: string;
+  amount_ht?: number;
+  amount_vat?: number;
+  amount_ttc?: number;
+  currency?: string;
+  supplier_name?: string;
+  supplier_address?: string;
+  customer_name?: string;
+  description?: string;
   total_amount?: number;
   tax_amount?: number;
   created_at: string;
+  updated_at?: string;
   client_id: string;
 }
 
@@ -151,11 +165,14 @@ export async function createClient(clientData: ClientCreate, accessToken: string
 }
 
 export interface ValidationData {
-  date: string;
-  supplier_name: string;
-  total_amount: number;
-  tax_amount: number;
-  description: string;
+  reference_number?: string;
+  date?: string;
+  due_date?: string;
+  supplier_name?: string;
+  amount_ht?: number;
+  amount_vat?: number;
+  amount_ttc?: number;
+  description?: string;
   account_number?: string;
   journal_code?: string;
 }
