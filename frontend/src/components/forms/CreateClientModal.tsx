@@ -86,7 +86,6 @@ export function CreateClientModal({ isOpen, onClose, onSuccess }: CreateClientMo
             value={formData.slug}
             onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
             placeholder="cabinet-avocat-xyz"
-            helperText="Généré automatiquement à partir du nom"
             required
           />
 
