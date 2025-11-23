@@ -527,8 +527,9 @@ export interface Invoice {
 }
 
 export interface InvoiceCreate {
+  title: string;
   client_id: string;
-  date: string;
+  issue_date: string;
   due_date: string;
   items: {
     description: string;
