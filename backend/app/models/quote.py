@@ -68,9 +68,6 @@ class Quote(Base):
     # Fichiers
     pdf_url = Column(String(512), nullable=True)  # URL PDF généré
 
-    # Conversion
-    sales_invoice_id = Column(UUID(as_uuid=True), ForeignKey("sales_invoices.id", ondelete="SET NULL"), nullable=True)
-
     # Métadonnées
     extra_metadata = Column("metadata", JSONB, nullable=True)  # Champs personnalisés
 
@@ -83,11 +80,10 @@ class Quote(Base):
     client = relationship("Client", back_populates="quotes")
     user = relationship("User", back_populates="quotes")
     items = relationship("QuoteItem", back_populates="quote", cascade="all, delete-orphan")
-    sales_invoice = relationship(
+    sales_invoices = relationship(
         "SalesInvoice",
         back_populates="quote",
-        primaryjoin="Quote.sales_invoice_id==SalesInvoice.id",
-        uselist=False,
+        foreign_keys="SalesInvoice.quote_id",
     )
     opportunity = relationship("Opportunity", back_populates="quotes")
 

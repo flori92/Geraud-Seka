@@ -97,7 +97,7 @@ class SalesInvoice(Base):
     tenant = relationship("Tenant", back_populates="sales_invoices")
     client = relationship("Client", back_populates="sales_invoices")
     user = relationship("User", back_populates="sales_invoices")
-    quote = relationship("Quote", back_populates="sales_invoice", foreign_keys=[quote_id])
+    quote = relationship("Quote", back_populates="sales_invoices", foreign_keys=[quote_id])
     items = relationship("SalesInvoiceItem", back_populates="sales_invoice", cascade="all, delete-orphan")
     payments = relationship("Payment", back_populates="sales_invoice", cascade="all, delete-orphan")
 
