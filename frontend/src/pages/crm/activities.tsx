@@ -59,6 +59,14 @@ export default function ActivitiesPage() {
     return colors[type as keyof typeof colors] || "bg-gray-100 text-gray-600";
   };
 
+  // Calculate real activity stats from activities data
+  const activityStats = {
+    calls: activities.filter(a => a.type === "call").length,
+    meetings: activities.filter(a => a.type === "meeting").length,
+    emails: activities.filter(a => a.type === "email").length,
+    tasks: activities.filter(a => a.type === "task").length,
+  };
+
   const getStatusVariant = (status: string) => {
     const variants: Record<string, "default" | "success" | "warning" | "error"> = {
       completed: "success",
@@ -99,7 +107,7 @@ export default function ActivitiesPage() {
             </div>
             <div>
               <p className="text-xs text-accents-5">Appels</p>
-              <p className="text-xl font-bold text-foreground">12</p>
+              <p className="text-xl font-bold text-foreground">{activityStats.calls}</p>
             </div>
           </div>
         </Card>
@@ -110,7 +118,7 @@ export default function ActivitiesPage() {
             </div>
             <div>
               <p className="text-xs text-accents-5">Réunions</p>
-              <p className="text-xl font-bold text-foreground">8</p>
+              <p className="text-xl font-bold text-foreground">{activityStats.meetings}</p>
             </div>
           </div>
         </Card>
@@ -121,7 +129,7 @@ export default function ActivitiesPage() {
             </div>
             <div>
               <p className="text-xs text-accents-5">Emails</p>
-              <p className="text-xl font-bold text-foreground">24</p>
+              <p className="text-xl font-bold text-foreground">{activityStats.emails}</p>
             </div>
           </div>
         </Card>
@@ -132,7 +140,7 @@ export default function ActivitiesPage() {
             </div>
             <div>
               <p className="text-xs text-accents-5">Tâches</p>
-              <p className="text-xl font-bold text-foreground">15</p>
+              <p className="text-xl font-bold text-foreground">{activityStats.tasks}</p>
             </div>
           </div>
         </Card>

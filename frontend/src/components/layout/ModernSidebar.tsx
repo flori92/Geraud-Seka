@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { getCurrentUser, type User } from "@/lib/api";
 import {
   LayoutDashboard,
   Users,
@@ -158,8 +159,24 @@ const badgeColors = {
 export function ModernSidebar() {
   const [isLocked, setIsLocked] = useState(false);
   const [openMenus, setOpenMenus] = useState<string[]>(["clients", "sales", "treasury"]);
+  const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
   const pathname = router.pathname || "";
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const token = localStorage.getItem("seka_access_token");
+        if (token) {
+          const userData = await getCurrentUser(token);
+          setUser(userData);
+        }
+      } catch (error) {
+        console.error("Failed to fetch user:", error);
+      }
+    };
+    fetchUser();
+  }, []);
 
   const toggleMenu = (menuId: string) => {
     setOpenMenus((prev) =>
@@ -168,8 +185,8 @@ export function ModernSidebar() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
+    localStorage.removeItem("seka_access_token");
+    localStorage.removeItem("seka_refresh_token");
     router.push("/login");
   };
 
@@ -300,11 +317,11 @@ export function ModernSidebar() {
 
         <div className="flex items-center gap-3 px-3 py-2 rounded-lg">
           <div className="w-8 h-8 rounded-full bg-success flex items-center justify-center text-sm font-semibold flex-shrink-0">
-            CD
+            {user?.full_name ? user.full_name.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase() || "U"}
           </div>
           <div className="sidebar-content flex-1 min-w-0">
-            <div className="text-sm font-medium truncate">Cabinet Demo</div>
-            <div className="text-xs text-accents-4">Admin</div>
+            <div className="text-sm font-medium truncate">{user?.full_name || user?.email || "Utilisateur"}</div>
+            <div className="text-xs text-accents-4">{user?.role || "User"}</div>
           </div>
           <button
             onClick={handleLogout}
