@@ -111,7 +111,13 @@ export default function DocumentsPage() {
                                                 </Button>
                                             )}
                                             {doc.status === "VALIDATED" && (
-                                                <Button variant="ghost" size="sm">Détails</Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => router.push(`/documents/${doc.id}/validate`)}
+                                                >
+                                                    Détails
+                                                </Button>
                                             )}
                                         </TableCell>
                                     </TableRow>

@@ -310,29 +310,57 @@ export default function LandingPage() {
                                 <ul className="mt-6 space-y-4">
                                     <li><a href="#features" className="text-sm leading-6 text-gray-400 transition-colors hover:text-white">Fonctionnalités</a></li>
                                     <li><a href="#pricing" className="text-sm leading-6 text-gray-400 transition-colors hover:text-white">Tarifs</a></li>
-                                    <li><a href="#" className="text-sm leading-6 text-gray-400 transition-colors hover:text-white">Démo</a></li>
+                                    <li>
+                                        <span className="text-sm leading-6 text-gray-600 cursor-not-allowed" title="Bientôt disponible">
+                                            Démo
+                                        </span>
+                                    </li>
                                 </ul>
                             </div>
                             <div>
                                 <h3 className="text-sm font-semibold leading-6 text-white">Support</h3>
                                 <ul className="mt-6 space-y-4">
-                                    <li><a href="#" className="text-sm leading-6 text-gray-400 transition-colors hover:text-white">Documentation</a></li>
+                                    <li>
+                                        <span className="text-sm leading-6 text-gray-600 cursor-not-allowed" title="Bientôt disponible">
+                                            Documentation
+                                        </span>
+                                    </li>
                                     <li><a href="#contact" className="text-sm leading-6 text-gray-400 transition-colors hover:text-white">Contact</a></li>
-                                    <li><a href="#" className="text-sm leading-6 text-gray-400 transition-colors hover:text-white">FAQ</a></li>
+                                    <li>
+                                        <span className="text-sm leading-6 text-gray-600 cursor-not-allowed" title="Bientôt disponible">
+                                            FAQ
+                                        </span>
+                                    </li>
                                 </ul>
                             </div>
                             <div>
                                 <h3 className="text-sm font-semibold leading-6 text-white">Entreprise</h3>
                                 <ul className="mt-6 space-y-4">
-                                    <li><a href="#" className="text-sm leading-6 text-gray-400 transition-colors hover:text-white">À propos</a></li>
-                                    <li><a href="#" className="text-sm leading-6 text-gray-400 transition-colors hover:text-white">Blog</a></li>
+                                    <li>
+                                        <span className="text-sm leading-6 text-gray-600 cursor-not-allowed" title="Bientôt disponible">
+                                            À propos
+                                        </span>
+                                    </li>
+                                    <li>
+                                        <span className="text-sm leading-6 text-gray-600 cursor-not-allowed" title="Bientôt disponible">
+                                            Blog
+                                        </span>
+                                    </li>
                                 </ul>
                             </div>
                             <div>
                                 <h3 className="text-sm font-semibold leading-6 text-white">Légal</h3>
                                 <ul className="mt-6 space-y-4">
-                                    <li><a href="#" className="text-sm leading-6 text-gray-400 transition-colors hover:text-white">Confidentialité</a></li>
-                                    <li><a href="#" className="text-sm leading-6 text-gray-400 transition-colors hover:text-white">CGU</a></li>
+                                    <li>
+                                        <span className="text-sm leading-6 text-gray-600 cursor-not-allowed" title="Bientôt disponible">
+                                            Confidentialité
+                                        </span>
+                                    </li>
+                                    <li>
+                                        <span className="text-sm leading-6 text-gray-600 cursor-not-allowed" title="Bientôt disponible">
+                                            CGU
+                                        </span>
+                                    </li>
                                 </ul>
                             </div>
                         </div>

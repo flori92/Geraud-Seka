@@ -132,7 +132,13 @@ export default function ClientsPage() {
                                         <TableCell>{client.sector || "-"}</TableCell>
                                         <TableCell><Badge variant="success">Actif</Badge></TableCell>
                                         <TableCell>
-                                            <Button variant="ghost" size="sm">Gérer</Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => router.push(`/clients/${client.id}`)}
+                                            >
+                                                Gérer
+                                            </Button>
                                         </TableCell>
                                     </TableRow>
                                 ))

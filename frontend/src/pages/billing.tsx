@@ -133,12 +133,19 @@ export default function BillingPage() {
 
                             <div className="mt-6 flex space-x-3">
                                 <button
-                                    onClick={() => (window.location.href = '/pricing')}
-                                    className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                                    onClick={() => router.push('/pricing')}
+                                    className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
                                 >
                                     Changer de plan
                                 </button>
-                                <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50">
+                                <button
+                                    onClick={() => {
+                                        if (confirm('Êtes-vous sûr de vouloir annuler votre abonnement ?')) {
+                                            alert('La fonctionnalité d\'annulation sera disponible prochainement.');
+                                        }
+                                    }}
+                                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+                                >
                                     Annuler l'abonnement
                                 </button>
                             </div>
@@ -170,13 +177,19 @@ export default function BillingPage() {
                                             <p className="text-sm text-gray-500">Orange, MTN, Moov, Wave</p>
                                         </div>
                                     </div>
-                                    <button className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
+                                    <button
+                                        onClick={() => alert('Configuration KKiaPay disponible prochainement.')}
+                                        className="text-sm text-indigo-600 hover:text-indigo-700 font-medium transition-colors"
+                                    >
                                         Configurer
                                     </button>
                                 </div>
                             </div>
 
-                            <button className="mt-4 text-indigo-600 hover:text-indigo-700 font-medium text-sm">
+                            <button
+                                onClick={() => alert('Ajout de moyen de paiement disponible prochainement.')}
+                                className="mt-4 text-indigo-600 hover:text-indigo-700 font-medium text-sm transition-colors"
+                            >
                                 + Ajouter un moyen de paiement
                             </button>
                         </div>

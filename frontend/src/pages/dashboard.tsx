@@ -25,9 +25,12 @@ interface StatCardProps {
   icon: React.ElementType;
   iconColor: string;
   loading?: boolean;
+  href?: string;
 }
 
-function StatCard({ title, value, subtitle, trend, icon: Icon, iconColor, loading }: StatCardProps) {
+function StatCard({ title, value, subtitle, trend, icon: Icon, iconColor, loading, href }: StatCardProps) {
+  const router = useRouter();
+
   if (loading) {
     return (
       <Card>
@@ -43,8 +46,14 @@ function StatCard({ title, value, subtitle, trend, icon: Icon, iconColor, loadin
     );
   }
 
+  const handleClick = () => {
+    if (href) {
+      router.push(href);
+    }
+  };
+
   return (
-    <Card hoverable>
+    <Card hoverable={!!href} onClick={handleClick} className={href ? "cursor-pointer" : ""}>
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <p className="text-sm font-medium text-accents-5">{title}</p>
@@ -143,24 +152,25 @@ export default function DashboardPage() {
           icon={Users}
           iconColor="bg-blue-600"
           loading={loading}
+          href="/clients"
         />
         <StatCard
           title="Tâches"
           value={stats?.tasks_due_this_week || 0}
           subtitle={`${stats?.tasks_overdue || 0} en retard`}
-          trend={{ value: "+12%", type: "up" }}
           icon={CheckSquare}
           iconColor="bg-green-600"
           loading={loading}
+          href="/crm/activities"
         />
         <StatCard
           title="Documents"
           value={stats?.documents_processed_this_month || 0}
           subtitle="Traités ce mois"
-          trend={{ value: "+8%", type: "up" }}
           icon={FileText}
           iconColor="bg-purple-600"
           loading={loading}
+          href="/documents"
         />
         <StatCard
           title="Trésorerie"
@@ -169,6 +179,7 @@ export default function DashboardPage() {
           icon={Wallet}
           iconColor="bg-orange-600"
           loading={loading}
+          href="/treasury"
         />
       </div>
 
