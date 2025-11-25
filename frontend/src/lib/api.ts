@@ -486,9 +486,10 @@ export interface Quote {
 }
 
 export interface QuoteCreate {
+  title: string;
   client_id: string;
-  date: string;
-  valid_until: string;
+  issue_date: string;
+  expiry_date: string;
   items: {
     description: string;
     quantity: number;
