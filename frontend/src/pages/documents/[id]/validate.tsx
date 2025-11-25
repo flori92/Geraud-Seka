@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { getDocument, validateDocument, type Document } from "@/lib/api";
+import { getDocument, validateDocument, type Document, API_BASE_URL } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -129,7 +129,7 @@ export default function ValidateDocumentPage() {
                     <div className="flex h-full items-center justify-center p-4">
                         {document.file_path ? (
                             <iframe
-                                src={`${process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"}${document.file_path}`}
+                                src={`${API_BASE_URL}${document.file_path}`}
                                 className="h-full w-full rounded border border-accents-2"
                                 title={document.filename}
                             />

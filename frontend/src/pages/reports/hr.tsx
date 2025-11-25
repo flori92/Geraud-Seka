@@ -150,7 +150,6 @@ export default function HRReportsPage() {
           <div className="space-y-2">
             <p className="text-sm text-accents-5">Taux de rotation</p>
             <p className="text-3xl font-bold text-foreground">{report.turnover_rate}%</p>
-            <p className="text-sm text-success">-2.3% vs année précédente</p>
           </div>
         </Card>
 
@@ -158,7 +157,6 @@ export default function HRReportsPage() {
           <div className="space-y-2">
             <p className="text-sm text-accents-5">Taux de rétention</p>
             <p className="text-3xl font-bold text-foreground">{report.retention_rate}%</p>
-            <p className="text-sm text-success">+2.3% vs année précédente</p>
           </div>
         </Card>
 
@@ -166,7 +164,6 @@ export default function HRReportsPage() {
           <div className="space-y-2">
             <p className="text-sm text-accents-5">Ancienneté moyenne</p>
             <p className="text-3xl font-bold text-foreground">{report.average_tenure} ans</p>
-            <p className="text-sm text-accents-6">Stable</p>
           </div>
         </Card>
       </div>

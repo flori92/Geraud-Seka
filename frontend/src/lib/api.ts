@@ -1,6 +1,23 @@
 import axios from "axios";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+// Force HTTPS in production, never fall back to HTTP
+const getApiBaseUrl = () => {
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL;
+
+  // If no env var, use production API
+  if (!baseUrl) {
+    return "https://api.sekagestion.com";
+  }
+
+  // Force HTTPS in production
+  if (baseUrl.startsWith("http://") && process.env.NODE_ENV === "production") {
+    return baseUrl.replace("http://", "https://");
+  }
+
+  return baseUrl;
+};
+
+export const API_BASE_URL = getApiBaseUrl();
 
 const api = axios.create({
   baseURL: API_BASE_URL,

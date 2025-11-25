@@ -3,6 +3,7 @@ import { Modal, ModalFooter } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Alert } from '@/components/ui/Alert';
 import { Textarea } from '@/components/ui/Textarea';
+import { API_BASE_URL } from '@/lib/api';
 
 interface CancelSubscriptionModalProps {
     isOpen: boolean;
@@ -27,7 +28,7 @@ export function CancelSubscriptionModal({ isOpen, onClose, onSuccess }: CancelSu
             }
 
             const response = await fetch(
-                `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/v1/billing/subscription/cancel`,
+                `${API_BASE_URL}/api/v1/billing/subscription/cancel`,
                 {
                     method: 'POST',
                     headers: {

@@ -53,10 +53,10 @@ export default function SalesReportsPage() {
   }
 
   const stats = [
-    { label: "CA du mois", value: `${Math.round(report.total_revenue / 1000000)}M FCFA`, trend: "+12.5%", trending: "up" as const, icon: DollarSign, color: "bg-green-600" },
-    { label: "Nombre de ventes", value: report.total_sales.toString(), trend: "+8.3%", trending: "up" as const, icon: ShoppingCart, color: "bg-blue-600" },
-    { label: "Panier moyen", value: `${Math.round(report.average_order_value / 1000)}K FCFA`, trend: "-2.1%", trending: "down" as const, icon: TrendingDown, color: "bg-orange-600" },
-    { label: "Taux conversion", value: `${report.conversion_rate}%`, trend: "+5.7%", trending: "up" as const, icon: TrendingUp, color: "bg-purple-600" },
+    { label: "CA du mois", value: `${Math.round(report.total_revenue / 1000000)}M FCFA`, icon: DollarSign, color: "bg-green-600" },
+    { label: "Nombre de ventes", value: report.total_sales.toString(), icon: ShoppingCart, color: "bg-blue-600" },
+    { label: "Panier moyen", value: `${Math.round(report.average_order_value / 1000)}K FCFA`, icon: TrendingDown, color: "bg-orange-600" },
+    { label: "Taux conversion", value: `${report.conversion_rate}%`, icon: TrendingUp, color: "bg-purple-600" },
   ];
 
   return (
@@ -91,11 +91,8 @@ export default function SalesReportsPage() {
                   <stat.icon className="h-4 w-4 text-white" />
                 </div>
               </div>
-              <div className="flex items-end justify-between">
+              <div>
                 <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                <span className={`text-sm font-medium ${stat.trending === "up" ? "text-success" : "text-error"}`}>
-                  {stat.trend}
-                </span>
               </div>
             </div>
           </Card>

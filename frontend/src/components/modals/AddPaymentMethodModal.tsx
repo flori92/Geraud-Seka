@@ -5,6 +5,7 @@ import { Alert } from '@/components/ui/Alert';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { CreditCard } from 'lucide-react';
+import { API_BASE_URL } from '@/lib/api';
 
 interface AddPaymentMethodModalProps {
     isOpen: boolean;
@@ -46,7 +47,7 @@ export function AddPaymentMethodModal({ isOpen, onClose, onSuccess }: AddPayment
                 : {};
 
             const response = await fetch(
-                `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}${endpoint}`,
+                `${API_BASE_URL}${endpoint}`,
                 {
                     method: 'POST',
                     headers: {

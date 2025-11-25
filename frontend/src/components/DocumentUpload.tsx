@@ -1,4 +1,5 @@
 import { useState, useRef, ChangeEvent } from "react";
+import { API_BASE_URL } from "@/lib/api";
 
 interface DocumentUploadProps {
     onUploadSuccess?: () => void;
@@ -51,7 +52,7 @@ export function DocumentUpload({ onUploadSuccess }: DocumentUploadProps) {
 
             // Upload sans client_id - sera géré par le backend ou attribué plus tard
             const response = await fetch(
-                `${process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"}/api/v1/documents/`,
+                `${API_BASE_URL}/api/v1/documents/`,
                 {
                     method: "POST",
                     headers: {

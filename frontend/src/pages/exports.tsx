@@ -3,6 +3,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { API_BASE_URL } from "@/lib/api";
 
 export default function ExportsPage() {
     const [startDate, setStartDate] = useState("");
@@ -20,7 +21,7 @@ export default function ExportsPage() {
             if (endDate) params.append("end_date", endDate);
 
             const response = await fetch(
-                `${process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"}/api/v1/exports/sage?${params}`,
+                `${API_BASE_URL}/api/v1/exports/sage?${params}`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,

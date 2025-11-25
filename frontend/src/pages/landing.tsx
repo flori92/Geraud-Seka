@@ -163,7 +163,7 @@ export default function LandingPage() {
                                 <div className="relative">
                                     <h3 className="text-base font-semibold leading-7 text-gray-900">Starter</h3>
                                     <p className="mt-4 flex items-baseline gap-x-2">
-                                        <span className="text-5xl font-bold tracking-tight text-gray-900">17,000</span>
+                                        <span className="text-5xl font-bold tracking-tight text-gray-900">19,000</span>
                                         <span className="text-base text-gray-500">FCFA/mois</span>
                                     </p>
                                     <p className="mt-6 text-base leading-7 text-gray-600">Pour les TPE et freelances</p>
@@ -196,7 +196,7 @@ export default function LandingPage() {
                                 <div className="relative">
                                     <h3 className="text-base font-semibold leading-7 text-white">Business</h3>
                                     <p className="mt-4 flex items-baseline gap-x-2">
-                                        <span className="text-5xl font-bold tracking-tight text-white">60,000</span>
+                                        <span className="text-5xl font-bold tracking-tight text-white">65,000</span>
                                         <span className="text-base text-gray-400">FCFA/mois</span>
                                     </p>
                                     <p className="mt-6 text-base leading-7 text-gray-300">Pour les PME en croissance</p>

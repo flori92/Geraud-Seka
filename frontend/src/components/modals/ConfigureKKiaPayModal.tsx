@@ -5,6 +5,7 @@ import { Alert } from '@/components/ui/Alert';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Smartphone } from 'lucide-react';
+import { API_BASE_URL } from '@/lib/api';
 
 interface ConfigureKKiaPayModalProps {
     isOpen: boolean;
@@ -30,7 +31,7 @@ export function ConfigureKKiaPayModal({ isOpen, onClose, onSuccess }: ConfigureK
             }
 
             const response = await fetch(
-                `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'}/api/v1/billing/payment-method/mobile-money`,
+                `${API_BASE_URL}/api/v1/billing/payment-method/mobile-money`,
                 {
                     method: 'POST',
                     headers: {

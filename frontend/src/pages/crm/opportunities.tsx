@@ -41,26 +41,32 @@ export default function OpportunitiesPage() {
     }
   };
 
+  // Calculate real stats from opportunities data
+  const totalOpportunities = opportunities.length;
+  const totalValue = opportunities.reduce((sum, opp) => sum + opp.value, 0);
+  const wonOpportunities = opportunities.filter(opp => opp.stage === "Gagné").length;
+  const conversionRate = totalOpportunities > 0 ? Math.round((wonOpportunities / totalOpportunities) * 100) : 0;
+  const expectedRevenue = Math.round(opportunities.reduce((sum, opp) => {
+    // Calculate weighted expected value based on probability
+    return sum + (opp.value * opp.probability / 100);
+  }, 0) / 1000);
+
   const stats = [
     {
       label: "Total opportunités",
-      value: opportunities.length.toString(),
-      trend: "+15%"
+      value: totalOpportunities.toString(),
     },
     {
       label: "Valeur pipeline",
-      value: Math.round(opportunities.reduce((sum, opp) => sum + opp.value, 0) / 1000) + "K FCFA",
-      trend: "+8%"
+      value: Math.round(totalValue / 1000) + "K FCFA",
     },
     {
       label: "Taux conversion",
-      value: "68%",
-      trend: "+3%"
+      value: conversionRate + "%",
     },
     {
-      label: "CA prévu ce mois",
-      value: "320K FCFA",
-      trend: "+12%"
+      label: "CA prévu (pondéré)",
+      value: expectedRevenue + "K FCFA",
     },
   ];
 
@@ -87,12 +93,9 @@ export default function OpportunitiesPage() {
       <div className="grid gap-4 md:grid-cols-4 mb-6">
         {stats.map((stat, idx) => (
           <Card key={idx}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-accents-5">{stat.label}</p>
-                <p className="mt-1 text-2xl font-bold text-foreground">{stat.value}</p>
-              </div>
-              <Badge variant="success">{stat.trend}</Badge>
+            <div>
+              <p className="text-xs text-accents-5">{stat.label}</p>
+              <p className="mt-1 text-2xl font-bold text-foreground">{stat.value}</p>
             </div>
           </Card>
         ))}
