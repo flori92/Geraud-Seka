@@ -10,6 +10,7 @@ import { Plus, Filter } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { getOpportunities, Opportunity } from "@/lib/api";
+import { formatCurrency } from "@/lib/formatters";
 
 export default function OpportunitiesPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -46,10 +47,10 @@ export default function OpportunitiesPage() {
   const totalValue = opportunities.reduce((sum, opp) => sum + opp.value, 0);
   const wonOpportunities = opportunities.filter(opp => opp.stage === "Gagné").length;
   const conversionRate = totalOpportunities > 0 ? Math.round((wonOpportunities / totalOpportunities) * 100) : 0;
-  const expectedRevenue = Math.round(opportunities.reduce((sum, opp) => {
+  const expectedRevenue = opportunities.reduce((sum, opp) => {
     // Calculate weighted expected value based on probability
     return sum + (opp.value * opp.probability / 100);
-  }, 0) / 1000);
+  }, 0);
 
   const stats = [
     {
@@ -58,7 +59,7 @@ export default function OpportunitiesPage() {
     },
     {
       label: "Valeur pipeline",
-      value: Math.round(totalValue / 1000) + "K FCFA",
+      value: formatCurrency(totalValue),
     },
     {
       label: "Taux conversion",
@@ -66,7 +67,7 @@ export default function OpportunitiesPage() {
     },
     {
       label: "CA prévu (pondéré)",
-      value: expectedRevenue + "K FCFA",
+      value: formatCurrency(expectedRevenue),
     },
   ];
 

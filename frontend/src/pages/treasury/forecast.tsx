@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts';
+import { formatChartValue } from '@/lib/formatters';
 
 interface ForecastData {
   forecast_date: string;
@@ -251,7 +252,7 @@ export default function CashFlowForecast() {
                 />
                 <YAxis
                   tick={{ fontSize: 12 }}
-                  tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                  tickFormatter={(value) => `${formatChartValue(value)}k`}
                 />
                 <Tooltip
                   formatter={(value: any) => formatCurrency(value)}

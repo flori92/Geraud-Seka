@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { CreateInvoiceModal } from "@/components/forms/CreateInvoiceModal";
 import { getInvoices, Invoice } from "@/lib/api";
 import { Plus, Download, Send, Eye, AlertCircle } from "lucide-react";
+import { formatAmount } from "@/lib/formatters";
 
 export default function InvoicesPage() {
   const [searchTerm, setSearchTerm] = useState("");

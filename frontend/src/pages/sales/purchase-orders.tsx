@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { Alert } from "@/components/ui/Alert";
 import { getPurchaseOrders, PurchaseOrder } from "@/lib/api";
 import { Plus, Eye, Download } from "lucide-react";
+import { formatAmount } from "@/lib/formatters";
 
 export default function PurchaseOrdersPage() {
   const [searchTerm, setSearchTerm] = useState("");

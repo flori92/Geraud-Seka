@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { Alert } from "@/components/ui/Alert";
 import { getPayslips, Payslip } from "@/lib/api";
 import { Plus, Download, FileText } from "lucide-react";
+import { formatAmount } from "@/lib/formatters";
 
 export default function PayslipsPage() {
   const [payslips, setPayslips] = useState<Payslip[]>([]);

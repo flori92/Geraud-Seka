@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { Alert } from "@/components/ui/Alert";
 import { getHRReport, HRReport } from "@/lib/api";
 import { Download, Users, Briefcase, TrendingUp } from "lucide-react";
+import { formatAmount } from "@/lib/formatters";
 
 export default function HRReportsPage() {
   const [report, setReport] = useState<HRReport | null>(null);
@@ -56,7 +57,7 @@ export default function HRReportsPage() {
     { label: "Employés actifs", value: report.total_employees.toString(), icon: Users, color: "bg-blue-600" },
     { label: "Nouveaux (ce mois)", value: report.new_hires.toString(), icon: TrendingUp, color: "bg-green-600" },
     { label: "Taux de présence", value: `${report.attendance_rate}%`, icon: Briefcase, color: "bg-purple-600" },
-    { label: "Masse salariale", value: `${Math.round(report.total_payroll / 1000000)}M`, icon: Download, color: "bg-orange-600" },
+    { label: "Masse salariale", value: formatAmount(report.total_payroll), icon: Download, color: "bg-orange-600" },
   ];
 
   return (

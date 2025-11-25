@@ -10,6 +10,7 @@ import { Alert } from "@/components/ui/Alert";
 import { CreateQuoteModal } from "@/components/forms/CreateQuoteModal";
 import { getQuotes, Quote } from "@/lib/api";
 import { Plus, Download, Send, Eye } from "lucide-react";
+import { formatAmount } from "@/lib/formatters";
 
 export default function QuotesPage() {
   const [searchTerm, setSearchTerm] = useState("");

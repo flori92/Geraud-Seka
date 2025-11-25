@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { Alert } from "@/components/ui/Alert";
 import { getJournalEntries, JournalEntry } from "@/lib/api";
 import { Plus, ArrowRight } from "lucide-react";
+import { formatAmount } from "@/lib/formatters";
 
 export default function JournalPage() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
@@ -40,8 +41,8 @@ export default function JournalPage() {
 
   const stats = [
     { label: "Total écritures", value: entries.length.toString(), color: "bg-blue-600" },
-    { label: "Débit total", value: Math.round(totalDebit / 1000) + "K", color: "bg-red-600" },
-    { label: "Crédit total", value: Math.round(totalCredit / 1000) + "K", color: "bg-green-600" },
+    { label: "Débit total", value: formatAmount(totalDebit), color: "bg-red-600" },
+    { label: "Crédit total", value: formatAmount(totalCredit), color: "bg-green-600" },
     { label: "Balance", value: Math.round((totalDebit - totalCredit) / 1000) + "K", color: "bg-purple-600" },
   ];
 

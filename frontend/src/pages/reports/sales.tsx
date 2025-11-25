@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { Alert } from "@/components/ui/Alert";
 import { getSalesReport, SalesReport } from "@/lib/api";
 import { Download, TrendingUp, TrendingDown, DollarSign, ShoppingCart } from "lucide-react";
+import { formatCurrency } from "@/lib/formatters";
 
 export default function SalesReportsPage() {
   const [report, setReport] = useState<SalesReport | null>(null);
@@ -53,9 +54,9 @@ export default function SalesReportsPage() {
   }
 
   const stats = [
-    { label: "CA du mois", value: `${Math.round(report.total_revenue / 1000000)}M FCFA`, icon: DollarSign, color: "bg-green-600" },
+    { label: "CA du mois", value: formatCurrency(report.total_revenue), icon: DollarSign, color: "bg-green-600" },
     { label: "Nombre de ventes", value: report.total_sales.toString(), icon: ShoppingCart, color: "bg-blue-600" },
-    { label: "Panier moyen", value: `${Math.round(report.average_order_value / 1000)}K FCFA`, icon: TrendingDown, color: "bg-orange-600" },
+    { label: "Panier moyen", value: formatCurrency(report.average_order_value), icon: TrendingDown, color: "bg-orange-600" },
     { label: "Taux conversion", value: `${report.conversion_rate}%`, icon: TrendingUp, color: "bg-purple-600" },
   ];
 

@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Alert } from "@/components/ui/Alert";
 import { Badge } from "@/components/ui/Badge";
+import { formatAmount } from "@/lib/formatters";
 import {
   Users,
   CheckSquare,
@@ -174,7 +175,7 @@ export default function DashboardPage() {
         />
         <StatCard
           title="Trésorerie"
-          value={stats?.total_revenue ? `${Math.round(stats.total_revenue / 1000)}K` : "0"}
+          value={stats?.total_revenue ? formatAmount(stats.total_revenue) : "0"}
           subtitle="Solde actuel (FCFA)"
           icon={Wallet}
           iconColor="bg-orange-600"

@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { Alert } from "@/components/ui/Alert";
 import { getEmployees, Employee } from "@/lib/api";
 import { Plus, Mail, Phone, User } from "lucide-react";
+import { formatAmount } from "@/lib/formatters";
 
 export default function EmployeesPage() {
   const [searchTerm, setSearchTerm] = useState("");
