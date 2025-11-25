@@ -50,7 +50,7 @@ export default function StockPage() {
                 price: Number(price),
                 stock_quantity: Number(stockQuantity),
                 min_stock_alert: Number(minStockAlert),
-                client_id: "00000000-0000-0000-0000-000000000000" // TODO: Get from context
+                // client_id is optional - backend will use tenant from JWT
             }, token);
             alert("Produit créé avec succès !");
             setShowCreate(false);

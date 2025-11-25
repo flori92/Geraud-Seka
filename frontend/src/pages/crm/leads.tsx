@@ -40,12 +40,32 @@ export default function LeadsPage() {
     }
   };
 
-  const stats = [
-    { label: "Total leads", value: "24", color: "bg-blue-600" },
-    { label: "Nouveaux (7j)", value: "8", color: "bg-green-600" },
-    { label: "Qualifiés", value: "12", color: "bg-purple-600" },
-    { label: "Taux conversion", value: "45%", color: "bg-orange-600" },
-  ];
+  // Calculate stats dynamically from leads data
+  const calculateStats = () => {
+    const total = leads.length;
+
+    // Count leads created in last 7 days
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const newLeads = leads.filter(lead => new Date(lead.created_at) >= sevenDaysAgo).length;
+
+    // Count qualified leads
+    const qualified = leads.filter(lead =>
+      lead.status.toLowerCase() === "qualifié" || lead.status.toLowerCase() === "qualified"
+    ).length;
+
+    // Calculate conversion rate (qualified / total)
+    const conversionRate = total > 0 ? Math.round((qualified / total) * 100) : 0;
+
+    return [
+      { label: "Total leads", value: total.toString(), color: "bg-blue-600" },
+      { label: "Nouveaux (7j)", value: newLeads.toString(), color: "bg-green-600" },
+      { label: "Qualifiés", value: qualified.toString(), color: "bg-purple-600" },
+      { label: "Taux conversion", value: `${conversionRate}%`, color: "bg-orange-600" },
+    ];
+  };
+
+  const stats = calculateStats();
 
   const getStatusVariant = (status: string) => {
     const variants: Record<string, "default" | "success" | "warning" | "error"> = {

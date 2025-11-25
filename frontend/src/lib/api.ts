@@ -68,6 +68,18 @@ export interface DashboardStats {
   documents_processed_this_month: number;
   tasks_overdue: number;
   tasks_due_this_week: number;
+  total_revenue?: number;
+  alerts?: Array<{
+    type: string;
+    title: string;
+    message: string;
+  }>;
+  recent_activities?: Array<{
+    action: string;
+    client: string;
+    amount?: string;
+    time: string;
+  }>;
 }
 
 export async function getDashboardStats(accessToken: string): Promise<DashboardStats> {
@@ -238,7 +250,7 @@ export interface ProductCreate {
   price: number;
   stock_quantity: number;
   min_stock_alert?: number;
-  client_id: string;
+  client_id?: string; // Optional - backend will use tenant from JWT if not provided
 }
 
 export interface ProductUpdate {
@@ -451,7 +463,7 @@ export interface CRMActivityCreate {
   due_date?: string;
   duration_minutes?: number;
   client_id?: string;
-  assigned_to: string;
+  assigned_to?: string; // Optional - backend will use authenticated user from JWT if not provided
 }
 
 export async function getCRMActivities(accessToken: string): Promise<CRMActivity[]> {
@@ -1015,6 +1027,55 @@ export interface HRReport {
 export async function getHRReport(accessToken: string, period?: string): Promise<HRReport> {
   const params = period ? `?period=${period}` : "";
   const response = await api.get<HRReport>(`/api/v1/reports/hr${params}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+// ========== TREASURY APIs ==========
+
+export interface CashFlowData {
+  label: string;
+  in: number;
+  out: number;
+}
+
+export async function getCashFlow(accessToken: string, period?: string): Promise<CashFlowData[]> {
+  const params = period ? `?period=${period}` : "";
+  const response = await api.get<CashFlowData[]>(`/api/v1/treasury/cash-flow${params}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+// ========== BILLING APIs ==========
+
+export interface Subscription {
+  plan: string;
+  status: string;
+  stripe_customer_id?: string;
+  next_billing_date?: string;
+  amount?: number;
+}
+
+export interface BillingInvoice {
+  id: string;
+  date: string;
+  description: string;
+  amount: number;
+  status: string;
+  invoice_url?: string;
+}
+
+export async function getSubscription(accessToken: string): Promise<Subscription> {
+  const response = await api.get<Subscription>("/api/v1/billing/subscription", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function getBillingHistory(accessToken: string): Promise<BillingInvoice[]> {
+  const response = await api.get<BillingInvoice[]>("/api/v1/billing/history", {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;

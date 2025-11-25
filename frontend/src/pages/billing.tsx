@@ -1,35 +1,50 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
+import { useRouter } from 'next/router';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { CreditCard, Smartphone, Calendar, CheckCircle, XCircle } from 'lucide-react';
-
-interface Subscription {
-    plan: string;
-    status: string;
-    stripe_customer_id?: string;
-    next_billing_date?: string;
-    amount?: number;
-}
+import { getSubscription, getBillingHistory, type Subscription, type BillingInvoice } from '@/lib/api';
 
 export default function BillingPage() {
+    const router = useRouter();
     const [subscription, setSubscription] = useState<Subscription | null>(null);
+    const [billingHistory, setBillingHistory] = useState<BillingInvoice[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        // Mock data - In real app, fetch from API
-        const mockSubscription: Subscription = {
-            plan: 'Business',
-            status: 'active',
-            stripe_customer_id: 'cus_mock123',
-            next_billing_date: '2025-12-22',
-            amount: 65000,
+        const fetchBillingData = async () => {
+            try {
+                setLoading(true);
+                const token = localStorage.getItem("seka_access_token");
+                if (!token) {
+                    router.push("/login");
+                    return;
+                }
+
+                const [subscriptionData, historyData] = await Promise.all([
+                    getSubscription(token),
+                    getBillingHistory(token),
+                ]);
+
+                setSubscription(subscriptionData);
+                setBillingHistory(historyData);
+                setError(null);
+            } catch (err: any) {
+                console.error("Failed to fetch billing data", err);
+                if (err.response?.status === 401) {
+                    localStorage.removeItem("seka_access_token");
+                    router.push("/login");
+                    return;
+                }
+                setError("Impossible de charger les données de facturation");
+            } finally {
+                setLoading(false);
+            }
         };
 
-        setTimeout(() => {
-            setSubscription(mockSubscription);
-            setLoading(false);
-        }, 500);
-    }, []);
+        fetchBillingData();
+    }, [router]);
 
     const getPlanColor = (plan: string) => {
         switch (plan.toLowerCase()) {
@@ -63,6 +78,12 @@ export default function BillingPage() {
                     <h1 className="text-3xl font-bold text-gray-900">Facturation & Abonnement</h1>
                     <p className="text-gray-600 mt-2">Gérez votre abonnement et vos moyens de paiement</p>
                 </div>
+
+                {error && (
+                    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <p className="text-red-800 text-sm">{error}</p>
+                    </div>
+                )}
 
                 {loading ? (
                     <div className="animate-pulse space-y-4">
@@ -164,36 +185,63 @@ export default function BillingPage() {
                         <div className="bg-white rounded-lg shadow p-6">
                             <h2 className="text-xl font-semibold text-gray-900 mb-4">Historique de facturation</h2>
 
-                            <div className="overflow-x-auto">
-                                <table className="min-w-full divide-y divide-gray-200">
-                                    <thead>
-                                        <tr>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Montant</th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
-                                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Facture</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-200">
-                                        <tr>
-                                            <td className="px-4 py-3 text-sm text-gray-900">22/11/2025</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900">Abonnement Business - Novembre 2025</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900">65.000 FCFA</td>
-                                            <td className="px-4 py-3">
-                                                <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                                                    Payé
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-3 text-sm">
-                                                <a href="#" className="text-indigo-600 hover:text-indigo-700">
-                                                    Télécharger
-                                                </a>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
+                            {billingHistory.length > 0 ? (
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full divide-y divide-gray-200">
+                                        <thead>
+                                            <tr>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Montant</th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Facture</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-200">
+                                            {billingHistory.map((invoice) => (
+                                                <tr key={invoice.id}>
+                                                    <td className="px-4 py-3 text-sm text-gray-900">
+                                                        {new Date(invoice.date).toLocaleDateString('fr-FR')}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm text-gray-900">{invoice.description}</td>
+                                                    <td className="px-4 py-3 text-sm text-gray-900">
+                                                        {invoice.amount.toLocaleString()} FCFA
+                                                    </td>
+                                                    <td className="px-4 py-3">
+                                                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                                            invoice.status.toLowerCase() === 'paid' || invoice.status.toLowerCase() === 'payé'
+                                                                ? 'bg-green-100 text-green-800'
+                                                                : invoice.status.toLowerCase() === 'pending'
+                                                                ? 'bg-yellow-100 text-yellow-800'
+                                                                : 'bg-red-100 text-red-800'
+                                                        }`}>
+                                                            {invoice.status}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-sm">
+                                                        {invoice.invoice_url ? (
+                                                            <a
+                                                                href={invoice.invoice_url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="text-indigo-600 hover:text-indigo-700"
+                                                            >
+                                                                Télécharger
+                                                            </a>
+                                                        ) : (
+                                                            <span className="text-gray-400">N/A</span>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <div className="text-center py-8 text-gray-500">
+                                    <p>Aucun historique de facturation disponible</p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
