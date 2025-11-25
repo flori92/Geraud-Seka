@@ -45,15 +45,13 @@ export function DocumentUpload({ onUploadSuccess }: DocumentUploadProps) {
             return;
         }
 
-        // Mock client_id
-        const clientId = "00000000-0000-0000-0000-000000000000";
-
         try {
             const formData = new FormData();
             formData.append("file", file);
 
+            // Upload sans client_id - sera géré par le backend ou attribué plus tard
             const response = await fetch(
-                `${process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"}/api/v1/documents/?client_id=${clientId}`,
+                `${process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000"}/api/v1/documents/`,
                 {
                     method: "POST",
                     headers: {

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { getDashboardStats, type DashboardStats } from "@/lib/api";
 import { Card } from "@/components/ui/Card";
@@ -93,6 +94,7 @@ function QuickAction({ label, description, icon: Icon, href }: QuickActionProps)
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -102,12 +104,19 @@ export default function DashboardPage() {
       try {
         const token = localStorage.getItem("seka_access_token");
         if (!token) {
+          router.push("/login");
           return;
         }
         const data = await getDashboardStats(token);
         setStats(data);
-      } catch (err) {
+      } catch (err: any) {
         console.error("Failed to fetch dashboard stats", err);
+        // Si erreur 401, rediriger vers login
+        if (err.response?.status === 401) {
+          localStorage.removeItem("seka_access_token");
+          router.push("/login");
+          return;
+        }
         setError("Impossible de charger les statistiques.");
       } finally {
         setLoading(false);
@@ -115,7 +124,7 @@ export default function DashboardPage() {
     };
 
     fetchStats();
-  }, []);
+  }, [router]);
 
   return (
     <DashboardLayout title="Vue d'ensemble">
@@ -155,9 +164,8 @@ export default function DashboardPage() {
         />
         <StatCard
           title="Trésorerie"
-          value="125K"
+          value={stats?.total_revenue ? `${Math.round(stats.total_revenue / 1000)}K` : "0"}
           subtitle="Solde actuel (FCFA)"
-          trend={{ value: "-5%", type: "down" }}
           icon={Wallet}
           iconColor="bg-orange-600"
           loading={loading}
@@ -165,17 +173,18 @@ export default function DashboardPage() {
       </div>
 
       {/* Alertes et notifications */}
-      <div className="mt-8">
-        <h2 className="mb-4 text-lg font-semibold text-foreground">Alertes importantes</h2>
-        <div className="space-y-3">
-          <Alert variant="warning" title="Factures en retard">
-            3 factures impayées depuis plus de 30 jours pour un montant total de 45 000 FCFA.
-          </Alert>
-          <Alert variant="info" title="Tâches à venir">
-            5 déclarations fiscales à soumettre dans les 7 prochains jours.
-          </Alert>
+      {stats?.alerts && stats.alerts.length > 0 && (
+        <div className="mt-8">
+          <h2 className="mb-4 text-lg font-semibold text-foreground">Alertes importantes</h2>
+          <div className="space-y-3">
+            {stats.alerts.map((alert: any, idx: number) => (
+              <Alert key={idx} variant={alert.type} title={alert.title}>
+                {alert.message}
+              </Alert>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Actions rapides et activité récente */}
       <div className="mt-8 grid gap-6 lg:grid-cols-3">
@@ -188,27 +197,30 @@ export default function DashboardPage() {
               </a>
             </div>
             <div className="space-y-4">
-              {[
-                { time: "Il y a 2h", action: "Nouvelle facture créée", client: "Cabinet Avocat XYZ", amount: "15 000 FCFA" },
-                { time: "Il y a 5h", action: "Document validé", client: "Entreprise ABC", amount: null },
-                { time: "Hier", action: "Paiement reçu", client: "SARL Transport DEF", amount: "28 500 FCFA" },
-              ].map((activity, idx) => (
-                <div key={idx} className="flex items-start gap-3 border-b border-accents-2 pb-3 last:border-0 last:pb-0">
-                  <div className="rounded-full bg-accents-1 p-2">
-                    <Clock className="h-3 w-3 text-accents-5" />
+              {stats?.recent_activities && stats.recent_activities.length > 0 ? (
+                stats.recent_activities.map((activity: any, idx: number) => (
+                  <div key={idx} className="flex items-start gap-3 border-b border-accents-2 pb-3 last:border-0 last:pb-0">
+                    <div className="rounded-full bg-accents-1 p-2">
+                      <Clock className="h-3 w-3 text-accents-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground">{activity.action}</p>
+                      <p className="text-xs text-accents-5">{activity.client}</p>
+                    </div>
+                    <div className="text-right">
+                      {activity.amount && (
+                        <p className="text-sm font-medium text-foreground">{activity.amount}</p>
+                      )}
+                      <p className="text-xs text-accents-5">{activity.time}</p>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground">{activity.action}</p>
-                    <p className="text-xs text-accents-5">{activity.client}</p>
-                  </div>
-                  <div className="text-right">
-                    {activity.amount && (
-                      <p className="text-sm font-medium text-foreground">{activity.amount}</p>
-                    )}
-                    <p className="text-xs text-accents-5">{activity.time}</p>
-                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <Clock className="h-8 w-8 mx-auto mb-2 text-accents-3" />
+                  <p className="text-sm text-accents-5">Aucune activité récente</p>
                 </div>
-              ))}
+              )}
             </div>
           </Card>
         </div>
