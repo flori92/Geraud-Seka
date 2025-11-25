@@ -4,6 +4,9 @@ import { useRouter } from 'next/router';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { CreditCard, Smartphone, Calendar, CheckCircle, XCircle } from 'lucide-react';
 import { getSubscription, getBillingHistory, type Subscription, type BillingInvoice } from '@/lib/api';
+import { CancelSubscriptionModal } from '@/components/modals/CancelSubscriptionModal';
+import { ConfigureKKiaPayModal } from '@/components/modals/ConfigureKKiaPayModal';
+import { AddPaymentMethodModal } from '@/components/modals/AddPaymentMethodModal';
 
 export default function BillingPage() {
     const router = useRouter();
@@ -11,6 +14,9 @@ export default function BillingPage() {
     const [billingHistory, setBillingHistory] = useState<BillingInvoice[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [showCancelModal, setShowCancelModal] = useState(false);
+    const [showKKiaPayModal, setShowKKiaPayModal] = useState(false);
+    const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
 
     useEffect(() => {
         const fetchBillingData = async () => {
@@ -139,11 +145,7 @@ export default function BillingPage() {
                                     Changer de plan
                                 </button>
                                 <button
-                                    onClick={() => {
-                                        if (confirm('Êtes-vous sûr de vouloir annuler votre abonnement ?')) {
-                                            alert('La fonctionnalité d\'annulation sera disponible prochainement.');
-                                        }
-                                    }}
+                                    onClick={() => setShowCancelModal(true)}
                                     className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
                                 >
                                     Annuler l'abonnement
@@ -178,7 +180,7 @@ export default function BillingPage() {
                                         </div>
                                     </div>
                                     <button
-                                        onClick={() => alert('Configuration KKiaPay disponible prochainement.')}
+                                        onClick={() => setShowKKiaPayModal(true)}
                                         className="text-sm text-indigo-600 hover:text-indigo-700 font-medium transition-colors"
                                     >
                                         Configurer
@@ -187,7 +189,7 @@ export default function BillingPage() {
                             </div>
 
                             <button
-                                onClick={() => alert('Ajout de moyen de paiement disponible prochainement.')}
+                                onClick={() => setShowAddPaymentModal(true)}
                                 className="mt-4 text-indigo-600 hover:text-indigo-700 font-medium text-sm transition-colors"
                             >
                                 + Ajouter un moyen de paiement
@@ -259,6 +261,33 @@ export default function BillingPage() {
                     </div>
                 )}
             </div>
+
+            <CancelSubscriptionModal
+                isOpen={showCancelModal}
+                onClose={() => setShowCancelModal(false)}
+                onSuccess={() => {
+                    setShowCancelModal(false);
+                    window.location.reload();
+                }}
+            />
+
+            <ConfigureKKiaPayModal
+                isOpen={showKKiaPayModal}
+                onClose={() => setShowKKiaPayModal(false)}
+                onSuccess={() => {
+                    setShowKKiaPayModal(false);
+                    window.location.reload();
+                }}
+            />
+
+            <AddPaymentMethodModal
+                isOpen={showAddPaymentModal}
+                onClose={() => setShowAddPaymentModal(false)}
+                onSuccess={() => {
+                    setShowAddPaymentModal(false);
+                    window.location.reload();
+                }}
+            />
         </DashboardLayout>
     );
 }
