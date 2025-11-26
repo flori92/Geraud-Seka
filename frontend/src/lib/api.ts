@@ -31,7 +31,12 @@ if (process.env.NODE_ENV === "development") {
 }
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: `${API_BASE_URL}/api/v1`,
+  timeout: 30000, // Augmenté pour les connexions lentes
+  headers: {
+    "Content-Type": "application/json",
+    "X-Requested-With": "XMLHttpRequest",
+  },
 });
 
 export interface TokenPair {

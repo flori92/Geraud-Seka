@@ -55,7 +55,7 @@ class Settings(BaseSettings):
     
     # Domain
     domain: str = "sekagestion.com"
-    frontend_url: str = "https://app.sekagestion.com"
+    frontend_url: str = "https://www.sekagestion.com"
 
     model_config = SettingsConfigDict(
         env_file=("../.env", ".env"),

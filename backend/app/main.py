@@ -2,13 +2,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.staticfiles import StaticFiles
-from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 import os
 import logging
 
 from app.api.v1.router import api_router
 from app.core.config import get_settings
 from app.middleware.monitoring import MonitoringMiddleware
+from app.middleware.https_redirect import HTTPSRedirectMiddleware
 from app.middleware.proxy_headers import ProxyHeadersMiddleware
 from app.services.monitoring import monitoring_service
 
@@ -58,9 +58,12 @@ def create_application() -> FastAPI:
         debug=settings.debug
     )
 
-    # Proxy Headers Middleware - MUST BE FIRST
+    # HTTPS Redirect Middleware - MUST BE FIRST
+    # Forces HTTPS in production before any other processing
+    app.add_middleware(HTTPSRedirectMiddleware)
+    
+    # Proxy Headers Middleware - SECOND
     # Handles X-Forwarded-* headers from Cloudflare/Railway proxy
-    # This prevents HTTPS→HTTP redirect loops
     app.add_middleware(ProxyHeadersMiddleware)
 
     # CORS Middleware - IMPORTANT: Must be added BEFORE other middleware
@@ -73,8 +76,19 @@ def create_application() -> FastAPI:
         CORSMiddleware,
         allow_origins=cors_origins,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+        allow_headers=[
+            "Accept",
+            "Accept-Language", 
+            "Content-Language",
+            "Content-Type",
+            "Authorization",
+            "X-Requested-With",
+            "X-CSRF-Token",
+            "Access-Control-Allow-Origin",
+            "Cache-Control",
+            "Pragma",
+        ],
         expose_headers=["*"],
     )
 

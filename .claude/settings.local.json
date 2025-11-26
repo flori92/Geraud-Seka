@@ -27,7 +27,13 @@
       "Bash(git reset:*)",
       "Bash(.gitignore)",
       "Bash(git rm:*)",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run build:*)",
+      "Bash(find:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)",
+      "Bash(frontend/.gitignore)"
     ],
     "deny": [],
     "ask": []

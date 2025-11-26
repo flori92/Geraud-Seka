@@ -8,6 +8,40 @@ const nextConfig = {
       bodySizeLimit: '2mb',
     },
   },
+  
+  // Force HTTPS in production
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000; includeSubDomains; preload',
+          },
+        ],
+      },
+    ]
+  },
+
+  // Redirect HTTP to HTTPS
+  async redirects() {
+    return [
+      // Force HTTPS redirects
+      {
+        source: '/:path*',
+        has: [
+          {
+            type: 'header',
+            key: 'x-forwarded-proto',
+            value: 'http',
+          },
+        ],
+        destination: 'https://www.sekagestion.com/:path*',
+        permanent: true,
+      },
+    ]
+  },
 };
 
 export default withSentryConfig(
