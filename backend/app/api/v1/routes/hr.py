@@ -9,7 +9,7 @@ from app.models.user import User
 
 router = APIRouter()
 
-@router.get("/employees", response_model=List[schemas.EmployeeResponse])
+@router.get("/employees/", response_model=List[schemas.EmployeeResponse])
 def get_employees(
     skip: int = 0,
     limit: int = 100,
@@ -21,7 +21,7 @@ def get_employees(
     """
     return hr_service.get_employees(db, tenant_id=current_user.tenant_id, skip=skip, limit=limit)
 
-@router.post("/employees", response_model=schemas.EmployeeResponse)
+@router.post("/employees/", response_model=schemas.EmployeeResponse)
 def create_employee(
     employee_in: schemas.EmployeeCreate,
     db: Session = Depends(get_db),
@@ -32,7 +32,7 @@ def create_employee(
     """
     return hr_service.create_employee(db, tenant_id=current_user.tenant_id, employee_data=employee_in.model_dump())
 
-@router.post("/contracts", response_model=schemas.ContractResponse)
+@router.post("/contracts/", response_model=schemas.ContractResponse)
 def create_contract(
     contract_in: schemas.ContractCreate,
     db: Session = Depends(get_db),
@@ -43,7 +43,7 @@ def create_contract(
     """
     return hr_service.create_contract(db, tenant_id=current_user.tenant_id, contract_data=contract_in.model_dump())
 
-@router.post("/payslips/generate", response_model=schemas.PayslipResponse)
+@router.post("/payslips/generate/", response_model=schemas.PayslipResponse)
 def generate_payslip(
     payslip_in: schemas.PayslipGenerate,
     db: Session = Depends(get_db),
@@ -60,7 +60,7 @@ def generate_payslip(
         period_end=payslip_in.period_end
     )
 
-@router.post("/leaves", response_model=schemas.LeaveRequestResponse)
+@router.post("/leaves/", response_model=schemas.LeaveRequestResponse)
 def request_leave(
     leave_in: schemas.LeaveRequestCreate,
     db: Session = Depends(get_db),
