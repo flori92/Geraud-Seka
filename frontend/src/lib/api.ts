@@ -67,7 +67,7 @@ export interface RegisterPayload {
 }
 
 export async function register(payload: RegisterPayload): Promise<User> {
-  const response = await api.post<User>("/api/v1/auth/register", payload);
+  const response = await api.post<User>("/auth/register", payload);
   return response.data;
 }
 
@@ -76,7 +76,7 @@ export async function login(email: string, password: string): Promise<TokenPair>
   body.append("username", email);
   body.append("password", password);
 
-  const response = await api.post<TokenPair>("/api/v1/auth/login", body, {
+  const response = await api.post<TokenPair>("/auth/login", body, {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
     },
@@ -86,7 +86,7 @@ export async function login(email: string, password: string): Promise<TokenPair>
 }
 
 export async function getCurrentUser(accessToken: string): Promise<User> {
-  const response = await api.get<User>("/api/v1/auth/me", {
+  const response = await api.get<User>("/auth/me", {
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
@@ -118,7 +118,7 @@ export interface DashboardStats {
 }
 
 export async function getDashboardStats(accessToken: string): Promise<DashboardStats> {
-  const response = await api.get<DashboardStats>("/api/v1/dashboard/stats", {
+  const response = await api.get<DashboardStats>("/dashboard/stats", {
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
@@ -130,7 +130,7 @@ export async function uploadDocument(file: File, clientId: string, accessToken: 
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await api.post(`/api/v1/documents/?client_id=${clientId}`, formData, {
+  const response = await api.post(`/documents/?client_id=${clientId}`, formData, {
     headers: {
       "Content-Type": "multipart/form-data",
       Authorization: `Bearer ${accessToken}`,
@@ -165,7 +165,7 @@ export interface Document {
 }
 
 export async function getDocuments(accessToken: string, clientId?: string): Promise<Document[]> {
-  const url = clientId ? `/api/v1/documents/?client_id=${clientId}` : "/api/v1/documents/";
+  const url = clientId ? `/documents/?client_id=${clientId}` : "/documents/";
   const response = await api.get<Document[]>(url, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
@@ -173,7 +173,7 @@ export async function getDocuments(accessToken: string, clientId?: string): Prom
 }
 
 export async function getDocument(documentId: string, accessToken: string): Promise<Document> {
-  const response = await api.get<Document>(`/api/v1/documents/${documentId}`, {
+  const response = await api.get<Document>(`/documents/${documentId}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
@@ -194,7 +194,7 @@ export interface ClientCreate {
 }
 
 export async function getClients(accessToken: string): Promise<Client[]> {
-  const response = await api.get<Client[]>("/api/v1/clients/", {
+  const response = await api.get<Client[]>("/clients/", {
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
@@ -203,7 +203,7 @@ export async function getClients(accessToken: string): Promise<Client[]> {
 }
 
 export async function createClient(clientData: ClientCreate, accessToken: string): Promise<Client> {
-  const response = await api.post<Client>("/api/v1/clients/", clientData, {
+  const response = await api.post<Client>("/clients/", clientData, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
@@ -225,7 +225,7 @@ export interface ValidationData {
 }
 
 export async function validateDocument(documentId: string, data: ValidationData, accessToken: string): Promise<any> {
-  const response = await api.post(`/api/v1/documents/${documentId}/validate`, data, {
+  const response = await api.post(`/documents/${documentId}/validate`, data, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
@@ -253,7 +253,7 @@ export interface ActivityCreate {
 }
 
 export async function getActivities(accessToken: string, clientId?: string): Promise<Activity[]> {
-  const url = clientId ? `/api/v1/activities/?client_id=${clientId}` : "/api/v1/activities/";
+  const url = clientId ? `/api/v1/activities/?client_id=${clientId}` : "/activities/";
   const response = await api.get<Activity[]>(url, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
@@ -261,7 +261,7 @@ export async function getActivities(accessToken: string, clientId?: string): Pro
 }
 
 export async function createActivity(data: ActivityCreate, accessToken: string): Promise<Activity> {
-  const response = await api.post<Activity>("/api/v1/activities/", data, {
+  const response = await api.post<Activity>("/activities/", data, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
@@ -297,7 +297,7 @@ export interface ProductUpdate {
 }
 
 export async function getProducts(accessToken: string, clientId?: string): Promise<Product[]> {
-  const url = clientId ? `/api/v1/products/?client_id=${clientId}` : "/api/v1/products/";
+  const url = clientId ? `/api/v1/products/?client_id=${clientId}` : "/products/";
   const response = await api.get<Product[]>(url, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
@@ -305,7 +305,7 @@ export async function getProducts(accessToken: string, clientId?: string): Promi
 }
 
 export async function createProduct(data: ProductCreate, accessToken: string): Promise<Product> {
-  const response = await api.post<Product>("/api/v1/products/", data, {
+  const response = await api.post<Product>("/products/", data, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
@@ -369,28 +369,28 @@ export interface KKiaPayLinkCreate {
 }
 
 export async function createStripeCustomer(data: StripeCustomerCreate, accessToken: string): Promise<any> {
-  const response = await api.post("/api/v1/payments/stripe/customer", data, {
+  const response = await api.post("/payments/stripe/customer", data, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
 }
 
 export async function createStripeSubscription(data: StripeSubscriptionCreate, accessToken: string): Promise<any> {
-  const response = await api.post("/api/v1/payments/stripe/subscribe", data, {
+  const response = await api.post("/payments/stripe/subscribe", data, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
 }
 
 export async function createKKiaPayLink(data: KKiaPayLinkCreate, accessToken: string): Promise<any> {
-  const response = await api.post("/api/v1/payments/kkiapay/link", data, {
+  const response = await api.post("/payments/kkiapay/link", data, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
 }
 
 export async function verifyKKiaPayTransaction(transactionId: string, accessToken: string): Promise<any> {
-  const response = await api.post("/api/v1/payments/kkiapay/verify", { transaction_id: transactionId }, {
+  const response = await api.post("/payments/kkiapay/verify", { transaction_id: transactionId }, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
@@ -425,14 +425,14 @@ export interface OpportunityCreate {
 }
 
 export async function getOpportunities(accessToken: string): Promise<Opportunity[]> {
-  const response = await api.get<Opportunity[]>("/api/v1/crm/opportunities/", {
+  const response = await api.get<Opportunity[]>("/crm/opportunities/", {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
 }
 
 export async function createOpportunity(data: OpportunityCreate, accessToken: string): Promise<Opportunity> {
-  const response = await api.post<Opportunity>("/api/v1/crm/opportunities/", data, {
+  const response = await api.post<Opportunity>("/crm/opportunities/", data, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
@@ -462,14 +462,14 @@ export interface LeadCreate {
 }
 
 export async function getLeads(accessToken: string): Promise<Lead[]> {
-  const response = await api.get<Lead[]>("/api/v1/crm/leads/", {
+  const response = await api.get<Lead[]>("/crm/leads/", {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
 }
 
 export async function createLead(data: LeadCreate, accessToken: string): Promise<Lead> {
-  const response = await api.post<Lead>("/api/v1/crm/leads/", data, {
+  const response = await api.post<Lead>("/crm/leads/", data, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
@@ -502,14 +502,14 @@ export interface CRMActivityCreate {
 }
 
 export async function getCRMActivities(accessToken: string): Promise<CRMActivity[]> {
-  const response = await api.get<CRMActivity[]>("/api/v1/crm/activities/", {
+  const response = await api.get<CRMActivity[]>("/crm/activities/", {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
 }
 
 export async function createCRMActivity(data: CRMActivityCreate, accessToken: string): Promise<CRMActivity> {
-  const response = await api.post<CRMActivity>("/api/v1/crm/activities/", data, {
+  const response = await api.post<CRMActivity>("/crm/activities/", data, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
@@ -545,14 +545,14 @@ export interface QuoteCreate {
 }
 
 export async function getQuotes(accessToken: string): Promise<Quote[]> {
-  const response = await api.get<Quote[]>("/api/v1/sales/quotes/", {
+  const response = await api.get<Quote[]>("/sales/quotes/", {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
 }
 
 export async function createQuote(data: QuoteCreate, accessToken: string): Promise<Quote> {
-  const response = await api.post<Quote>("/api/v1/sales/quotes/", data, {
+  const response = await api.post<Quote>("/sales/quotes/", data, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
@@ -587,14 +587,14 @@ export interface InvoiceCreate {
 }
 
 export async function getInvoices(accessToken: string): Promise<Invoice[]> {
-  const response = await api.get<Invoice[]>("/api/v1/sales/invoices/", {
+  const response = await api.get<Invoice[]>("/sales/invoices/", {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
 }
 
 export async function createInvoice(data: InvoiceCreate, accessToken: string): Promise<Invoice> {
-  const response = await api.post<Invoice>("/api/v1/sales/invoices/", data, {
+  const response = await api.post<Invoice>("/sales/invoices/", data, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
@@ -631,14 +631,14 @@ export interface EmployeeCreate {
 }
 
 export async function getEmployees(accessToken: string): Promise<Employee[]> {
-  const response = await api.get<Employee[]>("/api/v1/hr/employees/", {
+  const response = await api.get<Employee[]>("/hr/employees/", {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
 }
 
 export async function createEmployee(data: EmployeeCreate, accessToken: string): Promise<Employee> {
-  const response = await api.post<Employee>("/api/v1/hr/employees/", data, {
+  const response = await api.post<Employee>("/hr/employees/", data, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
@@ -668,14 +668,14 @@ export interface ContractCreate {
 }
 
 export async function getContracts(accessToken: string): Promise<Contract[]> {
-  const response = await api.get<Contract[]>("/api/v1/hr/contracts/", {
+  const response = await api.get<Contract[]>("/hr/contracts/", {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
 }
 
 export async function createContract(data: ContractCreate, accessToken: string): Promise<Contract> {
-  const response = await api.post<Contract>("/api/v1/hr/contracts/", data, {
+  const response = await api.post<Contract>("/hr/contracts/", data, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
@@ -707,14 +707,14 @@ export interface PayslipCreate {
 }
 
 export async function getPayslips(accessToken: string): Promise<Payslip[]> {
-  const response = await api.get<Payslip[]>("/api/v1/hr/payslips/", {
+  const response = await api.get<Payslip[]>("/hr/payslips/", {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
 }
 
 export async function createPayslip(data: PayslipCreate, accessToken: string): Promise<Payslip> {
-  const response = await api.post<Payslip>("/api/v1/hr/payslips/", data, {
+  const response = await api.post<Payslip>("/hr/payslips/", data, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
@@ -743,14 +743,14 @@ export interface LeaveCreate {
 }
 
 export async function getLeaves(accessToken: string): Promise<Leave[]> {
-  const response = await api.get<Leave[]>("/api/v1/hr/leaves/", {
+  const response = await api.get<Leave[]>("/hr/leaves/", {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
 }
 
 export async function createLeave(data: LeaveCreate, accessToken: string): Promise<Leave> {
-  const response = await api.post<Leave>("/api/v1/hr/leaves/", data, {
+  const response = await api.post<Leave>("/hr/leaves/", data, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
@@ -781,14 +781,14 @@ export interface JournalEntryCreate {
 }
 
 export async function getJournalEntries(accessToken: string): Promise<JournalEntry[]> {
-  const response = await api.get<JournalEntry[]>("/api/v1/accounting/journal/", {
+  const response = await api.get<JournalEntry[]>("/accounting/journal/", {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
 }
 
 export async function createJournalEntry(data: JournalEntryCreate, accessToken: string): Promise<JournalEntry> {
-  const response = await api.post<JournalEntry>("/api/v1/accounting/journal/", data, {
+  const response = await api.post<JournalEntry>("/accounting/journal/", data, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
@@ -833,7 +833,7 @@ export interface LedgerAccount {
 }
 
 export async function getLedgerAccounts(accessToken: string): Promise<LedgerAccount[]> {
-  const response = await api.get<LedgerAccount[]>("/api/v1/accounting/ledger/", {
+  const response = await api.get<LedgerAccount[]>("/accounting/ledger/", {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
@@ -854,7 +854,7 @@ export interface InventoryItem {
 }
 
 export async function getInventory(accessToken: string): Promise<InventoryItem[]> {
-  const response = await api.get<InventoryItem[]>("/api/v1/stock/inventory/", {
+  const response = await api.get<InventoryItem[]>("/stock/inventory/", {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
@@ -882,14 +882,14 @@ export interface StockMovementCreate {
 }
 
 export async function getStockMovements(accessToken: string): Promise<StockMovement[]> {
-  const response = await api.get<StockMovement[]>("/api/v1/stock/movements/", {
+  const response = await api.get<StockMovement[]>("/stock/movements/", {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
 }
 
 export async function createStockMovement(data: StockMovementCreate, accessToken: string): Promise<StockMovement> {
-  const response = await api.post<StockMovement>("/api/v1/stock/movements/", data, {
+  const response = await api.post<StockMovement>("/stock/movements/", data, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
@@ -925,14 +925,14 @@ export interface PurchaseOrderCreate {
 }
 
 export async function getPurchaseOrders(accessToken: string): Promise<PurchaseOrder[]> {
-  const response = await api.get<PurchaseOrder[]>("/api/v1/sales/purchase-orders/", {
+  const response = await api.get<PurchaseOrder[]>("/sales/purchase-orders/", {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
 }
 
 export async function createPurchaseOrder(data: PurchaseOrderCreate, accessToken: string): Promise<PurchaseOrder> {
-  const response = await api.post<PurchaseOrder>("/api/v1/sales/purchase-orders/", data, {
+  const response = await api.post<PurchaseOrder>("/sales/purchase-orders/", data, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
@@ -963,14 +963,14 @@ export interface DeliveryNoteCreate {
 }
 
 export async function getDeliveryNotes(accessToken: string): Promise<DeliveryNote[]> {
-  const response = await api.get<DeliveryNote[]>("/api/v1/sales/delivery-notes/", {
+  const response = await api.get<DeliveryNote[]>("/sales/delivery-notes/", {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
 }
 
 export async function createDeliveryNote(data: DeliveryNoteCreate, accessToken: string): Promise<DeliveryNote> {
-  const response = await api.post<DeliveryNote>("/api/v1/sales/delivery-notes/", data, {
+  const response = await api.post<DeliveryNote>("/sales/delivery-notes/", data, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
@@ -1103,14 +1103,14 @@ export interface BillingInvoice {
 }
 
 export async function getSubscription(accessToken: string): Promise<Subscription> {
-  const response = await api.get<Subscription>("/api/v1/billing/subscription", {
+  const response = await api.get<Subscription>("/billing/subscription", {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
 }
 
 export async function getBillingHistory(accessToken: string): Promise<BillingInvoice[]> {
-  const response = await api.get<BillingInvoice[]>("/api/v1/billing/history", {
+  const response = await api.get<BillingInvoice[]>("/billing/history", {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
