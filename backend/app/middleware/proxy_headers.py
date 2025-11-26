@@ -46,4 +46,14 @@ class ProxyHeadersMiddleware(BaseHTTPMiddleware):
                 request.scope["client"] = (client_ip, request.client.port)
 
         response = await call_next(request)
+
+        # Fix redirect locations to use HTTPS when forwarded proto is HTTPS
+        # This prevents HTTP redirects when behind a HTTPS proxy
+        if response.status_code in (301, 302, 303, 307, 308):
+            location = response.headers.get("location")
+            if location and forwarded_proto == "https" and location.startswith("http://"):
+                # Replace http:// with https:// in redirect location
+                fixed_location = location.replace("http://", "https://", 1)
+                response.headers["location"] = fixed_location
+
         return response
