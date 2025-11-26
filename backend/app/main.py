@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
 import logging
@@ -8,7 +7,6 @@ import logging
 from app.api.v1.router import api_router
 from app.core.config import get_settings
 from app.middleware.monitoring import MonitoringMiddleware
-from app.middleware.https_redirect import HTTPSRedirectMiddleware
 from app.middleware.proxy_headers import ProxyHeadersMiddleware
 from app.services.monitoring import monitoring_service
 
