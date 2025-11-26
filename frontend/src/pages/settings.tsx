@@ -322,7 +322,7 @@ export default function SettingsPage() {
                   </div>
 
                   <div>
-                    <Button variant="outline" size="md" className="w-full">
+                    <Button variant="secondary" size="md" className="w-full">
                       Voir l'historique de facturation
                     </Button>
                   </div>

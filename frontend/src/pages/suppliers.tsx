@@ -213,7 +213,7 @@ export default function SuppliersPage() {
                 <Button variant="secondary" size="sm" className="flex-1">
                   Voir détails
                 </Button>
-                <Button variant="outline" size="sm" className="flex-1">
+                <Button variant="ghost" size="sm" className="flex-1">
                   Commander
                 </Button>
               </div>
