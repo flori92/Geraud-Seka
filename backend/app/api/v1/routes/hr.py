@@ -43,6 +43,25 @@ def create_contract(
     """
     return hr_service.create_contract(db, tenant_id=str(current_user.tenant_id), contract_data=contract_in.model_dump())
 
+@router.get("/payslips/", response_model=List[schemas.PayslipResponse])
+def get_payslips(
+    skip: int = 0,
+    limit: int = 100,
+    employee_id: str = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Retrieve payslips for the tenant. Optionally filter by employee_id.
+    """
+    return hr_service.get_payslips(
+        db,
+        tenant_id=str(current_user.tenant_id),
+        employee_id=employee_id,
+        skip=skip,
+        limit=limit
+    )
+
 @router.post("/payslips/generate/", response_model=schemas.PayslipResponse)
 def generate_payslip(
     payslip_in: schemas.PayslipGenerate,

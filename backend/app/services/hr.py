@@ -37,6 +37,24 @@ class HRService:
         db.refresh(new_contract)
         return new_contract
 
+    def get_payslips(
+        self,
+        db: Session,
+        tenant_id: str,
+        employee_id: Optional[str] = None,
+        skip: int = 0,
+        limit: int = 100
+    ) -> List[Payslip]:
+        """
+        Retrieve payslips for a tenant, optionally filtered by employee_id.
+        """
+        query = db.query(Payslip).filter(Payslip.tenant_id == tenant_id)
+
+        if employee_id:
+            query = query.filter(Payslip.employee_id == employee_id)
+
+        return query.order_by(Payslip.period_end.desc()).offset(skip).limit(limit).all()
+
     def generate_payslip(self, db: Session, tenant_id: str, employee_id: str, period_start: date, period_end: date) -> Payslip:
         employee = self.get_employee(db, employee_id, tenant_id)
         if not employee:
@@ -56,13 +74,13 @@ class HRService:
         base_salary = contract.base_salary
         allowances = sum(contract.allowances.values()) if contract.allowances else 0
         gross_salary = base_salary + allowances
-        
+
         # Mock deductions (CNSS, IUTS, etc.) - approx 5% for demo
         deductions_amount = gross_salary * 0.05
         deductions = {"cnss": deductions_amount}
-        
+
         net_salary = gross_salary - deductions_amount
-        
+
         payslip = Payslip(
             tenant_id=tenant_id,
             employee_id=employee_id,
@@ -75,7 +93,7 @@ class HRService:
             employer_contributions={"cnss_employer": gross_salary * 0.15}, # Mock
             status="draft"
         )
-        
+
         db.add(payslip)
         db.commit()
         db.refresh(payslip)
