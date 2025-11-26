@@ -1,8 +1,8 @@
-from typing import Generator
+from typing import Generator, Optional
 from uuid import UUID
 
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordBearer, HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
 from app.core.security import decode_token
@@ -12,6 +12,7 @@ from app.models.tenant import Tenant
 from app.schemas.auth import TokenPayload
 
 reuseable_oauth = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+optional_oauth = HTTPBearer(auto_error=False)
 
 
 def get_db_session() -> Generator[Session, None, None]:
@@ -60,3 +61,44 @@ def get_current_tenant(
         )
 
     return tenant
+
+
+def get_current_user_optional(
+    auth: Optional[HTTPAuthorizationCredentials] = Depends(optional_oauth),
+    db: Session = Depends(get_db_session)
+) -> Optional[object]:
+    """Get current user if authenticated, None otherwise"""
+    if not auth:
+        return None
+
+    try:
+        payload = TokenPayload(**decode_token(auth.credentials))
+        if payload.type != "access":
+            return None
+
+        user = user_crud.get(db, UUID(payload.sub))
+        if not user or not user.is_active:
+            return None
+
+        return user
+    except Exception:
+        return None
+
+
+def get_current_tenant_optional(
+    current_user: Optional[object] = Depends(get_current_user_optional),
+    db: Session = Depends(get_db_session)
+) -> Optional[Tenant]:
+    """Get current tenant if user is authenticated, None otherwise"""
+    if not current_user or not getattr(current_user, "tenant_id", None):
+        return None
+
+    try:
+        tenant = (
+            db.query(Tenant)
+            .filter(Tenant.id == current_user.tenant_id, Tenant.is_active.is_(True))
+            .first()
+        )
+        return tenant
+    except Exception:
+        return None

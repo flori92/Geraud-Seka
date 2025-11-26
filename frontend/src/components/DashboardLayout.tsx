@@ -1,6 +1,7 @@
 import Head from "next/head";
 import type { ReactNode } from "react";
 import { ModernSidebar } from "./layout/ModernSidebar";
+import { ChatWidget } from "./Chatbot/ChatWidget";
 
 interface DashboardLayoutProps {
   title?: string;
@@ -37,6 +38,9 @@ export function DashboardLayout({ title, children }: DashboardLayoutProps) {
             {children}
           </div>
         </main>
+
+        {/* Chatbot Widget - Available on all dashboard pages */}
+        <ChatWidget />
       </div>
     </>
   );

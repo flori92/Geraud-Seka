@@ -12,6 +12,7 @@ from app.api.v1.routes import (
     analytics,
     crm,
     bot,
+    chat,
     hr,
     payments,
     quotes,
@@ -36,6 +37,7 @@ api_router.include_router(exports.router, prefix="/exports", tags=["exports"])
 api_router.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
 api_router.include_router(crm.router, prefix="/crm", tags=["crm"])
 api_router.include_router(bot.router, prefix="/bot", tags=["bot"])
+api_router.include_router(chat.router, prefix="/chat", tags=["chat"])
 api_router.include_router(hr.router, prefix="/hr", tags=["hr"])
 api_router.include_router(payments.router, prefix="/payments", tags=["payments"])
 
