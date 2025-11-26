@@ -4,12 +4,18 @@ import axios from "axios";
 const getApiBaseUrl = () => {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL;
 
-  // If no env var, use production API
+  // If no env var, use production API with HTTPS
   if (!baseUrl) {
     return "https://api.sekagestion.com";
   }
 
-  // Force HTTPS in production
+  // ALWAYS force HTTPS for api.sekagestion.com (never use HTTP)
+  // This prevents Mixed Content errors in production
+  if (baseUrl.includes("api.sekagestion.com") && baseUrl.startsWith("http://")) {
+    return baseUrl.replace("http://", "https://");
+  }
+
+  // Force HTTPS in production environment
   if (baseUrl.startsWith("http://") && process.env.NODE_ENV === "production") {
     return baseUrl.replace("http://", "https://");
   }
@@ -18,6 +24,11 @@ const getApiBaseUrl = () => {
 };
 
 export const API_BASE_URL = getApiBaseUrl();
+
+// Log the API URL in development for debugging
+if (process.env.NODE_ENV === "development") {
+  console.log("[API] Using API Base URL:", API_BASE_URL);
+}
 
 const api = axios.create({
   baseURL: API_BASE_URL,
