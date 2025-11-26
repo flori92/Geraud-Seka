@@ -19,7 +19,7 @@ def get_employees(
     """
     Retrieve employees.
     """
-    return hr_service.get_employees(db, tenant_id=current_user.tenant_id, skip=skip, limit=limit)
+    return hr_service.get_employees(db, tenant_id=str(current_user.tenant_id), skip=skip, limit=limit)
 
 @router.post("/employees/", response_model=schemas.EmployeeResponse)
 def create_employee(
@@ -30,7 +30,7 @@ def create_employee(
     """
     Create new employee.
     """
-    return hr_service.create_employee(db, tenant_id=current_user.tenant_id, employee_data=employee_in.model_dump())
+    return hr_service.create_employee(db, tenant_id=str(current_user.tenant_id), employee_data=employee_in.model_dump())
 
 @router.post("/contracts/", response_model=schemas.ContractResponse)
 def create_contract(
@@ -41,7 +41,7 @@ def create_contract(
     """
     Create a contract for an employee.
     """
-    return hr_service.create_contract(db, tenant_id=current_user.tenant_id, contract_data=contract_in.model_dump())
+    return hr_service.create_contract(db, tenant_id=str(current_user.tenant_id), contract_data=contract_in.model_dump())
 
 @router.post("/payslips/generate/", response_model=schemas.PayslipResponse)
 def generate_payslip(
@@ -53,8 +53,8 @@ def generate_payslip(
     Generate a payslip for an employee.
     """
     return hr_service.generate_payslip(
-        db, 
-        tenant_id=current_user.tenant_id, 
+        db,
+        tenant_id=str(current_user.tenant_id),
         employee_id=payslip_in.employee_id,
         period_start=payslip_in.period_start,
         period_end=payslip_in.period_end
@@ -69,4 +69,4 @@ def request_leave(
     """
     Submit a leave request.
     """
-    return hr_service.request_leave(db, tenant_id=current_user.tenant_id, leave_data=leave_in.model_dump())
+    return hr_service.request_leave(db, tenant_id=str(current_user.tenant_id), leave_data=leave_in.model_dump())
