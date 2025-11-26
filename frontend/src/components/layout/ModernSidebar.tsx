@@ -136,8 +136,10 @@ const menuItems: MenuItem[] = [
     label: "Reporting",
     icon: BarChart3,
     submenu: [
-      { label: "Dashboard", href: "/reporting" },
-      { label: "États financiers", href: "/reporting/financial" },
+      { label: "Dashboard", href: "/reports" },
+      { label: "Rapport comptable", href: "/reports/accounting" },
+      { label: "Rapport ventes", href: "/reports/sales" },
+      { label: "Rapport RH", href: "/reports/hr" },
       { label: "Exports comptables", href: "/exports" },
     ],
   },
