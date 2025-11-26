@@ -97,6 +97,8 @@ export interface DashboardStats {
   tasks_overdue: number;
   tasks_due_this_week: number;
   total_revenue?: number;
+  total_invoices?: number;
+  pending_payments?: number;
   alerts?: Array<{
     type: string;
     title: string;
