@@ -24,6 +24,7 @@ from app.api.v1.routes import (
     payment_schedules,
     treasury_forecast,
     treasury_dashboard,
+    accounting,
 )
 
 api_router = APIRouter()
@@ -53,3 +54,6 @@ api_router.include_router(bank_transactions.router, prefix="/treasury/transactio
 api_router.include_router(payment_schedules.router, prefix="/treasury/payment-schedules", tags=["treasury", "schedules"])
 api_router.include_router(treasury_forecast.router, prefix="/treasury/forecast", tags=["treasury", "forecast"])
 api_router.include_router(treasury_dashboard.router, prefix="/treasury/dashboard", tags=["treasury", "dashboard"])
+
+# Accounting Module Routes
+api_router.include_router(accounting.router, prefix="/accounting", tags=["accounting"])
