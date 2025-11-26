@@ -56,12 +56,9 @@ def create_application() -> FastAPI:
         debug=settings.debug
     )
 
-    # HTTPS Redirect Middleware - MUST BE FIRST
-    # Forces HTTPS in production before any other processing
-    app.add_middleware(HTTPSRedirectMiddleware)
-    
-    # Proxy Headers Middleware - SECOND
+    # Proxy Headers Middleware - MUST BE FIRST
     # Handles X-Forwarded-* headers from Cloudflare/Railway proxy
+    # This ensures FastAPI recognizes HTTPS from X-Forwarded-Proto header
     app.add_middleware(ProxyHeadersMiddleware)
 
     # CORS Middleware - IMPORTANT: Must be added BEFORE other middleware
