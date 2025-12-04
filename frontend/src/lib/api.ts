@@ -948,6 +948,14 @@ export interface LedgerAccount {
   currency: string;
 }
 
+export interface LedgerAccountCreate {
+  account_code: string;
+  account_name: string;
+  account_type: "asset" | "liability" | "equity" | "revenue" | "expense";
+  currency?: string;
+  initial_balance?: number;
+}
+
 export async function getLedgerAccounts(accessToken: string): Promise<LedgerAccount[]> {
   try {
     const response = await api.get<LedgerAccount[]>("/accounting/ledger/", {
@@ -958,6 +966,13 @@ export async function getLedgerAccounts(accessToken: string): Promise<LedgerAcco
     console.error("Error fetching ledger accounts:", error);
     return [];
   }
+}
+
+export async function createLedgerAccount(data: LedgerAccountCreate, accessToken: string): Promise<LedgerAccount> {
+  const response = await api.post<LedgerAccount>("/accounting/ledger/", data, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
 }
 
 // Treasury Dashboard

@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Alert } from "@/components/ui/Alert";
-import { getJournalEntries, JournalEntry } from "@/lib/api";
+import { getJournalEntries, createJournalEntry, JournalEntry, JournalEntryCreate } from "@/lib/api";
+import { useToast } from "@/components/ui/ToastContainer";
 import { Plus, ArrowRight, X, BookOpen, FileText } from "lucide-react";
 import { formatAmount } from "@/lib/formatters";
 
@@ -16,6 +17,8 @@ export default function JournalPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const { success, error: showError } = useToast();
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     description: "",
@@ -44,6 +47,43 @@ export default function JournalPage() {
       setError(err.response?.data?.detail || "Erreur lors du chargement du journal");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateEntry = async () => {
+    try {
+      setSubmitting(true);
+      const token = localStorage.getItem("seka_access_token");
+      if (!token) {
+        showError("Vous devez être connecté");
+        return;
+      }
+
+      const entryData: JournalEntryCreate = {
+        date: formData.date,
+        description: formData.description,
+        debit_account: formData.debit_account,
+        credit_account: formData.credit_account,
+        amount: parseFloat(formData.amount),
+        reference: formData.reference || undefined
+      };
+
+      await createJournalEntry(entryData, token);
+      success("Écriture créée avec succès");
+      setShowModal(false);
+      setFormData({
+        date: new Date().toISOString().split('T')[0],
+        description: "",
+        debit_account: "",
+        credit_account: "",
+        amount: "",
+        reference: ""
+      });
+      fetchEntries();
+    } catch (err: any) {
+      showError(err.response?.data?.detail || "Erreur lors de la création de l'écriture");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -240,15 +280,11 @@ export default function JournalPage() {
                 </Button>
                 <Button
                   variant="primary"
-                  disabled={!formData.description || !formData.debit_account || !formData.credit_account || !formData.amount}
+                  disabled={!formData.description || !formData.debit_account || !formData.credit_account || !formData.amount || submitting}
                   className="flex-1"
-                  onClick={() => {
-                    // TODO: Implémenter la création via API
-                    alert("Fonctionnalité en cours de développement");
-                    setShowModal(false);
-                  }}
+                  onClick={handleCreateEntry}
                 >
-                  Créer l'écriture
+                  {submitting ? "Création..." : "Créer l'écriture"}
                 </Button>
               </div>
             </div>

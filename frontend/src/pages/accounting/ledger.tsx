@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Alert } from "@/components/ui/Alert";
-import { getLedgerAccounts, LedgerAccount } from "@/lib/api";
+import { getLedgerAccounts, createLedgerAccount, LedgerAccount, LedgerAccountCreate } from "@/lib/api";
+import { useToast } from "@/components/ui/ToastContainer";
 import { TrendingUp, TrendingDown, Minus, Plus, X } from "lucide-react";
 
 export default function LedgerPage() {
@@ -16,11 +17,13 @@ export default function LedgerPage() {
   const [error, setError] = useState<string | null>(null);
   const [filterType, setFilterType] = useState("all");
   const [showModal, setShowModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const { success, error: showError } = useToast();
   const [formData, setFormData] = useState({
     account_code: "",
     account_name: "",
-    account_type: "asset",
-    currency: "FCFA",
+    account_type: "asset" as "asset" | "liability" | "equity" | "revenue" | "expense",
+    currency: "XOF",
     initial_balance: 0
   });
 
@@ -43,6 +46,41 @@ export default function LedgerPage() {
       setError(err.response?.data?.detail || "Erreur lors du chargement du grand livre");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateAccount = async () => {
+    try {
+      setSubmitting(true);
+      const token = localStorage.getItem("seka_access_token");
+      if (!token) {
+        showError("Vous devez être connecté");
+        return;
+      }
+
+      const accountData: LedgerAccountCreate = {
+        account_code: formData.account_code,
+        account_name: formData.account_name,
+        account_type: formData.account_type,
+        currency: formData.currency,
+        initial_balance: formData.initial_balance
+      };
+
+      await createLedgerAccount(accountData, token);
+      success("Compte créé avec succès");
+      setShowModal(false);
+      setFormData({
+        account_code: "",
+        account_name: "",
+        account_type: "asset",
+        currency: "XOF",
+        initial_balance: 0
+      });
+      fetchAccounts();
+    } catch (err: any) {
+      showError(err.response?.data?.detail || "Erreur lors de la création du compte");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -222,7 +260,7 @@ export default function LedgerPage() {
                   <label className="block text-sm font-medium text-foreground mb-2">Type de compte *</label>
                   <Select
                     value={formData.account_type}
-                    onChange={(e) => setFormData({ ...formData, account_type: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, account_type: e.target.value as "asset" | "liability" | "equity" | "revenue" | "expense" })}
                   >
                     <option value="asset">Actif</option>
                     <option value="liability">Passif</option>
@@ -249,15 +287,11 @@ export default function LedgerPage() {
                 </Button>
                 <Button
                   variant="primary"
-                  disabled={!formData.account_code || !formData.account_name}
+                  disabled={!formData.account_code || !formData.account_name || submitting}
                   className="flex-1"
-                  onClick={() => {
-                    // TODO: Implémenter la création via API
-                    alert("Fonctionnalité en cours de développement");
-                    setShowModal(false);
-                  }}
+                  onClick={handleCreateAccount}
                 >
-                  Créer le compte
+                  {submitting ? "Création..." : "Créer le compte"}
                 </Button>
               </div>
             </div>
