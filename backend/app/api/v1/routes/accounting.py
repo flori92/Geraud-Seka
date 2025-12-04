@@ -402,31 +402,61 @@ def get_balance_sheet(
     Get balance sheet
     Returns assets, liabilities, and equity
     """
-    # Calculer les totaux depuis la DB
-    accounts = db.query(LedgerAccount).filter(
-        LedgerAccount.tenant_id == current_user.tenant_id,
-        LedgerAccount.is_active == True
-    ).all()
-    
-    assets = sum(float(acc.balance) for acc in accounts if acc.account_type == AccountType.ASSET)
-    liabilities = abs(sum(float(acc.balance) for acc in accounts if acc.account_type == AccountType.LIABILITY))
-    equity = abs(sum(float(acc.balance) for acc in accounts if acc.account_type == AccountType.EQUITY))
+    try:
+        # Vérifier que l'utilisateur a un tenant_id
+        if not current_user.tenant_id:
+            raise HTTPException(status_code=400, detail="Utilisateur sans tenant_id")
+        
+        # Calculer les totaux depuis la DB
+        accounts = db.query(LedgerAccount).filter(
+            LedgerAccount.tenant_id == current_user.tenant_id,
+            LedgerAccount.is_active == True
+        ).all()
+        
+        # Si aucun compte, retourner des valeurs à zéro
+        if not accounts:
+            return {
+                "assets": {
+                    "current_assets": 0,
+                    "fixed_assets": 0,
+                    "total_assets": 0
+                },
+                "liabilities": {
+                    "current_liabilities": 0,
+                    "long_term_liabilities": 0,
+                    "total_liabilities": 0
+                },
+                "equity": {
+                    "share_capital": 0,
+                    "retained_earnings": 0,
+                    "total_equity": 0
+                },
+                "period": datetime.now().strftime("%Y-%m")
+            }
+        
+        assets = sum(float(acc.balance) for acc in accounts if acc.account_type == AccountType.ASSET)
+        liabilities = abs(sum(float(acc.balance) for acc in accounts if acc.account_type == AccountType.LIABILITY))
+        equity = abs(sum(float(acc.balance) for acc in accounts if acc.account_type == AccountType.EQUITY))
 
-    return {
-        "assets": {
-            "current_assets": assets * 0.6,
-            "fixed_assets": assets * 0.4,
-            "total_assets": assets
-        },
-        "liabilities": {
-            "current_liabilities": liabilities * 0.7,
-            "long_term_liabilities": liabilities * 0.3,
-            "total_liabilities": liabilities
-        },
-        "equity": {
-            "share_capital": equity,
-            "retained_earnings": assets - liabilities - equity,
-            "total_equity": equity + (assets - liabilities - equity)
-        },
-        "period": datetime.now().strftime("%Y-%m")
-    }
+        return {
+            "assets": {
+                "current_assets": round(assets * 0.6, 2),
+                "fixed_assets": round(assets * 0.4, 2),
+                "total_assets": round(assets, 2)
+            },
+            "liabilities": {
+                "current_liabilities": round(liabilities * 0.7, 2),
+                "long_term_liabilities": round(liabilities * 0.3, 2),
+                "total_liabilities": round(liabilities, 2)
+            },
+            "equity": {
+                "share_capital": round(equity, 2),
+                "retained_earnings": round(assets - liabilities - equity, 2),
+                "total_equity": round(equity + (assets - liabilities - equity), 2)
+            },
+            "period": datetime.now().strftime("%Y-%m")
+        }
+    except Exception as e:
+        # Log l'erreur et retourner des valeurs par défaut
+        print(f"Error in get_balance_sheet: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur lors du calcul de la balance: {str(e)}")
