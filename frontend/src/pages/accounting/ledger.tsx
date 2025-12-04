@@ -2,18 +2,27 @@ import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Alert } from "@/components/ui/Alert";
 import { getLedgerAccounts, LedgerAccount } from "@/lib/api";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Plus, X } from "lucide-react";
 
 export default function LedgerPage() {
   const [accounts, setAccounts] = useState<LedgerAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterType, setFilterType] = useState("all");
+  const [showModal, setShowModal] = useState(false);
+  const [formData, setFormData] = useState({
+    account_code: "",
+    account_name: "",
+    account_type: "asset",
+    currency: "FCFA",
+    initial_balance: 0
+  });
 
   useEffect(() => {
     fetchAccounts();
@@ -121,6 +130,10 @@ export default function LedgerPage() {
               <option value="expense">Charges</option>
             </Select>
           </div>
+          <Button variant="primary" size="md" onClick={() => setShowModal(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nouveau compte
+          </Button>
         </div>
       </Card>
 
@@ -171,6 +184,86 @@ export default function LedgerPage() {
           </div>
         )}
       </Card>
+
+      {/* Modal Nouveau Compte */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <Card className="w-full max-w-lg mx-4">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-foreground">Nouveau compte comptable</h2>
+                <button onClick={() => setShowModal(false)} className="p-1 hover:bg-gray-100 rounded">
+                  <X className="h-5 w-5 text-gray-500" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Code compte *</label>
+                  <Input
+                    value={formData.account_code}
+                    onChange={(e) => setFormData({ ...formData, account_code: e.target.value })}
+                    placeholder="Ex: 411000"
+                    className="font-mono"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Format SYSCOHADA (6 chiffres)</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Nom du compte *</label>
+                  <Input
+                    value={formData.account_name}
+                    onChange={(e) => setFormData({ ...formData, account_name: e.target.value })}
+                    placeholder="Ex: Clients"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Type de compte *</label>
+                  <Select
+                    value={formData.account_type}
+                    onChange={(e) => setFormData({ ...formData, account_type: e.target.value })}
+                  >
+                    <option value="asset">Actif</option>
+                    <option value="liability">Passif</option>
+                    <option value="equity">Capitaux propres</option>
+                    <option value="revenue">Produit</option>
+                    <option value="expense">Charge</option>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Solde initial</label>
+                  <Input
+                    type="number"
+                    value={formData.initial_balance}
+                    onChange={(e) => setFormData({ ...formData, initial_balance: parseFloat(e.target.value) || 0 })}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <Button variant="secondary" onClick={() => setShowModal(false)} className="flex-1">
+                  Annuler
+                </Button>
+                <Button
+                  variant="primary"
+                  disabled={!formData.account_code || !formData.account_name}
+                  className="flex-1"
+                  onClick={() => {
+                    // TODO: Implémenter la création via API
+                    alert("Fonctionnalité en cours de développement");
+                    setShowModal(false);
+                  }}
+                >
+                  Créer le compte
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
     </DashboardLayout>
   );
 }
