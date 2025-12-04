@@ -1,38 +1,23 @@
 """
 API Routes Sales - Alias endpoints pour compatibilité frontend
-Retourne des données mock pour quotes, invoices, purchase-orders, delivery-notes
+Utilise les vrais services pour queries DB multi-tenant
 """
 
-from datetime import datetime, timedelta
 from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, get_current_user
 from app.models.user import User
+from app.models.quote import Quote
+from app.models.sales_invoice import SalesInvoice
+from app.models.purchase_order import PurchaseOrder, DeliveryNote
+from app.services.quotes import quote_service
+from app.services.sales_invoices import sales_invoice_service
+from app.services.purchase_orders import purchase_order_service
+from app.services.delivery_notes import delivery_note_service
 
 router = APIRouter()
-
-# Mock data
-MOCK_QUOTES = [
-    {"id": "q1", "number": "DEV-2025-001", "client_name": "ACME Corp", "amount": 5000000, "status": "draft", "created_at": datetime.now().isoformat()},
-    {"id": "q2", "number": "DEV-2025-002", "client_name": "Tech Solutions", "amount": 3500000, "status": "sent", "created_at": (datetime.now() - timedelta(days=5)).isoformat()},
-]
-
-MOCK_INVOICES = [
-    {"id": "i1", "number": "FAC-2025-001", "client_name": "ACME Corp", "amount": 5000000, "status": "paid", "created_at": datetime.now().isoformat()},
-    {"id": "i2", "number": "FAC-2025-002", "client_name": "Tech Solutions", "amount": 3500000, "status": "sent", "created_at": (datetime.now() - timedelta(days=3)).isoformat()},
-]
-
-MOCK_PURCHASE_ORDERS = [
-    {"id": "po1", "number": "BC-2025-001", "supplier_name": "Fournisseur A", "amount": 2000000, "status": "approved", "created_at": datetime.now().isoformat()},
-    {"id": "po2", "number": "BC-2025-002", "supplier_name": "Fournisseur B", "amount": 1500000, "status": "pending", "created_at": (datetime.now() - timedelta(days=2)).isoformat()},
-]
-
-MOCK_DELIVERY_NOTES = [
-    {"id": "dn1", "number": "BL-2025-001", "reference": "FAC-2025-001", "status": "delivered", "created_at": datetime.now().isoformat()},
-    {"id": "dn2", "number": "BL-2025-002", "reference": "FAC-2025-002", "status": "pending", "created_at": (datetime.now() - timedelta(days=1)).isoformat()},
-]
 
 # ==================== QUOTES ALIASES ====================
 
@@ -47,15 +32,28 @@ async def get_quotes_alias(
 ):
     """
     Alias endpoint for GET /quotes/
-    Frontend calls /api/v1/sales/quotes/ → returns mock data
+    Frontend calls /api/v1/sales/quotes/ → uses real DB queries
     """
-    quotes = MOCK_QUOTES.copy()
+    quotes = quote_service.get_quotes(
+        db=db,
+        tenant_id=str(current_user.tenant_id),
+        skip=skip,
+        limit=limit,
+        status=status,
+        client_id=client_id
+    )
+
+    # Count total quotes for pagination
+    query = db.query(Quote).filter(Quote.tenant_id == str(current_user.tenant_id))
     if status:
-        quotes = [q for q in quotes if q["status"] == status]
+        query = query.filter(Quote.status == status)
+    if client_id:
+        query = query.filter(Quote.client_id == client_id)
+    total = query.count()
 
     return {
-        "quotes": quotes[skip:skip+limit],
-        "total": len(MOCK_QUOTES),
+        "quotes": quotes,
+        "total": total,
         "skip": skip,
         "limit": limit
     }
@@ -74,15 +72,28 @@ async def get_invoices_alias(
 ):
     """
     Alias endpoint for GET /sales-invoices/
-    Frontend calls /api/v1/sales/invoices/ → returns mock data
+    Frontend calls /api/v1/sales/invoices/ → uses real DB queries
     """
-    invoices = MOCK_INVOICES.copy()
+    invoices = sales_invoice_service.get_invoices(
+        db=db,
+        tenant_id=str(current_user.tenant_id),
+        skip=skip,
+        limit=limit,
+        status=status,
+        client_id=client_id
+    )
+
+    # Count total invoices for pagination
+    query = db.query(SalesInvoice).filter(SalesInvoice.tenant_id == str(current_user.tenant_id))
     if status:
-        invoices = [i for i in invoices if i["status"] == status]
+        query = query.filter(SalesInvoice.status == status)
+    if client_id:
+        query = query.filter(SalesInvoice.client_id == client_id)
+    total = query.count()
 
     return {
-        "invoices": invoices[skip:skip+limit],
-        "total": len(MOCK_INVOICES),
+        "invoices": invoices,
+        "total": total,
         "skip": skip,
         "limit": limit
     }
@@ -101,15 +112,28 @@ async def get_purchase_orders_alias(
 ):
     """
     Alias endpoint for GET /purchase-orders/
-    Frontend calls /api/v1/sales/purchase-orders/ → returns mock data
+    Frontend calls /api/v1/sales/purchase-orders/ → uses real DB queries
     """
-    orders = MOCK_PURCHASE_ORDERS.copy()
+    orders = purchase_order_service.get_purchase_orders(
+        db=db,
+        tenant_id=str(current_user.tenant_id),
+        skip=skip,
+        limit=limit,
+        status=status,
+        supplier_id=supplier_id
+    )
+
+    # Count total purchase orders for pagination
+    query = db.query(PurchaseOrder).filter(PurchaseOrder.tenant_id == str(current_user.tenant_id))
     if status:
-        orders = [o for o in orders if o["status"] == status]
+        query = query.filter(PurchaseOrder.status == status)
+    if supplier_id:
+        query = query.filter(PurchaseOrder.supplier_id == supplier_id)
+    total = query.count()
 
     return {
-        "purchase_orders": orders[skip:skip+limit],
-        "total": len(MOCK_PURCHASE_ORDERS),
+        "purchase_orders": orders,
+        "total": total,
         "skip": skip,
         "limit": limit
     }
@@ -122,20 +146,34 @@ async def get_delivery_notes_alias(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=200),
     status: Optional[str] = Query(None),
+    purchase_order_id: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """
     Alias endpoint for GET /delivery-notes/
-    Frontend calls /api/v1/sales/delivery-notes/ → returns mock data
+    Frontend calls /api/v1/sales/delivery-notes/ → uses real DB queries
     """
-    notes = MOCK_DELIVERY_NOTES.copy()
+    notes = delivery_note_service.get_delivery_notes(
+        db=db,
+        tenant_id=str(current_user.tenant_id),
+        skip=skip,
+        limit=limit,
+        status=status,
+        purchase_order_id=purchase_order_id
+    )
+
+    # Count total delivery notes for pagination
+    query = db.query(DeliveryNote).filter(DeliveryNote.tenant_id == str(current_user.tenant_id))
     if status:
-        notes = [n for n in notes if n["status"] == status]
+        query = query.filter(DeliveryNote.status == status)
+    if purchase_order_id:
+        query = query.filter(DeliveryNote.purchase_order_id == purchase_order_id)
+    total = query.count()
 
     return {
-        "delivery_notes": notes[skip:skip+limit],
-        "total": len(MOCK_DELIVERY_NOTES),
+        "delivery_notes": notes,
+        "total": total,
         "skip": skip,
         "limit": limit
     }
