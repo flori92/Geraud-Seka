@@ -14,17 +14,23 @@ const BILLION = 1000000000;
  * @param currency - Currency suffix (default: "FCFA")
  * @param decimals - Number of decimal places (default: 0)
  */
-export function formatCurrency(amount: number, currency: string = "FCFA", decimals: number = 0): string {
-  if (amount >= BILLION) {
-    return `${(amount / BILLION).toFixed(decimals)}B ${currency}`;
+export function formatCurrency(amount: number | undefined | null, currency: string = "FCFA", decimals: number = 0): string {
+  // Handle invalid values
+  const numAmount = typeof amount === 'number' ? amount : Number(amount);
+  if (isNaN(numAmount) || amount === null || amount === undefined) {
+    return `0 ${currency}`;
   }
-  if (amount >= MILLION) {
-    return `${(amount / MILLION).toFixed(decimals)}M ${currency}`;
+  
+  if (numAmount >= BILLION) {
+    return `${(numAmount / BILLION).toFixed(decimals)}B ${currency}`;
   }
-  if (amount >= THOUSAND) {
-    return `${(amount / THOUSAND).toFixed(decimals)}K ${currency}`;
+  if (numAmount >= MILLION) {
+    return `${(numAmount / MILLION).toFixed(decimals)}M ${currency}`;
   }
-  return `${amount.toFixed(decimals)} ${currency}`;
+  if (numAmount >= THOUSAND) {
+    return `${(numAmount / THOUSAND).toFixed(decimals)}K ${currency}`;
+  }
+  return `${numAmount.toFixed(decimals)} ${currency}`;
 }
 
 /**
@@ -32,32 +38,44 @@ export function formatCurrency(amount: number, currency: string = "FCFA", decima
  * @param amount - The amount to format
  * @param decimals - Number of decimal places (default: 0)
  */
-export function formatAmount(amount: number, decimals: number = 0): string {
-  if (amount >= BILLION) {
-    return `${(amount / BILLION).toFixed(decimals)}B`;
+export function formatAmount(amount: number | undefined | null, decimals: number = 0): string {
+  // Handle invalid values
+  const numAmount = typeof amount === 'number' ? amount : Number(amount);
+  if (isNaN(numAmount) || amount === null || amount === undefined) {
+    return "0";
   }
-  if (amount >= MILLION) {
-    return `${(amount / MILLION).toFixed(decimals)}M`;
+  
+  if (numAmount >= BILLION) {
+    return `${(numAmount / BILLION).toFixed(decimals)}B`;
   }
-  if (amount >= THOUSAND) {
-    return `${(amount / THOUSAND).toFixed(decimals)}K`;
+  if (numAmount >= MILLION) {
+    return `${(numAmount / MILLION).toFixed(decimals)}M`;
   }
-  return amount.toFixed(decimals);
+  if (numAmount >= THOUSAND) {
+    return `${(numAmount / THOUSAND).toFixed(decimals)}K`;
+  }
+  return numAmount.toFixed(decimals);
 }
 
 /**
  * Format amount with lowercase suffix (for chart ticks)
  * @param amount - The amount to format
  */
-export function formatChartValue(amount: number): string {
-  if (amount >= BILLION) {
-    return `${(amount / BILLION).toFixed(0)}b`;
+export function formatChartValue(amount: number | undefined | null): string {
+  // Handle invalid values
+  const numAmount = typeof amount === 'number' ? amount : Number(amount);
+  if (isNaN(numAmount) || amount === null || amount === undefined) {
+    return "0";
   }
-  if (amount >= MILLION) {
-    return `${(amount / MILLION).toFixed(0)}m`;
+  
+  if (numAmount >= BILLION) {
+    return `${(numAmount / BILLION).toFixed(0)}b`;
   }
-  if (amount >= THOUSAND) {
-    return `${(amount / THOUSAND).toFixed(0)}k`;
+  if (numAmount >= MILLION) {
+    return `${(numAmount / MILLION).toFixed(0)}m`;
   }
-  return amount.toFixed(0);
+  if (numAmount >= THOUSAND) {
+    return `${(numAmount / THOUSAND).toFixed(0)}k`;
+  }
+  return numAmount.toFixed(0);
 }
