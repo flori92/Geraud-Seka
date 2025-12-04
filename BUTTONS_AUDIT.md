@@ -47,6 +47,15 @@ Vérification complète de tous les boutons d'action dans l'application pour s'a
 | `/treasury/transactions` | - | À vérifier | - | À examiner |
 | `/treasury/forecast` | - | À vérifier | - | À examiner |
 
+### ✅ Ressources Humaines
+
+| Page | Bouton | État | Modal | Notes |
+|------|--------|------|-------|-------|
+| `/hr/employees` | Nouvel employé | ✅ Fonctionnel | ✅ Implémenté | Formulaire complet (nom, email, poste, salaire) |
+| `/hr/contracts` | Nouveau contrat | ✅ Fonctionnel | ✅ Implémenté | CDI/CDD/Stage/Freelance avec dates |
+| `/hr/leaves` | Nouvelle demande | ✅ Fonctionnel | ✅ Implémenté | Types de congés avec dates |
+| `/hr/payslips` | Nouveau bulletin | ✅ Fonctionnel | ✅ Implémenté | Calcul auto salaire net |
+
 ### ✅ Autres
 
 | Page | Bouton | État | Modal | Notes |
@@ -83,6 +92,16 @@ Vérification complète de tous les boutons d'action dans l'application pour s'a
 - Formulaire organisé en sections
 
 **Commit**: `a2490de`
+
+### 4. ✅ Pages RH - Tous les boutons (hr/*.tsx)
+**Problème**: Aucun bouton RH ne fonctionnait
+**Solution**: 
+- **Employés**: Modal avec nom, prénom, email, téléphone, poste, département, date embauche, salaire
+- **Contrats**: Modal avec type (CDI/CDD/Stage/Freelance), poste, dates, salaire
+- **Congés**: Modal avec type congé (payé/maladie/personnel/maternité/sans solde), dates, raison
+- **Bulletins**: Modal avec période, salaire brut, déductions, bonus + calcul auto du net
+
+**Commit**: `01539cb`
 
 ## Recommandations
 
@@ -130,5 +149,5 @@ Les composants suivants sont dans `/components/forms/`:
 
 ---
 
-**Dernière mise à jour**: 4 décembre 2025, 22:30
-**Commits**: `cbd8425`, `b796997`, `a2490de`, `ac2e6d1`
+**Dernière mise à jour**: 4 décembre 2025, 22:35
+**Commits**: `cbd8425`, `b796997`, `a2490de`, `ac2e6d1`, `01539cb`, `82b500f`
