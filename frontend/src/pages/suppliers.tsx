@@ -106,7 +106,7 @@ export default function SuppliersPage() {
   return (
     <DashboardLayout title="Fournisseurs">
       <Alert variant="info" className="mb-6">
-        💡 Cette page est en cours de développement. Les données affichées sont des exemples.
+        Cette page est en cours de développement. Les données affichées sont des exemples.
       </Alert>
 
       {/* Stats */}
