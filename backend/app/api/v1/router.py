@@ -25,6 +25,9 @@ from app.api.v1.routes import (
     treasury_forecast,
     treasury_dashboard,
     accounting,
+    stock,
+    reports,
+    billing,
 )
 
 api_router = APIRouter()
@@ -58,3 +61,12 @@ api_router.include_router(treasury_dashboard.router, prefix="/treasury/dashboard
 
 # Accounting Module Routes
 api_router.include_router(accounting.router, prefix="/accounting", tags=["accounting"])
+
+# Stock Module Routes
+api_router.include_router(stock.router, prefix="/stock", tags=["stock", "inventory"])
+
+# Reports Module Routes
+api_router.include_router(reports.router, prefix="/reports", tags=["reports"])
+
+# Billing Module Routes
+api_router.include_router(billing.router, prefix="/billing", tags=["billing", "subscription"])
