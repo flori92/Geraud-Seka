@@ -36,16 +36,20 @@ def list_invoices(
     """
     Retrieve sales invoices for the current tenant.
     """
-    invoices = invoice_crud.get_multi(
-        db,
-        tenant_id=current_user.tenant_id,
-        skip=skip,
-        limit=limit,
-        status=status,
-        client_id=client_id,
-        payment_status=payment_status,
-    )
-    return invoices
+    try:
+        invoices = invoice_crud.get_multi(
+            db,
+            tenant_id=current_user.tenant_id,
+            skip=skip,
+            limit=limit,
+            status=status,
+            client_id=client_id,
+            payment_status=payment_status,
+        )
+        return invoices
+    except Exception as e:
+        # Return empty list on error
+        return []
 
 
 @router.post("/", response_model=SalesInvoiceWithDetails, status_code=201)
