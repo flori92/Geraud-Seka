@@ -32,34 +32,39 @@ export default function InvoicesPage() {
         return;
       }
       const data = await getInvoices(token);
-      setInvoices(data);
+      // Ensure data is an array
+      setInvoices(Array.isArray(data) ? data : []);
       setError(null);
     } catch (err: any) {
       setError(err.response?.data?.detail || "Erreur lors du chargement des factures");
+      setInvoices([]);
     } finally {
       setLoading(false);
     }
   };
 
+  // Ensure we always work with an array
+  const invoiceList = Array.isArray(invoices) ? invoices : [];
+
   const stats = [
     {
       label: "Total factures",
-      value: (invoices?.length || 0).toString(),
+      value: invoiceList.length.toString(),
       color: "bg-blue-600"
     },
     {
       label: "Impayées",
-      value: (invoices?.filter(inv => inv?.status === "Impayée" || inv?.status === "unpaid")?.length || 0).toString(),
+      value: invoiceList.filter(inv => inv?.status === "Impayée" || inv?.status === "unpaid").length.toString(),
       color: "bg-red-600"
     },
     {
       label: "En retard",
-      value: (invoices?.filter(inv => inv?.overdue)?.length || 0).toString(),
+      value: invoiceList.filter(inv => inv?.overdue).length.toString(),
       color: "bg-orange-600"
     },
     {
       label: "CA ce mois",
-      value: Math.round((invoices?.reduce((sum, inv) => sum + (inv?.paid || 0), 0) || 0) / 1000) + "K",
+      value: Math.round(invoiceList.reduce((sum, inv) => sum + (inv?.paid || 0), 0) / 1000) + "K",
       color: "bg-green-600"
     },
   ];
@@ -75,7 +80,7 @@ export default function InvoicesPage() {
     return variants[status] || "default";
   };
 
-  const overdueInvoices = invoices?.filter(inv => inv?.overdue) || [];
+  const overdueInvoices = invoiceList.filter(inv => inv?.overdue);
   const totalOverdue = overdueInvoices.reduce((sum, inv) => sum + (inv?.amount || 0), 0);
 
   return (
@@ -149,7 +154,7 @@ export default function InvoicesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-accents-2">
-              {invoices.map((invoice) => (
+              {invoiceList.map((invoice) => (
                 <tr
                   key={invoice.id}
                   className={`hover:bg-accents-1 transition-colors ${invoice.overdue ? 'bg-red-50' : ''}`}

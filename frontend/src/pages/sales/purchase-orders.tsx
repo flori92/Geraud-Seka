@@ -30,20 +30,25 @@ export default function PurchaseOrdersPage() {
         return;
       }
       const data = await getPurchaseOrders(token);
-      setPurchaseOrders(data);
+      // Ensure data is an array
+      setPurchaseOrders(Array.isArray(data) ? data : []);
       setError(null);
     } catch (err: any) {
       setError(err.response?.data?.detail || "Erreur lors du chargement des bons de commande");
+      setPurchaseOrders([]);
     } finally {
       setLoading(false);
     }
   };
 
+  // Ensure we always work with an array
+  const orderList = Array.isArray(purchaseOrders) ? purchaseOrders : [];
+
   const stats = [
-    { label: "Total BC", value: (purchaseOrders?.length || 0).toString(), color: "bg-blue-600" },
-    { label: "En attente", value: (purchaseOrders?.filter(p => p?.status === "pending")?.length || 0).toString(), color: "bg-orange-600" },
-    { label: "Approuvés", value: (purchaseOrders?.filter(p => p?.status === "approved")?.length || 0).toString(), color: "bg-green-600" },
-    { label: "Montant total", value: Math.round((purchaseOrders?.reduce((sum, p) => sum + (p?.amount || 0), 0) || 0) / 1000) + "K", color: "bg-purple-600" },
+    { label: "Total BC", value: orderList.length.toString(), color: "bg-blue-600" },
+    { label: "En attente", value: orderList.filter(p => p?.status === "pending").length.toString(), color: "bg-orange-600" },
+    { label: "Approuvés", value: orderList.filter(p => p?.status === "approved").length.toString(), color: "bg-green-600" },
+    { label: "Montant total", value: Math.round(orderList.reduce((sum, p) => sum + (p?.amount || 0), 0) / 1000) + "K", color: "bg-purple-600" },
   ];
 
   const getStatusVariant = (status: string): "default" | "success" | "warning" | "error" => {
@@ -134,7 +139,7 @@ export default function PurchaseOrdersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-accents-2">
-                {purchaseOrders.map((order) => (
+                {orderList.map((order) => (
                   <tr key={order.id} className="hover:bg-accents-1 transition-colors">
                     <td className="px-4 py-3 text-sm font-medium text-foreground">{order.number}</td>
                     <td className="px-4 py-3 text-sm text-foreground">{order.supplier_name || order.supplier_id}</td>
