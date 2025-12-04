@@ -1182,3 +1182,381 @@ async def get_opportunity_summary(
         "quote_count": len(opportunity.quotes),
         "activity_count": len(opportunity.activities)
     }
+
+
+# ==================== RAPPORTS CRM ====================
+
+@router.get("/reports/performance")
+async def get_performance_report(
+    user_id: Optional[str] = Query(None),
+    period: str = Query("month"),  # month, quarter, year
+    current_tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Rapport de performance commerciale par utilisateur
+    Métriques: leads, opportunités, devis, taux de conversion
+    """
+    from datetime import timedelta
+    
+    # Définir la période
+    now = datetime.utcnow()
+    if period == "month":
+        start_date = now - timedelta(days=30)
+    elif period == "quarter":
+        start_date = now - timedelta(days=90)
+    elif period == "year":
+        start_date = now - timedelta(days=365)
+    else:
+        start_date = now - timedelta(days=30)
+    
+    # Filtrer par utilisateur si spécifié
+    query_filter = and_(
+        Opportunity.tenant_id == current_tenant.id,
+        Opportunity.created_at >= start_date
+    )
+    
+    if user_id:
+        query_filter = and_(query_filter, Opportunity.assigned_to == user_id)
+    
+    # Récupérer les opportunités
+    opportunities = db.query(Opportunity).filter(query_filter).all()
+    
+    # Récupérer les leads
+    lead_query_filter = and_(
+        Lead.tenant_id == current_tenant.id,
+        Lead.created_at >= start_date
+    )
+    if user_id:
+        lead_query_filter = and_(lead_query_filter, Lead.assigned_to == user_id)
+    
+    leads = db.query(Lead).filter(lead_query_filter).all()
+    
+    # Calculer les métriques
+    total_leads = len(leads)
+    qualified_leads = len([l for l in leads if l.status in [LeadStatus.QUALIFIED, LeadStatus.CONVERTED]])
+    converted_leads = len([l for l in leads if l.status == LeadStatus.CONVERTED])
+    
+    total_opportunities = len(opportunities)
+    won_opportunities = len([o for o in opportunities if o.status == "won"])
+    lost_opportunities = len([o for o in opportunities if o.status == "lost"])
+    
+    total_value = sum(float(o.amount) for o in opportunities)
+    won_value = sum(float(o.amount) for o in opportunities if o.status == "won")
+    
+    # Taux de conversion
+    lead_conversion_rate = (converted_leads / total_leads * 100) if total_leads > 0 else 0
+    opportunity_win_rate = (won_opportunities / total_opportunities * 100) if total_opportunities > 0 else 0
+    
+    # Opportunités par étape
+    by_stage = {}
+    for stage in OpportunityStage:
+        count = len([o for o in opportunities if o.stage == stage])
+        by_stage[stage] = count
+    
+    return {
+        "period": period,
+        "start_date": start_date.isoformat(),
+        "end_date": now.isoformat(),
+        "user_id": user_id,
+        "leads": {
+            "total": total_leads,
+            "qualified": qualified_leads,
+            "converted": converted_leads,
+            "conversion_rate": round(lead_conversion_rate, 2)
+        },
+        "opportunities": {
+            "total": total_opportunities,
+            "won": won_opportunities,
+            "lost": lost_opportunities,
+            "in_progress": total_opportunities - won_opportunities - lost_opportunities,
+            "win_rate": round(opportunity_win_rate, 2),
+            "by_stage": by_stage
+        },
+        "revenue": {
+            "total_pipeline": round(total_value, 2),
+            "won_revenue": round(won_value, 2),
+            "average_deal_size": round(total_value / total_opportunities, 2) if total_opportunities > 0 else 0
+        }
+    }
+
+
+@router.get("/reports/pipeline")
+async def get_pipeline_report(
+    current_tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Analyse du pipeline de ventes
+    Vue d'ensemble des opportunités par étape avec métriques
+    """
+    opportunities = db.query(Opportunity).filter(
+        and_(
+            Opportunity.tenant_id == current_tenant.id,
+            Opportunity.status.in_(["open", "in_progress"])
+        )
+    ).all()
+    
+    pipeline = {}
+    total_value = 0
+    total_weighted_value = 0
+    
+    for stage in OpportunityStage:
+        stage_opps = [o for o in opportunities if o.stage == stage]
+        stage_value = sum(float(o.amount) for o in stage_opps)
+        stage_weighted = sum(o.weighted_amount for o in stage_opps)
+        
+        pipeline[stage] = {
+            "count": len(stage_opps),
+            "total_value": round(stage_value, 2),
+            "weighted_value": round(stage_weighted, 2),
+            "average_probability": round(sum(o.probability for o in stage_opps) / len(stage_opps), 2) if stage_opps else 0,
+            "opportunities": [
+                {
+                    "id": str(o.id),
+                    "name": o.name,
+                    "amount": float(o.amount),
+                    "probability": o.probability,
+                    "weighted_amount": o.weighted_amount,
+                    "days_in_stage": o.days_in_stage,
+                    "is_stale": o.is_stale
+                }
+                for o in stage_opps[:5]  # Top 5 par étape
+            ]
+        }
+        
+        total_value += stage_value
+        total_weighted_value += stage_weighted
+    
+    return {
+        "total_opportunities": len(opportunities),
+        "total_pipeline_value": round(total_value, 2),
+        "total_weighted_value": round(total_weighted_value, 2),
+        "pipeline_by_stage": pipeline,
+        "health_metrics": {
+            "stale_opportunities": len([o for o in opportunities if o.is_stale]),
+            "high_value_deals": len([o for o in opportunities if float(o.amount) > 1000000]),
+            "closing_soon": len([o for o in opportunities if o.expected_close_date and (o.expected_close_date - datetime.utcnow().date()).days <= 30])
+        }
+    }
+
+
+@router.get("/reports/forecast")
+async def get_sales_forecast(
+    months: int = Query(3, ge=1, le=12),
+    current_tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Prévisions de ventes basées sur le pipeline actuel
+    Projection sur X mois avec différents scénarios
+    """
+    from datetime import timedelta
+    from dateutil.relativedelta import relativedelta
+    
+    # Récupérer les opportunités actives
+    opportunities = db.query(Opportunity).filter(
+        and_(
+            Opportunity.tenant_id == current_tenant.id,
+            Opportunity.status.in_(["open", "in_progress"])
+        )
+    ).all()
+    
+    # Historique des 6 derniers mois pour tendance
+    six_months_ago = datetime.utcnow() - relativedelta(months=6)
+    historical_won = db.query(Opportunity).filter(
+        and_(
+            Opportunity.tenant_id == current_tenant.id,
+            Opportunity.status == "won",
+            Opportunity.actual_close_date >= six_months_ago.date()
+        )
+    ).all()
+    
+    # Calculer le taux de conversion historique
+    total_historical = db.query(func.count(Opportunity.id)).filter(
+        and_(
+            Opportunity.tenant_id == current_tenant.id,
+            Opportunity.created_at >= six_months_ago
+        )
+    ).scalar()
+    
+    historical_win_rate = (len(historical_won) / total_historical * 100) if total_historical > 0 else 30
+    
+    # Revenu moyen par mois (6 derniers mois)
+    monthly_revenue = {}
+    for i in range(6):
+        month_start = datetime.utcnow() - relativedelta(months=i+1)
+        month_end = datetime.utcnow() - relativedelta(months=i)
+        
+        month_won = [o for o in historical_won if month_start.date() <= o.actual_close_date < month_end.date()]
+        monthly_revenue[month_start.strftime("%Y-%m")] = sum(float(o.amount) for o in month_won)
+    
+    avg_monthly_revenue = sum(monthly_revenue.values()) / 6 if monthly_revenue else 0
+    
+    # Générer les prévisions
+    forecasts = []
+    now = datetime.utcnow()
+    
+    for i in range(months):
+        forecast_month = now + relativedelta(months=i+1)
+        month_key = forecast_month.strftime("%Y-%m")
+        
+        # Opportunités qui devraient se fermer ce mois
+        month_opportunities = [
+            o for o in opportunities 
+            if o.expected_close_date and 
+            o.expected_close_date.month == forecast_month.month and
+            o.expected_close_date.year == forecast_month.year
+        ]
+        
+        # Scénarios
+        optimistic = sum(float(o.amount) for o in month_opportunities)  # 100% des opportunités
+        realistic = sum(o.weighted_amount for o in month_opportunities)  # Basé sur probabilité
+        conservative = realistic * (historical_win_rate / 100)  # Basé sur taux historique
+        
+        forecasts.append({
+            "month": month_key,
+            "opportunity_count": len(month_opportunities),
+            "scenarios": {
+                "optimistic": round(optimistic, 2),
+                "realistic": round(realistic, 2),
+                "conservative": round(conservative, 2)
+            },
+            "trend": round(avg_monthly_revenue, 2)
+        })
+    
+    return {
+        "forecast_period": f"{months} mois",
+        "historical_win_rate": round(historical_win_rate, 2),
+        "average_monthly_revenue": round(avg_monthly_revenue, 2),
+        "current_pipeline_value": round(sum(float(o.amount) for o in opportunities), 2),
+        "forecasts": forecasts,
+        "recommendations": [
+            "Augmenter le nombre de leads qualifiés" if len(opportunities) < 10 else None,
+            "Accélérer les opportunités stagnantes" if len([o for o in opportunities if o.is_stale]) > 5 else None,
+            "Focus sur la conversion" if historical_win_rate < 25 else None
+        ]
+    }
+
+
+@router.get("/reports/conversion-funnel")
+async def get_conversion_funnel(
+    period: str = Query("month"),
+    current_tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Analyse du funnel de conversion
+    Lead → Opportunité → Devis → Vente
+    """
+    from datetime import timedelta
+    
+    # Définir la période
+    now = datetime.utcnow()
+    if period == "month":
+        start_date = now - timedelta(days=30)
+    elif period == "quarter":
+        start_date = now - timedelta(days=90)
+    else:
+        start_date = now - timedelta(days=365)
+    
+    # Leads
+    total_leads = db.query(func.count(Lead.id)).filter(
+        and_(
+            Lead.tenant_id == current_tenant.id,
+            Lead.created_at >= start_date
+        )
+    ).scalar()
+    
+    qualified_leads = db.query(func.count(Lead.id)).filter(
+        and_(
+            Lead.tenant_id == current_tenant.id,
+            Lead.created_at >= start_date,
+            Lead.status == LeadStatus.QUALIFIED
+        )
+    ).scalar()
+    
+    # Opportunités
+    total_opportunities = db.query(func.count(Opportunity.id)).filter(
+        and_(
+            Opportunity.tenant_id == current_tenant.id,
+            Opportunity.created_at >= start_date
+        )
+    ).scalar()
+    
+    # Devis
+    total_quotes = db.query(func.count(Quote.id)).filter(
+        and_(
+            Quote.tenant_id == current_tenant.id,
+            Quote.created_at >= start_date
+        )
+    ).scalar()
+    
+    accepted_quotes = db.query(func.count(Quote.id)).filter(
+        and_(
+            Quote.tenant_id == current_tenant.id,
+            Quote.created_at >= start_date,
+            Quote.status == QuoteStatus.ACCEPTED
+        )
+    ).scalar()
+    
+    # Ventes (opportunités gagnées)
+    won_opportunities = db.query(func.count(Opportunity.id)).filter(
+        and_(
+            Opportunity.tenant_id == current_tenant.id,
+            Opportunity.created_at >= start_date,
+            Opportunity.status == "won"
+        )
+    ).scalar()
+    
+    # Calculer les taux de conversion
+    lead_to_opportunity = (total_opportunities / total_leads * 100) if total_leads > 0 else 0
+    opportunity_to_quote = (total_quotes / total_opportunities * 100) if total_opportunities > 0 else 0
+    quote_to_sale = (accepted_quotes / total_quotes * 100) if total_quotes > 0 else 0
+    overall_conversion = (won_opportunities / total_leads * 100) if total_leads > 0 else 0
+    
+    return {
+        "period": period,
+        "funnel": [
+            {
+                "stage": "Leads",
+                "count": total_leads,
+                "conversion_rate": 100,
+                "drop_off": 0
+            },
+            {
+                "stage": "Leads qualifiés",
+                "count": qualified_leads,
+                "conversion_rate": round((qualified_leads / total_leads * 100) if total_leads > 0 else 0, 2),
+                "drop_off": total_leads - qualified_leads
+            },
+            {
+                "stage": "Opportunités",
+                "count": total_opportunities,
+                "conversion_rate": round(lead_to_opportunity, 2),
+                "drop_off": total_leads - total_opportunities
+            },
+            {
+                "stage": "Devis",
+                "count": total_quotes,
+                "conversion_rate": round(opportunity_to_quote, 2),
+                "drop_off": total_opportunities - total_quotes
+            },
+            {
+                "stage": "Ventes",
+                "count": won_opportunities,
+                "conversion_rate": round(quote_to_sale, 2),
+                "drop_off": total_quotes - won_opportunities
+            }
+        ],
+        "overall_conversion_rate": round(overall_conversion, 2),
+        "bottlenecks": [
+            {"stage": "Lead → Opportunité", "rate": round(lead_to_opportunity, 2)},
+            {"stage": "Opportunité → Devis", "rate": round(opportunity_to_quote, 2)},
+            {"stage": "Devis → Vente", "rate": round(quote_to_sale, 2)}
+        ]
+    }
