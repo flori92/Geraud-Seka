@@ -5,7 +5,6 @@ import Card from '@mui/material/Card'
 import CardHeader from '@mui/material/CardHeader'
 import CardContent from '@mui/material/CardContent'
 import Typography from '@mui/material/Typography'
-import Grid from '@mui/material/Grid2'
 import Avatar from '@mui/material/Avatar'
 import IconButton from '@mui/material/IconButton'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
@@ -90,24 +89,22 @@ const Transactions = ({ stats }: TransactionsProps) => {
         }
       />
       <CardContent sx={{ pt: 0 }}>
-        <Grid container spacing={2}>
+        <div className="grid grid-cols-2 gap-4">
           {data.map((item, index) => {
             const Icon = item.icon
             return (
-              <Grid key={index} size={{ xs: 6, md: 3 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <Avatar variant='rounded' sx={{ ...getColorStyle(item.color), width: 44, height: 44, boxShadow: 1 }}>
-                    <Icon size={24} />
-                  </Avatar>
-                  <div>
-                    <Typography variant="body2" noWrap>{item.title}</Typography>
-                    <Typography variant='h6'>{item.stats}</Typography>
-                  </div>
+              <div key={index} className="flex items-center gap-3">
+                <Avatar variant='rounded' sx={{ ...getColorStyle(item.color), width: 44, height: 44, boxShadow: 1 }}>
+                  <Icon size={24} />
+                </Avatar>
+                <div className="overflow-hidden">
+                  <Typography variant="body2" noWrap className="truncate">{item.title}</Typography>
+                  <Typography variant='h6'>{item.stats}</Typography>
                 </div>
-              </Grid>
+              </div>
             )
           })}
-        </Grid>
+        </div>
       </CardContent>
     </Card>
   )

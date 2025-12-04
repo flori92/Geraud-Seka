@@ -1,6 +1,5 @@
 'use client'
 
-import Grid from '@mui/material/Grid2';
 import WeeklyOverview from './WeeklyOverview';
 import TotalEarning, { TopOpportunity } from './TotalEarning';
 import Transactions from './Transactions';
@@ -20,17 +19,17 @@ interface CrmDashboardProps {
 const CrmDashboardTemplate = ({ stats, weeklyActivities, topOpportunities }: CrmDashboardProps) => {
   return (
     <MuiProvider>
-      <Grid container spacing={6}>
-        <Grid size={{ xs: 12, md: 4 }}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-1">
           <WeeklyOverview series={weeklyActivities} />
-        </Grid>
-        <Grid size={{ xs: 12, md: 4 }}>
+        </div>
+        <div className="lg:col-span-1">
           <TotalEarning totalRevenue={stats.totalRevenue} topOpportunities={topOpportunities} />
-        </Grid>
-        <Grid size={{ xs: 12, md: 4 }}>
+        </div>
+        <div className="lg:col-span-1">
           <Transactions stats={stats} />
-        </Grid>
-      </Grid>
+        </div>
+      </div>
     </MuiProvider>
   );
 };
