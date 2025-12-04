@@ -19,6 +19,7 @@ from app.models.crm import (
     LeadStatus, OpportunityStage, ActivityType, Priority, ContactType
 )
 from app.models.client import Client
+from app.models.quote import Quote, QuoteStatus
 from app.schemas import contact as contact_schema
 from app.services.crm import crm_service
 
@@ -843,3 +844,231 @@ async def delete_contact(
             status_code=500,
             detail=f"Erreur lors de la suppression du contact: {str(e)}"
         )
+
+
+# ==================== OPPORTUNITÉS → DEVIS ====================
+
+@router.get("/opportunities/{opportunity_id}/quotes")
+async def get_opportunity_quotes(
+    opportunity_id: str,
+    current_tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Récupérer tous les devis liés à une opportunité"""
+    opportunity = db.query(Opportunity).filter(
+        and_(
+            Opportunity.id == opportunity_id,
+            Opportunity.tenant_id == current_tenant.id
+        )
+    ).first()
+    
+    if not opportunity:
+        raise HTTPException(status_code=404, detail="Opportunité non trouvée")
+    
+    quotes = db.query(Quote).filter(
+        and_(
+            Quote.opportunity_id == opportunity_id,
+            Quote.tenant_id == current_tenant.id
+        )
+    ).options(
+        selectinload(Quote.client),
+        selectinload(Quote.user),
+        selectinload(Quote.items)
+    ).order_by(desc(Quote.created_at)).all()
+    
+    return {
+        "opportunity_id": str(opportunity.id),
+        "opportunity_name": opportunity.name,
+        "quotes": [
+            {
+                "id": str(q.id),
+                "quote_number": q.quote_number,
+                "title": q.title,
+                "status": q.status,
+                "total_ttc": float(q.total_ttc),
+                "currency": q.currency,
+                "issue_date": q.issue_date.isoformat() if q.issue_date else None,
+                "expiry_date": q.expiry_date.isoformat() if q.expiry_date else None,
+                "client_name": q.client.name if q.client else None,
+                "created_at": q.created_at.isoformat() if q.created_at else None
+            }
+            for q in quotes
+        ]
+    }
+
+
+@router.post("/opportunities/{opportunity_id}/convert-to-quote")
+async def convert_opportunity_to_quote(
+    opportunity_id: str,
+    current_tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Convertir une opportunité en devis
+    Crée automatiquement un devis pré-rempli depuis l'opportunité
+    """
+    opportunity = db.query(Opportunity).filter(
+        and_(
+            Opportunity.id == opportunity_id,
+            Opportunity.tenant_id == current_tenant.id
+        )
+    ).first()
+    
+    if not opportunity:
+        raise HTTPException(status_code=404, detail="Opportunité non trouvée")
+    
+    if not opportunity.client_id:
+        raise HTTPException(
+            status_code=400,
+            detail="L'opportunité doit être liée à un client pour créer un devis"
+        )
+    
+    try:
+        # Générer le numéro de devis
+        from datetime import date
+        year = date.today().year
+        last_quote = db.query(Quote).filter(
+            Quote.tenant_id == current_tenant.id
+        ).order_by(desc(Quote.created_at)).first()
+        
+        if last_quote and last_quote.quote_number:
+            try:
+                last_num = int(last_quote.quote_number.split('-')[-1])
+                new_num = last_num + 1
+            except:
+                new_num = 1
+        else:
+            new_num = 1
+        
+        quote_number = f"QUOTE-{year}-{new_num:04d}"
+        
+        # Créer le devis
+        from decimal import Decimal
+        from datetime import timedelta
+        
+        new_quote = Quote(
+            quote_number=quote_number,
+            tenant_id=current_tenant.id,
+            client_id=opportunity.client_id,
+            user_id=opportunity.assigned_to,
+            opportunity_id=opportunity.id,
+            title=opportunity.name,
+            description=opportunity.description or "",
+            status=QuoteStatus.DRAFT,
+            issue_date=date.today(),
+            expiry_date=date.today() + timedelta(days=30),
+            total_ht=Decimal(str(opportunity.amount)),
+            total_ttc=Decimal(str(opportunity.amount)),
+            currency="XOF",
+            validity_days=30,
+            internal_notes=f"Devis créé depuis l'opportunité: {opportunity.name}"
+        )
+        
+        db.add(new_quote)
+        db.commit()
+        db.refresh(new_quote)
+        
+        # Mettre à jour l'opportunité
+        opportunity.stage = OpportunityStage.PROPOSAL
+        db.commit()
+        
+        return {
+            "message": "Devis créé avec succès",
+            "quote_id": str(new_quote.id),
+            "quote_number": new_quote.quote_number,
+            "opportunity_updated": True
+        }
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erreur lors de la création du devis: {str(e)}"
+        )
+
+
+@router.get("/opportunities/{opportunity_id}/summary")
+async def get_opportunity_summary(
+    opportunity_id: str,
+    current_tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Récupérer un résumé complet de l'opportunité avec:
+    - Informations de base
+    - Activités récentes
+    - Devis associés
+    - Lead source
+    """
+    opportunity = db.query(Opportunity).options(
+        selectinload(Opportunity.lead),
+        selectinload(Opportunity.client),
+        selectinload(Opportunity.assignee),
+        selectinload(Opportunity.activities),
+        selectinload(Opportunity.quotes)
+    ).filter(
+        and_(
+            Opportunity.id == opportunity_id,
+            Opportunity.tenant_id == current_tenant.id
+        )
+    ).first()
+    
+    if not opportunity:
+        raise HTTPException(status_code=404, detail="Opportunité non trouvée")
+    
+    # Activités récentes (5 dernières)
+    recent_activities = sorted(
+        opportunity.activities,
+        key=lambda x: x.created_at,
+        reverse=True
+    )[:5]
+    
+    return {
+        "id": str(opportunity.id),
+        "name": opportunity.name,
+        "amount": float(opportunity.amount),
+        "probability": opportunity.probability,
+        "stage": opportunity.stage,
+        "status": opportunity.status,
+        "expected_close_date": opportunity.expected_close_date.isoformat() if opportunity.expected_close_date else None,
+        "weighted_amount": opportunity.weighted_amount,
+        "days_in_stage": opportunity.days_in_stage,
+        "is_stale": opportunity.is_stale,
+        "lead": {
+            "id": str(opportunity.lead.id),
+            "name": opportunity.lead.full_display_name,
+            "company": opportunity.lead.company
+        } if opportunity.lead else None,
+        "client": {
+            "id": str(opportunity.client.id),
+            "name": opportunity.client.name
+        } if opportunity.client else None,
+        "assignee": {
+            "id": str(opportunity.assignee.id),
+            "name": opportunity.assignee.full_name
+        } if opportunity.assignee else None,
+        "recent_activities": [
+            {
+                "id": str(a.id),
+                "type": a.type,
+                "subject": a.subject,
+                "created_at": a.created_at.isoformat()
+            }
+            for a in recent_activities
+        ],
+        "quotes": [
+            {
+                "id": str(q.id),
+                "quote_number": q.quote_number,
+                "status": q.status,
+                "total_ttc": float(q.total_ttc),
+                "created_at": q.created_at.isoformat() if q.created_at else None
+            }
+            for q in opportunity.quotes
+        ],
+        "quote_count": len(opportunity.quotes),
+        "activity_count": len(opportunity.activities)
+    }
