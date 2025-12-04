@@ -14,6 +14,13 @@ class Supplier(Base, TimestampMixin):
     name = Column(String(255), nullable=False)
     nif = Column(String(50), nullable=True)  # Numéro d'Identification Fiscale
     
+    # Contact Information
+    contact_name = Column(String(255), nullable=True)
+    email = Column(String(255), nullable=True)
+    phone = Column(String(50), nullable=True)
+    address = Column(Text, nullable=True)
+    country = Column(String(100), nullable=True, default="Bénin")
+    
     # Accounting Rules (Auto-imputation)
     default_account = Column(String(20), nullable=True)  # e.g., "601100"
     default_tax_rate = Column(Numeric(5, 2), nullable=True)  # e.g., 18.00

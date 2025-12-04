@@ -1,29 +1,25 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/router";
+import Link from "next/link";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Alert } from "@/components/ui/Alert";
-import { Plus, Search, Building2, Phone, Mail, MapPin, ShoppingBag, TrendingUp } from "lucide-react";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { Plus, Search, Building2, Phone, Mail, MapPin, ShoppingBag, TrendingUp, User, Trash2, Edit, ArrowLeft } from "lucide-react";
 import { formatAmount } from "@/lib/formatters";
-
-interface Supplier {
-  id: string;
-  name: string;
-  contact_name?: string;
-  email?: string;
-  phone?: string;
-  address?: string;
-  country?: string;
-  total_orders: number;
-  total_spent: number;
-  status: "active" | "inactive";
-}
+import { getSuppliers, createSupplier, deleteSupplier, type Supplier, type SupplierCreate } from "@/lib/api";
 
 export default function SuppliersPage() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [showModal, setShowModal] = useState(false);
-  const [formData, setFormData] = useState({
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [formData, setFormData] = useState<SupplierCreate>({
     name: "",
     contact_name: "",
     email: "",
@@ -32,45 +28,28 @@ export default function SuppliersPage() {
     country: "Bénin",
   });
 
-  // Mock data - À remplacer par des données de l'API
-  const [suppliers] = useState<Supplier[]>([
-    {
-      id: "1",
-      name: "Distributeur Informatique Afrique",
-      contact_name: "Jean Kouassi",
-      email: "contact@dia-africa.com",
-      phone: "+229 97 XX XX XX",
-      address: "Cotonou, Bénin",
-      country: "Bénin",
-      total_orders: 45,
-      total_spent: 12500000,
-      status: "active",
-    },
-    {
-      id: "2",
-      name: "Fournitures Bureau Plus",
-      contact_name: "Marie Adande",
-      email: "info@bureauplus.bj",
-      phone: "+229 96 XX XX XX",
-      address: "Porto-Novo, Bénin",
-      country: "Bénin",
-      total_orders: 32,
-      total_spent: 4800000,
-      status: "active",
-    },
-    {
-      id: "3",
-      name: "Tech Import SARL",
-      contact_name: "Amadou Diallo",
-      email: "sales@techimport.tg",
-      phone: "+228 90 XX XX XX",
-      address: "Lomé, Togo",
-      country: "Togo",
-      total_orders: 18,
-      total_spent: 8200000,
-      status: "active",
-    },
-  ]);
+  useEffect(() => {
+    fetchSuppliers();
+  }, []);
+
+  const fetchSuppliers = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("seka_access_token");
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+      const data = await getSuppliers(token);
+      setSuppliers(data);
+      setError(null);
+    } catch (err: any) {
+      console.error("Error fetching suppliers:", err);
+      setError("Erreur lors du chargement des fournisseurs");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredSuppliers = suppliers.filter((s) =>
     s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -89,25 +68,74 @@ export default function SuppliersPage() {
     { label: "Total dépensé", value: formatAmount(totalSpent), icon: TrendingUp, color: "bg-orange-600" },
   ];
 
-  const handleCreateSupplier = () => {
-    // TODO: Implement API call
-    console.log("Creating supplier:", formData);
-    setShowModal(false);
-    setFormData({
-      name: "",
-      contact_name: "",
-      email: "",
-      phone: "",
-      address: "",
-      country: "Bénin",
-    });
+  const handleCreateSupplier = async () => {
+    try {
+      setCreating(true);
+      const token = localStorage.getItem("seka_access_token");
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+      await createSupplier(token, formData);
+      setShowModal(false);
+      setFormData({
+        name: "",
+        contact_name: "",
+        email: "",
+        phone: "",
+        address: "",
+        country: "Bénin",
+      });
+      await fetchSuppliers();
+    } catch (err: any) {
+      console.error("Error creating supplier:", err);
+      setError(err.response?.data?.detail || "Erreur lors de la création du fournisseur");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleDeleteSupplier = async (supplierId: string) => {
+    if (!confirm("Êtes-vous sûr de vouloir supprimer ce fournisseur ?")) return;
+    
+    try {
+      const token = localStorage.getItem("seka_access_token");
+      if (!token) return;
+      await deleteSupplier(token, supplierId);
+      await fetchSuppliers();
+    } catch (err: any) {
+      console.error("Error deleting supplier:", err);
+      setError(err.response?.data?.detail || "Erreur lors de la suppression");
+    }
   };
 
   return (
     <DashboardLayout title="Fournisseurs">
-      <Alert variant="info" className="mb-6">
-        Cette page est en cours de développement. Les données affichées sont des exemples.
-      </Alert>
+      {/* Header cohérent */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Fournisseurs</h1>
+          <p className="text-gray-500 mt-1">
+            Gérez vos fournisseurs et leurs commandes
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <Link href="/sales/purchase-orders">
+            <Button variant="secondary" size="sm">
+              <ShoppingBag className="h-4 w-4 mr-2" />
+              Commandes
+            </Button>
+          </Link>
+          <Button variant="primary" size="sm" onClick={() => setShowModal(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nouveau fournisseur
+          </Button>
+        </div>
+      </div>
+
+      {error && (
+        <Alert variant="error" className="mb-6">{error}</Alert>
+      )}
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-4 mb-6">
@@ -129,28 +157,31 @@ export default function SuppliersPage() {
         })}
       </div>
 
-      {/* Filters & Actions */}
+      {/* Filters */}
       <Card className="mb-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-1 gap-3 max-w-md">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-accents-5" />
-              <Input
-                placeholder="Rechercher un fournisseur..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+        <div className="flex flex-1 gap-3 max-w-md">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-accents-5" />
+            <Input
+              placeholder="Rechercher un fournisseur..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
           </div>
-          <Button variant="primary" size="md" onClick={() => setShowModal(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nouveau fournisseur
-          </Button>
         </div>
       </Card>
 
       {/* Suppliers Grid */}
+      {loading ? (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Card key={i}>
+              <Skeleton className="h-48 w-full" />
+            </Card>
+          ))}
+        </div>
+      ) : (
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {filteredSuppliers.map((supplier) => (
           <Card key={supplier.id} className="hover:shadow-lg transition-shadow">
@@ -213,17 +244,23 @@ export default function SuppliersPage() {
                 <Button variant="secondary" size="sm" className="flex-1">
                   Voir détails
                 </Button>
-                <Button variant="ghost" size="sm" className="flex-1">
-                  Commander
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-red-600 hover:bg-red-50"
+                  onClick={() => handleDeleteSupplier(supplier.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
             </div>
           </Card>
         ))}
       </div>
+      )}
 
       {/* No results */}
-      {filteredSuppliers.length === 0 && (
+      {!loading && filteredSuppliers.length === 0 && (
         <Card>
           <div className="p-12 text-center">
             <Building2 className="h-12 w-12 mx-auto text-accents-5 mb-4" />
@@ -319,16 +356,16 @@ export default function SuppliersPage() {
               </div>
 
               <div className="flex gap-3 mt-6">
-                <Button variant="secondary" onClick={() => setShowModal(false)} className="flex-1">
+                <Button variant="secondary" onClick={() => setShowModal(false)} disabled={creating} className="flex-1">
                   Annuler
                 </Button>
                 <Button
                   variant="primary"
                   onClick={handleCreateSupplier}
-                  disabled={!formData.name}
+                  disabled={!formData.name || creating}
                   className="flex-1"
                 >
-                  Créer le fournisseur
+                  {creating ? "Création..." : "Créer le fournisseur"}
                 </Button>
               </div>
             </div>

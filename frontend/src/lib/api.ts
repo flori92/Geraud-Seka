@@ -1382,3 +1382,77 @@ export async function getBillingHistory(accessToken: string): Promise<BillingInv
   });
   return response.data;
 }
+
+// ========== SUPPLIERS APIs ==========
+
+export interface Supplier {
+  id: string;
+  name: string;
+  nif?: string;
+  contact_name?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  country?: string;
+  default_account?: string;
+  default_tax_rate?: number;
+  default_journal?: string;
+  default_description?: string;
+  total_orders: number;
+  total_spent: number;
+  status: string;
+}
+
+export interface SupplierCreate {
+  name: string;
+  nif?: string;
+  contact_name?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  country?: string;
+  default_account?: string;
+  default_tax_rate?: number;
+  default_journal?: string;
+  default_description?: string;
+}
+
+export async function getSuppliers(accessToken: string, search?: string): Promise<Supplier[]> {
+  try {
+    const params = search ? `?search=${encodeURIComponent(search)}` : '';
+    const response = await api.get<Supplier[]>(`/suppliers${params}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return Array.isArray(response.data) ? response.data : [];
+  } catch (error) {
+    console.error("Error fetching suppliers:", error);
+    return [];
+  }
+}
+
+export async function getSupplier(accessToken: string, supplierId: string): Promise<Supplier> {
+  const response = await api.get<Supplier>(`/suppliers/${supplierId}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function createSupplier(accessToken: string, data: SupplierCreate): Promise<Supplier> {
+  const response = await api.post<Supplier>("/suppliers", data, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function updateSupplier(accessToken: string, supplierId: string, data: Partial<SupplierCreate>): Promise<Supplier> {
+  const response = await api.put<Supplier>(`/suppliers/${supplierId}`, data, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function deleteSupplier(accessToken: string, supplierId: string): Promise<void> {
+  await api.delete(`/suppliers/${supplierId}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
