@@ -448,11 +448,24 @@ export interface OpportunityCreate {
   description?: string;
 }
 
+interface OpportunitiesResponse {
+  opportunities: Opportunity[];
+  total_count?: number;
+}
+
 export async function getOpportunities(accessToken: string): Promise<Opportunity[]> {
-  const response = await api.get<Opportunity[]>("/crm/opportunities/", {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  return response.data;
+  try {
+    const response = await api.get<OpportunitiesResponse | Opportunity[]>("/crm/opportunities/", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (Array.isArray(response.data)) {
+      return response.data;
+    }
+    return response.data.opportunities || [];
+  } catch (error) {
+    console.error("Error fetching opportunities:", error);
+    return [];
+  }
 }
 
 export async function createOpportunity(data: OpportunityCreate, accessToken: string): Promise<Opportunity> {
@@ -485,11 +498,24 @@ export interface LeadCreate {
   source: string;
 }
 
+interface LeadsResponse {
+  leads: Lead[];
+  total_count?: number;
+}
+
 export async function getLeads(accessToken: string): Promise<Lead[]> {
-  const response = await api.get<Lead[]>("/crm/leads/", {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  return response.data;
+  try {
+    const response = await api.get<LeadsResponse | Lead[]>("/crm/leads/", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (Array.isArray(response.data)) {
+      return response.data;
+    }
+    return response.data.leads || [];
+  } catch (error) {
+    console.error("Error fetching leads:", error);
+    return [];
+  }
 }
 
 export async function createLead(data: LeadCreate, accessToken: string): Promise<Lead> {
@@ -525,11 +551,24 @@ export interface CRMActivityCreate {
   assigned_to?: string; // Optional - backend will use authenticated user from JWT if not provided
 }
 
+interface ActivitiesResponse {
+  activities: CRMActivity[];
+  total_count?: number;
+}
+
 export async function getCRMActivities(accessToken: string): Promise<CRMActivity[]> {
-  const response = await api.get<CRMActivity[]>("/crm/activities/", {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  return response.data;
+  try {
+    const response = await api.get<ActivitiesResponse | CRMActivity[]>("/crm/activities/", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (Array.isArray(response.data)) {
+      return response.data;
+    }
+    return response.data.activities || [];
+  } catch (error) {
+    console.error("Error fetching CRM activities:", error);
+    return [];
+  }
 }
 
 export async function createCRMActivity(data: CRMActivityCreate, accessToken: string): Promise<CRMActivity> {
@@ -568,11 +607,25 @@ export interface QuoteCreate {
   }[];
 }
 
+interface QuotesResponse {
+  quotes: Quote[];
+  total?: number;
+}
+
 export async function getQuotes(accessToken: string): Promise<Quote[]> {
-  const response = await api.get<Quote[]>("/sales/quotes/", {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  return response.data;
+  try {
+    const response = await api.get<QuotesResponse | Quote[]>("/sales/quotes/", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    // Handle both wrapped and array responses
+    if (Array.isArray(response.data)) {
+      return response.data;
+    }
+    return response.data.quotes || [];
+  } catch (error) {
+    console.error("Error fetching quotes:", error);
+    return [];
+  }
 }
 
 export async function createQuote(data: QuoteCreate, accessToken: string): Promise<Quote> {
@@ -610,11 +663,25 @@ export interface InvoiceCreate {
   }[];
 }
 
+interface InvoicesResponse {
+  invoices: Invoice[];
+  total?: number;
+}
+
 export async function getInvoices(accessToken: string): Promise<Invoice[]> {
-  const response = await api.get<Invoice[]>("/sales/invoices/", {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  return response.data;
+  try {
+    const response = await api.get<InvoicesResponse | Invoice[]>("/sales/invoices/", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    // Handle both wrapped and array responses
+    if (Array.isArray(response.data)) {
+      return response.data;
+    }
+    return response.data.invoices || [];
+  } catch (error) {
+    console.error("Error fetching invoices:", error);
+    return [];
+  }
 }
 
 export async function createInvoice(data: InvoiceCreate, accessToken: string): Promise<Invoice> {
@@ -872,16 +939,43 @@ export interface InventoryItem {
   product_name: string;
   sku: string;
   quantity: number;
+  available_quantity?: number;
+  reserved_quantity?: number;
+  unit_cost?: number;
+  total_value?: number;
   location?: string;
-  last_updated: string;
+  reorder_point?: number;
+  last_updated?: string;
+  last_restocked?: string;
   status: "in_stock" | "low_stock" | "out_of_stock";
+  unit?: string;
+}
+
+interface InventoryResponse {
+  inventory: InventoryItem[];
+  total_count: number;
+  summary?: {
+    total_items: number;
+    total_value: number;
+    low_stock_items: number;
+    out_of_stock_items: number;
+  };
 }
 
 export async function getInventory(accessToken: string): Promise<InventoryItem[]> {
-  const response = await api.get<InventoryItem[]>("/stock/inventory/", {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  return response.data;
+  try {
+    const response = await api.get<InventoryResponse | InventoryItem[]>("/stock/", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    // Handle both wrapped and array responses
+    if (Array.isArray(response.data)) {
+      return response.data;
+    }
+    return response.data.inventory || [];
+  } catch (error) {
+    console.error("Error fetching inventory:", error);
+    return [];
+  }
 }
 
 // Stock Movements
@@ -890,11 +984,14 @@ export interface StockMovement {
   product_id: string;
   product_name?: string;
   movement_type: "in" | "out" | "adjustment" | "transfer";
+  type?: "in" | "out"; // Backend uses 'type' instead of 'movement_type'
   quantity: number;
   reference?: string;
   reason?: string;
   created_at: string;
   created_by?: string;
+  unit_cost?: number;
+  total_cost?: number;
 }
 
 export interface StockMovementCreate {
@@ -905,11 +1002,30 @@ export interface StockMovementCreate {
   reason?: string;
 }
 
+interface MovementsResponse {
+  movements: StockMovement[];
+  total_count: number;
+  summary?: {
+    total_in: number;
+    total_out: number;
+    net_movement: number;
+  };
+}
+
 export async function getStockMovements(accessToken: string): Promise<StockMovement[]> {
-  const response = await api.get<StockMovement[]>("/stock/movements/", {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  return response.data;
+  try {
+    const response = await api.get<MovementsResponse | StockMovement[]>("/stock/movements/", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    // Handle both wrapped and array responses
+    if (Array.isArray(response.data)) {
+      return response.data;
+    }
+    return response.data.movements || [];
+  } catch (error) {
+    console.error("Error fetching stock movements:", error);
+    return [];
+  }
 }
 
 export async function createStockMovement(data: StockMovementCreate, accessToken: string): Promise<StockMovement> {
@@ -948,11 +1064,25 @@ export interface PurchaseOrderCreate {
   notes?: string;
 }
 
+interface PurchaseOrdersResponse {
+  purchase_orders: PurchaseOrder[];
+  total?: number;
+}
+
 export async function getPurchaseOrders(accessToken: string): Promise<PurchaseOrder[]> {
-  const response = await api.get<PurchaseOrder[]>("/sales/purchase-orders/", {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  return response.data;
+  try {
+    const response = await api.get<PurchaseOrdersResponse | PurchaseOrder[]>("/sales/purchase-orders/", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    // Handle both wrapped and array responses
+    if (Array.isArray(response.data)) {
+      return response.data;
+    }
+    return response.data.purchase_orders || [];
+  } catch (error) {
+    console.error("Error fetching purchase orders:", error);
+    return [];
+  }
 }
 
 export async function createPurchaseOrder(data: PurchaseOrderCreate, accessToken: string): Promise<PurchaseOrder> {
@@ -986,11 +1116,25 @@ export interface DeliveryNoteCreate {
   notes?: string;
 }
 
+interface DeliveryNotesResponse {
+  delivery_notes: DeliveryNote[];
+  total?: number;
+}
+
 export async function getDeliveryNotes(accessToken: string): Promise<DeliveryNote[]> {
-  const response = await api.get<DeliveryNote[]>("/sales/delivery-notes/", {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  return response.data;
+  try {
+    const response = await api.get<DeliveryNotesResponse | DeliveryNote[]>("/sales/delivery-notes/", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    // Handle both wrapped and array responses
+    if (Array.isArray(response.data)) {
+      return response.data;
+    }
+    return response.data.delivery_notes || [];
+  } catch (error) {
+    console.error("Error fetching delivery notes:", error);
+    return [];
+  }
 }
 
 export async function createDeliveryNote(data: DeliveryNoteCreate, accessToken: string): Promise<DeliveryNote> {
