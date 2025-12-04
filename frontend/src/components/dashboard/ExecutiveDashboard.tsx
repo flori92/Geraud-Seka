@@ -18,6 +18,7 @@ import {
   ArrowUpIcon,
   ArrowDownIcon
 } from 'lucide-react';
+import { API_BASE_URL } from '@/lib/api';
 
 import { MetricCard } from './MetricCard';
 import SalesChart from '../charts/SalesChart';
@@ -81,11 +82,14 @@ export function ExecutiveDashboard({ tenantId, userId }: DashboardProps) {
     try {
       setIsLoading(true);
       
-      // Fetch metrics en parallèle
+      // Fetch metrics en parallèle avec API_BASE_URL
+      const token = localStorage.getItem('seka_access_token');
+      const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+      
       const [metricsRes, insightsRes, alertsRes] = await Promise.all([
-        fetch(`/api/v1/analytics/metrics/realtime?period=${selectedPeriod}&category=${selectedCategory !== 'all' ? selectedCategory : ''}`),
-        fetch('/api/v1/analytics/insights?limit=5'),
-        fetch('/api/v1/analytics/alerts?unread_only=true&limit=10')
+        fetch(`${API_BASE_URL}/api/v1/analytics/metrics/realtime?period=${selectedPeriod}&category=${selectedCategory !== 'all' ? selectedCategory : ''}`, { headers }),
+        fetch(`${API_BASE_URL}/api/v1/analytics/insights?limit=5`, { headers }),
+        fetch(`${API_BASE_URL}/api/v1/analytics/alerts?unread_only=true&limit=10`, { headers })
       ]);
 
       if (metricsRes.ok) {
