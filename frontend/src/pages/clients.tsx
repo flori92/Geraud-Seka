@@ -7,9 +7,11 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
+import { useToast } from "@/components/ui/ToastContainer";
 
 export default function ClientsPage() {
     const router = useRouter();
+    const { success, error: showError } = useToast();
     const [clients, setClients] = useState<Client[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCreate, setShowCreate] = useState(false);
@@ -45,15 +47,15 @@ export default function ClientsPage() {
 
         try {
             await createClient({ name, slug, sector }, token);
-            alert("Client créé avec succès !");
+            success("Client créé avec succès !");
             setShowCreate(false);
             setName("");
             setSlug("");
             setSector("");
             fetchClients();
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            alert("Erreur lors de la création du client");
+            showError(error.response?.data?.detail || "Erreur lors de la création du client");
         } finally {
             setCreating(false);
         }

@@ -7,6 +7,7 @@ import Link from 'next/link';
 import axios from 'axios';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Button } from '@/components/ui/Button';
+import { useToast } from '@/components/ui/ToastContainer';
 import { Plus, ArrowLeft, Building2 } from 'lucide-react';
 
 interface BankAccount {
@@ -22,6 +23,7 @@ interface BankAccount {
 }
 
 export default function BankAccounts() {
+  const { success, error: showError } = useToast();
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -80,9 +82,10 @@ export default function BankAccounts() {
         initial_balance: 0,
         is_default: false,
       });
+      success('Compte bancaire créé avec succès');
       fetchAccounts();
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Erreur lors de la création du compte');
+      showError(err.response?.data?.detail || 'Erreur lors de la création du compte');
     }
   };
 

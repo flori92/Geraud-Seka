@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
+import { useToast } from "@/components/ui/ToastContainer";
 
 export default function ActivitiesPage() {
+    const { success, error: showError } = useToast();
     const [activities, setActivities] = useState<Activity[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCreate, setShowCreate] = useState(false);
@@ -51,15 +53,15 @@ export default function ActivitiesPage() {
                 description,
                 client_id: "00000000-0000-0000-0000-000000000000" // TODO: Get from context
             }, token);
-            alert("Activité créée avec succès !");
+            success("Activité créée avec succès !");
             setShowCreate(false);
             setDate("");
             setAmount("");
             setDescription("");
             fetchActivities();
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            alert("Erreur lors de la création de l'activité");
+            showError(error.response?.data?.detail || "Erreur lors de la création de l'activité");
         } finally {
             setCreating(false);
         }
