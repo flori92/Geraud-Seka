@@ -3,14 +3,34 @@ Accounting API Routes
 Provides endpoints for accounting operations: ledger, journal, balance sheet
 """
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
+from pydantic import BaseModel
+from datetime import date
 
 from app.db.session import get_db
 from app.core.deps import get_current_user
 
 router = APIRouter()
+
+
+# Pydantic schemas
+class LedgerAccountCreate(BaseModel):
+    account_code: str
+    account_name: str
+    account_type: str
+    currency: str = "XOF"
+    initial_balance: float = 0
+
+
+class JournalEntryCreate(BaseModel):
+    date: str
+    description: str
+    debit_account: str
+    credit_account: str
+    amount: float
+    reference: str | None = None
 
 
 # Mock data for ledger accounts (will be replaced with real DB queries)
@@ -192,6 +212,29 @@ def get_ledger_accounts(
     return MOCK_LEDGER_ACCOUNTS
 
 
+@router.post("/ledger/")
+def create_ledger_account(
+    account: LedgerAccountCreate,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Create a new ledger account
+    """
+    # TODO: Save to database
+    # For now, add to mock data and return
+    new_account = {
+        "id": str(len(MOCK_LEDGER_ACCOUNTS) + 1),
+        "account_code": account.account_code,
+        "account_name": account.account_name,
+        "account_type": account.account_type,
+        "balance": account.initial_balance,
+        "currency": account.currency
+    }
+    MOCK_LEDGER_ACCOUNTS.append(new_account)
+    return new_account
+
+
 @router.get("/journal/")
 def get_journal_entries(
     current_user=Depends(get_current_user),
@@ -203,6 +246,31 @@ def get_journal_entries(
     """
     # TODO: Implement actual journal entries from database
     return []
+
+
+@router.post("/journal/")
+def create_journal_entry(
+    entry: JournalEntryCreate,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Create a new journal entry
+    """
+    # TODO: Save to database and update account balances
+    # For now, return the created entry
+    new_entry = {
+        "id": "1",
+        "entry_number": "JE-001",
+        "date": entry.date,
+        "description": entry.description,
+        "debit_account": entry.debit_account,
+        "credit_account": entry.credit_account,
+        "amount": entry.amount,
+        "reference": entry.reference,
+        "created_at": str(date.today())
+    }
+    return new_entry
 
 
 @router.get("/balance/")
