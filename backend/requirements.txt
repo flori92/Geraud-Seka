@@ -63,3 +63,6 @@ weasyprint==63.1
 # Treasury Module - ML Forecasting
 prophet==1.1.6
 python-dateutil==2.9.0.post0
+
+# AI Chat - Google Gemini
+google-generativeai==0.8.3

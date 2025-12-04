@@ -1,13 +1,14 @@
 """
 Simple Chat API for SEKA Chatbot Widget
-Simplified endpoint for the frontend chatbot widget
+Simplified endpoint for the frontend chatbot widget with Gemini AI
 """
 
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List, Dict
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+import os
 
 from app.db.session import get_db
 from app.core.deps import get_current_user_optional, get_current_tenant_optional
@@ -16,16 +17,33 @@ from app.models.tenant import Tenant
 
 router = APIRouter()
 
+# Lazy import to avoid errors if Gemini not configured
+_gemini_service = None
+
+
+def get_gemini():
+    """Get Gemini service with lazy loading"""
+    global _gemini_service
+    if _gemini_service is None and os.getenv("GEMINI_API_KEY"):
+        try:
+            from app.services.gemini_service import get_gemini_service
+            _gemini_service = get_gemini_service()
+        except Exception as e:
+            print(f"Gemini initialization failed: {e}")
+    return _gemini_service
+
 
 class ChatMessageRequest(BaseModel):
     """Simple chat message request"""
     message: str
+    conversation_history: Optional[List[Dict[str, str]]] = None
 
 
 class ChatMessageResponse(BaseModel):
     """Simple chat message response"""
     response: str
     timestamp: str
+    ai_powered: bool = False
 
 
 @router.post("/message", response_model=ChatMessageResponse)
@@ -38,13 +56,27 @@ async def send_chat_message(
     """
     Send a message to the SEKA chatbot
 
-    This is a simplified endpoint for the chatbot widget.
+    This endpoint uses Google Gemini AI if configured, otherwise falls back to rule-based responses.
     Works for both authenticated and anonymous users.
     """
+    # Try Gemini AI first
+    gemini = get_gemini()
+    if gemini:
+        try:
+            ai_response = await gemini.generate_response_async(
+                request.message,
+                request.conversation_history
+            )
+            return ChatMessageResponse(
+                response=ai_response,
+                timestamp=datetime.utcnow().isoformat(),
+                ai_powered=True
+            )
+        except Exception as e:
+            print(f"Gemini failed, falling back to rules: {e}")
+    
+    # Fallback to rule-based responses
     user_message = request.message.lower().strip()
-
-    # Simple rule-based responses for common questions
-    # TODO: Replace with actual AI/LLM integration (OpenAI, etc.)
 
     if any(word in user_message for word in ["bonjour", "salut", "hello", "hi"]):
         response = "Bonjour ! Je suis l'assistant SEKA. Je peux vous aider avec :\n\n" \
@@ -145,17 +177,24 @@ async def send_chat_message(
 
     return ChatMessageResponse(
         response=response,
-        timestamp=datetime.utcnow().isoformat()
+        timestamp=datetime.utcnow().isoformat(),
+        ai_powered=False
     )
 
 
 @router.get("/status")
 async def get_chat_status():
     """Check if chat service is available"""
+    gemini = get_gemini()
+    features = ["rule-based", "multilingual"]
+    if gemini:
+        features.append("gemini-ai")
+    
     return {
         "status": "online",
         "message": "SEKA Chatbot is ready to help!",
-        "version": "1.0",
-        "features": ["rule-based", "multilingual"],
+        "version": "2.0",
+        "features": features,
+        "ai_enabled": gemini is not None,
         "timestamp": datetime.utcnow().isoformat()
     }
