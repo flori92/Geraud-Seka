@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, and_
 
 from app.core import deps
+from app.core.cache import cached
 from app.models.client import Client
 from app.models.document import Document, DocumentStatus
 from app.models.user import User
@@ -122,12 +123,14 @@ def get_recent_activities(db: Session, tenant_id: str, limit: int = 5) -> List[d
 
 
 @router.get("/stats", response_model=DashboardStats)
+@cached(ttl=60)  # Cache for 1 minute
 def get_dashboard_stats(
     db: Session = Depends(deps.get_db_session),
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
     """
     Get aggregated dashboard statistics with alerts and recent activities.
+    Cached for 60 seconds to improve performance.
     """
     try:
         tenant_id = str(current_user.tenant_id) if current_user.tenant_id else None

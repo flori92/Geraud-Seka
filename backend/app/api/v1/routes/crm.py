@@ -11,6 +11,7 @@ from sqlalchemy import and_, desc, or_
 
 from app.db.session import get_db
 from app.core.deps import get_current_user, get_current_tenant
+from app.core.cache import cached
 from app.models.user import User
 from app.models.tenant import Tenant
 from app.models.crm import (
