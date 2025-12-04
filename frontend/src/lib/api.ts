@@ -722,10 +722,15 @@ export interface EmployeeCreate {
 }
 
 export async function getEmployees(accessToken: string): Promise<Employee[]> {
-  const response = await api.get<Employee[]>("/hr/employees/", {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  return response.data;
+  try {
+    const response = await api.get<Employee[]>("/hr/employees/", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return Array.isArray(response.data) ? response.data : [];
+  } catch (error) {
+    console.error("Error fetching employees:", error);
+    return [];
+  }
 }
 
 export async function createEmployee(data: EmployeeCreate, accessToken: string): Promise<Employee> {
@@ -759,10 +764,15 @@ export interface ContractCreate {
 }
 
 export async function getContracts(accessToken: string): Promise<Contract[]> {
-  const response = await api.get<Contract[]>("/hr/contracts/", {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  return response.data;
+  try {
+    const response = await api.get<Contract[]>("/hr/contracts/", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return Array.isArray(response.data) ? response.data : [];
+  } catch (error) {
+    console.error("Error fetching contracts:", error);
+    return [];
+  }
 }
 
 export async function createContract(data: ContractCreate, accessToken: string): Promise<Contract> {
@@ -798,10 +808,15 @@ export interface PayslipCreate {
 }
 
 export async function getPayslips(accessToken: string): Promise<Payslip[]> {
-  const response = await api.get<Payslip[]>("/hr/payslips/", {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  return response.data;
+  try {
+    const response = await api.get<Payslip[]>("/hr/payslips/", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return Array.isArray(response.data) ? response.data : [];
+  } catch (error) {
+    console.error("Error fetching payslips:", error);
+    return [];
+  }
 }
 
 export async function createPayslip(data: PayslipCreate, accessToken: string): Promise<Payslip> {
@@ -834,10 +849,15 @@ export interface LeaveCreate {
 }
 
 export async function getLeaves(accessToken: string): Promise<Leave[]> {
-  const response = await api.get<Leave[]>("/hr/leaves/", {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  return response.data;
+  try {
+    const response = await api.get<Leave[]>("/hr/leaves/", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return Array.isArray(response.data) ? response.data : [];
+  } catch (error) {
+    console.error("Error fetching leaves:", error);
+    return [];
+  }
 }
 
 export async function createLeave(data: LeaveCreate, accessToken: string): Promise<Leave> {
@@ -872,10 +892,15 @@ export interface JournalEntryCreate {
 }
 
 export async function getJournalEntries(accessToken: string): Promise<JournalEntry[]> {
-  const response = await api.get<JournalEntry[]>("/accounting/journal/", {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  return response.data;
+  try {
+    const response = await api.get<JournalEntry[]>("/accounting/journal/", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return Array.isArray(response.data) ? response.data : [];
+  } catch (error) {
+    console.error("Error fetching journal entries:", error);
+    return [];
+  }
 }
 
 export async function createJournalEntry(data: JournalEntryCreate, accessToken: string): Promise<JournalEntry> {
@@ -924,10 +949,84 @@ export interface LedgerAccount {
 }
 
 export async function getLedgerAccounts(accessToken: string): Promise<LedgerAccount[]> {
-  const response = await api.get<LedgerAccount[]>("/accounting/ledger/", {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  return response.data;
+  try {
+    const response = await api.get<LedgerAccount[]>("/accounting/ledger/", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return Array.isArray(response.data) ? response.data : [];
+  } catch (error) {
+    console.error("Error fetching ledger accounts:", error);
+    return [];
+  }
+}
+
+// Treasury Dashboard
+export interface TreasuryDashboardData {
+  total_balance: number;
+  total_balance_by_currency: Record<string, number>;
+  accounts_summary: any[];
+  recent_transactions: any[];
+  upcoming_payments: any[];
+  cash_runway_days: number;
+  alerts: any[];
+  cash_flow_summary: {
+    period_start: string;
+    period_end: string;
+    opening_balance: number;
+    total_income: number;
+    total_expenses: number;
+    net_cash_flow: number;
+    closing_balance: number;
+    currency: string;
+  };
+}
+
+export async function getTreasuryDashboard(accessToken: string): Promise<TreasuryDashboardData> {
+  try {
+    const response = await api.get<TreasuryDashboardData>("/treasury/dashboard", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return response.data || {
+      total_balance: 0,
+      total_balance_by_currency: {},
+      accounts_summary: [],
+      recent_transactions: [],
+      upcoming_payments: [],
+      cash_runway_days: 0,
+      alerts: [],
+      cash_flow_summary: {
+        period_start: new Date().toISOString(),
+        period_end: new Date().toISOString(),
+        opening_balance: 0,
+        total_income: 0,
+        total_expenses: 0,
+        net_cash_flow: 0,
+        closing_balance: 0,
+        currency: "XOF"
+      }
+    };
+  } catch (error) {
+    console.error("Error fetching treasury dashboard:", error);
+    return {
+      total_balance: 0,
+      total_balance_by_currency: {},
+      accounts_summary: [],
+      recent_transactions: [],
+      upcoming_payments: [],
+      cash_runway_days: 0,
+      alerts: [],
+      cash_flow_summary: {
+        period_start: new Date().toISOString(),
+        period_end: new Date().toISOString(),
+        opening_balance: 0,
+        total_income: 0,
+        total_expenses: 0,
+        net_cash_flow: 0,
+        closing_balance: 0,
+        currency: "XOF"
+      }
+    };
+  }
 }
 
 // ========== STOCK APIs ==========

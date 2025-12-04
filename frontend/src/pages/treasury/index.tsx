@@ -4,28 +4,7 @@
  */
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import axios from 'axios';
-import { API_BASE_URL } from '@/lib/api';
-
-interface TreasuryDashboardData {
-  total_balance: number;
-  total_balance_by_currency: Record<string, number>;
-  accounts_summary: any[];
-  recent_transactions: any[];
-  upcoming_payments: any[];
-  cash_runway_days: number;
-  alerts: any[];
-  cash_flow_summary: {
-    period_start: string;
-    period_end: string;
-    opening_balance: number;
-    total_income: number;
-    total_expenses: number;
-    net_cash_flow: number;
-    closing_balance: number;
-    currency: string;
-  };
-}
+import { getTreasuryDashboard, TreasuryDashboardData } from '@/lib/api';
 
 export default function TreasuryDashboard() {
   const router = useRouter();
@@ -41,13 +20,16 @@ export default function TreasuryDashboard() {
     try {
       setLoading(true);
       const token = localStorage.getItem('seka_access_token');
-      const response = await axios.get(`${API_BASE_URL}/api/v1/treasury/dashboard`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {}
-      });
-      setDashboardData(response.data);
+      if (!token) {
+        // Redirection gérée par le middleware ou composant parent, mais on peut afficher un warning
+        setError("Non authentifié");
+        return;
+      }
+      const data = await getTreasuryDashboard(token);
+      setDashboardData(data);
       setError(null);
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Erreur lors du chargement du dashboard');
+      setError('Erreur lors du chargement du dashboard');
       console.error('Error fetching dashboard:', err);
     } finally {
       setLoading(false);

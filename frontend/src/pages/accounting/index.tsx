@@ -127,13 +127,19 @@ export default function AccountingDashboardPage() {
         getLedgerAccounts(token)
       ]);
 
-      if (journalData.status === "fulfilled") setJournalEntries(journalData.value);
-      if (ledgerData.status === "fulfilled") setLedgerAccounts(ledgerData.value);
+      if (journalData.status === "fulfilled") {
+        setJournalEntries(Array.isArray(journalData.value) ? journalData.value : []);
+      }
+      if (ledgerData.status === "fulfilled") {
+        setLedgerAccounts(Array.isArray(ledgerData.value) ? ledgerData.value : []);
+      }
 
       setError(null);
     } catch (err: any) {
       setError("Erreur lors du chargement des données comptables");
       console.error(err);
+      setJournalEntries([]);
+      setLedgerAccounts([]);
     } finally {
       setLoading(false);
     }
@@ -141,14 +147,17 @@ export default function AccountingDashboardPage() {
 
   // Calculs des statistiques
   const stats = useMemo(() => {
-    const totalEntries = journalEntries?.length || 0;
-    const totalDebit = journalEntries?.reduce((sum, e) => sum + (e?.amount || 0), 0) || 0;
+    const entriesList = Array.isArray(journalEntries) ? journalEntries : [];
+    const accountsList = Array.isArray(ledgerAccounts) ? ledgerAccounts : [];
+
+    const totalEntries = entriesList.length;
+    const totalDebit = entriesList.reduce((sum, e) => sum + (e?.amount || 0), 0);
     const totalCredit = totalDebit; // Dans une écriture équilibrée, débit = crédit
     
-    const assetAccounts = ledgerAccounts?.filter(a => a?.account_type === "asset") || [];
-    const liabilityAccounts = ledgerAccounts?.filter(a => a?.account_type === "liability") || [];
-    const revenueAccounts = ledgerAccounts?.filter(a => a?.account_type === "revenue") || [];
-    const expenseAccounts = ledgerAccounts?.filter(a => a?.account_type === "expense") || [];
+    const assetAccounts = accountsList.filter(a => a?.account_type === "asset");
+    const liabilityAccounts = accountsList.filter(a => a?.account_type === "liability");
+    const revenueAccounts = accountsList.filter(a => a?.account_type === "revenue");
+    const expenseAccounts = accountsList.filter(a => a?.account_type === "expense");
     
     const totalAssets = assetAccounts.reduce((sum, a) => sum + (a?.balance || 0), 0);
     const totalLiabilities = liabilityAccounts.reduce((sum, a) => sum + (a?.balance || 0), 0);
@@ -165,15 +174,16 @@ export default function AccountingDashboardPage() {
       totalRevenue,
       totalExpenses,
       netProfit,
-      accountsCount: ledgerAccounts?.length || 0
+      accountsCount: accountsList.length
     };
   }, [journalEntries, ledgerAccounts]);
 
   // Dernières écritures
   const recentEntries = useMemo(() => {
-    return journalEntries
-      ?.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      ?.slice(0, 5) || [];
+    const entriesList = Array.isArray(journalEntries) ? journalEntries : [];
+    return entriesList
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 5);
   }, [journalEntries]);
 
   return (

@@ -123,14 +123,23 @@ export default function CRMDashboardPage() {
         getCRMActivities(token)
       ]);
 
-      if (leadsData.status === "fulfilled") setLeads(leadsData.value);
-      if (oppsData.status === "fulfilled") setOpportunities(oppsData.value);
-      if (activitiesData.status === "fulfilled") setActivities(activitiesData.value);
+      if (leadsData.status === "fulfilled") {
+        setLeads(Array.isArray(leadsData.value) ? leadsData.value : []);
+      }
+      if (oppsData.status === "fulfilled") {
+        setOpportunities(Array.isArray(oppsData.value) ? oppsData.value : []);
+      }
+      if (activitiesData.status === "fulfilled") {
+        setActivities(Array.isArray(activitiesData.value) ? activitiesData.value : []);
+      }
 
       setError(null);
     } catch (err: any) {
       setError("Erreur lors du chargement des données CRM");
       console.error(err);
+      setLeads([]);
+      setOpportunities([]);
+      setActivities([]);
     } finally {
       setLoading(false);
     }
@@ -138,22 +147,27 @@ export default function CRMDashboardPage() {
 
   // Calculs des statistiques
   const stats = useMemo(() => {
-    const totalLeads = leads?.length || 0;
-    const newLeads = leads?.filter(l => l?.status === "new" || l?.status === "nouveau")?.length || 0;
-    const qualifiedLeads = leads?.filter(l => l?.status === "qualified" || l?.status === "qualifié")?.length || 0;
+    const leadList = Array.isArray(leads) ? leads : [];
+    const oppList = Array.isArray(opportunities) ? opportunities : [];
+    const activityList = Array.isArray(activities) ? activities : [];
+
+    const totalLeads = leadList.length;
+    const newLeads = leadList.filter(l => l?.status === "new" || l?.status === "nouveau").length;
+    const qualifiedLeads = leadList.filter(l => l?.status === "qualified" || l?.status === "qualifié").length;
     
-    const totalOpportunities = opportunities?.length || 0;
-    const pipelineValue = opportunities?.reduce((sum, opp) => sum + (opp?.value || 0), 0) || 0;
-    const wonOpportunities = opportunities?.filter(o => o?.stage === "won" || o?.stage === "gagné")?.length || 0;
+    const totalOpportunities = oppList.length;
+    const pipelineValue = oppList.reduce((sum, opp) => sum + (opp?.value || 0), 0);
+    const wonOpportunities = oppList.filter(o => o?.stage === "won" || o?.stage === "gagné").length;
     const conversionRate = totalOpportunities > 0 ? Math.round((wonOpportunities / totalOpportunities) * 100) : 0;
     
-    const pendingActivities = activities?.filter(a => a?.status === "pending" || a?.status === "scheduled")?.length || 0;
-    const completedActivities = activities?.filter(a => a?.status === "completed")?.length || 0;
-    const todayActivities = activities?.filter(a => {
-      const actDate = new Date(a?.date);
+    const pendingActivities = activityList.filter(a => a?.status === "pending" || a?.status === "scheduled").length;
+    const completedActivities = activityList.filter(a => a?.status === "completed").length;
+    const todayActivities = activityList.filter(a => {
+      if (!a?.date) return false;
+      const actDate = new Date(a.date);
       const today = new Date();
       return actDate.toDateString() === today.toDateString();
-    })?.length || 0;
+    }).length;
 
     return {
       totalLeads,
@@ -171,9 +185,10 @@ export default function CRMDashboardPage() {
 
   // Activités récentes
   const recentActivities = useMemo(() => {
-    return activities
-      ?.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      ?.slice(0, 5) || [];
+    const activityList = Array.isArray(activities) ? activities : [];
+    return activityList
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 5);
   }, [activities]);
 
   const getActivityIcon = (type: string) => {

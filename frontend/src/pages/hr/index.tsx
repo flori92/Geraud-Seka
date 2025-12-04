@@ -128,15 +128,27 @@ export default function HRDashboardPage() {
         getLeaves(token)
       ]);
 
-      if (empData.status === "fulfilled") setEmployees(empData.value);
-      if (contractsData.status === "fulfilled") setContracts(contractsData.value);
-      if (payslipsData.status === "fulfilled") setPayslips(payslipsData.value);
-      if (leavesData.status === "fulfilled") setLeaves(leavesData.value);
+      if (empData.status === "fulfilled") {
+        setEmployees(Array.isArray(empData.value) ? empData.value : []);
+      }
+      if (contractsData.status === "fulfilled") {
+        setContracts(Array.isArray(contractsData.value) ? contractsData.value : []);
+      }
+      if (payslipsData.status === "fulfilled") {
+        setPayslips(Array.isArray(payslipsData.value) ? payslipsData.value : []);
+      }
+      if (leavesData.status === "fulfilled") {
+        setLeaves(Array.isArray(leavesData.value) ? leavesData.value : []);
+      }
 
       setError(null);
     } catch (err: any) {
       setError("Erreur lors du chargement des données RH");
       console.error(err);
+      setEmployees([]);
+      setContracts([]);
+      setPayslips([]);
+      setLeaves([]);
     } finally {
       setLoading(false);
     }
@@ -144,24 +156,29 @@ export default function HRDashboardPage() {
 
   // Calculs des statistiques
   const stats = useMemo(() => {
-    const totalEmployees = employees?.length || 0;
-    const activeEmployees = employees?.filter(e => e?.status === "active")?.length || 0;
-    const onLeave = employees?.filter(e => e?.status === "on_leave")?.length || 0;
+    const empList = Array.isArray(employees) ? employees : [];
+    const contractList = Array.isArray(contracts) ? contracts : [];
+    const payslipList = Array.isArray(payslips) ? payslips : [];
+    const leaveList = Array.isArray(leaves) ? leaves : [];
+
+    const totalEmployees = empList.length;
+    const activeEmployees = empList.filter(e => e?.status === "active").length;
+    const onLeave = empList.filter(e => e?.status === "on_leave").length;
     
-    const activeContracts = contracts?.filter(c => c?.status === "active")?.length || 0;
-    const expiringContracts = contracts?.filter(c => {
+    const activeContracts = contractList.filter(c => c?.status === "active").length;
+    const expiringContracts = contractList.filter(c => {
       if (!c?.end_date) return false;
       const endDate = new Date(c.end_date);
       const thirtyDaysFromNow = new Date();
       thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
       return endDate <= thirtyDaysFromNow && c.status === "active";
-    })?.length || 0;
+    }).length;
     
-    const totalPayroll = payslips?.reduce((sum, p) => sum + (p?.gross_salary || 0), 0) || 0;
-    const pendingPayslips = payslips?.filter(p => p?.status === "pending")?.length || 0;
+    const totalPayroll = payslipList.reduce((sum, p) => sum + (p?.gross_salary || 0), 0);
+    const pendingPayslips = payslipList.filter(p => p?.status === "pending").length;
     
-    const pendingLeaves = leaves?.filter(l => l?.status === "pending")?.length || 0;
-    const approvedLeaves = leaves?.filter(l => l?.status === "approved")?.length || 0;
+    const pendingLeaves = leaveList.filter(l => l?.status === "pending").length;
+    const approvedLeaves = leaveList.filter(l => l?.status === "approved").length;
 
     return {
       totalEmployees,
@@ -178,9 +195,10 @@ export default function HRDashboardPage() {
 
   // Employés récents
   const recentEmployees = useMemo(() => {
-    return employees
-      ?.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-      ?.slice(0, 5) || [];
+    const empList = Array.isArray(employees) ? employees : [];
+    return empList
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 5);
   }, [employees]);
 
   return (
