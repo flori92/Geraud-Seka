@@ -9,8 +9,10 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { Alert } from "@/components/ui/Alert";
 import { getLeaves, Leave } from "@/lib/api";
 import { Plus, Calendar, X } from "lucide-react";
+import { useToast } from "@/components/ui/ToastContainer";
 
 export default function LeavesPage() {
+  const toast = useToast();
   const [leaves, setLeaves] = useState<Leave[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -267,7 +269,7 @@ export default function LeavesPage() {
                   disabled={!formData.start_date || !formData.end_date}
                   className="flex-1"
                   onClick={() => {
-                    alert("Fonctionnalité en cours de développement");
+                    toast.info("Fonctionnalité en cours de développement - L'API sera bientôt connectée");
                     setShowModal(false);
                   }}
                 >

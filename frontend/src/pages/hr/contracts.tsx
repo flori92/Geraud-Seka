@@ -9,8 +9,10 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { Alert } from "@/components/ui/Alert";
 import { getContracts, Contract } from "@/lib/api";
 import { Plus, FileText, Calendar, X } from "lucide-react";
+import { useToast } from "@/components/ui/ToastContainer";
 
 export default function ContractsPage() {
+  const toast = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [loading, setLoading] = useState(true);
@@ -270,7 +272,7 @@ export default function ContractsPage() {
                   disabled={!formData.position || formData.salary <= 0}
                   className="flex-1"
                   onClick={() => {
-                    alert("Fonctionnalité en cours de développement");
+                    toast.info("Fonctionnalité en cours de développement - L'API sera bientôt connectée");
                     setShowModal(false);
                   }}
                 >

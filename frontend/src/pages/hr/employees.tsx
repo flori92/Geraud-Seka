@@ -10,8 +10,10 @@ import { Alert } from "@/components/ui/Alert";
 import { getEmployees, Employee } from "@/lib/api";
 import { Plus, Mail, Phone, User, X } from "lucide-react";
 import { formatAmount } from "@/lib/formatters";
+import { useToast } from "@/components/ui/ToastContainer";
 
 export default function EmployeesPage() {
+  const toast = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
@@ -310,7 +312,7 @@ export default function EmployeesPage() {
                   disabled={!formData.first_name || !formData.last_name || !formData.email || !formData.position}
                   className="flex-1"
                   onClick={() => {
-                    alert("Fonctionnalité en cours de développement");
+                    toast.info("Fonctionnalité en cours de développement - L'API sera bientôt connectée");
                     setShowModal(false);
                   }}
                 >

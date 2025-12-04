@@ -10,8 +10,10 @@ import { Alert } from "@/components/ui/Alert";
 import { getPayslips, Payslip } from "@/lib/api";
 import { Plus, Download, FileText, X } from "lucide-react";
 import { formatAmount } from "@/lib/formatters";
+import { useToast } from "@/components/ui/ToastContainer";
 
 export default function PayslipsPage() {
+  const toast = useToast();
   const [payslips, setPayslips] = useState<Payslip[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -260,7 +262,7 @@ export default function PayslipsPage() {
                   disabled={formData.gross_salary <= 0}
                   className="flex-1"
                   onClick={() => {
-                    alert("Fonctionnalité en cours de développement");
+                    toast.info("Fonctionnalité en cours de développement - L'API sera bientôt connectée");
                     setShowModal(false);
                   }}
                 >
