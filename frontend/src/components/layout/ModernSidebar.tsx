@@ -53,6 +53,28 @@ const menuItems: MenuItem[] = [
     href: "/dashboard",
   },
   {
+    id: "accounting",
+    label: "Comptabilité",
+    icon: Receipt,
+    submenu: [
+      { label: "Journal", href: "/accounting/journal" },
+      { label: "Balance", href: "/accounting/balance" },
+      { label: "Grand livre", href: "/accounting/ledger" },
+      { label: "Plan comptable", href: "/accounting/chart" },
+    ],
+  },
+  {
+    id: "treasury",
+    label: "Trésorerie",
+    icon: Wallet,
+    submenu: [
+      { label: "Dashboard", href: "/treasury" },
+      { label: "Comptes bancaires", href: "/treasury/accounts" },
+      { label: "Transactions", href: "/treasury/transactions" },
+      { label: "Prévisions", href: "/treasury/forecast" },
+    ],
+  },
+  {
     id: "clients",
     label: "Clients & CRM",
     icon: Users,
@@ -72,28 +94,6 @@ const menuItems: MenuItem[] = [
       { label: "Factures", href: "/sales/invoices" },
       { label: "Bons de commande", href: "/sales/purchase-orders" },
       { label: "Bons de livraison", href: "/sales/delivery-notes" },
-    ],
-  },
-  {
-    id: "treasury",
-    label: "Trésorerie",
-    icon: Wallet,
-    submenu: [
-      { label: "Dashboard", href: "/treasury" },
-      { label: "Comptes bancaires", href: "/treasury/accounts" },
-      { label: "Transactions", href: "/treasury/transactions" },
-      { label: "Prévisions", href: "/treasury/forecast" },
-    ],
-  },
-  {
-    id: "accounting",
-    label: "Comptabilité",
-    icon: Receipt,
-    submenu: [
-      { label: "Journal", href: "/accounting/journal" },
-      { label: "Balance", href: "/accounting/balance" },
-      { label: "Grand livre", href: "/accounting/ledger" },
-      { label: "Plan comptable", href: "/accounting/chart" },
     ],
   },
   {
@@ -160,7 +160,7 @@ const badgeColors = {
 
 export function ModernSidebar() {
   const [isLocked, setIsLocked] = useState(false);
-  const [openMenus, setOpenMenus] = useState<string[]>(["clients", "sales", "treasury"]);
+  const [openMenus, setOpenMenus] = useState<string[]>(["accounting", "treasury"]);
   const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
   const pathname = router.pathname || "";
