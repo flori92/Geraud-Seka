@@ -1,18 +1,29 @@
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Alert } from "@/components/ui/Alert";
 import { getJournalEntries, JournalEntry } from "@/lib/api";
-import { Plus, ArrowRight } from "lucide-react";
+import { Plus, ArrowRight, X, BookOpen, FileText } from "lucide-react";
 import { formatAmount } from "@/lib/formatters";
 
 export default function JournalPage() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [formData, setFormData] = useState({
+    date: new Date().toISOString().split('T')[0],
+    description: "",
+    debit_account: "",
+    credit_account: "",
+    amount: "",
+    reference: ""
+  });
 
   useEffect(() => {
     fetchEntries();
@@ -75,7 +86,7 @@ export default function JournalPage() {
             <Input placeholder="Rechercher une écriture..." className="flex-1" />
             <Input type="date" className="w-48" />
           </div>
-          <Button variant="primary" size="md">
+          <Button variant="primary" size="md" onClick={() => setShowModal(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Nouvelle écriture
           </Button>
@@ -126,7 +137,124 @@ export default function JournalPage() {
             </table>
           </div>
         )}
+        
+        {entries.length === 0 && !loading && (
+          <div className="p-12 text-center">
+            <BookOpen className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+            <p className="text-gray-500 font-medium">Aucune écriture comptable</p>
+            <p className="text-sm text-gray-400 mt-1">Créez votre première écriture pour commencer</p>
+            <Button variant="primary" size="sm" className="mt-4" onClick={() => setShowModal(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nouvelle écriture
+            </Button>
+          </div>
+        )}
       </Card>
+
+      {/* Modal Nouvelle Écriture */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <Card className="w-full max-w-lg mx-4">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-foreground">Nouvelle écriture comptable</h2>
+                <button onClick={() => setShowModal(false)} className="p-1 hover:bg-gray-100 rounded">
+                  <X className="h-5 w-5 text-gray-500" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-2">Date *</label>
+                    <Input
+                      type="date"
+                      value={formData.date}
+                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-2">Référence</label>
+                    <Input
+                      value={formData.reference}
+                      onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
+                      placeholder="FAC-001"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Description *</label>
+                  <Input
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Vente de marchandises"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-2">Compte débit *</label>
+                    <Select
+                      value={formData.debit_account}
+                      onChange={(e) => setFormData({ ...formData, debit_account: e.target.value })}
+                    >
+                      <option value="">Sélectionner...</option>
+                      <option value="411000">411000 - Clients</option>
+                      <option value="512000">512000 - Banque</option>
+                      <option value="530000">530000 - Caisse</option>
+                      <option value="601000">601000 - Achats marchandises</option>
+                      <option value="621000">621000 - Personnel extérieur</option>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-2">Compte crédit *</label>
+                    <Select
+                      value={formData.credit_account}
+                      onChange={(e) => setFormData({ ...formData, credit_account: e.target.value })}
+                    >
+                      <option value="">Sélectionner...</option>
+                      <option value="401000">401000 - Fournisseurs</option>
+                      <option value="701000">701000 - Ventes marchandises</option>
+                      <option value="706000">706000 - Prestations services</option>
+                      <option value="445710">445710 - TVA collectée</option>
+                      <option value="512000">512000 - Banque</option>
+                    </Select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Montant (FCFA) *</label>
+                  <Input
+                    type="number"
+                    value={formData.amount}
+                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                    placeholder="100000"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <Button variant="secondary" onClick={() => setShowModal(false)} className="flex-1">
+                  Annuler
+                </Button>
+                <Button
+                  variant="primary"
+                  disabled={!formData.description || !formData.debit_account || !formData.credit_account || !formData.amount}
+                  className="flex-1"
+                  onClick={() => {
+                    // TODO: Implémenter la création via API
+                    alert("Fonctionnalité en cours de développement");
+                    setShowModal(false);
+                  }}
+                >
+                  Créer l'écriture
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

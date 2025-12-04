@@ -277,7 +277,7 @@ export interface ActivityCreate {
 }
 
 export async function getActivities(accessToken: string, clientId?: string): Promise<Activity[]> {
-  const url = clientId ? `/api/v1/activities/?client_id=${clientId}` : "/activities/";
+  const url = clientId ? `/activities/?client_id=${clientId}` : "/activities/";
   const response = await api.get<Activity[]>(url, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
@@ -321,7 +321,7 @@ export interface ProductUpdate {
 }
 
 export async function getProducts(accessToken: string, clientId?: string): Promise<Product[]> {
-  const url = clientId ? `/api/v1/products/?client_id=${clientId}` : "/products/";
+  const url = clientId ? `/products/?client_id=${clientId}` : "/products/";
   const response = await api.get<Product[]>(url, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
@@ -336,7 +336,7 @@ export async function createProduct(data: ProductCreate, accessToken: string): P
 }
 
 export async function updateProduct(id: string, data: ProductUpdate, accessToken: string): Promise<Product> {
-  const response = await api.put<Product>(`/api/v1/products/${id}`, data, {
+  const response = await api.put<Product>(`/products/${id}`, data, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
@@ -932,7 +932,7 @@ export interface BalanceSheet {
 
 export async function getBalanceSheet(accessToken: string, period?: string): Promise<BalanceSheet> {
   const params = period ? `?period=${period}` : "";
-  const response = await api.get<BalanceSheet>(`/api/v1/accounting/balance${params}`, {
+  const response = await api.get<BalanceSheet>(`/accounting/balance${params}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
@@ -1265,7 +1265,7 @@ export interface SalesReport {
 
 export async function getSalesReport(accessToken: string, period?: string): Promise<SalesReport> {
   const params = period ? `?period=${period}` : "";
-  const response = await api.get<SalesReport>(`/api/v1/reports/sales${params}`, {
+  const response = await api.get<SalesReport>(`/reports/sales${params}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
@@ -1298,7 +1298,7 @@ export interface AccountingReport {
 
 export async function getAccountingReport(accessToken: string, period?: string): Promise<AccountingReport> {
   const params = period ? `?period=${period}` : "";
-  const response = await api.get<AccountingReport>(`/api/v1/reports/accounting${params}`, {
+  const response = await api.get<AccountingReport>(`/reports/accounting${params}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
@@ -1328,7 +1328,7 @@ export interface HRReport {
 
 export async function getHRReport(accessToken: string, period?: string): Promise<HRReport> {
   const params = period ? `?period=${period}` : "";
-  const response = await api.get<HRReport>(`/api/v1/reports/hr${params}`, {
+  const response = await api.get<HRReport>(`/reports/hr${params}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
@@ -1344,7 +1344,7 @@ export interface CashFlowData {
 
 export async function getCashFlow(accessToken: string, period?: string): Promise<CashFlowData[]> {
   const params = period ? `?period=${period}` : "";
-  const response = await api.get<CashFlowData[]>(`/api/v1/treasury/cash-flow${params}`, {
+  const response = await api.get<CashFlowData[]>(`/treasury/cash-flow${params}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;

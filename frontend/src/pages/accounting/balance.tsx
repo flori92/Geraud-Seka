@@ -21,16 +21,35 @@ export default function BalancePage() {
   const fetchBalance = async () => {
     try {
       setLoading(true);
+      setError(null);
       const token = localStorage.getItem("seka_access_token");
       if (!token) {
         setError("Vous devez être connecté");
+        setLoading(false);
         return;
       }
       const data = await getBalanceSheet(token, period);
-      setBalance(data);
-      setError(null);
+      if (data) {
+        setBalance(data);
+      } else {
+        // Fournir des données par défaut si l'API ne retourne rien
+        setBalance({
+          assets: { current_assets: 0, fixed_assets: 0, total_assets: 0 },
+          liabilities: { current_liabilities: 0, long_term_liabilities: 0, total_liabilities: 0 },
+          equity: { share_capital: 0, retained_earnings: 0, total_equity: 0 },
+          period: "Actuelle"
+        });
+      }
     } catch (err: any) {
+      console.error("Error fetching balance:", err);
       setError(err.response?.data?.detail || "Erreur lors du chargement de la balance");
+      // Fournir des données par défaut en cas d'erreur
+      setBalance({
+        assets: { current_assets: 0, fixed_assets: 0, total_assets: 0 },
+        liabilities: { current_liabilities: 0, long_term_liabilities: 0, total_liabilities: 0 },
+        equity: { share_capital: 0, retained_earnings: 0, total_equity: 0 },
+        period: "Actuelle"
+      });
     } finally {
       setLoading(false);
     }
