@@ -12,7 +12,7 @@ from sqlalchemy import func
 from app.db.session import get_db
 from app.models.supplier import Supplier
 from app.models.purchase_order import PurchaseOrder
-from app.core.auth import get_current_user
+from app.core.deps import get_current_user
 from app.models.user import User
 from pydantic import BaseModel
 
