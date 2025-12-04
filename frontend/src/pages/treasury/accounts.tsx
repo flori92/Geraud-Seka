@@ -27,9 +27,18 @@ export default function BankAccounts() {
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    account_number: '',
     bank_name: '',
+    branch: '',
     account_type: 'checking',
+    // RIB
+    bank_code: '',
+    branch_code: '',
+    account_number: '',
+    rib_key: '',
+    // International
+    iban: '',
+    swift_bic: '',
+    // Other
     currency: 'XOF',
     initial_balance: 0,
     is_default: false,
@@ -58,9 +67,15 @@ export default function BankAccounts() {
       setShowModal(false);
       setFormData({
         name: '',
-        account_number: '',
         bank_name: '',
+        branch: '',
         account_type: 'checking',
+        bank_code: '',
+        branch_code: '',
+        account_number: '',
+        rib_key: '',
+        iban: '',
+        swift_bic: '',
         currency: 'XOF',
         initial_balance: 0,
         is_default: false,
@@ -198,93 +213,197 @@ export default function BankAccounts() {
 
         {/* Modal */}
         {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto py-8">
+            <div className="bg-white rounded-lg p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Nouveau Compte Bancaire</h2>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nom du compte *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Ex: Compte Principal"
-                  />
+              <form onSubmit={handleSubmit} className="space-y-6">
+                
+                {/* Section: Informations de base */}
+                <div className="border-b pb-4">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Informations de base</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Libellé du compte *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Ex: Compte Principal"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Type de compte
+                      </label>
+                      <select
+                        value={formData.account_type}
+                        onChange={(e) => setFormData({ ...formData, account_type: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="checking">Compte Courant</option>
+                        <option value="savings">Compte Épargne</option>
+                        <option value="loan">Prêt</option>
+                        <option value="credit_card">Carte de Crédit</option>
+                        <option value="other">Autre</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Nom de la banque *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.bank_name}
+                        onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Ex: Ecobank, BOA, SGBF..."
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Agence
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.branch}
+                        onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Ex: Agence Cotonou Centre"
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Numéro de compte *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.account_number}
-                    onChange={(e) => setFormData({ ...formData, account_number: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Ex: 123456789"
-                  />
+                {/* Section: Informations RIB */}
+                <div className="border-b pb-4">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Relevé d'Identité Bancaire (RIB)</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Code banque
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={5}
+                        value={formData.bank_code}
+                        onChange={(e) => setFormData({ ...formData, bank_code: e.target.value.replace(/\D/g, '').slice(0, 5) })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                        placeholder="00000"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Code guichet
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={5}
+                        value={formData.branch_code}
+                        onChange={(e) => setFormData({ ...formData, branch_code: e.target.value.replace(/\D/g, '').slice(0, 5) })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                        placeholder="00000"
+                      />
+                    </div>
+                    <div className="col-span-2 md:col-span-1">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        N° de compte *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        maxLength={20}
+                        value={formData.account_number}
+                        onChange={(e) => setFormData({ ...formData, account_number: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                        placeholder="000000000000"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Clé RIB
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={2}
+                        value={formData.rib_key}
+                        onChange={(e) => setFormData({ ...formData, rib_key: e.target.value.replace(/\D/g, '').slice(0, 2) })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                        placeholder="00"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Format RIB UEMOA : Code banque (5) | Code guichet (5) | N° compte (12) | Clé (2)
+                  </p>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Banque *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.bank_name}
-                    onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Ex: Ecobank"
-                  />
+                {/* Section: Informations internationales */}
+                <div className="border-b pb-4">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Informations internationales</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        IBAN
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={34}
+                        value={formData.iban}
+                        onChange={(e) => setFormData({ ...formData, iban: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                        placeholder="BJ00 0000 0000 0000 0000 0000 00"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Code SWIFT/BIC
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={11}
+                        value={formData.swift_bic}
+                        onChange={(e) => setFormData({ ...formData, swift_bic: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                        placeholder="EABORBJJ"
+                      />
+                    </div>
+                  </div>
                 </div>
 
+                {/* Section: Solde et options */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Type de compte
-                  </label>
-                  <select
-                    value={formData.account_type}
-                    onChange={(e) => setFormData({ ...formData, account_type: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="checking">Compte Courant</option>
-                    <option value="savings">Compte Épargne</option>
-                    <option value="loan">Prêt</option>
-                    <option value="credit_card">Carte de Crédit</option>
-                    <option value="other">Autre</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Solde initial
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.initial_balance}
-                    onChange={(e) => setFormData({ ...formData, initial_balance: parseFloat(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="0"
-                  />
-                </div>
-
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="is_default"
-                    checked={formData.is_default}
-                    onChange={(e) => setFormData({ ...formData, is_default: e.target.checked })}
-                    className="rounded"
-                  />
-                  <label htmlFor="is_default" className="ml-2 text-sm text-gray-700">
-                    Définir comme compte par défaut
-                  </label>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Solde et options</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Solde initial (FCFA)
+                      </label>
+                      <input
+                        type="number"
+                        value={formData.initial_balance}
+                        onChange={(e) => setFormData({ ...formData, initial_balance: parseFloat(e.target.value) || 0 })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="0"
+                      />
+                    </div>
+                    <div className="flex items-center mt-6">
+                      <input
+                        type="checkbox"
+                        id="is_default"
+                        checked={formData.is_default}
+                        onChange={(e) => setFormData({ ...formData, is_default: e.target.checked })}
+                        className="rounded"
+                      />
+                      <label htmlFor="is_default" className="ml-2 text-sm text-gray-700">
+                        Définir comme compte par défaut
+                      </label>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex gap-3 pt-4">
@@ -299,7 +418,7 @@ export default function BankAccounts() {
                     type="submit"
                     className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                   >
-                    Créer
+                    Créer le compte
                   </button>
                 </div>
               </form>

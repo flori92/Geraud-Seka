@@ -59,13 +59,20 @@ class BankAccount(Base):
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
 
     # Informations de base
-    name = Column(String(255), nullable=False)  # Nom du compte
-    account_number = Column(String(50), nullable=False, index=True)  # Numéro de compte
-    iban = Column(String(34), nullable=True)  # IBAN (si applicable)
-    swift_bic = Column(String(11), nullable=True)  # SWIFT/BIC
+    name = Column(String(255), nullable=False)  # Nom du compte (libellé)
     bank_name = Column(String(255), nullable=False)  # Nom de la banque
-    branch = Column(String(255), nullable=True)  # Agence
+    branch = Column(String(255), nullable=True)  # Nom de l'agence
     account_type = Column(SQLEnum(BankAccountType), nullable=False, default=BankAccountType.CHECKING, index=True)
+    
+    # Informations RIB (format UEMOA/France)
+    bank_code = Column(String(5), nullable=True)  # Code banque (5 chiffres)
+    branch_code = Column(String(5), nullable=True)  # Code guichet (5 chiffres)
+    account_number = Column(String(20), nullable=False, index=True)  # Numéro de compte
+    rib_key = Column(String(2), nullable=True)  # Clé RIB (2 chiffres)
+    
+    # Informations internationales
+    iban = Column(String(34), nullable=True)  # IBAN (format international)
+    swift_bic = Column(String(11), nullable=True)  # Code SWIFT/BIC
 
     # Soldes
     balance = Column(Numeric(15, 2), nullable=False, default=0)  # Solde actuel

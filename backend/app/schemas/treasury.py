@@ -11,13 +11,23 @@ from pydantic import BaseModel, Field, ConfigDict
 
 class BankAccountBase(BaseModel):
     """Base schema for bank account."""
-    name: str = Field(..., max_length=255)
-    account_number: str = Field(..., max_length=50)
-    iban: Optional[str] = Field(None, max_length=34)
-    swift_bic: Optional[str] = Field(None, max_length=11)
-    bank_name: str = Field(..., max_length=255)
-    branch: Optional[str] = Field(None, max_length=255)
-    account_type: str = Field(default="checking")
+    # Informations de base
+    name: str = Field(..., max_length=255, description="Libellé du compte")
+    bank_name: str = Field(..., max_length=255, description="Nom de la banque")
+    branch: Optional[str] = Field(None, max_length=255, description="Nom de l'agence")
+    account_type: str = Field(default="checking", description="Type de compte")
+    
+    # Informations RIB (format UEMOA/France)
+    bank_code: Optional[str] = Field(None, max_length=5, description="Code banque (5 chiffres)")
+    branch_code: Optional[str] = Field(None, max_length=5, description="Code guichet (5 chiffres)")
+    account_number: str = Field(..., max_length=20, description="Numéro de compte")
+    rib_key: Optional[str] = Field(None, max_length=2, description="Clé RIB (2 chiffres)")
+    
+    # Informations internationales
+    iban: Optional[str] = Field(None, max_length=34, description="IBAN")
+    swift_bic: Optional[str] = Field(None, max_length=11, description="Code SWIFT/BIC")
+    
+    # Autres informations
     currency: str = Field(default="XOF", max_length=3)
     is_active: bool = Field(default=True)
     is_default: bool = Field(default=False)
@@ -38,11 +48,18 @@ class BankAccountCreate(BankAccountBase):
 class BankAccountUpdate(BaseModel):
     """Schema for updating a bank account."""
     name: Optional[str] = Field(None, max_length=255)
-    iban: Optional[str] = Field(None, max_length=34)
-    swift_bic: Optional[str] = Field(None, max_length=11)
     bank_name: Optional[str] = Field(None, max_length=255)
     branch: Optional[str] = Field(None, max_length=255)
     account_type: Optional[str] = None
+    # RIB fields
+    bank_code: Optional[str] = Field(None, max_length=5)
+    branch_code: Optional[str] = Field(None, max_length=5)
+    account_number: Optional[str] = Field(None, max_length=20)
+    rib_key: Optional[str] = Field(None, max_length=2)
+    # International
+    iban: Optional[str] = Field(None, max_length=34)
+    swift_bic: Optional[str] = Field(None, max_length=11)
+    # Other
     is_active: Optional[bool] = None
     is_default: Optional[bool] = None
     overdraft_limit: Optional[Decimal] = None
@@ -62,6 +79,18 @@ class BankAccount(BankAccountBase):
     initial_balance: Decimal
     created_at: date
     updated_at: date
+    
+    # Computed RIB display
+    @property
+    def rib_display(self) -> str:
+        """Return formatted RIB string."""
+        parts = [
+            self.bank_code or "XXXXX",
+            self.branch_code or "XXXXX",
+            self.account_number or "",
+            self.rib_key or "XX"
+        ]
+        return " ".join(parts)
 
     model_config = ConfigDict(from_attributes=True)
 
