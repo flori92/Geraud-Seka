@@ -19,6 +19,28 @@ class HRService:
     def get_employee(self, db: Session, employee_id: str, tenant_id: str) -> Optional[Employee]:
         return db.query(Employee).filter(Employee.id == employee_id, Employee.tenant_id == tenant_id).first()
 
+    def get_contracts(
+        self,
+        db: Session,
+        tenant_id: str,
+        employee_id: Optional[str] = None,
+        is_active: Optional[bool] = None,
+        skip: int = 0,
+        limit: int = 100
+    ) -> List[Contract]:
+        """
+        Retrieve contracts for a tenant, optionally filtered by employee_id and active status.
+        """
+        query = db.query(Contract).filter(Contract.tenant_id == tenant_id)
+
+        if employee_id:
+            query = query.filter(Contract.employee_id == employee_id)
+
+        if is_active is not None:
+            query = query.filter(Contract.is_active == is_active)
+
+        return query.order_by(Contract.start_date.desc()).offset(skip).limit(limit).all()
+
     def create_contract(self, db: Session, tenant_id: str, contract_data: dict) -> Contract:
         # Deactivate previous active contracts for this employee
         active_contracts = db.query(Contract).filter(
@@ -26,11 +48,11 @@ class HRService:
             Contract.is_active == True,
             Contract.tenant_id == tenant_id
         ).all()
-        
+
         for contract in active_contracts:
             contract.is_active = False
             contract.end_date = contract_data["start_date"]
-        
+
         new_contract = Contract(tenant_id=tenant_id, **contract_data)
         db.add(new_contract)
         db.commit()
@@ -98,6 +120,28 @@ class HRService:
         db.commit()
         db.refresh(payslip)
         return payslip
+
+    def get_leaves(
+        self,
+        db: Session,
+        tenant_id: str,
+        employee_id: Optional[str] = None,
+        status: Optional[str] = None,
+        skip: int = 0,
+        limit: int = 100
+    ) -> List[LeaveRequest]:
+        """
+        Retrieve leave requests for a tenant, optionally filtered by employee_id and status.
+        """
+        query = db.query(LeaveRequest).filter(LeaveRequest.tenant_id == tenant_id)
+
+        if employee_id:
+            query = query.filter(LeaveRequest.employee_id == employee_id)
+
+        if status:
+            query = query.filter(LeaveRequest.status == status)
+
+        return query.order_by(LeaveRequest.start_date.desc()).offset(skip).limit(limit).all()
 
     def request_leave(self, db: Session, tenant_id: str, leave_data: dict) -> LeaveRequest:
         leave = LeaveRequest(tenant_id=tenant_id, **leave_data)

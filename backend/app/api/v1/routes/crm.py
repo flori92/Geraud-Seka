@@ -49,7 +49,7 @@ async def get_sales_pipeline(
         )
 
 
-@router.get("/leads")
+@router.get("/leads/")
 async def get_leads(
     status: Optional[str] = Query(None),
     score_min: Optional[int] = Query(None, ge=0, le=100),
@@ -265,7 +265,7 @@ async def auto_assign_leads(
     }
 
 
-@router.get("/opportunities")
+@router.get("/opportunities/")
 async def get_opportunities(
     stage: Optional[str] = Query(None),
     assigned_to: Optional[str] = Query(None),
@@ -396,7 +396,7 @@ async def send_follow_up(
     }
 
 
-@router.get("/activities")
+@router.get("/activities/")
 async def get_crm_activities(
     activity_type: Optional[str] = Query(None),
     assigned_to: Optional[str] = Query(None),
