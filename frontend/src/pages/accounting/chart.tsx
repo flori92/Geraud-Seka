@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Alert } from "@/components/ui/Alert";
+import { CreateAccountModal } from "@/components/forms/CreateAccountModal";
 import { getLedgerAccounts, LedgerAccount } from "@/lib/api";
 import { Plus, Search, Filter } from "lucide-react";
 import { formatAmount } from "@/lib/formatters";
@@ -16,6 +17,7 @@ export default function ChartOfAccountsPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     fetchAccounts();
@@ -144,7 +146,11 @@ export default function ChartOfAccountsPage() {
               <option value="expense">Charges</option>
             </select>
           </div>
-          <Button variant="primary" size="md">
+          <Button 
+            variant="primary" 
+            size="md"
+            onClick={() => setIsModalOpen(true)}
+          >
             <Plus className="mr-2 h-4 w-4" />
             Nouveau compte
           </Button>
@@ -233,6 +239,15 @@ export default function ChartOfAccountsPage() {
           })}
         </div>
       )}
+
+      {/* Modal de création */}
+      <CreateAccountModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={() => {
+          fetchAccounts();
+        }}
+      />
     </DashboardLayout>
   );
 }
