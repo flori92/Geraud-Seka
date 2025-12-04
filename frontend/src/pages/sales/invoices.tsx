@@ -44,22 +44,22 @@ export default function InvoicesPage() {
   const stats = [
     {
       label: "Total factures",
-      value: invoices.length.toString(),
+      value: (invoices?.length || 0).toString(),
       color: "bg-blue-600"
     },
     {
       label: "Impayées",
-      value: invoices.filter(inv => inv.status === "Impayée" || inv.status === "unpaid").length.toString(),
+      value: (invoices?.filter(inv => inv?.status === "Impayée" || inv?.status === "unpaid")?.length || 0).toString(),
       color: "bg-red-600"
     },
     {
       label: "En retard",
-      value: invoices.filter(inv => inv.overdue).length.toString(),
+      value: (invoices?.filter(inv => inv?.overdue)?.length || 0).toString(),
       color: "bg-orange-600"
     },
     {
       label: "CA ce mois",
-      value: Math.round(invoices.reduce((sum, inv) => sum + inv.paid, 0) / 1000) + "K",
+      value: Math.round((invoices?.reduce((sum, inv) => sum + (inv?.paid || 0), 0) || 0) / 1000) + "K",
       color: "bg-green-600"
     },
   ];
@@ -75,8 +75,8 @@ export default function InvoicesPage() {
     return variants[status] || "default";
   };
 
-  const overdueInvoices = invoices.filter(inv => inv.overdue);
-  const totalOverdue = overdueInvoices.reduce((sum, inv) => sum + inv.amount, 0);
+  const overdueInvoices = invoices?.filter(inv => inv?.overdue) || [];
+  const totalOverdue = overdueInvoices.reduce((sum, inv) => sum + (inv?.amount || 0), 0);
 
   return (
     <DashboardLayout title="Factures">

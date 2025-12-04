@@ -5,6 +5,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import axios from 'axios';
+import { API_BASE_URL } from '@/lib/api';
 
 interface TreasuryDashboardData {
   total_balance: number;
@@ -39,7 +40,10 @@ export default function TreasuryDashboard() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/v1/treasury/dashboard');
+      const token = localStorage.getItem('seka_access_token');
+      const response = await axios.get(`${API_BASE_URL}/api/v1/treasury/dashboard`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
       setDashboardData(response.data);
       setError(null);
     } catch (err: any) {

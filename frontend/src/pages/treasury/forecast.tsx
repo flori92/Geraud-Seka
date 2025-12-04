@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts';
 import { formatChartValue } from '@/lib/formatters';
+import { API_BASE_URL } from '@/lib/api';
 
 interface ForecastData {
   forecast_date: string;
@@ -35,7 +36,9 @@ export default function CashFlowForecast() {
   const fetchForecasts = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/v1/treasury/forecast/scenarios');
+      const token = localStorage.getItem('seka_access_token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const response = await axios.get(`${API_BASE_URL}/api/v1/treasury/forecast/scenarios`, { headers });
       setForecasts(response.data);
       setError(null);
     } catch (err: any) {
@@ -52,7 +55,9 @@ export default function CashFlowForecast() {
 
   const fetchRisks = async () => {
     try {
-      const response = await axios.get('/api/v1/treasury/forecast/risks');
+      const token = localStorage.getItem('seka_access_token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const response = await axios.get(`${API_BASE_URL}/api/v1/treasury/forecast/risks`, { headers });
       setRisks(response.data);
     } catch (err) {
       console.error('Error fetching risks:', err);
@@ -62,11 +67,13 @@ export default function CashFlowForecast() {
   const generateForecast = async () => {
     try {
       setGenerating(true);
-      await axios.post('/api/v1/treasury/forecast/generate', {
+      const token = localStorage.getItem('seka_access_token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      await axios.post(`${API_BASE_URL}/api/v1/treasury/forecast/generate`, {
         forecast_horizon_days: 180,
         scenario: 'realistic',
         model_type: 'auto'
-      });
+      }, { headers });
       
       // Wait a bit for generation to complete
       setTimeout(async () => {

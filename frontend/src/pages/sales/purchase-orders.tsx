@@ -40,10 +40,10 @@ export default function PurchaseOrdersPage() {
   };
 
   const stats = [
-    { label: "Total BC", value: purchaseOrders.length.toString(), color: "bg-blue-600" },
-    { label: "En attente", value: purchaseOrders.filter(p => p.status === "pending").length.toString(), color: "bg-orange-600" },
-    { label: "Approuvés", value: purchaseOrders.filter(p => p.status === "approved").length.toString(), color: "bg-green-600" },
-    { label: "Montant total", value: Math.round(purchaseOrders.reduce((sum, p) => sum + p.amount, 0) / 1000) + "K", color: "bg-purple-600" },
+    { label: "Total BC", value: (purchaseOrders?.length || 0).toString(), color: "bg-blue-600" },
+    { label: "En attente", value: (purchaseOrders?.filter(p => p?.status === "pending")?.length || 0).toString(), color: "bg-orange-600" },
+    { label: "Approuvés", value: (purchaseOrders?.filter(p => p?.status === "approved")?.length || 0).toString(), color: "bg-green-600" },
+    { label: "Montant total", value: Math.round((purchaseOrders?.reduce((sum, p) => sum + (p?.amount || 0), 0) || 0) / 1000) + "K", color: "bg-purple-600" },
   ];
 
   const getStatusVariant = (status: string): "default" | "success" | "warning" | "error" => {
