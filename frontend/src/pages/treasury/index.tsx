@@ -2,9 +2,105 @@
  * Treasury Dashboard Page
  * Main dashboard for treasury management with KPIs, alerts, and cash flow summary
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
+import { DashboardLayout } from '@/components/DashboardLayout';
+import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { Alert } from '@/components/ui/Alert';
 import { getTreasuryDashboard, TreasuryDashboardData } from '@/lib/api';
+import { formatCurrency, formatAmount } from '@/lib/formatters';
+import {
+  Wallet,
+  TrendingUp,
+  TrendingDown,
+  ArrowRight,
+  Plus,
+  Clock,
+  CreditCard,
+  Building2,
+  BarChart3,
+  ChevronRight,
+  RefreshCw,
+  AlertTriangle,
+  Calendar,
+  Landmark
+} from 'lucide-react';
+
+interface StatCardProps {
+  title: string;
+  value: string | number;
+  subtitle?: string;
+  icon: React.ElementType;
+  color: string;
+  href?: string;
+  loading?: boolean;
+  trend?: 'up' | 'down';
+  alert?: boolean;
+}
+
+function StatCard({ title, value, subtitle, icon: Icon, color, href, loading, trend, alert }: StatCardProps) {
+  const router = useRouter();
+  
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
+        <Skeleton className="h-12 w-12 rounded-xl mb-4" />
+        <Skeleton className="h-4 w-24 mb-2" />
+        <Skeleton className="h-8 w-16" />
+      </div>
+    );
+  }
+
+  return (
+    <div 
+      onClick={() => href && router.push(href)}
+      className={`bg-white rounded-xl border ${alert ? 'border-orange-200 bg-orange-50/30' : 'border-gray-100'} p-6 shadow-sm transition-all duration-200 ${
+        href ? 'cursor-pointer hover:shadow-md hover:border-gray-200' : ''
+      }`}
+    >
+      <div className="flex items-start justify-between">
+        <div className={`inline-flex rounded-xl ${color} p-3`}>
+          <Icon className="h-6 w-6 text-white" />
+        </div>
+        {trend && (
+          <div className={`flex items-center text-sm font-medium ${trend === 'up' ? 'text-emerald-600' : 'text-red-500'}`}>
+            {trend === 'up' ? <TrendingUp className="h-4 w-4 mr-1" /> : <TrendingDown className="h-4 w-4 mr-1" />}
+          </div>
+        )}
+        {alert && <AlertTriangle className="h-5 w-5 text-orange-500" />}
+      </div>
+      <p className="text-sm font-medium text-gray-500 mt-4">{title}</p>
+      <p className="text-3xl font-bold text-gray-900 mt-1">{value}</p>
+      {subtitle && (
+        <p className={`text-sm mt-1 ${alert ? 'text-orange-600 font-medium' : 'text-gray-500'}`}>{subtitle}</p>
+      )}
+    </div>
+  );
+}
+
+interface QuickActionProps {
+  icon: React.ElementType;
+  label: string;
+  href: string;
+  color: string;
+}
+
+function QuickAction({ icon: Icon, label, href, color }: QuickActionProps) {
+  return (
+    <Link href={href}>
+      <div className="flex items-center gap-3 p-4 rounded-xl border border-gray-100 bg-white hover:shadow-md transition-all cursor-pointer">
+        <div className={`rounded-lg ${color} p-2.5`}>
+          <Icon className="h-5 w-5 text-white" />
+        </div>
+        <span className="font-medium text-gray-900">{label}</span>
+        <ChevronRight className="h-5 w-5 text-gray-400 ml-auto" />
+      </div>
+    </Link>
+  );
+}
 
 export default function TreasuryDashboard() {
   const router = useRouter();
@@ -21,8 +117,7 @@ export default function TreasuryDashboard() {
       setLoading(true);
       const token = localStorage.getItem('seka_access_token');
       if (!token) {
-        // Redirection gérée par le middleware ou composant parent, mais on peut afficher un warning
-        setError("Non authentifié");
+        setError('Non authentifié');
         return;
       }
       const data = await getTreasuryDashboard(token);
@@ -36,263 +131,248 @@ export default function TreasuryDashboard() {
     }
   };
 
-  const formatCurrency = (amount: number, currency: string = 'XOF') => {
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: currency,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'critical': return 'bg-red-100 text-red-800 border-red-300';
-      case 'warning': return 'bg-orange-100 text-orange-800 border-orange-300';
-      default: return 'bg-blue-100 text-blue-800 border-blue-300';
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/4 mb-8"></div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              {[1, 2, 3, 4].map(i => (
-                <div key={i} className="h-32 bg-gray-200 rounded"></div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-red-800">{error}</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!dashboardData) return null;
+  // Stats calculées
+  const stats = useMemo(() => {
+    if (!dashboardData) return null;
+    
+    const netCashFlow = (dashboardData.cash_flow_summary?.total_income || 0) - 
+                        (dashboardData.cash_flow_summary?.total_expenses || 0);
+    const isLowRunway = (dashboardData.cash_runway_days || 0) < 30;
+    const criticalAlerts = (dashboardData.alerts || []).filter(a => a.severity === 'critical').length;
+    
+    return {
+      totalBalance: dashboardData.total_balance || 0,
+      cashRunway: dashboardData.cash_runway_days || 0,
+      totalIncome: dashboardData.cash_flow_summary?.total_income || 0,
+      totalExpenses: dashboardData.cash_flow_summary?.total_expenses || 0,
+      netCashFlow,
+      isLowRunway,
+      criticalAlerts,
+      accountsCount: (dashboardData.accounts_summary || []).length,
+      transactionsCount: (dashboardData.recent_transactions || []).length,
+      upcomingPaymentsCount: (dashboardData.upcoming_payments || []).length
+    };
+  }, [dashboardData]);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Trésorerie</h1>
-          <p className="text-gray-600 mt-2">Vue d'ensemble de votre trésorerie et prévisions</p>
+    <DashboardLayout title="Trésorerie">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Trésorerie</h1>
+          <p className="text-gray-500 mt-1">
+            Gestion de trésorerie, comptes bancaires et prévisions
+          </p>
         </div>
-
-        {/* KPI Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          {/* Total Balance */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Solde Total</p>
-                <p className="text-2xl font-bold text-gray-900 mt-2">
-                  {formatCurrency(dashboardData.total_balance)}
-                </p>
-              </div>
-              <div className="bg-blue-100 p-3 rounded-full">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          {/* Cash Runway */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Jours de Trésorerie</p>
-                <p className="text-2xl font-bold text-gray-900 mt-2">
-                  {dashboardData.cash_runway_days} jours
-                </p>
-              </div>
-              <div className={`p-3 rounded-full ${dashboardData.cash_runway_days < 30 ? 'bg-red-100' : 'bg-green-100'}`}>
-                <svg className={`w-6 h-6 ${dashboardData.cash_runway_days < 30 ? 'text-red-600' : 'text-green-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          {/* Monthly Income */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Revenus du Mois</p>
-                <p className="text-2xl font-bold text-green-600 mt-2">
-                  {formatCurrency(dashboardData.cash_flow_summary.total_income)}
-                </p>
-              </div>
-              <div className="bg-green-100 p-3 rounded-full">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          {/* Monthly Expenses */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Dépenses du Mois</p>
-                <p className="text-2xl font-bold text-red-600 mt-2">
-                  {formatCurrency(dashboardData.cash_flow_summary.total_expenses)}
-                </p>
-              </div>
-              <div className="bg-red-100 p-3 rounded-full">
-                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
-                </svg>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Alerts */}
-        {dashboardData.alerts && dashboardData.alerts.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Alertes</h2>
-            <div className="space-y-3">
-              {dashboardData.alerts.map((alert, index) => (
-                <div key={index} className={`border rounded-lg p-4 ${getSeverityColor(alert.severity)}`}>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-semibold">{alert.title}</h3>
-                      <p className="text-sm mt-1">{alert.message}</p>
-                    </div>
-                    <span className="text-xs font-medium px-2 py-1 rounded">
-                      {alert.severity.toUpperCase()}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <button
-            onClick={() => router.push('/treasury/accounts')}
-            className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow text-left"
-          >
-            <h3 className="font-semibold text-gray-900 mb-2">Comptes Bancaires</h3>
-            <p className="text-sm text-gray-600">{dashboardData.accounts_summary.length} compte(s)</p>
-          </button>
-
-          <button
-            onClick={() => router.push('/treasury/transactions')}
-            className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow text-left"
-          >
-            <h3 className="font-semibold text-gray-900 mb-2">Transactions</h3>
-            <p className="text-sm text-gray-600">{dashboardData.recent_transactions.length} récente(s)</p>
-          </button>
-
-          <button
-            onClick={() => router.push('/treasury/forecast')}
-            className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow text-left"
-          >
-            <h3 className="font-semibold text-gray-900 mb-2">Prévisions</h3>
-            <p className="text-sm text-gray-600">Voir les prévisions de cash flow</p>
-          </button>
-        </div>
-
-        {/* Recent Transactions */}
-        <div className="bg-white rounded-lg shadow mb-8">
-          <div className="p-6 border-b">
-            <h2 className="text-xl font-bold text-gray-900">Transactions Récentes</h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Montant</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {dashboardData.recent_transactions.slice(0, 5).map((transaction, index) => (
-                  <tr key={index} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      {new Date(transaction.transaction_date).toLocaleDateString('fr-FR')}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{transaction.description}</td>
-                    <td className={`px-6 py-4 text-sm font-medium ${transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {formatCurrency(transaction.amount)}
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${
-                        transaction.status === 'cleared' ? 'bg-green-100 text-green-800' :
-                        transaction.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {transaction.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Upcoming Payments */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="p-6 border-b">
-            <h2 className="text-xl font-bold text-gray-900">Échéances à Venir</h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Montant</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {dashboardData.upcoming_payments.slice(0, 5).map((payment, index) => (
-                  <tr key={index} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      {new Date(payment.due_date).toLocaleDateString('fr-FR')}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{payment.description}</td>
-                    <td className="px-6 py-4 text-sm">
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${
-                        payment.is_income ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                      }`}>
-                        {payment.is_income ? 'À recevoir' : 'À payer'}
-                      </span>
-                    </td>
-                    <td className={`px-6 py-4 text-sm font-medium ${payment.is_income ? 'text-green-600' : 'text-red-600'}`}>
-                      {formatCurrency(payment.remaining_amount)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <div className="flex gap-3">
+          <Link href="/treasury/accounts">
+            <Button variant="secondary" size="sm">
+              <Building2 className="h-4 w-4 mr-2" />
+              Comptes
+            </Button>
+          </Link>
+          <Link href="/treasury/transactions">
+            <Button variant="primary" size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              Nouvelle transaction
+            </Button>
+          </Link>
         </div>
       </div>
-    </div>
+
+      {error && (
+        <Alert variant="error" className="mb-6">{error}</Alert>
+      )}
+
+      {/* Alertes critiques */}
+      {dashboardData?.alerts && dashboardData.alerts.filter(a => a.severity === 'critical').length > 0 && (
+        <div className="mb-6 space-y-3">
+          {dashboardData.alerts.filter(a => a.severity === 'critical').map((alert, idx) => (
+            <Alert key={idx} variant="error" title={alert.title}>
+              {alert.message}
+            </Alert>
+          ))}
+        </div>
+      )}
+      
+      {stats?.isLowRunway && (
+        <Alert variant="warning" className="mb-6" title="Trésorerie tendue">
+          Moins de 30 jours de trésorerie disponible. Surveillez vos flux de trésorerie.
+        </Alert>
+      )}
+
+      {/* KPIs */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
+        <StatCard
+          title="Solde Total"
+          value={formatCurrency(stats?.totalBalance || 0)}
+          subtitle={`${stats?.accountsCount || 0} compte(s)`}
+          icon={Wallet}
+          color="bg-blue-500"
+          href="/treasury/accounts"
+          loading={loading}
+        />
+        <StatCard
+          title="Jours de Trésorerie"
+          value={`${stats?.cashRunway || 0} jours`}
+          subtitle={stats?.isLowRunway ? 'Attention !' : 'Situation saine'}
+          icon={Clock}
+          color={stats?.isLowRunway ? 'bg-orange-500' : 'bg-emerald-500'}
+          href="/treasury/forecast"
+          loading={loading}
+          alert={stats?.isLowRunway}
+        />
+        <StatCard
+          title="Revenus du Mois"
+          value={formatCurrency(stats?.totalIncome || 0)}
+          subtitle="Encaissements"
+          icon={TrendingUp}
+          color="bg-emerald-500"
+          href="/treasury/transactions"
+          loading={loading}
+          trend="up"
+        />
+        <StatCard
+          title="Dépenses du Mois"
+          value={formatCurrency(stats?.totalExpenses || 0)}
+          subtitle="Décaissements"
+          icon={TrendingDown}
+          color="bg-red-400"
+          href="/treasury/transactions"
+          loading={loading}
+        />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Vue d'ensemble cash flow */}
+        <div className="lg:col-span-2">
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-gray-900">Flux de Trésorerie</h3>
+              <Link href="/treasury/transactions" className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center">
+                Voir tout <ArrowRight className="h-4 w-4 ml-1" />
+              </Link>
+            </div>
+
+            {loading ? (
+              <Skeleton className="h-40 w-full" />
+            ) : (
+              <>
+                {/* Indicateurs visuels */}
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="text-center p-4 bg-emerald-50 rounded-xl">
+                    <TrendingUp className="h-8 w-8 text-emerald-500 mx-auto mb-2" />
+                    <p className="text-2xl font-bold text-emerald-600">
+                      {formatAmount(stats?.totalIncome || 0)}
+                    </p>
+                    <p className="text-sm text-emerald-700 font-medium">Entrées</p>
+                  </div>
+                  <div className="text-center p-4 bg-red-50 rounded-xl">
+                    <TrendingDown className="h-8 w-8 text-red-500 mx-auto mb-2" />
+                    <p className="text-2xl font-bold text-red-600">
+                      {formatAmount(stats?.totalExpenses || 0)}
+                    </p>
+                    <p className="text-sm text-red-700 font-medium">Sorties</p>
+                  </div>
+                  <div className={`text-center p-4 rounded-xl ${(stats?.netCashFlow || 0) >= 0 ? 'bg-blue-50' : 'bg-orange-50'}`}>
+                    <Wallet className={`h-8 w-8 mx-auto mb-2 ${(stats?.netCashFlow || 0) >= 0 ? 'text-blue-500' : 'text-orange-500'}`} />
+                    <p className={`text-2xl font-bold ${(stats?.netCashFlow || 0) >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
+                      {(stats?.netCashFlow || 0) >= 0 ? '+' : ''}{formatAmount(stats?.netCashFlow || 0)}
+                    </p>
+                    <p className={`text-sm font-medium ${(stats?.netCashFlow || 0) >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>Solde Net</p>
+                  </div>
+                </div>
+
+                {/* Transactions récentes */}
+                <div className="pt-4 border-t border-gray-100">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-4">Dernières transactions</h4>
+                  {dashboardData?.recent_transactions && dashboardData.recent_transactions.length > 0 ? (
+                    <div className="space-y-3">
+                      {dashboardData.recent_transactions.slice(0, 4).map((transaction, idx) => (
+                        <div key={idx} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
+                          <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
+                            transaction.amount >= 0 ? 'bg-emerald-100' : 'bg-red-100'
+                          }`}>
+                            {transaction.amount >= 0 ? (
+                              <TrendingUp className="h-5 w-5 text-emerald-500" />
+                            ) : (
+                              <TrendingDown className="h-5 w-5 text-red-500" />
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-900">{transaction.description}</p>
+                            <p className="text-xs text-gray-500">
+                              {new Date(transaction.transaction_date).toLocaleDateString('fr-FR')}
+                            </p>
+                          </div>
+                          <Badge variant={transaction.amount >= 0 ? 'success' : 'error'}>
+                            {transaction.amount >= 0 ? '+' : ''}{formatAmount(transaction.amount)}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm">Aucune transaction récente</p>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Actions rapides */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-gray-900">Actions rapides</h3>
+          <QuickAction icon={Building2} label="Comptes bancaires" href="/treasury/accounts" color="bg-blue-500" />
+          <QuickAction icon={CreditCard} label="Transactions" href="/treasury/transactions" color="bg-violet-500" />
+          <QuickAction icon={Calendar} label="Échéances" href="/treasury/forecast" color="bg-emerald-500" />
+          <QuickAction icon={BarChart3} label="Prévisions" href="/treasury/forecast" color="bg-orange-500" />
+          <QuickAction icon={Landmark} label="Rapprochement" href="/treasury/reconciliation" color="bg-pink-500" />
+        </div>
+      </div>
+
+      {/* Échéances à venir */}
+      {dashboardData?.upcoming_payments && dashboardData.upcoming_payments.length > 0 && (
+        <div className="mt-8">
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">Échéances à venir</h3>
+              <Link href="/treasury/forecast" className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center">
+                Voir tout <ArrowRight className="h-4 w-4 ml-1" />
+              </Link>
+            </div>
+            <div className="p-6">
+              <div className="space-y-3">
+                {dashboardData.upcoming_payments.slice(0, 5).map((payment, idx) => (
+                  <div key={idx} className="flex items-center gap-4 py-3 border-b border-gray-50 last:border-0">
+                    <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
+                      payment.is_income ? 'bg-emerald-100' : 'bg-red-100'
+                    }`}>
+                      {payment.is_income ? (
+                        <TrendingUp className="h-5 w-5 text-emerald-500" />
+                      ) : (
+                        <TrendingDown className="h-5 w-5 text-red-500" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900">{payment.description}</p>
+                      <p className="text-xs text-gray-500">
+                        Échéance: {new Date(payment.due_date).toLocaleDateString('fr-FR')}
+                      </p>
+                    </div>
+                    <Badge variant={payment.is_income ? 'success' : 'error'}>
+                      {payment.is_income ? 'À recevoir' : 'À payer'}
+                    </Badge>
+                    <p className={`text-sm font-semibold ${payment.is_income ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {formatCurrency(payment.remaining_amount)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </DashboardLayout>
   );
 }

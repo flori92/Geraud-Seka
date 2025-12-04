@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -9,7 +10,7 @@ import { Alert } from "@/components/ui/Alert";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { CreateInvoiceModal } from "@/components/forms/CreateInvoiceModal";
 import { getInvoices, Invoice } from "@/lib/api";
-import { Plus, Download, Send, Eye, AlertCircle } from "lucide-react";
+import { Plus, Download, Send, Eye, AlertCircle, FileText, Receipt } from "lucide-react";
 import { formatAmount } from "@/lib/formatters";
 
 export default function InvoicesPage() {
@@ -85,6 +86,28 @@ export default function InvoicesPage() {
 
   return (
     <DashboardLayout title="Factures">
+      {/* Header cohérent */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Factures</h1>
+          <p className="text-gray-500 mt-1">
+            Gérez vos factures clients et suivez les paiements
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <Link href="/sales/quotes">
+            <Button variant="secondary" size="sm">
+              <FileText className="h-4 w-4 mr-2" />
+              Devis
+            </Button>
+          </Link>
+          <Button variant="primary" size="sm" onClick={() => setIsModalOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nouvelle facture
+          </Button>
+        </div>
+      </div>
+
       {/* Alert for overdue invoices */}
       {overdueInvoices.length > 0 && (
         <Alert variant="warning" title="Factures en retard" className="mb-6">
@@ -107,10 +130,10 @@ export default function InvoicesPage() {
         ))}
       </div>
 
-      {/* Filters & Actions */}
+      {/* Filters */}
       <Card className="mb-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-1 gap-3 max-w-2xl">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+          <div className="flex flex-1 gap-3">
             <Input
               placeholder="Rechercher une facture..."
               value={searchTerm}
@@ -125,10 +148,6 @@ export default function InvoicesPage() {
               <option value="payee">Payée</option>
             </Select>
           </div>
-          <Button variant="primary" size="md" onClick={() => setIsModalOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nouvelle facture
-          </Button>
         </div>
       </Card>
 

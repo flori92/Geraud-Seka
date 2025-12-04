@@ -6,6 +6,8 @@ import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import { DashboardLayout } from "@/components/DashboardLayout";
+import { Button } from "@/components/ui/Button";
+import { Alert } from "@/components/ui/Alert";
 import CrmDashboardTemplate from "@/components/crm/template/CrmDashboardTemplate";
 import {
   getLeads,
@@ -16,7 +18,13 @@ import {
   type CRMActivity
 } from "@/lib/api";
 import { formatCurrency } from "@/lib/formatters";
-import { DollarSign } from "lucide-react";
+import { 
+  DollarSign, 
+  Plus, 
+  Users, 
+  Target,
+  TrendingUp
+} from "lucide-react";
 
 export default function CRMDashboardPage() {
   // Logique de récupération des données (conservée pour connexion future au template)
@@ -119,16 +127,88 @@ export default function CRMDashboardPage() {
 
   return (
     <DashboardLayout title="CRM">
-      <div className="p-4 md:p-6">
-        {/* 
-          Intégration du Template CRM (MUI) avec données réelles
-        */}
-        <CrmDashboardTemplate 
-          stats={templateStats.stats}
-          weeklyActivities={templateStats.weeklyActivities}
-          topOpportunities={templateStats.topOpportunities as any} // Casting pour éviter conflit strict de types temporaire
-        />
+      {/* Header cohérent avec les autres modules */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">CRM</h1>
+          <p className="text-gray-500 mt-1">
+            Gérez vos leads, opportunités et activités commerciales
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <Link href="/crm/leads">
+            <Button variant="secondary" size="sm">
+              <Users className="h-4 w-4 mr-2" />
+              Leads
+            </Button>
+          </Link>
+          <Link href="/crm/opportunities">
+            <Button variant="primary" size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              Nouvelle opportunité
+            </Button>
+          </Link>
+        </div>
       </div>
+
+      {error && (
+        <Alert variant="error" className="mb-6">{error}</Alert>
+      )}
+
+      {/* KPIs rapides au-dessus du template */}
+      <div className="grid gap-4 md:grid-cols-4 mb-6">
+        <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="bg-blue-500 p-2.5 rounded-xl">
+              <Users className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Total Leads</p>
+              <p className="text-xl font-bold text-gray-900">{templateStats.stats.totalLeads}</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="bg-violet-500 p-2.5 rounded-xl">
+              <Target className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Opportunités Ouvertes</p>
+              <p className="text-xl font-bold text-gray-900">{templateStats.stats.openOpportunities}</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="bg-emerald-500 p-2.5 rounded-xl">
+              <TrendingUp className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Deals Gagnés</p>
+              <p className="text-xl font-bold text-gray-900">{templateStats.stats.wonOpportunities}</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="bg-orange-500 p-2.5 rounded-xl">
+              <DollarSign className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">Revenus Générés</p>
+              <p className="text-xl font-bold text-gray-900">{formatCurrency(templateStats.stats.totalRevenue)}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Template CRM avec données réelles */}
+      <CrmDashboardTemplate 
+        stats={templateStats.stats}
+        weeklyActivities={templateStats.weeklyActivities}
+        topOpportunities={templateStats.topOpportunities as any}
+      />
     </DashboardLayout>
   );
 }
