@@ -3,7 +3,11 @@
  * View and manage bank transactions
  */
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import axios from 'axios';
+import { DashboardLayout } from '@/components/DashboardLayout';
+import { Button } from '@/components/ui/Button';
+import { Plus, ArrowLeft, Building2 } from 'lucide-react';
 
 interface BankTransaction {
   id: string;
@@ -90,35 +94,39 @@ export default function BankTransactions() {
     return types[type] || type;
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/4 mb-8"></div>
-            <div className="h-96 bg-gray-200 rounded"></div>
+  return (
+    <DashboardLayout title="Transactions Bancaires">
+      {/* Header cohérent */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Link href="/treasury" className="text-gray-500 hover:text-gray-700">
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+            <h1 className="text-2xl font-bold text-gray-900">Transactions Bancaires</h1>
           </div>
+          <p className="text-gray-500">Historique de toutes vos transactions</p>
+        </div>
+        <div className="flex gap-3">
+          <Link href="/treasury">
+            <Button variant="secondary" size="sm">
+              <Building2 className="h-4 w-4 mr-2" />
+              Trésorerie
+            </Button>
+          </Link>
+          <Button variant="primary" size="sm">
+            <Plus className="h-4 w-4 mr-2" />
+            Nouvelle Transaction
+          </Button>
         </div>
       </div>
-    );
-  }
 
-  return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Transactions Bancaires</h1>
-            <p className="text-gray-600 mt-2">Historique de toutes vos transactions</p>
-          </div>
-          <button className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 flex items-center gap-2">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Nouvelle Transaction
-          </button>
+      {loading ? (
+        <div className="animate-pulse">
+          <div className="h-96 bg-gray-200 rounded-xl"></div>
         </div>
+      ) : (
+        <>
 
         {/* Filters */}
         <div className="bg-white rounded-lg shadow p-6 mb-8">
@@ -278,7 +286,8 @@ export default function BankTransactions() {
             </div>
           </div>
         )}
-      </div>
-    </div>
+        </>
+      )}
+    </DashboardLayout>
   );
 }
