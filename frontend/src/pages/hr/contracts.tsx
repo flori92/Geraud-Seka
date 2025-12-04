@@ -8,13 +8,22 @@ import { Select } from "@/components/ui/Select";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Alert } from "@/components/ui/Alert";
 import { getContracts, Contract } from "@/lib/api";
-import { Plus, FileText, Calendar } from "lucide-react";
+import { Plus, FileText, Calendar, X } from "lucide-react";
 
 export default function ContractsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [formData, setFormData] = useState({
+    employee_id: "",
+    contract_type: "CDI",
+    start_date: new Date().toISOString().split('T')[0],
+    end_date: "",
+    salary: 0,
+    position: ""
+  });
 
   useEffect(() => {
     fetchContracts();
@@ -113,7 +122,7 @@ export default function ContractsPage() {
               <option value="Freelance">Freelance</option>
             </Select>
           </div>
-          <Button variant="primary" size="md">
+          <Button variant="primary" size="md" onClick={() => setShowModal(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Nouveau contrat
           </Button>
@@ -185,6 +194,93 @@ export default function ContractsPage() {
           </div>
         )}
       </Card>
+
+      {/* Modal Nouveau Contrat */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <Card className="w-full max-w-lg mx-4">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-foreground">Nouveau contrat</h2>
+                <button onClick={() => setShowModal(false)} className="p-1 hover:bg-gray-100 rounded">
+                  <X className="h-5 w-5 text-gray-500" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Type de contrat *</label>
+                  <Select
+                    value={formData.contract_type}
+                    onChange={(e) => setFormData({ ...formData, contract_type: e.target.value })}
+                  >
+                    <option value="CDI">CDI</option>
+                    <option value="CDD">CDD</option>
+                    <option value="Stage">Stage</option>
+                    <option value="Freelance">Freelance</option>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Poste *</label>
+                  <Input
+                    value={formData.position}
+                    onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                    placeholder="Ex: Développeur Senior"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-2">Date de début *</label>
+                    <Input
+                      type="date"
+                      value={formData.start_date}
+                      onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-2">Date de fin</label>
+                    <Input
+                      type="date"
+                      value={formData.end_date}
+                      onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Laisser vide pour CDI</p>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Salaire (FCFA) *</label>
+                  <Input
+                    type="number"
+                    value={formData.salary}
+                    onChange={(e) => setFormData({ ...formData, salary: parseFloat(e.target.value) || 0 })}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <Button variant="secondary" onClick={() => setShowModal(false)} className="flex-1">
+                  Annuler
+                </Button>
+                <Button
+                  variant="primary"
+                  disabled={!formData.position || formData.salary <= 0}
+                  className="flex-1"
+                  onClick={() => {
+                    alert("Fonctionnalité en cours de développement");
+                    setShowModal(false);
+                  }}
+                >
+                  Créer le contrat
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

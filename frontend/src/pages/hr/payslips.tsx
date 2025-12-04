@@ -8,13 +8,22 @@ import { Select } from "@/components/ui/Select";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Alert } from "@/components/ui/Alert";
 import { getPayslips, Payslip } from "@/lib/api";
-import { Plus, Download, FileText } from "lucide-react";
+import { Plus, Download, FileText, X } from "lucide-react";
 import { formatAmount } from "@/lib/formatters";
 
 export default function PayslipsPage() {
   const [payslips, setPayslips] = useState<Payslip[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [formData, setFormData] = useState({
+    employee_id: "",
+    period_start: new Date().toISOString().split('T')[0],
+    period_end: new Date().toISOString().split('T')[0],
+    gross_salary: 0,
+    deductions: 0,
+    bonuses: 0
+  });
 
   useEffect(() => {
     fetchPayslips();
@@ -97,7 +106,7 @@ export default function PayslipsPage() {
               <option value="paid">Payé</option>
             </Select>
           </div>
-          <Button variant="primary" size="md">
+          <Button variant="primary" size="md" onClick={() => setShowModal(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Nouveau bulletin
           </Button>
@@ -168,6 +177,100 @@ export default function PayslipsPage() {
           </div>
         )}
       </Card>
+
+      {/* Modal Nouveau Bulletin */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <Card className="w-full max-w-lg mx-4">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-foreground">Nouveau bulletin de paie</h2>
+                <button onClick={() => setShowModal(false)} className="p-1 hover:bg-gray-100 rounded">
+                  <X className="h-5 w-5 text-gray-500" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-2">Période début *</label>
+                    <Input
+                      type="date"
+                      value={formData.period_start}
+                      onChange={(e) => setFormData({ ...formData, period_start: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-2">Période fin *</label>
+                    <Input
+                      type="date"
+                      value={formData.period_end}
+                      onChange={(e) => setFormData({ ...formData, period_end: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Salaire brut (FCFA) *</label>
+                  <Input
+                    type="number"
+                    value={formData.gross_salary}
+                    onChange={(e) => setFormData({ ...formData, gross_salary: parseFloat(e.target.value) || 0 })}
+                    placeholder="0"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-2">Déductions (FCFA)</label>
+                    <Input
+                      type="number"
+                      value={formData.deductions}
+                      onChange={(e) => setFormData({ ...formData, deductions: parseFloat(e.target.value) || 0 })}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-2">Bonus (FCFA)</label>
+                    <Input
+                      type="number"
+                      value={formData.bonuses}
+                      onChange={(e) => setFormData({ ...formData, bonuses: parseFloat(e.target.value) || 0 })}
+                      placeholder="0"
+                    />
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 p-3 rounded">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-gray-700">Salaire net:</span>
+                    <span className="text-lg font-bold text-foreground">
+                      {(formData.gross_salary - formData.deductions + formData.bonuses).toLocaleString()} FCFA
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <Button variant="secondary" onClick={() => setShowModal(false)} className="flex-1">
+                  Annuler
+                </Button>
+                <Button
+                  variant="primary"
+                  disabled={formData.gross_salary <= 0}
+                  className="flex-1"
+                  onClick={() => {
+                    alert("Fonctionnalité en cours de développement");
+                    setShowModal(false);
+                  }}
+                >
+                  Créer le bulletin
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

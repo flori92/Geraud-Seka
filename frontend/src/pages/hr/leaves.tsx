@@ -8,12 +8,19 @@ import { Select } from "@/components/ui/Select";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Alert } from "@/components/ui/Alert";
 import { getLeaves, Leave } from "@/lib/api";
-import { Plus, Calendar } from "lucide-react";
+import { Plus, Calendar, X } from "lucide-react";
 
 export default function LeavesPage() {
   const [leaves, setLeaves] = useState<Leave[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [formData, setFormData] = useState({
+    leave_type: "vacation",
+    start_date: new Date().toISOString().split('T')[0],
+    end_date: new Date().toISOString().split('T')[0],
+    reason: ""
+  });
 
   useEffect(() => {
     fetchLeaves();
@@ -118,7 +125,7 @@ export default function LeavesPage() {
               <option value="rejected">Refusé</option>
             </Select>
           </div>
-          <Button variant="primary" size="md">
+          <Button variant="primary" size="md" onClick={() => setShowModal(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Nouvelle demande
           </Button>
@@ -194,6 +201,83 @@ export default function LeavesPage() {
           </div>
         )}
       </Card>
+
+      {/* Modal Nouvelle Demande */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <Card className="w-full max-w-lg mx-4">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-foreground">Nouvelle demande de congé</h2>
+                <button onClick={() => setShowModal(false)} className="p-1 hover:bg-gray-100 rounded">
+                  <X className="h-5 w-5 text-gray-500" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Type de congé *</label>
+                  <Select
+                    value={formData.leave_type}
+                    onChange={(e) => setFormData({ ...formData, leave_type: e.target.value })}
+                  >
+                    <option value="vacation">Congé payé</option>
+                    <option value="sick">Maladie</option>
+                    <option value="personal">Personnel</option>
+                    <option value="maternity">Maternité</option>
+                    <option value="unpaid">Sans solde</option>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-2">Date de début *</label>
+                    <Input
+                      type="date"
+                      value={formData.start_date}
+                      onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-2">Date de fin *</label>
+                    <Input
+                      type="date"
+                      value={formData.end_date}
+                      onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Raison</label>
+                  <Input
+                    value={formData.reason}
+                    onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+                    placeholder="Motif de la demande..."
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <Button variant="secondary" onClick={() => setShowModal(false)} className="flex-1">
+                  Annuler
+                </Button>
+                <Button
+                  variant="primary"
+                  disabled={!formData.start_date || !formData.end_date}
+                  className="flex-1"
+                  onClick={() => {
+                    alert("Fonctionnalité en cours de développement");
+                    setShowModal(false);
+                  }}
+                >
+                  Soumettre la demande
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
     </DashboardLayout>
   );
 }
