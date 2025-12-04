@@ -16,42 +16,51 @@ import { PieChart, Users, Laptop, DollarSign } from 'lucide-react'
 // Types
 type ThemeColor = 'primary' | 'success' | 'warning' | 'info' | 'secondary' | 'error'
 
-type DataType = {
-  icon: any
-  stats: string
-  title: string
-  color: ThemeColor
+interface TransactionsProps {
+  stats: {
+    wonOpportunities: number;
+    totalLeads: number;
+    openOpportunities: number;
+    totalRevenue: number;
+  }
 }
 
-// Vars
-const data: DataType[] = [
-  {
-    stats: '245k',
-    title: 'Ventes',
-    color: 'primary',
-    icon: PieChart
-  },
-  {
-    stats: '12.5k',
-    title: 'Clients',
-    color: 'success',
-    icon: Users
-  },
-  {
-    stats: '1.54k',
-    title: 'Produits',
-    color: 'warning',
-    icon: Laptop
-  },
-  {
-    stats: '$88k',
-    title: 'Revenus',
-    color: 'info',
-    icon: DollarSign
+const Transactions = ({ stats }: TransactionsProps) => {
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(value);
   }
-]
 
-const Transactions = () => {
+  const formatNumber = (value: number) => {
+    return new Intl.NumberFormat('fr-FR').format(value);
+  }
+
+  const data = [
+    {
+      stats: formatNumber(stats.wonOpportunities),
+      title: 'Ventes Gagnées',
+      color: 'primary' as ThemeColor,
+      icon: PieChart
+    },
+    {
+      stats: formatNumber(stats.totalLeads),
+      title: 'Total Leads',
+      color: 'success' as ThemeColor,
+      icon: Users
+    },
+    {
+      stats: formatNumber(stats.openOpportunities),
+      title: 'Opportunités',
+      color: 'warning' as ThemeColor,
+      icon: Laptop
+    },
+    {
+      stats: formatCurrency(stats.totalRevenue),
+      title: 'Revenus',
+      color: 'info' as ThemeColor,
+      icon: DollarSign
+    }
+  ]
+
   const getColorStyle = (color: ThemeColor) => {
     switch (color) {
       case 'primary': return { bgcolor: 'primary.main', color: 'primary.contrastText' }
@@ -75,8 +84,8 @@ const Transactions = () => {
         }
         subheader={
           <Typography variant="body2" sx={{ mb: 2 }}>
-            <span style={{ fontWeight: 600 }}>Total 48.5% Croissance 😎</span>
-            <span style={{ color: 'text.secondary' }}> ce mois</span>
+            <span style={{ fontWeight: 600 }}>Vue d'ensemble</span>
+            <span style={{ color: 'text.secondary' }}> performance commerciale</span>
           </Typography>
         }
       />
@@ -91,7 +100,7 @@ const Transactions = () => {
                     <Icon size={24} />
                   </Avatar>
                   <div>
-                    <Typography variant="body2">{item.title}</Typography>
+                    <Typography variant="body2" noWrap>{item.title}</Typography>
                     <Typography variant='h6'>{item.stats}</Typography>
                   </div>
                 </div>

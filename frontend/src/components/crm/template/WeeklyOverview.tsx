@@ -19,7 +19,12 @@ import type { ApexOptions } from 'apexcharts'
 // Styled Component Imports
 const ReactApexCharts = dynamic(() => import('react-apexcharts'), { ssr: false })
 
-const WeeklyOverview = () => {
+interface WeeklyOverviewProps {
+  series: number[]; // Array of 7 numbers (activities per day)
+  percentageGrowth?: number;
+}
+
+const WeeklyOverview = ({ series, percentageGrowth = 0 }: WeeklyOverviewProps) => {
   // Hooks
   const theme = useTheme()
 
@@ -53,6 +58,7 @@ const WeeklyOverview = () => {
       theme.palette.action.selected,
       theme.palette.primary.main,
       theme.palette.action.selected,
+      theme.palette.action.selected,
       theme.palette.action.selected
     ],
     states: {
@@ -64,7 +70,7 @@ const WeeklyOverview = () => {
       }
     },
     xaxis: {
-      categories: ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'],
+      categories: ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'], // Could be dynamic based on current day
       tickPlacement: 'on',
       labels: { show: false },
       axisTicks: { show: false },
@@ -85,7 +91,7 @@ const WeeklyOverview = () => {
   return (
     <Card>
       <CardHeader
-        title='Aperçu Hebdomadaire'
+        title='Activité Hebdomadaire'
         action={
           <IconButton aria-label="settings">
             <MoreVertIcon />
@@ -97,12 +103,14 @@ const WeeklyOverview = () => {
           type='bar'
           height={206}
           width='100%'
-          series={[{ name: 'Ventes', data: [37, 57, 45, 75, 57, 40, 65] }]}
+          series={[{ name: 'Activités', data: series.length > 0 ? series : [0, 0, 0, 0, 0, 0, 0] }]}
           options={options}
         />
         <div className='flex items-center mb-4 gap-4'>
-          <Typography variant='h4'>45%</Typography>
-          <Typography>Votre performance commerciale est 45% meilleure que le mois dernier 😎</Typography>
+          <Typography variant='h4'>{percentageGrowth > 0 ? `+${percentageGrowth}%` : `${percentageGrowth}%`}</Typography>
+          <Typography>
+            Votre activité est {percentageGrowth >= 0 ? 'en hausse 😎' : 'en baisse 📉'} par rapport à la semaine dernière
+          </Typography>
         </div>
         <Button fullWidth variant='contained'>
           Détails
