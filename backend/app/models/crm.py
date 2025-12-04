@@ -134,6 +134,7 @@ class Lead(Base, TimestampMixin):
     converted_client = relationship("Client", foreign_keys=[converted_to_client_id])
     activities = relationship("CRMActivity", back_populates="lead", cascade="all, delete-orphan")
     opportunities = relationship("Opportunity", back_populates="lead")
+    contacts = relationship("Contact", back_populates="lead", cascade="all, delete-orphan")
 
     @property
     def full_display_name(self) -> str:
@@ -259,6 +260,7 @@ class CRMActivity(Base, TimestampMixin):
     lead_id = Column(UUID(as_uuid=True), ForeignKey("leads.id"))
     client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id"))
     opportunity_id = Column(UUID(as_uuid=True), ForeignKey("opportunities.id"))
+    contact_id = Column(UUID(as_uuid=True), ForeignKey("contacts.id"))
     assigned_to = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
     
@@ -266,6 +268,7 @@ class CRMActivity(Base, TimestampMixin):
     lead = relationship("Lead", back_populates="activities")
     client = relationship("Client", back_populates="crm_activities")
     opportunity = relationship("Opportunity", back_populates="activities")
+    contact = relationship("Contact", back_populates="activities")
     assignee = relationship("User")
     tenant = relationship("Tenant")
 
@@ -380,6 +383,111 @@ class LeadScoring(Base, TimestampMixin):
     # Relations
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
     tenant = relationship("Tenant")
+
+
+class ContactType(str, enum.Enum):
+    """Types de contacts"""
+    DECISION_MAKER = "decision_maker"  # Décideur
+    INFLUENCER = "influencer"  # Influenceur
+    TECHNICAL = "technical"  # Contact technique
+    FINANCIAL = "financial"  # Contact financier
+    USER = "user"  # Utilisateur final
+    OTHER = "other"  # Autre
+
+
+class Contact(Base, TimestampMixin):
+    """
+    Contacts CRM - Personnes physiques liées aux clients/leads
+    Un contact représente une personne spécifique dans une organisation
+    """
+    __tablename__ = "contacts"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    # Informations personnelles
+    first_name = Column(String(100), nullable=False)
+    last_name = Column(String(100), nullable=False)
+    full_name = Column(String(255))  # Auto-généré
+    email = Column(String(255), nullable=False, index=True)
+    phone = Column(String(20))
+    mobile = Column(String(20))
+    
+    # Informations professionnelles
+    job_title = Column(String(100))
+    department = Column(String(100))  # Département dans l'entreprise
+    contact_type = Column(String(50), default=ContactType.OTHER)  # Type de contact
+    
+    # Adresse
+    address = Column(Text)
+    city = Column(String(100))
+    postal_code = Column(String(20))
+    country = Column(String(100))
+    
+    # Préférences de communication
+    preferred_contact_method = Column(String(20))  # email, phone, mobile
+    language = Column(String(10), default="fr")  # Langue préférée
+    timezone = Column(String(50))
+    
+    # Informations sociales
+    linkedin_url = Column(String(500))
+    twitter_handle = Column(String(100))
+    
+    # Statut et engagement
+    is_primary = Column(Boolean, default=False)  # Contact principal du client/lead
+    is_active = Column(Boolean, default=True)
+    do_not_contact = Column(Boolean, default=False)  # Ne pas contacter
+    email_opt_out = Column(Boolean, default=False)  # Désinscrit des emails
+    
+    # Tracking
+    last_contact_date = Column(DateTime)
+    last_email_sent = Column(DateTime)
+    last_email_opened = Column(DateTime)
+    email_bounced = Column(Boolean, default=False)
+    
+    # Notes et tags
+    notes = Column(Text)
+    tags = Column(JSON)  # Tags flexibles
+    custom_fields = Column(JSON)  # Champs personnalisés
+    
+    # Relations
+    client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id"))
+    lead_id = Column(UUID(as_uuid=True), ForeignKey("leads.id"))
+    assigned_to = Column(UUID(as_uuid=True), ForeignKey("users.id"))  # Commercial assigné
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    
+    # Relations inverses
+    client = relationship("Client", back_populates="contacts")
+    lead = relationship("Lead", back_populates="contacts")
+    assignee = relationship("User")
+    tenant = relationship("Tenant")
+    activities = relationship("CRMActivity", back_populates="contact", cascade="all, delete-orphan")
+
+    @property
+    def full_display_name(self) -> str:
+        """Nom complet formaté pour affichage"""
+        return f"{self.first_name} {self.last_name}"
+    
+    @property
+    def display_with_title(self) -> str:
+        """Nom avec titre professionnel"""
+        if self.job_title:
+            return f"{self.full_display_name} - {self.job_title}"
+        return self.full_display_name
+    
+    @property
+    def days_since_last_contact(self) -> Optional[int]:
+        """Nombre de jours depuis le dernier contact"""
+        if self.last_contact_date:
+            return (datetime.utcnow() - self.last_contact_date).days
+        return None
+    
+    @property
+    def is_engaged(self) -> bool:
+        """Détermine si le contact est engagé (a ouvert un email récemment)"""
+        if self.last_email_opened:
+            days_since_open = (datetime.utcnow() - self.last_email_opened).days
+            return days_since_open <= 30
+        return False
 
 
 # Extensions CRM supprimées - les relations sont maintenant directement 

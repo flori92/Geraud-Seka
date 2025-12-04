@@ -15,9 +15,11 @@ from app.core.cache import cached
 from app.models.user import User
 from app.models.tenant import Tenant
 from app.models.crm import (
-    Lead, Opportunity, CRMActivity, Campaign,
-    LeadStatus, OpportunityStage, ActivityType, Priority
+    Lead, Opportunity, CRMActivity, Campaign, Contact,
+    LeadStatus, OpportunityStage, ActivityType, Priority, ContactType
 )
+from app.models.client import Client
+from app.schemas import contact as contact_schema
 from app.services.crm import crm_service
 
 router = APIRouter()
@@ -568,4 +570,276 @@ async def get_crm_dashboard(
         raise HTTPException(
             status_code=500,
             detail=f"Erreur lors de la génération du dashboard: {str(e)}"
+        )
+
+
+# ==================== CONTACTS CRM ====================
+
+@router.get("/contacts/", response_model=List[contact_schema.ContactWithRelations])
+async def get_contacts(
+    client_id: Optional[str] = Query(None),
+    lead_id: Optional[str] = Query(None),
+    contact_type: Optional[str] = Query(None),
+    is_primary: Optional[bool] = Query(None),
+    is_active: Optional[bool] = Query(True),
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+    current_tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Récupère la liste des contacts avec filtres
+    
+    - **client_id**: Filtrer par client
+    - **lead_id**: Filtrer par lead
+    - **contact_type**: Filtrer par type (decision_maker, influencer, etc.)
+    - **is_primary**: Filtrer les contacts principaux
+    - **is_active**: Filtrer les contacts actifs (défaut: True)
+    """
+    try:
+        # Base query
+        query = db.query(Contact).filter(Contact.tenant_id == current_tenant.id)
+        
+        # Filtres
+        if client_id:
+            query = query.filter(Contact.client_id == client_id)
+        
+        if lead_id:
+            query = query.filter(Contact.lead_id == lead_id)
+        
+        if contact_type:
+            query = query.filter(Contact.contact_type == contact_type)
+        
+        if is_primary is not None:
+            query = query.filter(Contact.is_primary == is_primary)
+        
+        if is_active is not None:
+            query = query.filter(Contact.is_active == is_active)
+        
+        # Récupérer avec relations
+        contacts = query.options(
+            selectinload(Contact.client),
+            selectinload(Contact.lead),
+            selectinload(Contact.assignee)
+        ).order_by(desc(Contact.is_primary), Contact.last_name).offset(offset).limit(limit).all()
+        
+        # Format response
+        contact_list = []
+        for contact in contacts:
+            contact_data = {
+                "id": str(contact.id),
+                "first_name": contact.first_name,
+                "last_name": contact.last_name,
+                "full_name": contact.full_display_name,
+                "email": contact.email,
+                "phone": contact.phone,
+                "mobile": contact.mobile,
+                "job_title": contact.job_title,
+                "department": contact.department,
+                "contact_type": contact.contact_type,
+                "address": contact.address,
+                "city": contact.city,
+                "postal_code": contact.postal_code,
+                "country": contact.country,
+                "preferred_contact_method": contact.preferred_contact_method,
+                "language": contact.language,
+                "timezone": contact.timezone,
+                "linkedin_url": contact.linkedin_url,
+                "twitter_handle": contact.twitter_handle,
+                "is_primary": contact.is_primary,
+                "is_active": contact.is_active,
+                "do_not_contact": contact.do_not_contact,
+                "email_opt_out": contact.email_opt_out,
+                "notes": contact.notes,
+                "tags": contact.tags,
+                "custom_fields": contact.custom_fields,
+                "client_id": str(contact.client_id) if contact.client_id else None,
+                "lead_id": str(contact.lead_id) if contact.lead_id else None,
+                "assigned_to": str(contact.assigned_to) if contact.assigned_to else None,
+                "tenant_id": str(contact.tenant_id),
+                "last_contact_date": contact.last_contact_date.isoformat() if contact.last_contact_date else None,
+                "last_email_sent": contact.last_email_sent.isoformat() if contact.last_email_sent else None,
+                "last_email_opened": contact.last_email_opened.isoformat() if contact.last_email_opened else None,
+                "email_bounced": contact.email_bounced,
+                "created_at": contact.created_at.isoformat(),
+                "updated_at": contact.updated_at.isoformat(),
+                "client_name": contact.client.name if contact.client else None,
+                "lead_name": contact.lead.full_display_name if contact.lead else None,
+                "assignee_name": contact.assignee.full_name if contact.assignee else None,
+                "days_since_last_contact": contact.days_since_last_contact,
+                "is_engaged": contact.is_engaged
+            }
+            contact_list.append(contact_data)
+        
+        return contact_list
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erreur lors de la récupération des contacts: {str(e)}"
+        )
+
+
+@router.post("/contacts/", response_model=contact_schema.Contact)
+async def create_contact(
+    contact_in: contact_schema.ContactCreate,
+    current_tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Créer un nouveau contact"""
+    try:
+        # Vérifier que le client ou lead existe si spécifié
+        if contact_in.client_id:
+            client = db.query(Client).filter(
+                and_(
+                    Client.id == contact_in.client_id,
+                    Client.tenant_id == current_tenant.id
+                )
+            ).first()
+            if not client:
+                raise HTTPException(status_code=404, detail="Client non trouvé")
+        
+        if contact_in.lead_id:
+            lead = db.query(Lead).filter(
+                and_(
+                    Lead.id == contact_in.lead_id,
+                    Lead.tenant_id == current_tenant.id
+                )
+            ).first()
+            if not lead:
+                raise HTTPException(status_code=404, detail="Lead non trouvé")
+        
+        # Créer le contact
+        contact = Contact(
+            **contact_in.model_dump(exclude={'assigned_to'}),
+            full_name=f"{contact_in.first_name} {contact_in.last_name}",
+            assigned_to=contact_in.assigned_to or current_user.id,
+            tenant_id=current_tenant.id
+        )
+        
+        db.add(contact)
+        db.commit()
+        db.refresh(contact)
+        
+        return contact
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erreur lors de la création du contact: {str(e)}"
+        )
+
+
+@router.get("/contacts/{contact_id}", response_model=contact_schema.ContactWithRelations)
+async def get_contact(
+    contact_id: str,
+    current_tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Récupérer un contact par ID"""
+    contact = db.query(Contact).options(
+        selectinload(Contact.client),
+        selectinload(Contact.lead),
+        selectinload(Contact.assignee),
+        selectinload(Contact.activities)
+    ).filter(
+        and_(
+            Contact.id == contact_id,
+            Contact.tenant_id == current_tenant.id
+        )
+    ).first()
+    
+    if not contact:
+        raise HTTPException(status_code=404, detail="Contact non trouvé")
+    
+    return {
+        **contact.__dict__,
+        "client_name": contact.client.name if contact.client else None,
+        "lead_name": contact.lead.full_display_name if contact.lead else None,
+        "assignee_name": contact.assignee.full_name if contact.assignee else None,
+        "days_since_last_contact": contact.days_since_last_contact,
+        "is_engaged": contact.is_engaged
+    }
+
+
+@router.put("/contacts/{contact_id}", response_model=contact_schema.Contact)
+async def update_contact(
+    contact_id: str,
+    contact_in: contact_schema.ContactUpdate,
+    current_tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Mettre à jour un contact"""
+    contact = db.query(Contact).filter(
+        and_(
+            Contact.id == contact_id,
+            Contact.tenant_id == current_tenant.id
+        )
+    ).first()
+    
+    if not contact:
+        raise HTTPException(status_code=404, detail="Contact non trouvé")
+    
+    try:
+        # Mettre à jour les champs
+        update_data = contact_in.model_dump(exclude_unset=True)
+        
+        # Mettre à jour full_name si first_name ou last_name change
+        if 'first_name' in update_data or 'last_name' in update_data:
+            first_name = update_data.get('first_name', contact.first_name)
+            last_name = update_data.get('last_name', contact.last_name)
+            update_data['full_name'] = f"{first_name} {last_name}"
+        
+        for field, value in update_data.items():
+            setattr(contact, field, value)
+        
+        db.commit()
+        db.refresh(contact)
+        
+        return contact
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erreur lors de la mise à jour du contact: {str(e)}"
+        )
+
+
+@router.delete("/contacts/{contact_id}")
+async def delete_contact(
+    contact_id: str,
+    current_tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Supprimer un contact"""
+    contact = db.query(Contact).filter(
+        and_(
+            Contact.id == contact_id,
+            Contact.tenant_id == current_tenant.id
+        )
+    ).first()
+    
+    if not contact:
+        raise HTTPException(status_code=404, detail="Contact non trouvé")
+    
+    try:
+        db.delete(contact)
+        db.commit()
+        
+        return {"message": "Contact supprimé avec succès", "id": contact_id}
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erreur lors de la suppression du contact: {str(e)}"
         )
