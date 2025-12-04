@@ -28,20 +28,25 @@ export default function MovementsPage() {
         return;
       }
       const data = await getStockMovements(token);
-      setMovements(data);
+      // Ensure data is an array
+      setMovements(Array.isArray(data) ? data : []);
       setError(null);
     } catch (err: any) {
       setError(err.response?.data?.detail || "Erreur lors du chargement des mouvements");
+      setMovements([]);
     } finally {
       setLoading(false);
     }
   };
 
+  // Ensure we always work with an array
+  const movementList = Array.isArray(movements) ? movements : [];
+
   const stats = [
-    { label: "Total mouvements", value: movements.length.toString(), color: "bg-blue-600" },
-    { label: "Entrées", value: movements.filter(m => m.movement_type === "in").length.toString(), color: "bg-green-600" },
-    { label: "Sorties", value: movements.filter(m => m.movement_type === "out").length.toString(), color: "bg-red-600" },
-    { label: "Ajustements", value: movements.filter(m => m.movement_type === "adjustment").length.toString(), color: "bg-orange-600" },
+    { label: "Total mouvements", value: movementList.length.toString(), color: "bg-blue-600" },
+    { label: "Entrées", value: movementList.filter(m => m.movement_type === "in").length.toString(), color: "bg-green-600" },
+    { label: "Sorties", value: movementList.filter(m => m.movement_type === "out").length.toString(), color: "bg-red-600" },
+    { label: "Ajustements", value: movementList.filter(m => m.movement_type === "adjustment").length.toString(), color: "bg-orange-600" },
   ];
 
   const getMovementTypeLabel = (type: string) => {
@@ -135,7 +140,7 @@ export default function MovementsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-accents-2">
-                {movements.map((movement) => (
+                {movementList.map((movement) => (
                   <tr key={movement.id} className="hover:bg-accents-1 transition-colors">
                     <td className="px-4 py-3 text-sm text-accents-6">
                       {new Date(movement.created_at).toLocaleString("fr-FR", {

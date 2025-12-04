@@ -171,7 +171,7 @@ export default function InventoryPage() {
                       </Badge>
                     </td>
                     <td className="px-4 py-3 text-sm text-accents-6">
-                      {new Date(item.last_updated).toLocaleDateString("fr-FR")}
+                      {item.last_updated ? new Date(item.last_updated).toLocaleDateString("fr-FR") : "-"}
                     </td>
                     <td className="px-4 py-3">
                       <Button variant="ghost" size="sm">
