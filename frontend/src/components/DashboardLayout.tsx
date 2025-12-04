@@ -1,7 +1,8 @@
 import Head from "next/head";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { ReactNode } from "react";
+import { useRouter } from "next/router";
 import { ModernSidebar } from "./layout/ModernSidebar";
 import { ChatWidget } from "./Chatbot/ChatWidget";
 import { HelpCircle, Bell, X, ChevronRight, Book, MessageCircle, Mail, ExternalLink } from "lucide-react";
@@ -68,15 +69,128 @@ function HelpPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
 
 // Composant Panel de Notifications
 function NotificationsPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  const router = useRouter();
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Récupérer les notifications depuis l'API
+  useEffect(() => {
+    if (isOpen) {
+      fetchNotifications();
+    }
+  }, [isOpen]);
+
+  const fetchNotifications = async () => {
+    setIsLoading(true);
+    try {
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const token = localStorage.getItem('seka_access_token');
+      const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+
+      const response = await fetch(`${API_BASE_URL}/api/v1/analytics/alerts?limit=20`, { headers });
+      if (response.ok) {
+        const data = await response.json();
+        setNotifications(data);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la récupération des notifications:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const token = localStorage.getItem('seka_access_token');
+      const headers: HeadersInit = token ? { 
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      } : {};
+
+      const response = await fetch(`${API_BASE_URL}/api/v1/analytics/alerts/read-all`, {
+        method: 'POST',
+        headers
+      });
+
+      if (response.ok) {
+        // Mettre à jour l'état local
+        setNotifications(notifications.map(n => ({ ...n, is_read: true })));
+      }
+    } catch (error) {
+      console.error('Erreur lors du marquage des notifications:', error);
+    }
+  };
+
+  const handleNotificationClick = async (notification: any) => {
+    // Marquer comme lue
+    if (!notification.is_read) {
+      try {
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const token = localStorage.getItem('seka_access_token');
+        const headers: HeadersInit = token ? { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        } : {};
+
+        await fetch(`${API_BASE_URL}/api/v1/analytics/alerts/${notification.id}/read`, {
+          method: 'POST',
+          headers
+        });
+
+        // Mettre à jour l'état local
+        setNotifications(notifications.map(n => 
+          n.id === notification.id ? { ...n, is_read: true } : n
+        ));
+      } catch (error) {
+        console.error('Erreur lors du marquage de la notification:', error);
+      }
+    }
+
+    // Navigation basée sur le type de notification
+    const navigationMap: Record<string, string> = {
+      'invoice': '/invoices',
+      'payment': '/payments',
+      'customer': '/customers',
+      'inventory': '/inventory',
+      'cash_flow': '/dashboard',
+      'revenue': '/dashboard',
+      'default': '/dashboard'
+    };
+
+    const targetPage = navigationMap[notification.metric_name] || navigationMap['default'];
+    onClose();
+    router.push(targetPage);
+  };
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "À l'instant";
+    if (diffMins < 60) return `Il y a ${diffMins} min`;
+    if (diffHours < 24) return `Il y a ${diffHours}h`;
+    if (diffDays === 1) return "Hier";
+    return `Il y a ${diffDays} jours`;
+  };
+
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case "critical": return "bg-red-500";
+      case "error": return "bg-red-500";
+      case "warning": return "bg-orange-500";
+      case "info": return "bg-blue-500";
+      default: return "bg-gray-500";
+    }
+  };
+
   if (!isOpen) return null;
 
-  const notifications = [
-    { id: 1, type: "info", title: "Bienvenue sur SEKA", message: "Découvrez les nouvelles fonctionnalités", time: "Maintenant", read: false },
-    { id: 2, type: "warning", title: "Facture en attente", message: "3 factures nécessitent votre attention", time: "Il y a 2h", read: false },
-    { id: 3, type: "success", title: "Paiement reçu", message: "Paiement de 150,000 FCFA confirmé", time: "Hier", read: true },
-  ];
-
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   return (
     <div className="fixed inset-0 z-50" onClick={onClose}>
@@ -99,22 +213,24 @@ function NotificationsPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () 
           </button>
         </div>
         <div className="flex-1 overflow-y-auto">
-          {notifications.length > 0 ? (
+          {isLoading ? (
+            <div className="p-8 text-center">
+              <p className="text-gray-500">Chargement...</p>
+            </div>
+          ) : notifications.length > 0 ? (
             <div className="divide-y divide-gray-100">
               {notifications.map((notif) => (
                 <div 
                   key={notif.id} 
-                  className={`p-4 hover:bg-gray-50 transition-colors cursor-pointer ${!notif.read ? "bg-blue-50/50" : ""}`}
+                  className={`p-4 hover:bg-gray-50 transition-colors cursor-pointer ${!notif.is_read ? "bg-blue-50/50" : ""}`}
+                  onClick={() => handleNotificationClick(notif)}
                 >
                   <div className="flex items-start gap-3">
-                    <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
-                      notif.type === "warning" ? "bg-orange-500" :
-                      notif.type === "success" ? "bg-emerald-500" : "bg-blue-500"
-                    }`} />
+                    <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${getSeverityColor(notif.severity)}`} />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900">{notif.title}</p>
                       <p className="text-sm text-gray-500 mt-0.5">{notif.message}</p>
-                      <p className="text-xs text-gray-400 mt-1">{notif.time}</p>
+                      <p className="text-xs text-gray-400 mt-1">{formatTime(notif.created_at)}</p>
                     </div>
                   </div>
                 </div>
@@ -128,11 +244,16 @@ function NotificationsPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () 
             </div>
           )}
         </div>
-        <div className="p-3 bg-gray-50 border-t border-gray-100">
-          <button className="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium">
-            Marquer tout comme lu
-          </button>
-        </div>
+        {unreadCount > 0 && (
+          <div className="p-3 bg-gray-50 border-t border-gray-100">
+            <button 
+              onClick={handleMarkAllAsRead}
+              className="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
+            >
+              Marquer tout comme lu
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

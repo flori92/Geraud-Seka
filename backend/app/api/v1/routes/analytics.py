@@ -208,6 +208,36 @@ async def mark_alert_as_read(
     return {"message": "Alerte marquée comme lue"}
 
 
+@router.post("/alerts/read-all")
+async def mark_all_alerts_as_read(
+    current_tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Marquer toutes les alertes comme lues"""
+    try:
+        updated_count = db.query(Alert).filter(
+            and_(
+                Alert.tenant_id == current_tenant.id,
+                Alert.user_id == current_user.id,
+                Alert.is_read == False
+            )
+        ).update({"is_read": True})
+        
+        db.commit()
+        
+        return {
+            "message": "Toutes les alertes ont été marquées comme lues",
+            "count": updated_count
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erreur lors de la mise à jour des alertes: {str(e)}"
+        )
+
+
 @router.get("/performance/summary")
 async def get_performance_summary(
     current_tenant: Tenant = Depends(get_current_tenant),
