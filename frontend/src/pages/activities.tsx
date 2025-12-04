@@ -1,16 +1,18 @@
 import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { getActivities, createActivity, type Activity } from "@/lib/api";
+import { getActivities, createActivity, getClients, type Activity, type Client } from "@/lib/api";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
 import { useToast } from "@/components/ui/ToastContainer";
 
 export default function ActivitiesPage() {
     const { success, error: showError } = useToast();
     const [activities, setActivities] = useState<Activity[]>([]);
+    const [clients, setClients] = useState<Client[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCreate, setShowCreate] = useState(false);
 
@@ -19,6 +21,7 @@ export default function ActivitiesPage() {
     const [date, setDate] = useState("");
     const [amount, setAmount] = useState("");
     const [description, setDescription] = useState("");
+    const [clientId, setClientId] = useState("");
     const [creating, setCreating] = useState(false);
 
     const fetchActivities = async () => {
@@ -27,6 +30,8 @@ export default function ActivitiesPage() {
             try {
                 const data = await getActivities(token);
                 setActivities(data);
+                const clientsData = await getClients(token);
+                setClients(clientsData);
             } catch (e) {
                 console.error(e);
             }
@@ -51,7 +56,7 @@ export default function ActivitiesPage() {
                 date,
                 amount: Number(amount),
                 description,
-                client_id: "00000000-0000-0000-0000-000000000000" // TODO: Get from context
+                client_id: clientId || clients[0]?.id || "00000000-0000-0000-0000-000000000000"
             }, token);
             success("Activité créée avec succès !");
             setShowCreate(false);
@@ -127,6 +132,22 @@ export default function ActivitiesPage() {
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
                             />
+
+                            <div>
+                                <label className="block text-sm font-medium text-foreground mb-2">Client</label>
+                                <Select
+                                    value={clientId}
+                                    onChange={(e) => setClientId(e.target.value)}
+                                    required
+                                >
+                                    <option value="">Sélectionner un client</option>
+                                    {clients.map((client) => (
+                                        <option key={client.id} value={client.id}>
+                                            {client.name}
+                                        </option>
+                                    ))}
+                                </Select>
+                            </div>
 
                             <div className="flex justify-end gap-2">
                                 <Button type="button" variant="ghost" onClick={() => setShowCreate(false)}>Annuler</Button>

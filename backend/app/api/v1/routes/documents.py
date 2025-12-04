@@ -31,12 +31,17 @@ async def upload_document(
     # 1. Upload to Storage
     file_path = await storage_service.upload_file(file)
     
-    # 2. Create Document in DB
+    # 2. Get file size
+    file.file.seek(0, 2)  # Seek to end
+    file_size = file.file.tell()
+    file.file.seek(0)  # Reset to beginning
+    
+    # 3. Create Document in DB
     doc_in = DocumentCreate(
         filename=file.filename,
         file_path=file_path,
         content_type=file.content_type or "application/octet-stream",
-        file_size=0, # TODO: Get real size
+        file_size=file_size,
         client_id=client_id
     )
     
@@ -86,15 +91,16 @@ def read_documents(
     client_id: Optional[UUID] = None,
 ) -> Any:
     """
-    Retrieve documents.
+    Retrieve documents filtered by tenant.
     """
-    query = db.query(Document)
+    # Filtrer par tenant_id de l'utilisateur pour la sécurité
+    query = db.query(Document).filter(Document.tenant_id == current_user.tenant_id)
+    
+    # Filtrer par client si spécifié
     if client_id:
         query = query.filter(Document.client_id == client_id)
     
-    # TODO: Filter by user permissions if needed
-    
-    documents = query.offset(skip).limit(limit).all()
+    documents = query.order_by(Document.created_at.desc()).offset(skip).limit(limit).all()
     return documents
 
 

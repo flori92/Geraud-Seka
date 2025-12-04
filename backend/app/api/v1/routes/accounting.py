@@ -5,12 +5,17 @@ Provides endpoints for accounting operations: ledger, journal, balance sheet
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import List
 from pydantic import BaseModel
-from datetime import date
+from datetime import date, datetime
+from decimal import Decimal
 
 from app.db.session import get_db
 from app.core.deps import get_current_user
+from app.models.user import User
+from app.models.ledger_account import LedgerAccount, AccountType
+from app.models.journal_entry import JournalEntry
 
 router = APIRouter()
 
@@ -24,13 +29,40 @@ class LedgerAccountCreate(BaseModel):
     initial_balance: float = 0
 
 
+class LedgerAccountResponse(BaseModel):
+    id: str
+    account_code: str
+    account_name: str
+    account_type: str
+    balance: float
+    currency: str
+    
+    class Config:
+        from_attributes = True
+
+
 class JournalEntryCreate(BaseModel):
+    date: str
+    description: str
+    debit_account: str  # account_code
+    credit_account: str  # account_code
+    amount: float
+    reference: str | None = None
+
+
+class JournalEntryResponse(BaseModel):
+    id: str
+    entry_number: str
     date: str
     description: str
     debit_account: str
     credit_account: str
     amount: float
-    reference: str | None = None
+    reference: str | None
+    created_at: str
+    
+    class Config:
+        from_attributes = True
 
 
 # Mock data for ledger accounts (will be replaced with real DB queries)
@@ -198,94 +230,187 @@ MOCK_LEDGER_ACCOUNTS = [
 ]
 
 
-@router.get("/ledger/")
+@router.get("/ledger/", response_model=List[LedgerAccountResponse])
 def get_ledger_accounts(
-    current_user=Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     Get all ledger accounts (chart of accounts)
     Returns the complete chart of accounts with balances
     """
-    # TODO: Replace with actual database query
-    # For now, return mock data
-    return MOCK_LEDGER_ACCOUNTS
+    accounts = db.query(LedgerAccount).filter(
+        LedgerAccount.tenant_id == current_user.tenant_id,
+        LedgerAccount.is_active == True
+    ).order_by(LedgerAccount.account_code).all()
+    
+    return [
+        LedgerAccountResponse(
+            id=str(acc.id),
+            account_code=acc.account_code,
+            account_name=acc.account_name,
+            account_type=acc.account_type.value,
+            balance=float(acc.balance),
+            currency=acc.currency
+        )
+        for acc in accounts
+    ]
 
 
-@router.post("/ledger/")
+@router.post("/ledger/", response_model=LedgerAccountResponse)
 def create_ledger_account(
     account: LedgerAccountCreate,
-    current_user=Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     Create a new ledger account
     """
-    # TODO: Save to database
-    # For now, add to mock data and return
-    new_account = {
-        "id": str(len(MOCK_LEDGER_ACCOUNTS) + 1),
-        "account_code": account.account_code,
-        "account_name": account.account_name,
-        "account_type": account.account_type,
-        "balance": account.initial_balance,
-        "currency": account.currency
-    }
-    MOCK_LEDGER_ACCOUNTS.append(new_account)
-    return new_account
+    # Vérifier si le code compte existe déjà
+    existing = db.query(LedgerAccount).filter(
+        LedgerAccount.tenant_id == current_user.tenant_id,
+        LedgerAccount.account_code == account.account_code
+    ).first()
+    
+    if existing:
+        raise HTTPException(status_code=400, detail="Ce code de compte existe déjà")
+    
+    # Créer le nouveau compte
+    new_account = LedgerAccount(
+        tenant_id=current_user.tenant_id,
+        account_code=account.account_code,
+        account_name=account.account_name,
+        account_type=AccountType(account.account_type),
+        balance=Decimal(str(account.initial_balance)),
+        currency=account.currency
+    )
+    
+    db.add(new_account)
+    db.commit()
+    db.refresh(new_account)
+    
+    return LedgerAccountResponse(
+        id=str(new_account.id),
+        account_code=new_account.account_code,
+        account_name=new_account.account_name,
+        account_type=new_account.account_type.value,
+        balance=float(new_account.balance),
+        currency=new_account.currency
+    )
 
 
-@router.get("/journal/")
+@router.get("/journal/", response_model=List[JournalEntryResponse])
 def get_journal_entries(
-    current_user=Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     Get journal entries
     Returns chronological list of accounting entries
     """
-    # TODO: Implement actual journal entries from database
-    return []
+    entries = db.query(JournalEntry).filter(
+        JournalEntry.tenant_id == current_user.tenant_id
+    ).order_by(JournalEntry.date.desc(), JournalEntry.created_at.desc()).all()
+    
+    return [
+        JournalEntryResponse(
+            id=str(entry.id),
+            entry_number=entry.entry_number,
+            date=entry.date.isoformat(),
+            description=entry.description,
+            debit_account=entry.debit_account.account_code,
+            credit_account=entry.credit_account.account_code,
+            amount=float(entry.amount),
+            reference=entry.reference,
+            created_at=entry.created_at.isoformat()
+        )
+        for entry in entries
+    ]
 
 
-@router.post("/journal/")
+@router.post("/journal/", response_model=JournalEntryResponse)
 def create_journal_entry(
     entry: JournalEntryCreate,
-    current_user=Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
-    Create a new journal entry
+    Create a new journal entry and update account balances
     """
-    # TODO: Save to database and update account balances
-    # For now, return the created entry
-    new_entry = {
-        "id": "1",
-        "entry_number": "JE-001",
-        "date": entry.date,
-        "description": entry.description,
-        "debit_account": entry.debit_account,
-        "credit_account": entry.credit_account,
-        "amount": entry.amount,
-        "reference": entry.reference,
-        "created_at": str(date.today())
-    }
-    return new_entry
+    # Trouver les comptes par code
+    debit_account = db.query(LedgerAccount).filter(
+        LedgerAccount.tenant_id == current_user.tenant_id,
+        LedgerAccount.account_code == entry.debit_account
+    ).first()
+    
+    credit_account = db.query(LedgerAccount).filter(
+        LedgerAccount.tenant_id == current_user.tenant_id,
+        LedgerAccount.account_code == entry.credit_account
+    ).first()
+    
+    if not debit_account:
+        raise HTTPException(status_code=404, detail=f"Compte débit {entry.debit_account} introuvable")
+    if not credit_account:
+        raise HTTPException(status_code=404, detail=f"Compte crédit {entry.credit_account} introuvable")
+    
+    # Générer numéro d'écriture
+    count = db.query(func.count(JournalEntry.id)).filter(
+        JournalEntry.tenant_id == current_user.tenant_id
+    ).scalar()
+    entry_number = f"JE-{count + 1:06d}"
+    
+    # Créer l'écriture
+    new_entry = JournalEntry(
+        tenant_id=current_user.tenant_id,
+        debit_account_id=debit_account.id,
+        credit_account_id=credit_account.id,
+        entry_number=entry_number,
+        date=datetime.fromisoformat(entry.date).date(),
+        description=entry.description,
+        amount=Decimal(str(entry.amount)),
+        reference=entry.reference
+    )
+    
+    # Mettre à jour les balances
+    amount_decimal = Decimal(str(entry.amount))
+    debit_account.balance += amount_decimal
+    credit_account.balance -= amount_decimal
+    
+    db.add(new_entry)
+    db.commit()
+    db.refresh(new_entry)
+    
+    return JournalEntryResponse(
+        id=str(new_entry.id),
+        entry_number=new_entry.entry_number,
+        date=new_entry.date.isoformat(),
+        description=new_entry.description,
+        debit_account=entry.debit_account,
+        credit_account=entry.credit_account,
+        amount=float(new_entry.amount),
+        reference=new_entry.reference,
+        created_at=new_entry.created_at.isoformat()
+    )
 
 
 @router.get("/balance/")
 def get_balance_sheet(
-    current_user=Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     Get balance sheet
     Returns assets, liabilities, and equity
     """
-    # Calculate totals from mock data
-    assets = sum(acc["balance"] for acc in MOCK_LEDGER_ACCOUNTS if acc["account_type"] == "asset")
-    liabilities = abs(sum(acc["balance"] for acc in MOCK_LEDGER_ACCOUNTS if acc["account_type"] == "liability"))
-    equity = abs(sum(acc["balance"] for acc in MOCK_LEDGER_ACCOUNTS if acc["account_type"] == "equity"))
+    # Calculer les totaux depuis la DB
+    accounts = db.query(LedgerAccount).filter(
+        LedgerAccount.tenant_id == current_user.tenant_id,
+        LedgerAccount.is_active == True
+    ).all()
+    
+    assets = sum(float(acc.balance) for acc in accounts if acc.account_type == AccountType.ASSET)
+    liabilities = abs(sum(float(acc.balance) for acc in accounts if acc.account_type == AccountType.LIABILITY))
+    equity = abs(sum(float(acc.balance) for acc in accounts if acc.account_type == AccountType.EQUITY))
 
     return {
         "assets": {
@@ -303,5 +428,5 @@ def get_balance_sheet(
             "retained_earnings": assets - liabilities - equity,
             "total_equity": equity + (assets - liabilities - equity)
         },
-        "period": "2025-11"
+        "period": datetime.now().strftime("%Y-%m")
     }
