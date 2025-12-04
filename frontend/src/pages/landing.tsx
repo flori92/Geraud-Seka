@@ -1,13 +1,15 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import { useState } from 'react';
+import { useToast } from '@/components/ui/ToastContainer';
 
 export default function LandingPage() {
     const [email, setEmail] = useState('');
+    const { success } = useToast();
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        alert(`Merci ! Nous vous contacterons sur ${email}`);
+        success(`Merci ! Nous vous contacterons sur ${email}`);
         setEmail('');
     };
 

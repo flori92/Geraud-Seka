@@ -3,9 +3,11 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { useToast } from "@/components/ui/ToastContainer";
 import { API_BASE_URL } from "@/lib/api";
 
 export default function ExportsPage() {
+    const { success, error: showError } = useToast();
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
     const [exporting, setExporting] = useState(false);
@@ -44,10 +46,10 @@ export default function ExportsPage() {
             window.URL.revokeObjectURL(url);
             document.body.removeChild(a);
 
-            alert("Export téléchargé avec succès !");
-        } catch (error) {
+            success("Export téléchargé avec succès !");
+        } catch (error: any) {
             console.error(error);
-            alert("Erreur lors de l'export");
+            showError(error.message || "Erreur lors de l'export");
         } finally {
             setExporting(false);
         }

@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
+import { useToast } from "@/components/ui/ToastContainer";
 
 export default function ValidateDocumentPage() {
     const router = useRouter();
     const { id } = router.query;
+    const { success, error: showError } = useToast();
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -78,11 +80,11 @@ export default function ValidateDocumentPage() {
                 description,
             }, token);
 
-            alert("Document validé avec succès !");
+            success("Document validé avec succès !");
             router.push("/documents");
-        } catch (error) {
+        } catch (error: any) {
             console.error("Validation failed", error);
-            alert("Erreur lors de la validation");
+            showError(error.response?.data?.detail || "Erreur lors de la validation");
         }
     };
 

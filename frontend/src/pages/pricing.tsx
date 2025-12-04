@@ -3,6 +3,7 @@ import Head from 'next/head';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { Check } from 'lucide-react';
 import { createStripeCustomer, createStripeSubscription, createKKiaPayLink } from '@/lib/api';
+import { useToast } from '@/components/ui/ToastContainer';
 import { useRouter } from 'next/router';
 
 const tiers = [
@@ -62,9 +63,10 @@ const tiers = [
 ];
 
 export default function PricingPage() {
+    const router = useRouter();
+    const { success, error: showError } = useToast();
     const [loading, setLoading] = useState<string | null>(null);
     const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'kkiapay'>('stripe');
-    const router = useRouter();
 
     const handleSubscribe = async (tier: typeof tiers[0]) => {
         if (tier.name === 'Enterprise') {
@@ -94,7 +96,7 @@ export default function PricingPage() {
                     price_id: tier.stripePriceId,
                 }, token);
 
-                alert(`Abonnement ${tier.name} activé avec succès via Stripe !`);
+                success(`Abonnement ${tier.name} activé avec succès via Stripe !`);
             } else {
                 // KKiaPay
                 const link = await createKKiaPayLink({
@@ -106,12 +108,12 @@ export default function PricingPage() {
                 if (link.url) {
                     window.location.href = link.url;
                 } else {
-                    alert('Erreur lors de la création du lien de paiement.');
+                    showError('Erreur lors de la création du lien de paiement.');
                 }
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Payment error:', error);
-            alert('Une erreur est survenue lors du paiement.');
+            showError(error.response?.data?.detail || 'Une erreur est survenue lors du paiement.');
         } finally {
             setLoading(null);
         }
