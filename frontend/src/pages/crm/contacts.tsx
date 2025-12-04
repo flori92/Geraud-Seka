@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { Alert } from "@/components/ui/Alert";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { CreateContactModal } from "@/components/forms/CreateContactModal";
 import { Plus, Search, Mail, Phone, Briefcase, User, Edit, Trash2 } from "lucide-react";
 
 interface Contact {
@@ -39,6 +40,8 @@ export default function ContactsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [contactTypeFilter, setContactTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("active");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedContactId, setSelectedContactId] = useState<string | undefined>();
 
   useEffect(() => {
     fetchContacts();
@@ -104,6 +107,33 @@ export default function ContactsPage() {
       other: "default",
     };
     return variants[type] || "default";
+  };
+
+  const handleDeleteContact = async (contactId: string) => {
+    if (!confirm("Êtes-vous sûr de vouloir supprimer ce contact ?")) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("seka_access_token");
+      if (!token) return;
+
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${API_BASE_URL}/api/v1/crm/contacts/${contactId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        fetchContacts(); // Recharger la liste
+      } else {
+        setError("Erreur lors de la suppression du contact");
+      }
+    } catch (err: any) {
+      setError(err.message || "Erreur lors de la suppression du contact");
+    }
   };
 
   const filteredContacts = contacts.filter((contact) => {
@@ -192,7 +222,14 @@ export default function ContactsPage() {
               <option value="inactive">Inactifs</option>
             </Select>
           </div>
-          <Button variant="primary" size="md">
+          <Button 
+            variant="primary" 
+            size="md"
+            onClick={() => {
+              setSelectedContactId(undefined);
+              setIsModalOpen(true);
+            }}
+          >
             <Plus className="mr-2 h-4 w-4" />
             Nouveau contact
           </Button>
@@ -306,10 +343,21 @@ export default function ContactsPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedContactId(contact.id);
+                            setIsModalOpen(true);
+                          }}
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleDeleteContact(contact.id)}
+                        >
                           <Trash2 className="h-4 w-4 text-error" />
                         </Button>
                       </div>
@@ -321,6 +369,19 @@ export default function ContactsPage() {
           </div>
         )}
       </Card>
+
+      {/* Modal de création/édition */}
+      <CreateContactModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedContactId(undefined);
+        }}
+        onSuccess={() => {
+          fetchContacts();
+        }}
+        contactId={selectedContactId}
+      />
     </DashboardLayout>
   );
 }
