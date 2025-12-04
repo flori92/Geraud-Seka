@@ -769,6 +769,116 @@ async def get_contact(
     }
 
 
+@router.get("/contacts/{contact_id}/timeline")
+async def get_contact_timeline(
+    contact_id: str,
+    current_tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Récupérer la timeline complète d'un contact avec:
+    - Activités CRM
+    - Emails envoyés/reçus
+    - Opportunités
+    - Devis
+    - Historique de modifications
+    """
+    contact = db.query(Contact).options(
+        selectinload(Contact.client),
+        selectinload(Contact.lead),
+        selectinload(Contact.assignee),
+        selectinload(Contact.activities)
+    ).filter(
+        and_(
+            Contact.id == contact_id,
+            Contact.tenant_id == current_tenant.id
+        )
+    ).first()
+    
+    if not contact:
+        raise HTTPException(status_code=404, detail="Contact non trouvé")
+    
+    timeline = []
+    
+    # Activités CRM
+    for activity in contact.activities:
+        timeline.append({
+            "type": "activity",
+            "icon": "activity",
+            "title": activity.subject,
+            "description": activity.description,
+            "activity_type": activity.type,
+            "date": activity.created_at.isoformat(),
+            "is_completed": activity.is_completed,
+            "metadata": {
+                "id": str(activity.id),
+                "due_date": activity.due_date.isoformat() if activity.due_date else None
+            }
+        })
+    
+    # Opportunités liées au client/lead
+    if contact.client_id:
+        opportunities = db.query(Opportunity).filter(
+            Opportunity.client_id == contact.client_id
+        ).all()
+        
+        for opp in opportunities:
+            timeline.append({
+                "type": "opportunity",
+                "icon": "trending-up",
+                "title": f"Opportunité: {opp.name}",
+                "description": f"Montant: {opp.amount} {opp.currency} - Probabilité: {opp.probability}%",
+                "date": opp.created_at.isoformat(),
+                "metadata": {
+                    "id": str(opp.id),
+                    "stage": opp.stage,
+                    "status": opp.status,
+                    "amount": float(opp.amount)
+                }
+            })
+    
+    # Devis liés au client
+    if contact.client_id:
+        quotes = db.query(Quote).filter(
+            Quote.client_id == contact.client_id
+        ).order_by(desc(Quote.created_at)).limit(10).all()
+        
+        for quote in quotes:
+            timeline.append({
+                "type": "quote",
+                "icon": "file-text",
+                "title": f"Devis {quote.quote_number}",
+                "description": f"{quote.title} - {quote.total_ttc} {quote.currency}",
+                "date": quote.created_at.isoformat() if quote.created_at else None,
+                "metadata": {
+                    "id": str(quote.id),
+                    "status": quote.status,
+                    "total_ttc": float(quote.total_ttc)
+                }
+            })
+    
+    # Événement de création du contact
+    timeline.append({
+        "type": "created",
+        "icon": "user-plus",
+        "title": "Contact créé",
+        "description": f"Ajouté par {contact.assignee.full_name if contact.assignee else 'Système'}",
+        "date": contact.created_at.isoformat(),
+        "metadata": {}
+    })
+    
+    # Trier par date décroissante
+    timeline.sort(key=lambda x: x["date"], reverse=True)
+    
+    return {
+        "contact_id": str(contact.id),
+        "contact_name": contact.full_display_name,
+        "timeline": timeline,
+        "total_events": len(timeline)
+    }
+
+
 @router.put("/contacts/{contact_id}", response_model=contact_schema.Contact)
 async def update_contact(
     contact_id: str,
