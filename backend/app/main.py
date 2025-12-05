@@ -62,8 +62,18 @@ def create_application() -> FastAPI:
     app.add_middleware(ProxyHeadersMiddleware)
 
     # CORS Middleware - IMPORTANT: Must be added BEFORE other middleware
-    # Log CORS configuration for debugging
-    cors_origins = settings.backend_cors_origins
+    # Always include production origins to ensure CORS works
+    production_origins = [
+        "https://sekagestion.com",
+        "https://www.sekagestion.com",
+        "https://app.sekagestion.com",
+        "https://api.sekagestion.com",
+        "http://localhost:3000",
+        "http://localhost:3001",
+    ]
+    
+    # Merge with settings origins (avoid duplicates)
+    cors_origins = list(set(settings.backend_cors_origins + production_origins))
     logger.info(f"🌐 CORS Configuration - Environment: {settings.environment}")
     logger.info(f"🌐 CORS Allowed Origins: {cors_origins}")
 
