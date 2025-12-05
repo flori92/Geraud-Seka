@@ -41,7 +41,3 @@ class LedgerAccount(Base):
     # Métadonnées
     description = Column(String(500), nullable=True)
     is_active = Column(String, default=True, nullable=False)
-    
-    # Relations
-    journal_entries_debit = relationship("JournalEntry", foreign_keys="JournalEntry.debit_account_id", back_populates="debit_account")
-    journal_entries_credit = relationship("JournalEntry", foreign_keys="JournalEntry.credit_account_id", back_populates="credit_account")
