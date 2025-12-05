@@ -46,6 +46,36 @@ try:
 except ImportError:
     pass  # Some models might not exist yet
 
+def ensure_tenant_columns():
+    """Ajoute les colonnes manquantes à la table tenants si nécessaire"""
+    try:
+        with engine.connect() as conn:
+            # Vérifier si la colonne stripe_customer_id existe
+            result = conn.execute(text("""
+                SELECT column_name FROM information_schema.columns 
+                WHERE table_name = 'tenants' AND column_name = 'stripe_customer_id'
+            """))
+            if not result.fetchone():
+                print("🔧 Ajout de la colonne stripe_customer_id à tenants...")
+                conn.execute(text("ALTER TABLE tenants ADD COLUMN stripe_customer_id VARCHAR(255)"))
+                conn.commit()
+                print("✅ Colonne stripe_customer_id ajoutée")
+            
+            # Vérifier si la colonne subscription_status existe
+            result = conn.execute(text("""
+                SELECT column_name FROM information_schema.columns 
+                WHERE table_name = 'tenants' AND column_name = 'subscription_status'
+            """))
+            if not result.fetchone():
+                print("🔧 Ajout de la colonne subscription_status à tenants...")
+                conn.execute(text("ALTER TABLE tenants ADD COLUMN subscription_status VARCHAR(50) DEFAULT 'active'"))
+                conn.commit()
+                print("✅ Colonne subscription_status ajoutée")
+                
+    except Exception as e:
+        print(f"⚠️  Erreur lors de l'ajout des colonnes tenant: {e}")
+
+
 def run_migrations():
     """Exécute les migrations Alembic et crée les tables"""
     try:
@@ -56,6 +86,9 @@ def run_migrations():
         print(f"📊 Tables dans metadata: {list(Base.metadata.tables.keys())}")
         Base.metadata.create_all(bind=engine)
         print("✅ Tables vérifiées/créées")
+        
+        # Assurer que les colonnes tenant existent
+        ensure_tenant_columns()
 
         # Vérifier que les tables existent
         with engine.connect() as conn:
