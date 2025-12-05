@@ -80,9 +80,14 @@ const menuItems: MenuItem[] = [
     icon: Users,
     submenu: [
       { label: "Liste clients", href: "/clients" },
+      { label: "Contacts", href: "/crm/contacts" },
       { label: "Opportunités", href: "/crm/opportunities" },
       { label: "Leads", href: "/crm/leads" },
       { label: "Activités CRM", href: "/crm/activities" },
+      { label: "Campagnes", href: "/crm/campaigns", badge: "NEW", badgeVariant: "success" },
+      { label: "Automatisations", href: "/crm/automations" },
+      { label: "Analytics CRM", href: "/crm/analytics" },
+      { label: "Import/Export", href: "/crm/import-export" },
     ],
   },
   {
@@ -119,9 +124,12 @@ const menuItems: MenuItem[] = [
   },
   {
     id: "documents",
-    label: "Documents",
+    label: "Documents & GED",
     icon: FileText,
-    href: "/documents",
+    submenu: [
+      { label: "Mes documents", href: "/documents" },
+      { label: "GED", href: "/ged", badge: "NEW", badgeVariant: "success" },
+    ],
   },
   {
     id: "intelligence",
@@ -148,6 +156,12 @@ const menuItems: MenuItem[] = [
     label: "Activités",
     icon: Activity,
     href: "/activities",
+  },
+  {
+    id: "billing",
+    label: "Abonnement",
+    icon: CreditCard,
+    href: "/billing",
   },
 ];
 
