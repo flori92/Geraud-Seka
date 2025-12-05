@@ -7,6 +7,7 @@ import uuid
 import enum
 from datetime import datetime, date
 from typing import Optional
+import sqlalchemy as sa
 from sqlalchemy import Column, String, Float, Integer, DateTime, Boolean, ForeignKey, Text, JSON, Date, Numeric
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
@@ -612,6 +613,153 @@ class EmailLink(Base):
     
     # Relation
     tracking = relationship("EmailTracking", backref="links")
+
+
+# ==================== SEGMENTATION ====================
+
+class SegmentType(str, enum.Enum):
+    """Types de segments"""
+    STATIC = "static"      # Membres ajoutés manuellement
+    DYNAMIC = "dynamic"    # Membres calculés par règles
+
+
+class SegmentEntityType(str, enum.Enum):
+    """Types d'entités segmentables"""
+    LEAD = "lead"
+    CONTACT = "contact"
+    CLIENT = "client"
+
+
+class RuleOperator(str, enum.Enum):
+    """Opérateurs pour les règles de segmentation"""
+    EQUALS = "equals"
+    NOT_EQUALS = "not_equals"
+    CONTAINS = "contains"
+    NOT_CONTAINS = "not_contains"
+    STARTS_WITH = "starts_with"
+    ENDS_WITH = "ends_with"
+    GREATER_THAN = "greater_than"
+    LESS_THAN = "less_than"
+    GREATER_OR_EQUAL = "greater_or_equal"
+    LESS_OR_EQUAL = "less_or_equal"
+    IS_EMPTY = "is_empty"
+    IS_NOT_EMPTY = "is_not_empty"
+    IN_LIST = "in_list"
+    NOT_IN_LIST = "not_in_list"
+    BETWEEN = "between"
+    DAYS_AGO_LESS_THAN = "days_ago_less_than"
+    DAYS_AGO_MORE_THAN = "days_ago_more_than"
+
+
+class Segment(Base, TimestampMixin):
+    """
+    Segments pour grouper leads, contacts ou clients
+    Permet le ciblage marketing et l'analyse par groupe
+    """
+    __tablename__ = "segments"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    # Informations de base
+    name = Column(String(100), nullable=False)
+    description = Column(Text)
+    color = Column(String(7), default="#3B82F6")  # Hex color
+    icon = Column(String(50), default="users")
+    
+    # Type de segment
+    segment_type = Column(String(20), default=SegmentType.STATIC, nullable=False)
+    entity_type = Column(String(20), default=SegmentEntityType.LEAD, nullable=False)
+    
+    # Pour les segments dynamiques: logique des règles (AND/OR)
+    rules_logic = Column(String(10), default="AND")  # AND ou OR
+    
+    # Métadonnées
+    is_active = Column(Boolean, default=True)
+    is_system = Column(Boolean, default=False)  # Segments système non supprimables
+    
+    # Statistiques (mises à jour périodiquement)
+    member_count = Column(Integer, default=0)
+    last_computed_at = Column(DateTime)
+    
+    # Relations
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    
+    # Relations inverses
+    tenant = relationship("Tenant")
+    creator = relationship("User")
+    rules = relationship("SegmentRule", back_populates="segment", cascade="all, delete-orphan")
+    memberships = relationship("SegmentMembership", back_populates="segment", cascade="all, delete-orphan")
+
+    @property
+    def is_dynamic(self) -> bool:
+        return self.segment_type == SegmentType.DYNAMIC
+
+
+class SegmentRule(Base):
+    """
+    Règles pour les segments dynamiques
+    Définit les critères d'appartenance automatique
+    """
+    __tablename__ = "segment_rules"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    # Segment parent
+    segment_id = Column(UUID(as_uuid=True), ForeignKey("segments.id", ondelete="CASCADE"), nullable=False)
+    
+    # Définition de la règle
+    field = Column(String(100), nullable=False)  # Ex: "status", "score", "email", "city"
+    operator = Column(String(30), nullable=False)  # Ex: "equals", "greater_than"
+    value = Column(String(500))  # Valeur de comparaison (JSON pour les listes)
+    value_type = Column(String(20), default="string")  # string, number, date, boolean, list
+    
+    # Ordre d'évaluation
+    order = Column(Integer, default=0)
+    
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relation
+    segment = relationship("Segment", back_populates="rules")
+
+
+class SegmentMembership(Base):
+    """
+    Appartenance aux segments (pour segments statiques ou cache des dynamiques)
+    """
+    __tablename__ = "segment_memberships"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    # Segment
+    segment_id = Column(UUID(as_uuid=True), ForeignKey("segments.id", ondelete="CASCADE"), nullable=False)
+    
+    # Entité membre (une seule des trois)
+    lead_id = Column(UUID(as_uuid=True), ForeignKey("leads.id", ondelete="CASCADE"))
+    contact_id = Column(UUID(as_uuid=True), ForeignKey("contacts.id", ondelete="CASCADE"))
+    client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id", ondelete="CASCADE"))
+    
+    # Pour les segments statiques: qui a ajouté
+    added_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    added_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Pour les segments dynamiques: dernière vérification
+    last_matched_at = Column(DateTime)
+    
+    # Relations
+    segment = relationship("Segment", back_populates="memberships")
+    lead = relationship("Lead", backref="segment_memberships")
+    contact = relationship("Contact", backref="segment_memberships")
+    client = relationship("Client", backref="segment_memberships")
+    adder = relationship("User")
+
+    __table_args__ = (
+        # Un membre ne peut être dans un segment qu'une fois
+        sa.UniqueConstraint('segment_id', 'lead_id', name='uq_segment_lead'),
+        sa.UniqueConstraint('segment_id', 'contact_id', name='uq_segment_contact'),
+        sa.UniqueConstraint('segment_id', 'client_id', name='uq_segment_client'),
+    )
 
 
 # Extensions CRM supprimées - les relations sont maintenant directement 
