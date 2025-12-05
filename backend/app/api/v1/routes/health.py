@@ -96,3 +96,36 @@ def get_readiness():
 def get_liveness():
     """Endpoint pour vérifier que l'application répond."""
     return {"status": "alive", "timestamp": datetime.utcnow().isoformat()}
+
+
+@router.get("/health/tables", summary="Diagnostic des tables de base de données")
+def get_tables_diagnostic(db: Session = Depends(get_db)):
+    """Endpoint pour vérifier les tables existantes dans la base de données."""
+    from sqlalchemy import inspect
+    
+    try:
+        inspector = inspect(db.bind)
+        tables = inspector.get_table_names()
+        
+        # Tables critiques à vérifier
+        critical_tables = [
+            'users', 'tenants', 'clients', 'quotes', 'quote_items',
+            'products', 'suppliers', 'bank_accounts', 'treasury_alerts',
+            'sales_invoices', 'sales_invoice_items'
+        ]
+        
+        table_status = {}
+        for table in critical_tables:
+            table_status[table] = "✅ exists" if table in tables else "❌ missing"
+        
+        return {
+            "status": "ok",
+            "total_tables": len(tables),
+            "critical_tables": table_status,
+            "all_tables": sorted(tables)
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "error": str(e)
+        }
