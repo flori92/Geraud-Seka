@@ -526,3 +526,74 @@ async def create_fiscal_year(
     db.commit()
     
     return {"id": str(fiscal_year.id), "message": "Exercice créé"}
+
+
+# ==================== PLAN COMPTABLE SYSCOHADA ====================
+
+@router.post("/init-syscohada")
+async def init_syscohada_chart_of_accounts(
+    current_tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Initialiser le plan comptable SYSCOHADA pour le tenant"""
+    from app.services.syscohada import init_syscohada_chart
+    
+    count = init_syscohada_chart(db, current_tenant.id)
+    return {"message": f"Plan comptable SYSCOHADA initialisé avec {count} comptes", "accounts_created": count}
+
+
+@router.get("/tva-rates")
+async def get_tva_rates(
+    currency: str = "XOF"
+):
+    """Obtenir les taux de TVA selon la zone OHADA"""
+    from app.services.syscohada import TVA_RATES, get_tva_rate
+    
+    rates = TVA_RATES.get(currency, TVA_RATES["XOF"])
+    return {
+        "currency": currency,
+        "zone": "UEMOA" if currency == "XOF" else "CEMAC",
+        "rates": {
+            "standard": float(rates["standard"]),
+            "reduced": float(rates["reduced"]),
+            "zero": float(rates["zero"]),
+        }
+    }
+
+
+@router.post("/calculate-tva")
+async def calculate_tva_amount(
+    amount_ht: float,
+    currency: str = "XOF",
+    rate_type: str = "standard"
+):
+    """Calculer la TVA selon les normes OHADA"""
+    from app.services.syscohada import calculate_tva
+    from decimal import Decimal
+    
+    result = calculate_tva(Decimal(str(amount_ht)), currency, rate_type)
+    return result
+
+
+@router.get("/syscohada-classes")
+async def get_syscohada_classes():
+    """Obtenir la structure des classes de comptes SYSCOHADA"""
+    return {
+        "classes": [
+            {"code": "1", "name": "Comptes de ressources durables", "nature": "Capitaux propres et dettes financières"},
+            {"code": "2", "name": "Comptes d'actif immobilisé", "nature": "Immobilisations"},
+            {"code": "3", "name": "Comptes de stocks", "nature": "Stocks et en-cours"},
+            {"code": "4", "name": "Comptes de tiers", "nature": "Créances et dettes d'exploitation"},
+            {"code": "5", "name": "Comptes de trésorerie", "nature": "Banques et caisses"},
+            {"code": "6", "name": "Comptes de charges des activités ordinaires", "nature": "Charges d'exploitation"},
+            {"code": "7", "name": "Comptes de produits des activités ordinaires", "nature": "Produits d'exploitation"},
+            {"code": "8", "name": "Comptes des autres charges et produits", "nature": "Résultat hors activités ordinaires"},
+        ],
+        "rules": {
+            "balance_debit": ["2", "3", "5", "6"],  # Solde débiteur normal
+            "balance_credit": ["1", "4", "7"],  # Solde créditeur normal
+            "result_accounts": ["6", "7", "8"],  # Comptes de résultat
+            "balance_sheet_accounts": ["1", "2", "3", "4", "5"],  # Comptes de bilan
+        }
+    }
