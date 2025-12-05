@@ -539,7 +539,7 @@ class EmailTracking(Base, TimestampMixin):
     # Métadonnées
     campaign_id = Column(String(100))  # Pour grouper par campagne
     template_name = Column(String(100))  # Nom du template utilisé
-    metadata = Column(JSON)  # Données additionnelles
+    extra_data = Column(JSON)  # Données additionnelles (renommé de 'metadata' qui est réservé)
     
     # Relations
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)

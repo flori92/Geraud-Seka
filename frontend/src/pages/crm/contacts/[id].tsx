@@ -377,7 +377,7 @@ export default function ContactDetailPage() {
                                 )}
                               </h4>
                               {event.activity_type && (
-                                <Badge variant="secondary" className="mt-1">
+                                <Badge variant="default">
                                   {event.activity_type}
                                 </Badge>
                               )}
@@ -398,7 +398,7 @@ export default function ContactDetailPage() {
                                 <TrendingUp className="h-3 w-3" />
                                 {formatAmount(event.metadata.amount)}
                               </span>
-                              <Badge variant={event.metadata.status === "won" ? "success" : "secondary"}>
+                              <Badge variant={event.metadata.status === "won" ? "success" : "default"}>
                                 {event.metadata.stage}
                               </Badge>
                             </div>
@@ -410,7 +410,7 @@ export default function ContactDetailPage() {
                                 <FileText className="h-3 w-3" />
                                 {formatAmount(event.metadata.total_ttc)}
                               </span>
-                              <Badge variant={event.metadata.status === "accepted" ? "success" : "secondary"}>
+                              <Badge variant={event.metadata.status === "accepted" ? "success" : "default"}>
                                 {event.metadata.status}
                               </Badge>
                             </div>
