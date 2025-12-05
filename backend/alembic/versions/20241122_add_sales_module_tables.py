@@ -12,7 +12,7 @@ from sqlalchemy import inspect
 
 # revision identifiers
 revision = '20241122_sales_001'
-down_revision = 'add_subscription_001'
+down_revision = 'force_tenant_sub_002'
 branch_labels = None
 depends_on = None
 
