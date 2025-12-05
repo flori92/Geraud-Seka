@@ -15,7 +15,7 @@ from app.db.session import get_db
 from app.core.deps import get_current_user
 from app.models.user import User
 from app.models.ledger_account import LedgerAccount, AccountType
-from app.models.journal_entry import JournalEntry
+from app.models.accounting_advanced import JournalEntry
 
 router = APIRouter()
 
