@@ -1,7 +1,7 @@
 """Fix ledger_accounts is_active column type from VARCHAR to BOOLEAN
 
 Revision ID: fix_ledger_is_active
-Revises: perf_indexes_001
+Revises: add_ledger_accounts_001
 Create Date: 2024-12-05 19:15:00.000000
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'fix_ledger_is_active'
-down_revision = 'perf_indexes_001'
+down_revision = 'add_ledger_accounts_001'
 branch_labels = None
 depends_on = None
 
