@@ -126,6 +126,29 @@ def create_application() -> FastAPI:
     # Event handlers
     @app.on_event("startup")
     async def startup_event():
+        # Create missing database tables on startup
+        try:
+            from app.db.session import engine
+            from app.db.base import Base
+            from sqlalchemy import inspect
+            
+            inspector = inspect(engine)
+            existing_tables = set(inspector.get_table_names())
+            model_tables = set(Base.metadata.tables.keys())
+            missing = model_tables - existing_tables
+            
+            if missing:
+                logger.info(f"🔧 Creating {len(missing)} missing database tables...")
+                Base.metadata.create_all(
+                    bind=engine, 
+                    tables=[Base.metadata.tables[t] for t in missing]
+                )
+                logger.info(f"✅ Created tables: {', '.join(sorted(missing))}")
+            else:
+                logger.info("✅ All database tables exist")
+        except Exception as e:
+            logger.error(f"❌ Error creating tables: {e}")
+        
         monitoring_service.log_business_event(
             event_type="application_startup",
             description="SEKA Backend démarré avec succès",
