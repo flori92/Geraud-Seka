@@ -43,6 +43,13 @@ try:
     from app.models.hr import Employee, Contract, Payslip, LeaveRequest  # noqa
     # Import CRM models
     from app.models.crm import Lead, Opportunity, CRMActivity  # noqa
+    # Import Accounting models
+    from app.models.ledger_account import LedgerAccount  # noqa
+    from app.models.accounting_advanced import (  # noqa
+        FiscalYear, AccountingPeriod, ChartOfAccount, AccountingJournal,
+        JournalEntry, JournalEntryLine, CostCenter, Reconciliation,
+        BankReconciliation, Budget, BudgetLine, VATDeclaration
+    )
 except ImportError:
     pass  # Some models might not exist yet
 
