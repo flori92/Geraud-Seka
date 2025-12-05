@@ -49,19 +49,30 @@ def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db_session),
 ):
-    print(f"Login attempt for: {form_data.username}")
-    user = user_crud.authenticate(db, email=form_data.username, password=form_data.password)
-    print(f"User found: {user}")
-    if not user:
-        print("Authentication failed")
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect credentials")
-    if not user.is_active:
-        print("User inactive")
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user")
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    try:
+        logger.info(f"Login attempt for: {form_data.username}")
+        user = user_crud.authenticate(db, email=form_data.username, password=form_data.password)
+        logger.info(f"User found: {user is not None}")
+        
+        if not user:
+            logger.warning("Authentication failed - incorrect credentials")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect credentials")
+        if not user.is_active:
+            logger.warning("Authentication failed - user inactive")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user")
 
-    access = create_access_token(str(user.id))
-    refresh = create_refresh_token(str(user.id))
-    return TokenPair(access_token=access, refresh_token=refresh)
+        access = create_access_token(str(user.id))
+        refresh = create_refresh_token(str(user.id))
+        logger.info(f"Login successful for user: {user.email}")
+        return TokenPair(access_token=access, refresh_token=refresh)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Login error: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Login error: {str(e)}")
 
 
 @router.get("/me", response_model=UserRead)
