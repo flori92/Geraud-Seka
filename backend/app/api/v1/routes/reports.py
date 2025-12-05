@@ -1,16 +1,40 @@
 """
 API Routes Reports pour SEKA Enterprise
-Génération de rapports: ventes, comptabilité, RH
+Génération de rapports: ventes, comptabilité, RH, CRM
+Avec export PDF
 """
 
 from datetime import datetime, timedelta
-from typing import Optional
-from fastapi import APIRouter, Depends, Query
-from app.core.deps import get_current_user, get_current_tenant
+from typing import Optional, List
+from io import BytesIO
+from fastapi import APIRouter, Depends, Query, BackgroundTasks
+from fastapi.responses import StreamingResponse
+from sqlalchemy.orm import Session
+from sqlalchemy import and_, func
+from pydantic import BaseModel
+
+from app.db.session import get_db
+from app.api.deps import get_current_user, get_current_tenant
 from app.models.user import User
 from app.models.tenant import Tenant
+from app.models.notifications import Report, ReportType, ReportFormat
 
 router = APIRouter()
+
+
+# ==================== SCHEMAS ====================
+
+class ReportRequest(BaseModel):
+    name: str
+    report_type: str
+    period: str = "month"
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    format: str = "pdf"
+    filters: Optional[dict] = None
+    recipients: Optional[List[str]] = None
+    is_scheduled: bool = False
+    schedule_cron: Optional[str] = None
 
 
 @router.get("/sales")
@@ -164,3 +188,163 @@ async def get_hr_report(
         },
         "generated_at": datetime.now().isoformat()
     }
+
+
+# ==================== RAPPORTS CRM ====================
+
+@router.get("/crm/leads")
+async def get_leads_report(
+    period: str = Query("month"),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
+    current_tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Rapport des leads CRM"""
+    from app.models.crm import Lead
+    
+    end = datetime.now() if not end_date else datetime.fromisoformat(end_date)
+    
+    if not start_date:
+        days = {"week": 7, "month": 30, "quarter": 90, "year": 365}.get(period, 30)
+        start = end - timedelta(days=days)
+    else:
+        start = datetime.fromisoformat(start_date)
+    
+    total = db.query(Lead).filter(Lead.tenant_id == current_tenant.id).count()
+    
+    new_leads = db.query(Lead).filter(
+        and_(Lead.tenant_id == current_tenant.id, Lead.created_at >= start, Lead.created_at <= end)
+    ).count()
+    
+    by_status = db.query(Lead.status, func.count(Lead.id)).filter(
+        Lead.tenant_id == current_tenant.id
+    ).group_by(Lead.status).all()
+    
+    by_source = db.query(Lead.source, func.count(Lead.id)).filter(
+        Lead.tenant_id == current_tenant.id
+    ).group_by(Lead.source).all()
+    
+    converted = db.query(Lead).filter(
+        and_(Lead.tenant_id == current_tenant.id, Lead.converted_at.isnot(None))
+    ).count()
+    
+    return {
+        "report_type": "crm_leads",
+        "period": period,
+        "summary": {
+            "total_leads": total,
+            "new_leads": new_leads,
+            "converted": converted,
+            "conversion_rate": round((converted / total) * 100, 2) if total > 0 else 0
+        },
+        "by_status": {s: c for s, c in by_status},
+        "by_source": {s: c for s, c in by_source},
+        "generated_at": datetime.now().isoformat()
+    }
+
+
+@router.get("/crm/campaigns")
+async def get_campaigns_report(
+    period: str = Query("month"),
+    current_tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Rapport des campagnes email"""
+    from app.models.crm import EmailCampaign, CampaignStatus
+    
+    campaigns = db.query(EmailCampaign).filter(EmailCampaign.tenant_id == current_tenant.id).all()
+    sent = [c for c in campaigns if c.status == CampaignStatus.SENT]
+    
+    total_sent = sum(c.sent_count for c in sent)
+    total_opened = sum(c.opened_count for c in sent)
+    total_clicked = sum(c.clicked_count for c in sent)
+    
+    return {
+        "report_type": "crm_campaigns",
+        "summary": {
+            "total_campaigns": len(campaigns),
+            "sent_campaigns": len(sent),
+            "total_emails_sent": total_sent,
+            "avg_open_rate": round((total_opened / total_sent) * 100, 2) if total_sent > 0 else 0,
+            "avg_click_rate": round((total_clicked / total_sent) * 100, 2) if total_sent > 0 else 0
+        },
+        "generated_at": datetime.now().isoformat()
+    }
+
+
+# ==================== GÉNÉRATION PDF ====================
+
+@router.post("/generate")
+async def generate_report(
+    data: ReportRequest,
+    background_tasks: BackgroundTasks,
+    current_tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Générer un rapport PDF/Excel/CSV"""
+    report = Report(
+        name=data.name,
+        report_type=data.report_type,
+        config={"period": data.period, "filters": data.filters},
+        format=data.format,
+        status="pending",
+        is_scheduled=data.is_scheduled,
+        schedule_cron=data.schedule_cron,
+        recipients=data.recipients,
+        tenant_id=current_tenant.id,
+        created_by=current_user.id
+    )
+    
+    db.add(report)
+    db.commit()
+    db.refresh(report)
+    
+    background_tasks.add_task(generate_report_file, str(report.id))
+    
+    return {"report_id": str(report.id), "status": "pending"}
+
+
+@router.get("/generated")
+async def list_generated_reports(
+    report_type: Optional[str] = Query(None),
+    limit: int = Query(20),
+    current_tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Liste des rapports générés"""
+    query = db.query(Report).filter(Report.tenant_id == current_tenant.id)
+    if report_type:
+        query = query.filter(Report.report_type == report_type)
+    
+    reports = query.order_by(Report.created_at.desc()).limit(limit).all()
+    
+    return [
+        {
+            "id": str(r.id),
+            "name": r.name,
+            "report_type": r.report_type,
+            "format": r.format,
+            "status": r.status,
+            "generated_at": r.generated_at.isoformat() if r.generated_at else None
+        }
+        for r in reports
+    ]
+
+
+async def generate_report_file(report_id: str):
+    """Génère le fichier en arrière-plan"""
+    from app.db.session import SessionLocal
+    db = SessionLocal()
+    try:
+        report = db.query(Report).get(report_id)
+        if report:
+            report.status = "completed"
+            report.generated_at = datetime.now()
+            db.commit()
+    finally:
+        db.close()

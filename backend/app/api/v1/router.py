@@ -17,6 +17,10 @@ from app.api.v1.routes import (
     segments,
     campaigns,
     automations,
+    notifications,
+    scheduler,
+    import_export,
+    integrations,
     bot,
     chat,
     hr,
@@ -57,6 +61,10 @@ api_router.include_router(email_tracking.router, prefix="/email", tags=["email",
 api_router.include_router(segments.router, prefix="/segments", tags=["crm", "segments"])
 api_router.include_router(campaigns.router, prefix="/campaigns", tags=["crm", "campaigns", "email"])
 api_router.include_router(automations.router, prefix="/automations", tags=["crm", "automations"])
+api_router.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
+api_router.include_router(scheduler.router, prefix="/scheduler", tags=["scheduler", "tasks"])
+api_router.include_router(import_export.router, prefix="/data", tags=["import", "export"])
+api_router.include_router(integrations.router, prefix="/integrations", tags=["integrations"])
 api_router.include_router(bot.router, prefix="/bot", tags=["bot"])
 api_router.include_router(chat.router, prefix="/chat", tags=["chat"])
 api_router.include_router(hr.router, prefix="/hr", tags=["hr"])
