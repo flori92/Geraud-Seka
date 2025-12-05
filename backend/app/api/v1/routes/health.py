@@ -100,7 +100,7 @@ def get_liveness():
 
 @router.get("/health/tables", summary="Diagnostic des tables de base de données")
 def get_tables_diagnostic(db: Session = Depends(get_db)):
-    """Endpoint pour vérifier les tables existantes dans la base de données."""
+    """Endpoint pour vérifier les tables existantes et les colonnes critiques."""
     from sqlalchemy import inspect
     
     try:
@@ -114,14 +114,21 @@ def get_tables_diagnostic(db: Session = Depends(get_db)):
             'sales_invoices', 'sales_invoice_items'
         ]
         
-        table_status = {}
+        table_details = {}
         for table in critical_tables:
-            table_status[table] = "✅ exists" if table in tables else "❌ missing"
+            if table in tables:
+                columns = [col['name'] for col in inspector.get_columns(table)]
+                table_details[table] = {
+                    "status": "✅ exists",
+                    "columns": columns
+                }
+            else:
+                table_details[table] = {"status": "❌ missing"}
         
         return {
             "status": "ok",
             "total_tables": len(tables),
-            "critical_tables": table_status,
+            "details": table_details,
             "all_tables": sorted(tables)
         }
     except Exception as e:
