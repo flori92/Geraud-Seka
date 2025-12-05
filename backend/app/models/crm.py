@@ -762,5 +762,195 @@ class SegmentMembership(Base):
     )
 
 
+# ==================== CAMPAGNES EMAIL ====================
+
+class CampaignStatus(str, enum.Enum):
+    """Statuts d'une campagne email"""
+    DRAFT = "draft"           # Brouillon
+    SCHEDULED = "scheduled"   # Programmée
+    SENDING = "sending"       # En cours d'envoi
+    SENT = "sent"             # Envoyée
+    PAUSED = "paused"         # En pause
+    CANCELLED = "cancelled"   # Annulée
+
+
+class EmailTemplate(Base, TimestampMixin):
+    """
+    Templates d'emails réutilisables
+    Avec variables dynamiques {{variable}}
+    """
+    __tablename__ = "email_templates"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    # Informations de base
+    name = Column(String(100), nullable=False)
+    description = Column(Text)
+    category = Column(String(50))  # marketing, transactional, newsletter, etc.
+    
+    # Contenu
+    subject = Column(String(500), nullable=False)
+    html_content = Column(Text, nullable=False)
+    text_content = Column(Text)  # Version texte (optionnel)
+    
+    # Variables disponibles (JSON array)
+    # Ex: ["first_name", "company", "unsubscribe_link"]
+    available_variables = Column(JSON)
+    
+    # Preview
+    preview_text = Column(String(200))  # Texte de prévisualisation
+    thumbnail_url = Column(String(500))  # Miniature du template
+    
+    # Métadonnées
+    is_active = Column(Boolean, default=True)
+    is_system = Column(Boolean, default=False)  # Templates système
+    usage_count = Column(Integer, default=0)
+    
+    # Relations
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    
+    # Relations inverses
+    tenant = relationship("Tenant")
+    creator = relationship("User")
+    campaigns = relationship("EmailCampaign", back_populates="template")
+
+
+class EmailCampaign(Base, TimestampMixin):
+    """
+    Campagnes d'email marketing
+    Envoi en masse avec ciblage par segment
+    """
+    __tablename__ = "email_campaigns"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    # Informations de base
+    name = Column(String(200), nullable=False)
+    description = Column(Text)
+    
+    # Contenu (peut surcharger le template)
+    subject = Column(String(500))
+    html_content = Column(Text)
+    text_content = Column(Text)
+    from_name = Column(String(100))
+    from_email = Column(String(255))
+    reply_to = Column(String(255))
+    
+    # Template (optionnel)
+    template_id = Column(UUID(as_uuid=True), ForeignKey("email_templates.id"))
+    
+    # Ciblage
+    segment_id = Column(UUID(as_uuid=True), ForeignKey("segments.id"))
+    target_entity_type = Column(String(20), default="lead")  # lead, contact, client
+    
+    # Filtres additionnels (JSON)
+    additional_filters = Column(JSON)
+    
+    # Programmation
+    status = Column(String(20), default=CampaignStatus.DRAFT, nullable=False)
+    scheduled_at = Column(DateTime)
+    started_at = Column(DateTime)
+    completed_at = Column(DateTime)
+    
+    # Statistiques
+    total_recipients = Column(Integer, default=0)
+    sent_count = Column(Integer, default=0)
+    delivered_count = Column(Integer, default=0)
+    opened_count = Column(Integer, default=0)
+    clicked_count = Column(Integer, default=0)
+    bounced_count = Column(Integer, default=0)
+    unsubscribed_count = Column(Integer, default=0)
+    
+    # A/B Testing (optionnel)
+    is_ab_test = Column(Boolean, default=False)
+    ab_variant = Column(String(1))  # A ou B
+    ab_parent_id = Column(UUID(as_uuid=True), ForeignKey("email_campaigns.id"))
+    ab_winner_criteria = Column(String(20))  # open_rate, click_rate
+    ab_test_percentage = Column(Integer, default=20)  # % pour le test
+    
+    # Relations
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    
+    # Relations inverses
+    tenant = relationship("Tenant")
+    creator = relationship("User")
+    template = relationship("EmailTemplate", back_populates="campaigns")
+    segment = relationship("Segment")
+    recipients = relationship("CampaignRecipient", back_populates="campaign", cascade="all, delete-orphan")
+    ab_variants = relationship("EmailCampaign", backref=sa.orm.backref("ab_parent", remote_side=[id]))
+
+    @property
+    def open_rate(self) -> float:
+        """Taux d'ouverture"""
+        if self.sent_count == 0:
+            return 0
+        return round((self.opened_count / self.sent_count) * 100, 2)
+    
+    @property
+    def click_rate(self) -> float:
+        """Taux de clic"""
+        if self.sent_count == 0:
+            return 0
+        return round((self.clicked_count / self.sent_count) * 100, 2)
+    
+    @property
+    def bounce_rate(self) -> float:
+        """Taux de rebond"""
+        if self.sent_count == 0:
+            return 0
+        return round((self.bounced_count / self.sent_count) * 100, 2)
+
+
+class CampaignRecipient(Base):
+    """
+    Destinataires d'une campagne
+    Stocke le statut d'envoi pour chaque destinataire
+    """
+    __tablename__ = "campaign_recipients"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    # Campagne
+    campaign_id = Column(UUID(as_uuid=True), ForeignKey("email_campaigns.id", ondelete="CASCADE"), nullable=False, index=True)
+    
+    # Destinataire (un seul des trois)
+    lead_id = Column(UUID(as_uuid=True), ForeignKey("leads.id", ondelete="CASCADE"), index=True)
+    contact_id = Column(UUID(as_uuid=True), ForeignKey("contacts.id", ondelete="CASCADE"), index=True)
+    client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id", ondelete="CASCADE"), index=True)
+    
+    # Email utilisé
+    email = Column(String(255), nullable=False)
+    
+    # Statut d'envoi
+    status = Column(String(20), default="pending")  # pending, sent, failed, bounced
+    sent_at = Column(DateTime)
+    error_message = Column(Text)
+    
+    # Tracking (lié à EmailTracking)
+    tracking_id = Column(UUID(as_uuid=True), ForeignKey("email_tracking.id"))
+    
+    # Métriques individuelles
+    opened = Column(Boolean, default=False)
+    opened_at = Column(DateTime)
+    clicked = Column(Boolean, default=False)
+    clicked_at = Column(DateTime)
+    unsubscribed = Column(Boolean, default=False)
+    unsubscribed_at = Column(DateTime)
+    
+    # Relations
+    campaign = relationship("EmailCampaign", back_populates="recipients")
+    lead = relationship("Lead")
+    contact = relationship("Contact")
+    client = relationship("Client")
+    tracking = relationship("EmailTracking")
+
+    __table_args__ = (
+        # Un destinataire ne peut être dans une campagne qu'une fois
+        sa.UniqueConstraint('campaign_id', 'email', name='uq_campaign_recipient_email'),
+    )
+
+
 # Extensions CRM supprimées - les relations sont maintenant directement 
 # intégrées dans les modèles User, Client et Quote correspondants
