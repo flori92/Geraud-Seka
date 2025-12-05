@@ -38,7 +38,7 @@ def upgrade():
         sa.Column('balance', sa.Numeric(15, 2), default=0, nullable=False),
         sa.Column('currency', sa.String(3), default='XOF', nullable=False),
         sa.Column('description', sa.String(500), nullable=True),
-        sa.Column('is_active', sa.String, default='true', nullable=False),
+        sa.Column('is_active', sa.Boolean, default=True, nullable=False),
     )
 
 

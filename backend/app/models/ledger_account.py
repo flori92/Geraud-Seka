@@ -3,7 +3,7 @@ Ledger Account Model
 Represents accounts in the chart of accounts (plan comptable)
 """
 import uuid
-from sqlalchemy import Column, String, Numeric, Enum as SQLEnum, ForeignKey
+from sqlalchemy import Column, String, Boolean, Numeric, Enum as SQLEnum, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import enum
@@ -40,4 +40,4 @@ class LedgerAccount(Base):
     
     # Métadonnées
     description = Column(String(500), nullable=True)
-    is_active = Column(String, default=True, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
