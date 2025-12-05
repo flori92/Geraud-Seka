@@ -4,8 +4,8 @@
  */
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import axios from 'axios';
 import { DashboardLayout } from '@/components/DashboardLayout';
+import { API_BASE_URL } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/ToastContainer';
 import { Plus, ArrowLeft, Building2 } from 'lucide-react';
@@ -53,8 +53,13 @@ export default function BankAccounts() {
   const fetchAccounts = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/v1/treasury/accounts');
-      setAccounts(response.data);
+      const token = localStorage.getItem('seka_access_token');
+      const response = await fetch(`${API_BASE_URL}/api/v1/treasury/accounts`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      if (response.ok) {
+        setAccounts(await response.json());
+      }
     } catch (err) {
       console.error('Error fetching accounts:', err);
     } finally {
@@ -65,7 +70,15 @@ export default function BankAccounts() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await axios.post('/api/v1/treasury/accounts', formData);
+      const token = localStorage.getItem('seka_access_token');
+      await fetch(`${API_BASE_URL}/api/v1/treasury/accounts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(formData)
+      });
       setShowModal(false);
       setFormData({
         name: '',

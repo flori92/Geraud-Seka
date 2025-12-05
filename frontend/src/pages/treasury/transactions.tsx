@@ -4,8 +4,8 @@
  */
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import axios from 'axios';
 import { DashboardLayout } from '@/components/DashboardLayout';
+import { API_BASE_URL } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { Plus, ArrowLeft, Building2 } from 'lucide-react';
 
@@ -43,8 +43,13 @@ export default function BankTransactions() {
       if (filters.transaction_type) params.append('transaction_type', filters.transaction_type);
       if (filters.is_reconciled) params.append('is_reconciled', filters.is_reconciled);
 
-      const response = await axios.get(`/api/v1/treasury/transactions?${params.toString()}`);
-      setTransactions(response.data);
+      const token = localStorage.getItem('seka_access_token');
+      const response = await fetch(`${API_BASE_URL}/api/v1/treasury/transactions?${params.toString()}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      if (response.ok) {
+        setTransactions(await response.json());
+      }
     } catch (err) {
       console.error('Error fetching transactions:', err);
     } finally {

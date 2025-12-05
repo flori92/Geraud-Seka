@@ -12,7 +12,7 @@ from sqlalchemy.dialects.postgresql import UUID
 
 # revision identifiers, used by Alembic.
 revision = 'add_ledger_accounts_001'
-down_revision = 'fix_tenant_sub_001'
+down_revision = '20241205_accounting'
 branch_labels = None
 depends_on = None
 
