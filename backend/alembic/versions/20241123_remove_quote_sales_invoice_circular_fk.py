@@ -12,6 +12,7 @@ Quote.sales_invoices <- SalesInvoice (one-to-many inverse)
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+from sqlalchemy import inspect
 
 # revision identifiers, used by Alembic.
 revision = '20241123_remove_circular_fk'
@@ -20,7 +21,30 @@ branch_labels = None
 depends_on = None
 
 
+def column_exists(table_name, column_name):
+    """Check if a column exists in a table"""
+    bind = op.get_bind()
+    inspector = inspect(bind)
+    columns = [col['name'] for col in inspector.get_columns(table_name)]
+    return column_name in columns
+
+
+def table_exists(table_name):
+    """Check if a table exists"""
+    bind = op.get_bind()
+    inspector = inspect(bind)
+    return table_name in inspector.get_table_names()
+
+
 def upgrade():
+    # Only proceed if quotes table exists and has the column
+    if not table_exists('quotes'):
+        return
+    
+    if not column_exists('quotes', 'sales_invoice_id'):
+        # Column doesn't exist, nothing to do
+        return
+    
     # Drop the foreign key constraint first (if it exists)
     # We use batch_alter_table for better SQLite compatibility if needed
     with op.batch_alter_table('quotes', schema=None) as batch_op:

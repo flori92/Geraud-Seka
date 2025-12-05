@@ -8,6 +8,7 @@ Create Date: 2024-11-22 18:00:00.000000
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
+from sqlalchemy import inspect
 
 # revision identifiers
 revision = '20241122_sales_001'
@@ -16,11 +17,44 @@ branch_labels = None
 depends_on = None
 
 
+def table_exists(table_name):
+    """Check if a table exists"""
+    bind = op.get_bind()
+    inspector = inspect(bind)
+    return table_name in inspector.get_table_names()
+
+
 def upgrade():
     """Upgrade database with Sales Module tables"""
 
+    # ========== PRODUCTS (required for quote_items FK) ==========
+    if not table_exists('products'):
+        op.create_table('products',
+            sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False),
+            sa.Column('tenant_id', postgresql.UUID(as_uuid=True), nullable=False),
+            sa.Column('name', sa.String(length=255), nullable=False),
+            sa.Column('description', sa.Text(), nullable=True),
+            sa.Column('sku', sa.String(length=100), nullable=True),
+            sa.Column('category', sa.String(length=100), nullable=True),
+            sa.Column('unit_price', sa.Numeric(precision=15, scale=2), nullable=False, server_default='0'),
+            sa.Column('cost_price', sa.Numeric(precision=15, scale=2), nullable=True),
+            sa.Column('vat_rate', sa.Numeric(precision=5, scale=2), nullable=False, server_default='18'),
+            sa.Column('unit', sa.String(length=50), nullable=True),
+            sa.Column('stock_quantity', sa.Numeric(precision=15, scale=2), nullable=False, server_default='0'),
+            sa.Column('min_stock_level', sa.Numeric(precision=15, scale=2), nullable=True),
+            sa.Column('is_active', sa.Boolean(), nullable=False, server_default='true'),
+            sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.text('now()')),
+            sa.Column('updated_at', sa.DateTime(), nullable=False, server_default=sa.text('now()')),
+            sa.PrimaryKeyConstraint('id'),
+            sa.ForeignKeyConstraint(['tenant_id'], ['tenants.id'], ondelete='CASCADE'),
+            sa.Index('ix_products_tenant_id', 'tenant_id'),
+            sa.Index('ix_products_sku', 'sku'),
+            sa.Index('ix_products_category', 'category')
+        )
+
     # ========== QUOTES (Devis) ==========
-    op.create_table('quotes',
+    if not table_exists('quotes'):
+        op.create_table('quotes',
         sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column('quote_number', sa.String(length=50), nullable=False),
         sa.Column('tenant_id', postgresql.UUID(as_uuid=True), nullable=False),
@@ -56,32 +90,34 @@ def upgrade():
         sa.Index('ix_quotes_client_id', 'client_id'),
         sa.Index('ix_quotes_status', 'status'),
         sa.Index('ix_quotes_quote_date', 'quote_date')
-    )
+        )
 
-    op.create_table('quote_items',
-        sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column('quote_id', postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column('product_id', postgresql.UUID(as_uuid=True), nullable=True),
-        sa.Column('description', sa.String(length=500), nullable=False),
-        sa.Column('quantity', sa.Numeric(precision=10, scale=2), nullable=False),
-        sa.Column('unit_price', sa.Numeric(precision=15, scale=2), nullable=False),
-        sa.Column('discount_percentage', sa.Numeric(precision=5, scale=2), nullable=False, default=0),
-        sa.Column('vat_rate', sa.Numeric(precision=5, scale=2), nullable=False, default=18.00),
-        sa.Column('subtotal', sa.Numeric(precision=15, scale=2), nullable=False),
-        sa.Column('discount_amount', sa.Numeric(precision=15, scale=2), nullable=False, default=0),
-        sa.Column('total_ht', sa.Numeric(precision=15, scale=2), nullable=False),
-        sa.Column('total_vat', sa.Numeric(precision=15, scale=2), nullable=False),
-        sa.Column('total_ttc', sa.Numeric(precision=15, scale=2), nullable=False),
-        sa.Column('position', sa.Integer(), nullable=False, default=0),
-        sa.PrimaryKeyConstraint('id'),
-        sa.ForeignKeyConstraint(['quote_id'], ['quotes.id'], ondelete='CASCADE'),
-        sa.ForeignKeyConstraint(['product_id'], ['products.id'], ondelete='SET NULL'),
-        sa.Index('ix_quote_items_id', 'id'),
-        sa.Index('ix_quote_items_quote_id', 'quote_id')
-    )
+    if not table_exists('quote_items'):
+        op.create_table('quote_items',
+            sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False),
+            sa.Column('quote_id', postgresql.UUID(as_uuid=True), nullable=False),
+            sa.Column('product_id', postgresql.UUID(as_uuid=True), nullable=True),
+            sa.Column('description', sa.String(length=500), nullable=False),
+            sa.Column('quantity', sa.Numeric(precision=10, scale=2), nullable=False),
+            sa.Column('unit_price', sa.Numeric(precision=15, scale=2), nullable=False),
+            sa.Column('discount_percentage', sa.Numeric(precision=5, scale=2), nullable=False, server_default='0'),
+            sa.Column('vat_rate', sa.Numeric(precision=5, scale=2), nullable=False, server_default='18'),
+            sa.Column('subtotal', sa.Numeric(precision=15, scale=2), nullable=False),
+            sa.Column('discount_amount', sa.Numeric(precision=15, scale=2), nullable=False, server_default='0'),
+            sa.Column('total_ht', sa.Numeric(precision=15, scale=2), nullable=False),
+            sa.Column('total_vat', sa.Numeric(precision=15, scale=2), nullable=False),
+            sa.Column('total_ttc', sa.Numeric(precision=15, scale=2), nullable=False),
+            sa.Column('position', sa.Integer(), nullable=False, server_default='0'),
+            sa.PrimaryKeyConstraint('id'),
+            sa.ForeignKeyConstraint(['quote_id'], ['quotes.id'], ondelete='CASCADE'),
+            sa.ForeignKeyConstraint(['product_id'], ['products.id'], ondelete='SET NULL'),
+            sa.Index('ix_quote_items_id', 'id'),
+            sa.Index('ix_quote_items_quote_id', 'quote_id')
+        )
 
     # ========== SALES INVOICES (Factures de Vente) ==========
-    op.create_table('sales_invoices',
+    if not table_exists('sales_invoices'):
+        op.create_table('sales_invoices',
         sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column('invoice_number', sa.String(length=50), nullable=False),
         sa.Column('tenant_id', postgresql.UUID(as_uuid=True), nullable=False),
@@ -123,9 +159,10 @@ def upgrade():
         sa.Index('ix_sales_invoices_payment_status', 'payment_status'),
         sa.Index('ix_sales_invoices_invoice_date', 'invoice_date'),
         sa.Index('ix_sales_invoices_due_date', 'due_date')
-    )
+        )
 
-    op.create_table('sales_invoice_items',
+    if not table_exists('sales_invoice_items'):
+        op.create_table('sales_invoice_items',
         sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column('sales_invoice_id', postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column('product_id', postgresql.UUID(as_uuid=True), nullable=True),
@@ -145,9 +182,10 @@ def upgrade():
         sa.ForeignKeyConstraint(['product_id'], ['products.id'], ondelete='SET NULL'),
         sa.Index('ix_sales_invoice_items_id', 'id'),
         sa.Index('ix_sales_invoice_items_invoice_id', 'sales_invoice_id')
-    )
+        )
 
-    op.create_table('payments',
+    if not table_exists('payments'):
+        op.create_table('payments',
         sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column('sales_invoice_id', postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column('amount', sa.Numeric(precision=15, scale=2), nullable=False),
@@ -161,10 +199,34 @@ def upgrade():
         sa.Index('ix_payments_id', 'id'),
         sa.Index('ix_payments_invoice_id', 'sales_invoice_id'),
         sa.Index('ix_payments_payment_date', 'payment_date')
-    )
+        )
+
+    # ========== SUPPLIERS (required for purchase_orders FK) ==========
+    if not table_exists('suppliers'):
+        op.create_table('suppliers',
+            sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False),
+            sa.Column('tenant_id', postgresql.UUID(as_uuid=True), nullable=False),
+            sa.Column('name', sa.String(length=255), nullable=False),
+            sa.Column('email', sa.String(length=255), nullable=True),
+            sa.Column('phone', sa.String(length=50), nullable=True),
+            sa.Column('address', sa.Text(), nullable=True),
+            sa.Column('city', sa.String(length=100), nullable=True),
+            sa.Column('country', sa.String(length=100), nullable=True),
+            sa.Column('tax_id', sa.String(length=50), nullable=True),
+            sa.Column('payment_terms', sa.String(length=255), nullable=True),
+            sa.Column('notes', sa.Text(), nullable=True),
+            sa.Column('is_active', sa.Boolean(), nullable=False, server_default='true'),
+            sa.Column('created_at', sa.DateTime(), nullable=False, server_default=sa.text('now()')),
+            sa.Column('updated_at', sa.DateTime(), nullable=False, server_default=sa.text('now()')),
+            sa.PrimaryKeyConstraint('id'),
+            sa.ForeignKeyConstraint(['tenant_id'], ['tenants.id'], ondelete='CASCADE'),
+            sa.Index('ix_suppliers_tenant_id', 'tenant_id'),
+            sa.Index('ix_suppliers_name', 'name')
+        )
 
     # ========== PURCHASE ORDERS (Bons de Commande Achat) ==========
-    op.create_table('purchase_orders',
+    if not table_exists('purchase_orders'):
+        op.create_table('purchase_orders',
         sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column('po_number', sa.String(length=50), nullable=False),
         sa.Column('tenant_id', postgresql.UUID(as_uuid=True), nullable=False),
@@ -202,9 +264,10 @@ def upgrade():
         sa.Index('ix_purchase_orders_supplier_id', 'supplier_id'),
         sa.Index('ix_purchase_orders_status', 'status'),
         sa.Index('ix_purchase_orders_order_date', 'order_date')
-    )
+        )
 
-    op.create_table('purchase_order_items',
+    if not table_exists('purchase_order_items'):
+        op.create_table('purchase_order_items',
         sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column('purchase_order_id', postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column('product_id', postgresql.UUID(as_uuid=True), nullable=True),
@@ -225,10 +288,11 @@ def upgrade():
         sa.ForeignKeyConstraint(['product_id'], ['products.id'], ondelete='SET NULL'),
         sa.Index('ix_purchase_order_items_id', 'id'),
         sa.Index('ix_purchase_order_items_po_id', 'purchase_order_id')
-    )
+        )
 
     # ========== DELIVERY NOTES (Bons de Livraison) ==========
-    op.create_table('delivery_notes',
+    if not table_exists('delivery_notes'):
+        op.create_table('delivery_notes',
         sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column('delivery_number', sa.String(length=50), nullable=False),
         sa.Column('tenant_id', postgresql.UUID(as_uuid=True), nullable=False),
@@ -260,9 +324,10 @@ def upgrade():
         sa.Index('ix_delivery_notes_supplier_id', 'supplier_id'),
         sa.Index('ix_delivery_notes_status', 'status'),
         sa.Index('ix_delivery_notes_delivery_date', 'delivery_date')
-    )
+        )
 
-    op.create_table('delivery_note_items',
+    if not table_exists('delivery_note_items'):
+        op.create_table('delivery_note_items',
         sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column('delivery_note_id', postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column('purchase_order_item_id', postgresql.UUID(as_uuid=True), nullable=True),
@@ -279,7 +344,7 @@ def upgrade():
         sa.ForeignKeyConstraint(['product_id'], ['products.id'], ondelete='SET NULL'),
         sa.Index('ix_delivery_note_items_id', 'id'),
         sa.Index('ix_delivery_note_items_dn_id', 'delivery_note_id')
-    )
+        )
 
 
 def downgrade():
