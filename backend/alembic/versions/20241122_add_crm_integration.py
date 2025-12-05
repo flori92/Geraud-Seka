@@ -13,7 +13,7 @@ import uuid
 
 # revision identifiers, used by Alembic.
 revision = '20241122_add_crm_integration'
-down_revision = '20241122_add_treasury_forecasts_alerts'
+down_revision = '20241123_remove_circular_fk'
 branch_labels = None
 depends_on = None
 

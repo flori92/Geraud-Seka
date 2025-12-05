@@ -11,14 +11,24 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'perf_indexes_001'
-down_revision = None
+down_revision = 'add_accounting_001'
 branch_labels = None
 depends_on = None
 
 
+def index_exists(index_name, table_name):
+    """Check if an index exists"""
+    from sqlalchemy import inspect
+    bind = op.get_bind()
+    inspector = inspect(bind)
+    indexes = inspector.get_indexes(table_name)
+    return any(idx['name'] == index_name for idx in indexes)
+
+
 def upgrade():
-    # Index on documents table for faster queries
-    op.create_index('idx_documents_tenant_status', 'documents', ['tenant_id', 'status'])
+    # Index on documents table for faster queries (with existence check)
+    if not index_exists('idx_documents_tenant_status', 'documents'):
+        op.create_index('idx_documents_tenant_status', 'documents', ['tenant_id', 'status'])
     op.create_index('idx_documents_created_at', 'documents', ['created_at'])
     op.create_index('idx_documents_updated_at', 'documents', ['updated_at'])
     

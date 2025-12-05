@@ -11,13 +11,24 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = 'add_accounting_001'
-down_revision = 'add_subscription_001'
+down_revision = 'fix_tenant_sub_001'
 branch_labels = None
 depends_on = None
 
 
+def table_exists(table_name):
+    """Check if a table exists"""
+    from sqlalchemy import inspect
+    bind = op.get_bind()
+    inspector = inspect(bind)
+    return table_name in inspector.get_table_names()
+
+
 def upgrade() -> None:
-    # Create ledger_accounts table
+    # Create ledger_accounts table (if not exists)
+    if table_exists('ledger_accounts'):
+        return  # Table already created by another migration
+    
     op.create_table(
         'ledger_accounts',
         sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False),
