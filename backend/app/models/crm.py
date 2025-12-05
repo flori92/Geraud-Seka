@@ -490,5 +490,129 @@ class Contact(Base, TimestampMixin):
         return False
 
 
+class EmailEventType(str, enum.Enum):
+    """Types d'événements email"""
+    SENT = "sent"
+    DELIVERED = "delivered"
+    OPENED = "opened"
+    CLICKED = "clicked"
+    BOUNCED = "bounced"
+    COMPLAINED = "complained"
+    UNSUBSCRIBED = "unsubscribed"
+
+
+class EmailTracking(Base, TimestampMixin):
+    """
+    Table de tracking des emails envoyés
+    Permet de générer des URLs de tracking uniques pour chaque email
+    """
+    __tablename__ = "email_tracking"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    # Token unique pour le tracking (utilisé dans les URLs)
+    tracking_token = Column(String(64), unique=True, nullable=False, index=True)
+    
+    # Informations sur l'email
+    resend_message_id = Column(String(255))  # ID retourné par Resend
+    subject = Column(String(500))
+    recipient_email = Column(String(255), nullable=False, index=True)
+    
+    # Entité liée (lead OU contact)
+    lead_id = Column(UUID(as_uuid=True), ForeignKey("leads.id"), index=True)
+    contact_id = Column(UUID(as_uuid=True), ForeignKey("contacts.id"), index=True)
+    
+    # Métriques
+    open_count = Column(Integer, default=0)
+    click_count = Column(Integer, default=0)
+    first_opened_at = Column(DateTime)
+    last_opened_at = Column(DateTime)
+    first_clicked_at = Column(DateTime)
+    last_clicked_at = Column(DateTime)
+    
+    # Statut
+    is_bounced = Column(Boolean, default=False)
+    bounced_at = Column(DateTime)
+    bounce_reason = Column(String(500))
+    
+    # Métadonnées
+    campaign_id = Column(String(100))  # Pour grouper par campagne
+    template_name = Column(String(100))  # Nom du template utilisé
+    metadata = Column(JSON)  # Données additionnelles
+    
+    # Relations
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    sent_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    
+    # Relations inverses
+    lead = relationship("Lead", backref="email_trackings")
+    contact = relationship("Contact", backref="email_trackings")
+    tenant = relationship("Tenant")
+    sender = relationship("User")
+    events = relationship("EmailEvent", back_populates="tracking", cascade="all, delete-orphan")
+
+
+class EmailEvent(Base):
+    """
+    Historique détaillé des événements email
+    Chaque ouverture/clic est enregistré individuellement
+    """
+    __tablename__ = "email_events"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    # Lien vers le tracking parent
+    tracking_id = Column(UUID(as_uuid=True), ForeignKey("email_tracking.id", ondelete="CASCADE"), nullable=False, index=True)
+    
+    # Type d'événement
+    event_type = Column(String(20), nullable=False, index=True)  # opened, clicked, bounced, etc.
+    
+    # Pour les clics: URL cliquée
+    clicked_url = Column(String(2000))
+    
+    # Informations techniques
+    user_agent = Column(String(500))
+    ip_address = Column(String(45))  # IPv6 compatible
+    device_type = Column(String(20))  # desktop, mobile, tablet
+    browser = Column(String(50))
+    os = Column(String(50))
+    country = Column(String(100))
+    city = Column(String(100))
+    
+    # Timestamp
+    occurred_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    
+    # Relation
+    tracking = relationship("EmailTracking", back_populates="events")
+
+
+class EmailLink(Base):
+    """
+    Table des liens trackés dans les emails
+    Chaque lien dans un email a son propre token de tracking
+    """
+    __tablename__ = "email_links"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    # Token unique pour ce lien
+    link_token = Column(String(64), unique=True, nullable=False, index=True)
+    
+    # Lien vers le tracking parent
+    tracking_id = Column(UUID(as_uuid=True), ForeignKey("email_tracking.id", ondelete="CASCADE"), nullable=False, index=True)
+    
+    # URL originale et de destination
+    original_url = Column(String(2000), nullable=False)
+    
+    # Compteur de clics
+    click_count = Column(Integer, default=0)
+    
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relation
+    tracking = relationship("EmailTracking", backref="links")
+
+
 # Extensions CRM supprimées - les relations sont maintenant directement 
 # intégrées dans les modèles User, Client et Quote correspondants

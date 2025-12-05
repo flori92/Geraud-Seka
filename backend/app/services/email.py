@@ -1,20 +1,55 @@
-"""Service d'envoi d'emails avec Resend."""
+"""Service d'envoi d'emails avec Resend et tracking intégré."""
 from typing import List, Optional, Dict, Any
 import httpx
+import secrets
+import re
+from datetime import datetime
 
 from app.core.config import get_settings
 
 settings = get_settings()
 
 
+def generate_tracking_token() -> str:
+    """Génère un token de tracking unique et sécurisé"""
+    return secrets.token_urlsafe(32)
+
+
 class EmailService:
-    """Service d'envoi d'emails via Resend."""
+    """Service d'envoi d'emails via Resend avec tracking intégré."""
     
     def __init__(self):
         self.api_key = settings.resend_api_key
         self.from_email = settings.resend_from_email
         self.from_name = settings.resend_from_name
         self.base_url = "https://api.resend.com"
+        self.tracking_base_url = "https://www.sekagestion.com/api/v1/email"
+    
+    def inject_tracking_pixel(self, html: str, tracking_token: str) -> str:
+        """Injecte le pixel de tracking dans le HTML de l'email"""
+        pixel_url = f"{self.tracking_base_url}/open/{tracking_token}.png"
+        pixel_tag = f'<img src="{pixel_url}" width="1" height="1" style="display:none;" alt="" />'
+        
+        # Injecter avant </body> si présent, sinon à la fin
+        if "</body>" in html.lower():
+            html = re.sub(
+                r'(</body>)',
+                f'{pixel_tag}\\1',
+                html,
+                flags=re.IGNORECASE
+            )
+        else:
+            html += pixel_tag
+        
+        return html
+    
+    def rewrite_links_for_tracking(self, html: str, links_mapping: Dict[str, str]) -> str:
+        """Réécrit les liens dans le HTML pour le tracking"""
+        for original_url, tracked_url in links_mapping.items():
+            # Remplacer les href
+            html = html.replace(f'href="{original_url}"', f'href="{tracked_url}"')
+            html = html.replace(f"href='{original_url}'", f"href='{tracked_url}'")
+        return html
     
     async def send_email(
         self,
@@ -22,7 +57,8 @@ class EmailService:
         subject: str,
         html: str,
         text: Optional[str] = None,
-        reply_to: Optional[str] = None
+        reply_to: Optional[str] = None,
+        tracking_token: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Envoyer un email via Resend.
@@ -33,7 +69,12 @@ class EmailService:
             html: Contenu HTML
             text: Contenu texte (optionnel)
             reply_to: Email de réponse (optionnel)
+            tracking_token: Token de tracking (optionnel, pour injection du pixel)
         """
+        # Injecter le pixel de tracking si un token est fourni
+        if tracking_token:
+            html = self.inject_tracking_pixel(html, tracking_token)
+        
         if not self.api_key:
             print(f"[EMAIL MOCK] To: {to} | Subject: {subject}")
             return {"id": "mock_email_id", "status": "sent"}
@@ -70,6 +111,82 @@ class EmailService:
         except Exception as e:
             print(f"Erreur envoi email: {e}")
             return {"error": str(e)}
+    
+    async def send_tracked_email(
+        self,
+        db,  # Session SQLAlchemy
+        to: str,
+        subject: str,
+        html: str,
+        tenant_id: str,
+        lead_id: Optional[str] = None,
+        contact_id: Optional[str] = None,
+        campaign_id: Optional[str] = None,
+        template_name: Optional[str] = None,
+        sent_by: Optional[str] = None,
+        text: Optional[str] = None,
+        reply_to: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Envoyer un email avec tracking complet.
+        Crée automatiquement l'entrée EmailTracking et injecte le pixel.
+        
+        Args:
+            db: Session SQLAlchemy
+            to: Email destinataire
+            subject: Sujet de l'email
+            html: Contenu HTML
+            tenant_id: ID du tenant
+            lead_id: ID du lead (optionnel)
+            contact_id: ID du contact (optionnel)
+            campaign_id: ID de campagne (optionnel)
+            template_name: Nom du template (optionnel)
+            sent_by: ID de l'utilisateur qui envoie (optionnel)
+            text: Contenu texte (optionnel)
+            reply_to: Email de réponse (optionnel)
+        """
+        from app.models.crm import EmailTracking
+        
+        # Générer le token de tracking
+        tracking_token = generate_tracking_token()
+        
+        # Créer l'entrée de tracking
+        tracking = EmailTracking(
+            tracking_token=tracking_token,
+            recipient_email=to,
+            subject=subject,
+            lead_id=lead_id,
+            contact_id=contact_id,
+            campaign_id=campaign_id,
+            template_name=template_name,
+            tenant_id=tenant_id,
+            sent_by=sent_by
+        )
+        
+        db.add(tracking)
+        db.commit()
+        db.refresh(tracking)
+        
+        # Envoyer l'email avec le pixel de tracking
+        result = await self.send_email(
+            to=to,
+            subject=subject,
+            html=html,
+            text=text,
+            reply_to=reply_to,
+            tracking_token=tracking_token
+        )
+        
+        # Mettre à jour avec l'ID Resend si disponible
+        if "id" in result and not result.get("error"):
+            tracking.resend_message_id = result["id"]
+            db.commit()
+        
+        return {
+            **result,
+            "tracking_id": str(tracking.id),
+            "tracking_token": tracking_token
+        }
     
     async def send_welcome_email(self, to: str, name: str, tenant_slug: str):
         """Email de bienvenue pour nouveau tenant."""
