@@ -34,6 +34,11 @@ def list_quotes(
     Retrieve quotes for the current tenant.
     """
     try:
+        # Validate tenant_id exists
+        if not current_user.tenant_id:
+            print("❌ Error: User has no tenant_id")
+            return []
+            
         quotes = quote_crud.get_multi(
             db,
             tenant_id=current_user.tenant_id,
@@ -49,10 +54,14 @@ def list_quotes(
         print(f"Quotes table error: {str(e)}")
         return []
     except Exception as e:
-        # Return empty list on error
+        # Return empty list on error but log full trace
         db.rollback()
+        import traceback
+        traceback.print_exc()
         print(f"Quotes error: {str(e)}")
-        return []
+        # Temporary: return error in response for debugging if environment is dev/production
+        # In a real prod app we wouldn't do this, but we need to debug
+        raise HTTPException(status_code=500, detail=f"Internal Error: {str(e)}")
 
 
 @router.post("/", response_model=QuoteWithItems, status_code=201)
