@@ -155,6 +155,23 @@ def create_application() -> FastAPI:
             tenant_id="system"
         )
     
+    # Global Exception Handler for 500 errors
+    from fastapi import Request
+    from fastapi.responses import JSONResponse
+    import traceback
+    
+    @app.exception_handler(Exception)
+    async def global_exception_handler(request: Request, exc: Exception):
+        logger.error(f"Global error: {str(exc)}")
+        traceback.print_exc()
+        return JSONResponse(
+            status_code=500,
+            content={
+                "detail": f"Internal Server Error: {str(exc)}",
+                "path": request.url.path
+            },
+        )
+    
     @app.on_event("shutdown") 
     async def shutdown_event():
         monitoring_service.log_business_event(
