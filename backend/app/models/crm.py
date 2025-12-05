@@ -952,5 +952,177 @@ class CampaignRecipient(Base):
     )
 
 
+# ==================== AUTOMATISATIONS CRM ====================
+
+class AutomationTriggerType(str, enum.Enum):
+    """Types de déclencheurs d'automatisation"""
+    # Événements Lead
+    LEAD_CREATED = "lead_created"
+    LEAD_STATUS_CHANGED = "lead_status_changed"
+    LEAD_SCORE_CHANGED = "lead_score_changed"
+    LEAD_ASSIGNED = "lead_assigned"
+    
+    # Événements Contact
+    CONTACT_CREATED = "contact_created"
+    CONTACT_UPDATED = "contact_updated"
+    
+    # Événements Opportunité
+    OPPORTUNITY_CREATED = "opportunity_created"
+    OPPORTUNITY_STAGE_CHANGED = "opportunity_stage_changed"
+    OPPORTUNITY_WON = "opportunity_won"
+    OPPORTUNITY_LOST = "opportunity_lost"
+    
+    # Événements Email
+    EMAIL_OPENED = "email_opened"
+    EMAIL_CLICKED = "email_clicked"
+    EMAIL_BOUNCED = "email_bounced"
+    
+    # Événements temporels
+    SCHEDULED = "scheduled"  # Exécution programmée
+    DATE_REACHED = "date_reached"  # Date spécifique atteinte
+    INACTIVITY = "inactivity"  # Période d'inactivité
+
+
+class AutomationActionType(str, enum.Enum):
+    """Types d'actions d'automatisation"""
+    # Actions Email
+    SEND_EMAIL = "send_email"
+    ADD_TO_CAMPAIGN = "add_to_campaign"
+    
+    # Actions CRM
+    UPDATE_LEAD = "update_lead"
+    UPDATE_CONTACT = "update_contact"
+    UPDATE_OPPORTUNITY = "update_opportunity"
+    ASSIGN_TO_USER = "assign_to_user"
+    ADD_TO_SEGMENT = "add_to_segment"
+    REMOVE_FROM_SEGMENT = "remove_from_segment"
+    CREATE_ACTIVITY = "create_activity"
+    CREATE_TASK = "create_task"
+    
+    # Actions Notification
+    SEND_NOTIFICATION = "send_notification"
+    SEND_SLACK = "send_slack"
+    SEND_WEBHOOK = "send_webhook"
+    
+    # Actions Flow
+    WAIT = "wait"  # Attendre X temps
+    CONDITION = "condition"  # Branchement conditionnel
+
+
+class AutomationStatus(str, enum.Enum):
+    """Statuts d'une automatisation"""
+    DRAFT = "draft"
+    ACTIVE = "active"
+    PAUSED = "paused"
+    ARCHIVED = "archived"
+
+
+class Automation(Base, TimestampMixin):
+    """
+    Automatisations CRM
+    Workflows déclenchés par des événements
+    """
+    __tablename__ = "automations"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    # Informations de base
+    name = Column(String(200), nullable=False)
+    description = Column(Text)
+    
+    # Déclencheur
+    trigger_type = Column(String(50), nullable=False)
+    trigger_config = Column(JSON)  # Configuration spécifique au trigger
+    # Ex: {"status_from": "new", "status_to": "qualified"} pour LEAD_STATUS_CHANGED
+    
+    # Conditions (optionnel)
+    conditions = Column(JSON)  # Conditions supplémentaires pour déclencher
+    # Ex: [{"field": "score", "operator": ">=", "value": 50}]
+    
+    # Statut
+    status = Column(String(20), default=AutomationStatus.DRAFT, nullable=False)
+    
+    # Statistiques
+    execution_count = Column(Integer, default=0)
+    last_executed_at = Column(DateTime)
+    success_count = Column(Integer, default=0)
+    error_count = Column(Integer, default=0)
+    
+    # Relations
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    
+    # Relations inverses
+    tenant = relationship("Tenant")
+    creator = relationship("User")
+    actions = relationship("AutomationAction", back_populates="automation", cascade="all, delete-orphan", order_by="AutomationAction.order")
+    executions = relationship("AutomationExecution", back_populates="automation", cascade="all, delete-orphan")
+
+
+class AutomationAction(Base, TimestampMixin):
+    """
+    Actions d'une automatisation
+    Exécutées séquentiellement
+    """
+    __tablename__ = "automation_actions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    # Automatisation parente
+    automation_id = Column(UUID(as_uuid=True), ForeignKey("automations.id", ondelete="CASCADE"), nullable=False, index=True)
+    
+    # Type d'action
+    action_type = Column(String(50), nullable=False)
+    
+    # Configuration de l'action (JSON)
+    config = Column(JSON, nullable=False)
+    # Ex pour SEND_EMAIL: {"template_id": "...", "delay_minutes": 0}
+    # Ex pour UPDATE_LEAD: {"field": "status", "value": "contacted"}
+    # Ex pour WAIT: {"duration_hours": 24}
+    # Ex pour CONDITION: {"field": "score", "operator": ">=", "value": 70, "true_action_id": "...", "false_action_id": "..."}
+    
+    # Ordre d'exécution
+    order = Column(Integer, default=0, nullable=False)
+    
+    # Action suivante (pour les branchements)
+    next_action_id = Column(UUID(as_uuid=True), ForeignKey("automation_actions.id"))
+    
+    # Relation
+    automation = relationship("Automation", back_populates="actions")
+    next_action = relationship("AutomationAction", remote_side=[id])
+
+
+class AutomationExecution(Base):
+    """
+    Journal d'exécution des automatisations
+    """
+    __tablename__ = "automation_executions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    # Automatisation
+    automation_id = Column(UUID(as_uuid=True), ForeignKey("automations.id", ondelete="CASCADE"), nullable=False, index=True)
+    
+    # Entité déclencheuse
+    entity_type = Column(String(20))  # lead, contact, opportunity
+    entity_id = Column(UUID(as_uuid=True))
+    
+    # Statut d'exécution
+    status = Column(String(20), default="running")  # running, completed, failed, cancelled
+    
+    # Timestamps
+    started_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    completed_at = Column(DateTime)
+    
+    # Résultat
+    current_action_id = Column(UUID(as_uuid=True))  # Action en cours
+    actions_completed = Column(Integer, default=0)
+    error_message = Column(Text)
+    execution_log = Column(JSON)  # Log détaillé des actions
+    
+    # Relation
+    automation = relationship("Automation", back_populates="executions")
+
+
 # Extensions CRM supprimées - les relations sont maintenant directement 
 # intégrées dans les modèles User, Client et Quote correspondants
