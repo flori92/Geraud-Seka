@@ -5,6 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import ProgrammingError, OperationalError
 
 from app.core import deps
 from app.models.user import User
@@ -20,7 +21,7 @@ from app.services.pdf_generator import PDFGenerator
 router = APIRouter()
 
 
-@router.get("/", response_model=List[QuoteWithItems])
+@router.get("/")
 def list_quotes(
     db: Session = Depends(deps.get_db_session),
     skip: int = 0,
@@ -42,8 +43,15 @@ def list_quotes(
             client_id=client_id,
         )
         return quotes
+    except (ProgrammingError, OperationalError) as e:
+        # Table doesn't exist yet - rollback and return empty list
+        db.rollback()
+        print(f"Quotes table error: {str(e)}")
+        return []
     except Exception as e:
         # Return empty list on error
+        db.rollback()
+        print(f"Quotes error: {str(e)}")
         return []
 
 
