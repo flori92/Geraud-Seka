@@ -1,8 +1,8 @@
-"""add tenant subscription fields
+"""Fix tenant subscription columns - force add if missing
 
-Revision ID: add_subscription_001
-Revises: seka_enterprise_001
-Create Date: 2024-11-22 13:14:00.000000
+Revision ID: fix_tenant_sub_001
+Revises: add_subscription_001
+Create Date: 2024-12-05 07:00:00.000000
 
 """
 from alembic import op
@@ -11,8 +11,8 @@ from sqlalchemy import inspect
 
 
 # revision identifiers, used by Alembic.
-revision = 'add_subscription_001'
-down_revision = 'seka_enterprise_001'
+revision = 'fix_tenant_sub_001'
+down_revision = 'add_subscription_001'
 branch_labels = None
 depends_on = None
 
@@ -26,7 +26,7 @@ def column_exists(table_name, column_name):
 
 
 def upgrade():
-    # Add subscription fields to tenants table (with existence check)
+    """Force add subscription columns if they don't exist"""
     if not column_exists('tenants', 'stripe_customer_id'):
         op.add_column('tenants', sa.Column('stripe_customer_id', sa.String(length=255), nullable=True))
     if not column_exists('tenants', 'subscription_status'):
@@ -34,7 +34,5 @@ def upgrade():
 
 
 def downgrade():
-    if column_exists('tenants', 'subscription_status'):
-        op.drop_column('tenants', 'subscription_status')
-    if column_exists('tenants', 'stripe_customer_id'):
-        op.drop_column('tenants', 'stripe_customer_id')
+    # Don't remove columns on downgrade - they might be needed
+    pass
