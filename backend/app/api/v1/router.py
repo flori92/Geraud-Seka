@@ -5,6 +5,7 @@ from app.api.v1.routes import (
     health,
     documents,
     documents_ged,
+    ged_permissions,
     dashboard,
     clients,
     activities,
@@ -42,6 +43,7 @@ api_router.include_router(health.router, prefix="", tags=["health"])
 api_router.include_router(dashboard.router, prefix="/dashboard", tags=["dashboard"])
 api_router.include_router(documents.router, prefix="/documents", tags=["documents"])
 api_router.include_router(documents_ged.router, prefix="/ged", tags=["ged", "documents"])
+api_router.include_router(ged_permissions.router, prefix="/ged/permissions", tags=["ged", "permissions"])
 api_router.include_router(clients.router, prefix="/clients", tags=["clients"])
 api_router.include_router(suppliers.router, prefix="/suppliers", tags=["suppliers"])
 api_router.include_router(activities.router, prefix="/activities", tags=["activities"])

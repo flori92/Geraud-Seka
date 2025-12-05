@@ -1,6 +1,7 @@
 import uuid
 import enum
-from sqlalchemy import Column, ForeignKey, String, Float, Date, Enum, Text, Boolean, Integer, JSON
+from datetime import datetime
+from sqlalchemy import Column, ForeignKey, String, Float, Date, DateTime, Enum, Text, Boolean, Integer, JSON
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -195,3 +196,172 @@ class Document(Base, TimestampMixin):
         return self.filename
 
     __table_args__ = ({"sqlite_autoincrement": True},)
+
+
+# ==================== PERMISSIONS GED ====================
+
+class PermissionLevel(str, enum.Enum):
+    """Niveaux de permission pour les documents/dossiers"""
+    VIEW = "view"           # Lecture seule
+    DOWNLOAD = "download"   # Lecture + téléchargement
+    EDIT = "edit"           # Modification
+    DELETE = "delete"       # Suppression
+    ADMIN = "admin"         # Tous les droits + gestion permissions
+
+
+class ShareType(str, enum.Enum):
+    """Types de partage"""
+    USER = "user"           # Partage avec un utilisateur spécifique
+    TEAM = "team"           # Partage avec une équipe/département
+    PUBLIC = "public"       # Lien public (avec ou sans mot de passe)
+    EXTERNAL = "external"   # Partage externe (email)
+
+
+class DocumentPermission(Base, TimestampMixin):
+    """
+    Permissions sur les documents
+    Permet de partager des documents avec des utilisateurs ou équipes
+    """
+    __tablename__ = "document_permissions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    # Document ou dossier concerné (un seul des deux)
+    document_id = Column(UUID(as_uuid=True), ForeignKey("documents.id", ondelete="CASCADE"), index=True)
+    folder_id = Column(UUID(as_uuid=True), ForeignKey("document_folders.id", ondelete="CASCADE"), index=True)
+    
+    # Type de partage
+    share_type = Column(String(20), nullable=False, default=ShareType.USER)
+    
+    # Bénéficiaire (selon le type)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    team_name = Column(String(100))  # Pour partage équipe
+    external_email = Column(String(255))  # Pour partage externe
+    
+    # Niveau de permission
+    permission_level = Column(String(20), nullable=False, default=PermissionLevel.VIEW)
+    
+    # Options
+    can_reshare = Column(Boolean, default=False)  # Peut re-partager
+    inherit_to_children = Column(Boolean, default=True)  # Hériter aux sous-dossiers/documents
+    
+    # Expiration
+    expires_at = Column(DateTime)
+    
+    # Qui a partagé
+    granted_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    
+    # Métadonnées
+    notes = Column(Text)  # Note pour le partage
+    
+    # Relations
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    
+    # Relations inverses
+    document = relationship("Document", backref="permissions")
+    folder = relationship("DocumentFolder", backref="permissions")
+    user = relationship("User", foreign_keys=[user_id], backref="document_permissions")
+    granter = relationship("User", foreign_keys=[granted_by])
+    tenant = relationship("Tenant")
+
+
+class DocumentShareLink(Base, TimestampMixin):
+    """
+    Liens de partage public pour les documents
+    Permet de générer des URLs uniques pour partager des documents
+    """
+    __tablename__ = "document_share_links"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    # Document ou dossier concerné
+    document_id = Column(UUID(as_uuid=True), ForeignKey("documents.id", ondelete="CASCADE"), index=True)
+    folder_id = Column(UUID(as_uuid=True), ForeignKey("document_folders.id", ondelete="CASCADE"), index=True)
+    
+    # Token unique pour l'URL
+    share_token = Column(String(64), unique=True, nullable=False, index=True)
+    
+    # Sécurité
+    password_hash = Column(String(255))  # Mot de passe optionnel (hashé)
+    requires_password = Column(Boolean, default=False)
+    
+    # Permissions du lien
+    permission_level = Column(String(20), nullable=False, default=PermissionLevel.VIEW)
+    allow_download = Column(Boolean, default=True)
+    
+    # Limites
+    max_views = Column(Integer)  # Nombre max de vues (null = illimité)
+    max_downloads = Column(Integer)  # Nombre max de téléchargements
+    current_views = Column(Integer, default=0)
+    current_downloads = Column(Integer, default=0)
+    
+    # Expiration
+    expires_at = Column(DateTime)
+    
+    # Statut
+    is_active = Column(Boolean, default=True)
+    
+    # Métadonnées
+    name = Column(String(255))  # Nom du lien (pour identification)
+    notes = Column(Text)
+    
+    # Créateur
+    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    
+    # Relations
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    
+    # Relations inverses
+    document = relationship("Document", backref="share_links")
+    folder = relationship("DocumentFolder", backref="share_links")
+    creator = relationship("User")
+    tenant = relationship("Tenant")
+    access_logs = relationship("ShareLinkAccessLog", back_populates="share_link", cascade="all, delete-orphan")
+
+    @property
+    def is_expired(self) -> bool:
+        """Vérifie si le lien est expiré"""
+        if self.expires_at and datetime.utcnow() > self.expires_at:
+            return True
+        return False
+    
+    @property
+    def is_view_limit_reached(self) -> bool:
+        """Vérifie si la limite de vues est atteinte"""
+        if self.max_views and self.current_views >= self.max_views:
+            return True
+        return False
+    
+    @property
+    def is_download_limit_reached(self) -> bool:
+        """Vérifie si la limite de téléchargements est atteinte"""
+        if self.max_downloads and self.current_downloads >= self.max_downloads:
+            return True
+        return False
+
+
+class ShareLinkAccessLog(Base):
+    """
+    Journal des accès aux liens de partage
+    Pour audit et statistiques
+    """
+    __tablename__ = "share_link_access_logs"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
+    # Lien concerné
+    share_link_id = Column(UUID(as_uuid=True), ForeignKey("document_share_links.id", ondelete="CASCADE"), nullable=False, index=True)
+    
+    # Type d'accès
+    access_type = Column(String(20), nullable=False)  # view, download
+    
+    # Informations visiteur
+    ip_address = Column(String(45))
+    user_agent = Column(String(500))
+    referer = Column(String(500))
+    
+    # Timestamp
+    accessed_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    
+    # Relation
+    share_link = relationship("DocumentShareLink", back_populates="access_logs")
