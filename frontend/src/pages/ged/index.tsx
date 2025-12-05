@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Alert } from "@/components/ui/Alert";
+import { DocumentViewer } from "@/components/ged/DocumentViewer";
 import { 
   Folder, File, Upload, Plus, Search, Grid, List, 
   MoreVertical, Download, Trash2, Edit, Eye, Star,
@@ -70,6 +71,8 @@ export default function GEDPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [dragOver, setDragOver] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
 
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -138,6 +141,16 @@ export default function GEDPage() {
     return new Date(dateString).toLocaleDateString("fr-FR", {
       day: "numeric", month: "short", year: "numeric"
     });
+  };
+
+  const openDocument = (doc: Document) => {
+    setSelectedDocument(doc);
+    setViewerOpen(true);
+  };
+
+  const closeViewer = () => {
+    setViewerOpen(false);
+    setSelectedDocument(null);
   };
 
   return (
@@ -275,6 +288,7 @@ export default function GEDPage() {
                     return (
                       <div
                         key={doc.id}
+                        onClick={() => openDocument(doc)}
                         className="group p-4 rounded-lg border bg-white hover:shadow-md hover:border-primary/50 cursor-pointer transition-all relative"
                       >
                         {doc.is_favorite && (
@@ -320,6 +334,7 @@ export default function GEDPage() {
                     return (
                       <div
                         key={doc.id}
+                        onClick={() => openDocument(doc)}
                         className="flex items-center gap-4 p-4 hover:bg-accents-1 cursor-pointer"
                       >
                         <div className="w-10 h-10 rounded-lg bg-accents-1 flex items-center justify-center">
@@ -336,7 +351,7 @@ export default function GEDPage() {
                               <>
                                 <span>•</span>
                                 {doc.tags.slice(0, 2).map((tag) => (
-                                  <Badge key={tag} variant="secondary">{tag}</Badge>
+                                  <Badge key={tag}>{tag}</Badge>
                                 ))}
                               </>
                             )}
@@ -360,6 +375,13 @@ export default function GEDPage() {
           )}
         </div>
       </div>
+
+      {/* Document Viewer Modal */}
+      <DocumentViewer
+        isOpen={viewerOpen}
+        onClose={closeViewer}
+        documentData={selectedDocument}
+      />
     </DashboardLayout>
   );
 }
