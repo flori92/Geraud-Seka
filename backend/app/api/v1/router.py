@@ -36,6 +36,8 @@ from app.api.v1.routes import (
     treasury_dashboard,
     treasury,
     accounting,
+    accounting_advanced,
+    treasury_advanced,
     stock,
     reports,
     billing,
@@ -89,6 +91,8 @@ api_router.include_router(treasury_dashboard.router, prefix="/treasury/dashboard
 
 # Accounting Module Routes
 api_router.include_router(accounting.router, prefix="/accounting", tags=["accounting"])
+api_router.include_router(accounting_advanced.router, prefix="/accounting/advanced", tags=["accounting", "advanced"])
+api_router.include_router(treasury_advanced.router, prefix="/treasury/advanced", tags=["treasury", "advanced"])
 
 # Stock Module Routes
 api_router.include_router(stock.router, prefix="/stock", tags=["stock", "inventory"])
