@@ -322,7 +322,7 @@ class Attendance(Base):
 
     # Validation
     is_validated = Column(Boolean, default=False)
-    validated_by = Column(String, ForeignKey("users.id"))
+    validated_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     validated_at = Column(DateTime)
 
     # Notes
@@ -345,7 +345,7 @@ class PerformanceReview(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     tenant_id = Column(String, nullable=False, index=True)
     employee_id = Column(String, ForeignKey("employees.id"), nullable=False, index=True)
-    reviewer_id = Column(String, ForeignKey("users.id"), nullable=False)
+    reviewer_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
 
     # Période
     review_period = Column(String, default=PerformanceReviewPeriod.ANNUAL)
@@ -406,7 +406,7 @@ class Goal(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     tenant_id = Column(String, nullable=False, index=True)
     employee_id = Column(String, ForeignKey("employees.id"), nullable=False, index=True)
-    manager_id = Column(String, ForeignKey("users.id"), nullable=False)
+    manager_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
 
     # Définition
     title = Column(String(200), nullable=False)
@@ -456,7 +456,7 @@ class Feedback360(Base):
     employee_id = Column(String, ForeignKey("employees.id"), nullable=False, index=True)
 
     # Qui évalue
-    reviewer_id = Column(String, ForeignKey("users.id"), nullable=False)
+    reviewer_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     reviewer_relationship = Column(String, default=ReviewerRelationship.PEER)
 
     # Campagne de feedback
@@ -557,7 +557,7 @@ class SalaryAdvance(Base):
 
     # Approbation
     status = Column(String, default="pending")  # pending, approved, rejected, paid, reimbursed
-    approved_by = Column(String, ForeignKey("users.id"))
+    approved_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     approval_date = Column(DateTime)
     rejection_reason = Column(Text)
 
@@ -612,7 +612,7 @@ class Loan(Base):
     collateral = Column(Text)
 
     # Approbation
-    approved_by = Column(String, ForeignKey("users.id"))
+    approved_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     approval_date = Column(DateTime)
 
     notes = Column(Text)
@@ -702,16 +702,16 @@ class ExpenseReport(Base):
 
     submitted_date = Column(DateTime)
 
-    manager_approved_by = Column(String, ForeignKey("users.id"))
+    manager_approved_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     manager_approval_date = Column(DateTime)
     manager_comments = Column(Text)
 
-    finance_approved_by = Column(String, ForeignKey("users.id"))
+    finance_approved_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     finance_approval_date = Column(DateTime)
     finance_comments = Column(Text)
 
     rejection_reason = Column(Text)
-    rejected_by = Column(String, ForeignKey("users.id"))
+    rejected_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     rejected_at = Column(DateTime)
 
     # Paiement

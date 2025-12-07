@@ -167,7 +167,7 @@ def upgrade():
 
             # Validation
             sa.Column('is_validated', sa.Boolean(), default=False),
-            sa.Column('validated_by', sa.String(), sa.ForeignKey('users.id')),
+            sa.Column('validated_by', postgresql.UUID(as_uuid=True), sa.ForeignKey('users.id')),
             sa.Column('validated_at', sa.DateTime()),
 
             # Notes
@@ -189,7 +189,7 @@ def upgrade():
             sa.Column('id', sa.String(), primary_key=True),
             sa.Column('tenant_id', sa.String(), nullable=False, index=True),
             sa.Column('employee_id', sa.String(), sa.ForeignKey('employees.id'), nullable=False, index=True),
-            sa.Column('reviewer_id', sa.String(), sa.ForeignKey('users.id'), nullable=False),
+            sa.Column('reviewer_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('users.id'), nullable=False),
 
             # Période
             sa.Column('review_period', sa.String(), default='annual'),
@@ -251,7 +251,7 @@ def upgrade():
             sa.Column('id', sa.String(), primary_key=True),
             sa.Column('tenant_id', sa.String(), nullable=False, index=True),
             sa.Column('employee_id', sa.String(), sa.ForeignKey('employees.id'), nullable=False, index=True),
-            sa.Column('manager_id', sa.String(), sa.ForeignKey('users.id'), nullable=False),
+            sa.Column('manager_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('users.id'), nullable=False),
 
             sa.Column('title', sa.String(200), nullable=False),
             sa.Column('description', sa.Text()),
@@ -297,7 +297,7 @@ def upgrade():
             sa.Column('id', sa.String(), primary_key=True),
             sa.Column('tenant_id', sa.String(), nullable=False, index=True),
             sa.Column('employee_id', sa.String(), sa.ForeignKey('employees.id'), nullable=False, index=True),
-            sa.Column('reviewer_id', sa.String(), sa.ForeignKey('users.id'), nullable=False),
+            sa.Column('reviewer_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('users.id'), nullable=False),
             sa.Column('reviewer_relationship', sa.String(), default='peer'),
 
             sa.Column('campaign_id', sa.String(), index=True),
@@ -385,7 +385,7 @@ def upgrade():
 
             # Approbation
             sa.Column('status', sa.String(), default='pending'),
-            sa.Column('approved_by', sa.String(), sa.ForeignKey('users.id')),
+            sa.Column('approved_by', postgresql.UUID(as_uuid=True), sa.ForeignKey('users.id')),
             sa.Column('approval_date', sa.DateTime()),
             sa.Column('rejection_reason', sa.Text()),
 
@@ -439,7 +439,7 @@ def upgrade():
             sa.Column('collateral', sa.Text()),
 
             # Approbation
-            sa.Column('approved_by', sa.String(), sa.ForeignKey('users.id')),
+            sa.Column('approved_by', postgresql.UUID(as_uuid=True), sa.ForeignKey('users.id')),
             sa.Column('approval_date', sa.DateTime()),
             sa.Column('notes', sa.Text()),
 
@@ -522,16 +522,16 @@ def upgrade():
             sa.Column('status', sa.String(), default='draft'),
             sa.Column('submitted_date', sa.DateTime()),
 
-            sa.Column('manager_approved_by', sa.String(), sa.ForeignKey('users.id')),
+            sa.Column('manager_approved_by', postgresql.UUID(as_uuid=True), sa.ForeignKey('users.id')),
             sa.Column('manager_approval_date', sa.DateTime()),
             sa.Column('manager_comments', sa.Text()),
 
-            sa.Column('finance_approved_by', sa.String(), sa.ForeignKey('users.id')),
+            sa.Column('finance_approved_by', postgresql.UUID(as_uuid=True), sa.ForeignKey('users.id')),
             sa.Column('finance_approval_date', sa.DateTime()),
             sa.Column('finance_comments', sa.Text()),
 
             sa.Column('rejection_reason', sa.Text()),
-            sa.Column('rejected_by', sa.String(), sa.ForeignKey('users.id')),
+            sa.Column('rejected_by', postgresql.UUID(as_uuid=True), sa.ForeignKey('users.id')),
             sa.Column('rejected_at', sa.DateTime()),
 
             # Paiement
