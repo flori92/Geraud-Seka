@@ -764,7 +764,7 @@ class ExpenseLine(Base):
 
     # Projet/Client (si facturable)
     project_id = Column(String)
-    client_id = Column(String, ForeignKey("clients.id"))
+    client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id"))
     billable_to_client = Column(Boolean, default=False)
 
     # Justificatif

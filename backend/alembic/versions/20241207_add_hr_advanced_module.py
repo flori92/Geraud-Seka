@@ -586,7 +586,7 @@ def upgrade():
 
             # Projet/Client
             sa.Column('project_id', sa.String()),
-            sa.Column('client_id', sa.String(), sa.ForeignKey('clients.id')),
+            sa.Column('client_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('clients.id')),
             sa.Column('billable_to_client', sa.Boolean(), default=False),
 
             # Justificatif
