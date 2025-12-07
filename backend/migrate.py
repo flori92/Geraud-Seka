@@ -48,6 +48,15 @@ try:
         PayrollParameter, SalaryAdvance, Loan,
         ExpensePolicy, ExpenseReport, ExpenseLine
     )
+    # Import HR Recruitment models
+    from app.models.hr_recruitment import (  # noqa
+        JobPosting, Candidate, Application, Interview, JobOffer, RecruitmentPipeline
+    )
+    # Import HR Training models
+    from app.models.hr_training import (  # noqa
+        TrainingCourse, TrainingSession, TrainingEnrollment,
+        Skill, EmployeeSkill, DevelopmentPlan, SuccessionPlan
+    )
     # Import CRM models
     from app.models.crm import Lead, Opportunity, CRMActivity  # noqa
     # Import Accounting models
@@ -176,6 +185,13 @@ def create_initial_data():
             PerformanceReview, Goal, Feedback360,
             PayrollParameter, SalaryAdvance, Loan,
             ExpensePolicy, ExpenseReport, ExpenseLine
+        )
+        from app.models.hr_recruitment import (  # noqa
+            JobPosting, Candidate, Application, Interview, JobOffer, RecruitmentPipeline
+        )
+        from app.models.hr_training import (  # noqa
+            TrainingCourse, TrainingSession, TrainingEnrollment,
+            Skill, EmployeeSkill, DevelopmentPlan, SuccessionPlan
         )
 
         from app.db.session import SessionLocal
