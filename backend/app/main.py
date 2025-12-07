@@ -146,8 +146,29 @@ def create_application() -> FastAPI:
                 logger.info(f"✅ Created tables: {', '.join(sorted(missing))}")
             else:
                 logger.info("✅ All database tables exist")
+            
+            # Fix ledger_accounts.is_active type mismatch (VARCHAR -> BOOLEAN)
+            if 'ledger_accounts' in existing_tables:
+                columns = {col['name']: col for col in inspector.get_columns('ledger_accounts')}
+                if 'is_active' in columns:
+                    col_type = str(columns['is_active']['type']).upper()
+                    if 'VARCHAR' in col_type or 'CHAR' in col_type or 'TEXT' in col_type:
+                        logger.info(f"🔧 Fixing ledger_accounts.is_active type mismatch (current: {col_type})...")
+                        from sqlalchemy import text
+                        with engine.begin() as conn:
+                            # Convert 'true'/'1' string values to boolean
+                            conn.execute(text("""
+                                ALTER TABLE ledger_accounts 
+                                ALTER COLUMN is_active TYPE BOOLEAN 
+                                USING CASE 
+                                    WHEN is_active::text IN ('true', 'True', 'TRUE', '1', 't') THEN true 
+                                    ELSE false 
+                                END
+                            """))
+                        logger.info("✅ Fixed ledger_accounts.is_active type to BOOLEAN")
+
         except Exception as e:
-            logger.error(f"❌ Error creating tables: {e}")
+            logger.error(f"❌ Error during startup database check: {e}")
         
         monitoring_service.log_business_event(
             event_type="application_startup",

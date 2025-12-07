@@ -33,7 +33,8 @@
       "Bash(find:*)",
       "Bash(lsof:*)",
       "Bash(xargs kill:*)",
-      "Bash(frontend/.gitignore)"
+      "Bash(frontend/.gitignore)",
+      "Bash(railway run:*)"
     ],
     "deny": [],
     "ask": []
