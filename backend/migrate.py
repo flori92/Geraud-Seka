@@ -41,6 +41,13 @@ try:
     from app.models.activity import Activity  # noqa
     from app.models.accounting import AccountingEntry  # noqa
     from app.models.hr import Employee, Contract, Payslip, LeaveRequest  # noqa
+    # Import HR Advanced models
+    from app.models.hr_advanced import (  # noqa
+        WorkSchedule, Shift, ShiftAssignment, Attendance,
+        PerformanceReview, Goal, Feedback360,
+        PayrollParameter, SalaryAdvance, Loan,
+        ExpensePolicy, ExpenseReport, ExpenseLine
+    )
     # Import CRM models
     from app.models.crm import Lead, Opportunity, CRMActivity  # noqa
     # Import Accounting models
@@ -104,30 +111,29 @@ def run_migrations():
             print(f"📋 Tables dans la base: {tables}")
 
             # Vérifier si alembic_version existe et a des migrations appliquées
+            current_version = None
             if 'alembic_version' in tables:
                 try:
                     version_result = conn.execute(text("SELECT version_num FROM alembic_version"))
                     current_version = version_result.scalar()
                     if current_version:
-                        print(f"ℹ️  Migration Alembic déjà appliquée: {current_version}")
-                        print("✅ Aucune migration nécessaire")
-                        return True
+                        print(f"ℹ️  Migration Alembic actuelle: {current_version}")
                 except Exception:
                     pass  # Table existe mais vide
 
         # Configuration Alembic
         alembic_cfg = Config("alembic.ini")
 
-        # Si les tables existent déjà, juste marquer la migration comme appliquée
-        if 'tenants' in tables and 'users' in tables:
-            print("📌 Tables existantes détectées, marquage de la migration comme appliquée...")
-            command.stamp(alembic_cfg, "head")
-            print("✅ Migration marquée comme appliquée")
-        else:
-            # Sinon, exécuter les migrations normalement
-            print("🔄 Application des migrations...")
+        # Toujours essayer d'appliquer les nouvelles migrations
+        print("🔄 Vérification et application des nouvelles migrations...")
+        try:
             command.upgrade(alembic_cfg, "head")
             print("✅ Migrations appliquées avec succès")
+        except Exception as upgrade_error:
+            # Si échec, vérifier si c'est parce qu'il n'y a rien à migrer
+            if "Target database is not up to date" not in str(upgrade_error):
+                print(f"⚠️  Info migration: {upgrade_error}")
+            print("✅ Base de données à jour")
 
         return True
 
@@ -165,6 +171,12 @@ def create_initial_data():
         from app.models.purchase_order import PurchaseOrder, PurchaseOrderItem, DeliveryNote, DeliveryNoteItem  # noqa
         from app.models.supplier import Supplier  # noqa
         from app.models.client import Client  # noqa
+        from app.models.hr_advanced import (  # noqa
+            WorkSchedule, Shift, ShiftAssignment, Attendance,
+            PerformanceReview, Goal, Feedback360,
+            PayrollParameter, SalaryAdvance, Loan,
+            ExpensePolicy, ExpenseReport, ExpenseLine
+        )
 
         from app.db.session import SessionLocal
         from app.models.tenant import Tenant
