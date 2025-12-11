@@ -8,12 +8,14 @@ import Link from "next/link";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { 
   getDashboardStats, 
+  getDashboardStatsExtended,
   getClients, 
   getInvoices,
   getQuotes,
   getOpportunities,
   getCRMActivities,
   type DashboardStats,
+  type DashboardStatsExtended,
   type Client,
   type Invoice,
   type Quote,
@@ -235,6 +237,7 @@ function ActivityItem({ icon: Icon, iconBg, title, subtitle, time, amount }: Act
 export default function DashboardPage() {
   const router = useRouter();
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [extendedStats, setExtendedStats] = useState<DashboardStatsExtended | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -256,9 +259,18 @@ export default function DashboardPage() {
         return;
       }
 
-      // Fetch all data in parallel
-      const [statsData, clientsData, invoicesData, quotesData, oppsData, activitiesData] = await Promise.allSettled([
+      // Fetch all data en parallèle (statistiques générales + vues Pennylane-like)
+      const [
+        statsData,
+        extendedData,
+        clientsData,
+        invoicesData,
+        quotesData,
+        oppsData,
+        activitiesData
+      ] = await Promise.allSettled([
         getDashboardStats(token),
+        getDashboardStatsExtended(token),
         getClients(token),
         getInvoices(token),
         getQuotes(token),
@@ -267,6 +279,7 @@ export default function DashboardPage() {
       ]);
 
       if (statsData.status === "fulfilled") setStats(statsData.value);
+      if (extendedData.status === "fulfilled") setExtendedStats(extendedData.value);
       if (clientsData.status === "fulfilled") setClients(clientsData.value);
       if (invoicesData.status === "fulfilled") setInvoices(invoicesData.value);
       if (quotesData.status === "fulfilled") setQuotes(quotesData.value);
@@ -365,6 +378,124 @@ export default function DashboardPage() {
           {error}
         </Alert>
       )}
+
+      {/* Section d'accueil inspirée de Pennylane (documents + chiffres clés + boîte de réception) */}
+      <div className="grid gap-6 lg:grid-cols-3 mb-8">
+        {/* Colonne principale : dépôt de documents + chiffres clés */}
+        <div className="lg:col-span-2 space-y-4">
+          {/* Dépôt de documents */}
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+            <p className="text-sm font-medium text-gray-600 mb-4">
+              Déposez vos documents
+            </p>
+            <div className="grid gap-4 md:grid-cols-3">
+              <Link href="/achats/factures">
+                <div className="border border-dashed border-gray-300 rounded-xl p-4 hover:border-emerald-500 hover:bg-emerald-50/40 cursor-pointer transition-all">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Receipt className="h-5 w-5 text-emerald-600" />
+                    <span className="font-medium text-sm text-gray-900">Factures fournisseurs</span>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Importez ou ajoutez vos factures d'achats pour les traiter plus vite.
+                  </p>
+                </div>
+              </Link>
+              <Link href="/ventes/factures">
+                <div className="border border-dashed border-gray-300 rounded-xl p-4 hover:border-emerald-500 hover:bg-emerald-50/40 cursor-pointer transition-all">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FileText className="h-5 w-5 text-emerald-600" />
+                    <span className="font-medium text-sm text-gray-900">Factures clients</span>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Centralisez vos factures de vente et suivez les encaissements.
+                  </p>
+                </div>
+              </Link>
+              <Link href="/documents">
+                <div className="border border-dashed border-gray-300 rounded-xl p-4 hover:border-emerald-500 hover:bg-emerald-50/40 cursor-pointer transition-all">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FileText className="h-5 w-5 text-emerald-600" />
+                    <span className="font-medium text-sm text-gray-900">Autres documents</span>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Déposez vos relevés, contrats, pièces justificatives, etc.
+                  </p>
+                </div>
+              </Link>
+            </div>
+          </div>
+
+          {/* Chiffres clés de la période */}
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm font-medium text-gray-600">Analysez vos chiffres clés</p>
+              <span className="text-xs text-gray-400">Cette année</span>
+            </div>
+            <div className="grid gap-4 md:grid-cols-4">
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Solde des comptes</p>
+                <p className="text-lg font-semibold text-gray-900">
+                  {formatCurrency(extendedStats?.solde_comptes ?? 0)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Encaissements</p>
+                <p className="text-lg font-semibold text-emerald-600">
+                  {formatCurrency(extendedStats?.encaissements ?? 0)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Décaissements</p>
+                <p className="text-lg font-semibold text-red-600">
+                  {formatCurrency(extendedStats?.decaissements ?? 0)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Total achats TTC</p>
+                <p className="text-lg font-semibold text-gray-900">
+                  {formatCurrency(extendedStats?.total_achats_ttc ?? 0)}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Boîte de réception simplifiée */}
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 flex flex-col">
+          <h3 className="text-sm font-semibold text-gray-900 mb-4">Boîte de réception</h3>
+          <div className="space-y-3 text-sm flex-1">
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600">Transactions à justifier</span>
+              <span className="inline-flex items-center justify-center rounded-full bg-orange-50 text-orange-700 text-xs px-2 py-0.5">
+                {extendedStats?.transactions_a_justifier ?? 0}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600">Factures en retard</span>
+              <span className="inline-flex items-center justify-center rounded-full bg-red-50 text-red-700 text-xs px-2 py-0.5">
+                {extendedStats?.factures_en_retard ?? 0}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600">Demandes comptables</span>
+              <span className="inline-flex items-center justify-center rounded-full bg-blue-50 text-blue-700 text-xs px-2 py-0.5">
+                {extendedStats?.demandes_comptables ?? 0}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600">Rapprochements suggérés</span>
+              <span className="inline-flex items-center justify-center rounded-full bg-emerald-50 text-emerald-700 text-xs px-2 py-0.5">
+                {extendedStats?.rapprochements_suggeres ?? 0}
+              </span>
+            </div>
+          </div>
+          <div className="mt-4 pt-4 border-t border-gray-100 text-xs text-gray-500">
+            <p>
+              Utilisez les modules Transactions, Achats et Ventes pour traiter ces éléments.
+            </p>
+          </div>
+        </div>
+      </div>
 
       {/* KPIs Principaux */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">

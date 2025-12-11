@@ -75,26 +75,7 @@ class AccountingEntryHeader(Base, TimestampMixin):
     document = relationship("Document")
 
 
-class BankReconciliation(Base, TimestampMixin):
-    __tablename__ = "bank_reconciliations"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
-    
-    bank_account_id = Column(UUID(as_uuid=True), ForeignKey("bank_accounts.id"), nullable=False)
-    
-    period_start = Column(Date, nullable=False)
-    period_end = Column(Date, nullable=False)
-    
-    statement_balance = Column(Numeric(15, 2), nullable=False)
-    book_balance = Column(Numeric(15, 2), nullable=False)
-    difference = Column(Numeric(15, 2), nullable=False)
-    
-    status = Column(String(20), default="in_progress")
-    reconciled_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
-    reconciled_at = Column(Date, nullable=True)
-    
-    notes = Column(Text, nullable=True)
 
 
 class AccountingRevision(Base, TimestampMixin):

@@ -30,6 +30,9 @@ export default function FacturesFournisseurs() {
   const [invoices, setInvoices] = useState<DisplayInvoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedExercice, setSelectedExercice] = useState("2024");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [tvaFilter, setTvaFilter] = useState<InvoiceStatus | "all">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "validee" | "import">("all");
 
   useEffect(() => {
     const token = localStorage.getItem("seka_access_token");
@@ -98,6 +101,24 @@ export default function FacturesFournisseurs() {
     return <span className={`px-2 py-1 rounded text-xs font-medium ${styles[tva]}`}>{labels[tva]}</span>;
   };
 
+  const filteredInvoices = invoices.filter((inv) => {
+    const q = searchQuery.toLowerCase();
+    if (q) {
+      const match =
+        inv.tiers.toLowerCase().includes(q) ||
+        inv.numeroFacture.toLowerCase().includes(q) ||
+        inv.numeroCompte.toLowerCase().includes(q);
+      if (!match) return false;
+    }
+
+    if (tvaFilter !== "all" && inv.tauxTVA !== tvaFilter) return false;
+
+    if (statusFilter === "validee" && inv.statutDirigeant !== "Validée") return false;
+    if (statusFilter === "import" && inv.statutDirigeant === "Validée") return false;
+
+    return true;
+  });
+
   return (
     <>
       <Head><title>Factures fournisseurs - SEKA</title></Head>
@@ -107,7 +128,7 @@ export default function FacturesFournisseurs() {
           {/* Top Header */}
           <header className="sticky top-0 z-40 h-14 bg-white border-b border-gray-200 flex items-center justify-between px-6">
             <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-500">al à clôturer</span>
+              <span className="text-sm text-gray-500">Exercice à clôturer</span>
               <button className="flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-lg text-sm">
                 Exercice {selectedExercice}
                 <ChevronDown className="w-4 h-4" />
@@ -124,7 +145,41 @@ export default function FacturesFournisseurs() {
           <div className="p-6">
             {/* Filters Row */}
             <div className="bg-white rounded-xl border border-gray-200 mb-6">
-              <div className="p-4 border-b border-gray-200">
+              <div className="p-4 border-b border-gray-200 space-y-3">
+                {/* Ligne recherche + filtres principaux */}
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex-1 min-w-[220px]">
+                    <input
+                      type="text"
+                      placeholder="Rechercher une facture (tiers, n° de facture, compte)"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    />
+                  </div>
+                  <select
+                    value={tvaFilter}
+                    onChange={(e) => setTvaFilter(e.target.value as InvoiceStatus | "all")}
+                    className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  >
+                    <option value="all">Toutes les TVA</option>
+                    <option value="20%">20%</option>
+                    <option value="10%">10%</option>
+                    <option value="autoliquid">Autoliquidation</option>
+                    <option value="extracom">Extracommunautaire</option>
+                  </select>
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value as "all" | "validee" | "import")}
+                    className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  >
+                    <option value="all">Tous les statuts</option>
+                    <option value="validee">Validées</option>
+                    <option value="import">À valider</option>
+                  </select>
+                </div>
+
+                {/* Ligne de configuration des colonnes (statique) */}
                 <div className="flex items-center gap-3 flex-wrap">
                   <div className="flex items-center gap-2">
                     <input type="checkbox" className="rounded border-gray-300" />
@@ -171,7 +226,7 @@ export default function FacturesFournisseurs() {
                     <Loader2 className="w-8 h-8 animate-spin text-teal-600" />
                     <span className="ml-2 text-gray-500">Chargement des factures...</span>
                   </div>
-                ) : invoices.length === 0 ? (
+                ) : filteredInvoices.length === 0 ? (
                   <div className="text-center py-12">
                     <p className="text-gray-500">Aucune facture fournisseur trouvée</p>
                     <p className="text-sm text-gray-400 mt-1">Importez vos premières factures pour commencer</p>
@@ -190,11 +245,11 @@ export default function FacturesFournisseurs() {
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut dirigeant</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Source</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Codes analytiques</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Catégori</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Catégories</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {invoices.map((inv) => (
+                    {filteredInvoices.map((inv) => (
                       <tr key={inv.id} className="hover:bg-gray-50 cursor-pointer">
                         <td className="px-4 py-3"><input type="checkbox" className="rounded border-gray-300" /></td>
                         <td className="px-4 py-3 text-sm text-gray-900">{inv.emission}</td>

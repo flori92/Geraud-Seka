@@ -64,6 +64,7 @@ export default function RulesCenter() {
   };
 
   const tabs = [
+    { id: "transactions" as TabType, label: "Transactions", count: 0 },
     { id: "fournisseurs" as TabType, label: "Fournisseurs", count: suppliers.length },
     { id: "clients" as TabType, label: "Clients", count: clients.length },
     { id: "produits" as TabType, label: "Produits", count: products.length },
@@ -157,24 +158,44 @@ export default function RulesCenter() {
 
             {/* Table Content */}
             <div className="overflow-x-auto">
+              {activeTab === "transactions" && (
+                <div className="p-6 text-sm text-gray-600">
+                  <p className="mb-2 font-medium text-gray-900">
+                    Règles de transactions (à venir)
+                  </p>
+                  <p className="mb-4">
+                    Cette section permettra bientôt de définir des règles automatiques de catégorisation pour vos
+                    transactions bancaires, comme dans Pennylane.
+                  </p>
+                  <p className="mb-4">
+                    En attendant, vous pouvez gérer vos transactions et leurs catégories depuis la page dédiée :
+                  </p>
+                  <button
+                    onClick={() => router.push("/transactions")}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700"
+                  >
+                    Aller aux transactions
+                  </button>
+                </div>
+              )}
+
               {activeTab === "fournisseurs" && (
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-gray-200 bg-gray-50">
                       <th className="w-10 px-4 py-3"><input type="checkbox" className="rounded border-gray-300" /></th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nom</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">NIF</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Compte par défaut</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Taux TVA</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">N° de compte</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contrepartie / TVA</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total dépensé</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Solde</th>
                       <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {filteredSuppliers.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="px-4 py-12 text-center text-gray-500">
+                        <td colSpan={7} className="px-4 py-12 text-center text-gray-500">
                           Aucun fournisseur trouvé
                         </td>
                       </tr>
@@ -183,7 +204,6 @@ export default function RulesCenter() {
                         <tr key={supplier.id} className="hover:bg-gray-50">
                           <td className="px-4 py-3"><input type="checkbox" className="rounded border-gray-300" /></td>
                           <td className="px-4 py-3 text-sm font-medium text-gray-900">{supplier.name}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{supplier.nif || "-"}</td>
                           <td className="px-4 py-3 text-sm text-gray-600">{supplier.default_account || "-"}</td>
                           <td className="px-4 py-3 text-sm text-gray-600">
                             {supplier.default_tax_rate ? `${supplier.default_tax_rate}%` : "-"}
@@ -210,7 +230,7 @@ export default function RulesCenter() {
                     <tr className="border-b border-gray-200 bg-gray-50">
                       <th className="w-10 px-4 py-3"><input type="checkbox" className="rounded border-gray-300" /></th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nom</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Slug</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Identifiant</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Secteur</th>
                       <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
                     </tr>
@@ -247,9 +267,10 @@ export default function RulesCenter() {
                     <tr className="border-b border-gray-200 bg-gray-50">
                       <th className="w-10 px-4 py-3"><input type="checkbox" className="rounded border-gray-300" /></th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nom</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SKU</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Prix</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Stock</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Référence</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Prix HT</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">TVA</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Prix TTC</th>
                       <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
                     </tr>
                   </thead>
@@ -267,7 +288,8 @@ export default function RulesCenter() {
                           <td className="px-4 py-3 text-sm font-medium text-gray-900">{product.name}</td>
                           <td className="px-4 py-3 text-sm text-gray-600">{product.sku || "-"}</td>
                           <td className="px-4 py-3 text-sm text-right text-gray-900">{formatCurrency(product.price)}</td>
-                          <td className="px-4 py-3 text-sm text-right text-gray-600">{product.stock_quantity}</td>
+                          <td className="px-4 py-3 text-sm text-right text-gray-600">-</td>
+                          <td className="px-4 py-3 text-sm text-right text-gray-900">{formatCurrency(product.price)}</td>
                           <td className="px-4 py-3 text-center">
                             <button className="text-gray-400 hover:text-gray-600">
                               <MoreHorizontal className="w-4 h-4" />

@@ -25,6 +25,8 @@ export default function TransactionsPage() {
   const [activeTab, setActiveTab] = useState<"tout" | "pending" | "validated">("tout");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
+  const [dateRange, setDateRange] = useState<{ start?: string; end?: string }>({});
+  const [categoryFilter, setCategoryFilter] = useState<string>("");
   
   const [stats, setStats] = useState({
     solde: 0,
@@ -74,11 +76,27 @@ export default function TransactionsPage() {
     fetchData();
   }, [router]);
 
+  const categoryOptions = Array.from(
+    new Set(transactions.map((tx) => tx.category).filter((c): c is string => Boolean(c)))
+  );
+
   const filteredTransactions = transactions.filter(tx => {
     if (activeTab === "pending" && tx.status !== "pending") return false;
     if (activeTab === "validated" && tx.status !== "validated") return false;
     if (searchQuery && !tx.description.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     if (selectedAccounts.length > 0 && !selectedAccounts.includes(tx.bank_account_id)) return false;
+    if (categoryFilter && tx.category !== categoryFilter) return false;
+
+    if (dateRange.start) {
+      const start = new Date(dateRange.start);
+      const txDate = new Date(tx.transaction_date);
+      if (txDate < start) return false;
+    }
+    if (dateRange.end) {
+      const end = new Date(dateRange.end);
+      const txDate = new Date(tx.transaction_date);
+      if (txDate > end) return false;
+    }
     return true;
   });
 
@@ -189,7 +207,23 @@ export default function TransactionsPage() {
                     className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
-                <button className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+                <div className="hidden xl:flex items-center gap-2">
+                  <span className="text-xs text-gray-500">Période</span>
+                  <input
+                    type="date"
+                    value={dateRange.start || ""}
+                    onChange={(e) => setDateRange((prev) => ({ ...prev, start: e.target.value || undefined }))}
+                    className="px-2 py-1 border border-gray-200 rounded-lg text-xs text-gray-600 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                  />
+                  <span className="text-xs text-gray-400">au</span>
+                  <input
+                    type="date"
+                    value={dateRange.end || ""}
+                    onChange={(e) => setDateRange((prev) => ({ ...prev, end: e.target.value || undefined }))}
+                    className="px-2 py-1 border border-gray-200 rounded-lg text-xs text-gray-600 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                  />
+                </div>
+                <button className="flex xl:hidden items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
                   <Filter className="w-4 h-4" />
                   Filtres
                 </button>
@@ -204,6 +238,16 @@ export default function TransactionsPage() {
                     ))}
                   </select>
                 )}
+                <select
+                  className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-600"
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                >
+                  <option value="">Toutes les catégories</option>
+                  {categoryOptions.map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
               </div>
             </div>
 

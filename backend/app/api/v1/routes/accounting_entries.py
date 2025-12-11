@@ -11,9 +11,9 @@ from app.core.deps import get_current_user
 from app.models.user import User
 from app.models.accounting_entries import (
     AccountingEntryHeader, AccountingEntryLine, 
-    BankReconciliation, AccountingRevision,
-    EntryStatus, JournalType
+    AccountingRevision, EntryStatus, JournalType
 )
+from app.models.accounting_advanced import BankReconciliation
 from app.models.ledger_account import LedgerAccount
 from app.schemas.accounting_entries import (
     AccountingEntryHeaderCreate, AccountingEntryHeaderResponse,

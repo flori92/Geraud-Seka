@@ -53,23 +53,7 @@ def upgrade():
         sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     )
 
-    op.create_table(
-        'bank_reconciliations',
-        sa.Column('id', postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column('tenant_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('tenants.id', ondelete='CASCADE'), nullable=False),
-        sa.Column('bank_account_id', postgresql.UUID(as_uuid=True), sa.ForeignKey('bank_accounts.id'), nullable=False),
-        sa.Column('period_start', sa.Date(), nullable=False),
-        sa.Column('period_end', sa.Date(), nullable=False),
-        sa.Column('statement_balance', sa.Numeric(15, 2), nullable=False),
-        sa.Column('book_balance', sa.Numeric(15, 2), nullable=False),
-        sa.Column('difference', sa.Numeric(15, 2), nullable=False),
-        sa.Column('status', sa.String(20), default='in_progress'),
-        sa.Column('reconciled_by', postgresql.UUID(as_uuid=True), sa.ForeignKey('users.id'), nullable=True),
-        sa.Column('reconciled_at', sa.Date(), nullable=True),
-        sa.Column('notes', sa.Text(), nullable=True),
-        sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-        sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
-    )
+
 
     op.create_table(
         'accounting_revisions',
@@ -90,11 +74,9 @@ def upgrade():
     op.create_index('idx_entry_header_status', 'accounting_entries_header', ['status'])
     op.create_index('idx_entry_lines_entry', 'accounting_entry_lines', ['entry_id'])
     op.create_index('idx_entry_lines_account', 'accounting_entry_lines', ['account_id'])
-    op.create_index('idx_reconciliation_account', 'bank_reconciliations', ['bank_account_id'])
 
 
 def downgrade():
-    op.drop_index('idx_reconciliation_account')
     op.drop_index('idx_entry_lines_account')
     op.drop_index('idx_entry_lines_entry')
     op.drop_index('idx_entry_header_status')
@@ -102,7 +84,6 @@ def downgrade():
     op.drop_index('idx_entry_header_tenant')
     
     op.drop_table('accounting_revisions')
-    op.drop_table('bank_reconciliations')
     op.drop_table('accounting_entry_lines')
     op.drop_table('accounting_entries_header')
     

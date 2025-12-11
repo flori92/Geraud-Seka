@@ -60,6 +60,7 @@ export default function AccountingEntries() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<EntryStatus | "all">("all");
   const [journalFilter, setJournalFilter] = useState<JournalType | "all">("all");
+  const [dateRange, setDateRange] = useState<{ start?: string; end?: string }>({});
 
   useEffect(() => {
     fetchEntries();
@@ -160,11 +161,29 @@ export default function AccountingEntries() {
     }
   };
 
-  const filteredEntries = entries.filter(entry =>
-    entry.entry_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    entry.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    entry.reference?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredEntries = entries.filter((entry: Entry) => {
+    const q = searchQuery.toLowerCase();
+    if (q) {
+      const matchQuery =
+        entry.entry_number.toLowerCase().includes(q) ||
+        entry.description.toLowerCase().includes(q) ||
+        entry.reference?.toLowerCase().includes(q);
+      if (!matchQuery) return false;
+    }
+
+    if (dateRange.start) {
+      const start = new Date(dateRange.start);
+      const d = new Date(entry.date);
+      if (d < start) return false;
+    }
+    if (dateRange.end) {
+      const end = new Date(dateRange.end);
+      const d = new Date(entry.date);
+      if (d > end) return false;
+    }
+
+    return true;
+  });
 
   const getTotalDebit = (lines: EntryLine[]) => 
     lines.reduce((sum, line) => sum + line.debit, 0);
@@ -204,8 +223,8 @@ export default function AccountingEntries() {
           </div>
 
           <div className="bg-white rounded-xl border border-gray-200">
-            <div className="p-4 border-b border-gray-200">
-              <div className="flex items-center gap-3">
+            <div className="p-4 border-b border-gray-200 space-y-3">
+              <div className="flex flex-wrap items-center gap-3 justify-between">
                 <div className="relative flex-1 max-w-md">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
@@ -216,30 +235,54 @@ export default function AccountingEntries() {
                     className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0d4a44]"
                   />
                 </div>
-                
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value as EntryStatus | "all")}
-                  className="px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0d4a44]"
-                >
-                  <option value="all">Tous les statuts</option>
-                  <option value="draft">Brouillon</option>
-                  <option value="validated">Validé</option>
-                  <option value="posted">Comptabilisé</option>
-                </select>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value as EntryStatus | "all")}
+                    className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0d4a44]"
+                  >
+                    <option value="all">Tous les statuts</option>
+                    <option value="draft">Brouillon</option>
+                    <option value="validated">Validé</option>
+                    <option value="posted">Comptabilisé</option>
+                  </select>
 
-                <select
-                  value={journalFilter}
-                  onChange={(e) => setJournalFilter(e.target.value as JournalType | "all")}
-                  className="px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0d4a44]"
-                >
-                  <option value="all">Tous les journaux</option>
-                  <option value="ACH">Achats</option>
-                  <option value="VTE">Ventes</option>
-                  <option value="BQ">Banque</option>
-                  <option value="CA">Caisse</option>
-                  <option value="OD">Opérations diverses</option>
-                </select>
+                  <select
+                    value={journalFilter}
+                    onChange={(e) => setJournalFilter(e.target.value as JournalType | "all")}
+                    className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0d4a44]"
+                  >
+                    <option value="all">Tous les journaux</option>
+                    <option value="ACH">Achats</option>
+                    <option value="VTE">Ventes</option>
+                    <option value="BQ">Banque</option>
+                    <option value="CA">Caisse</option>
+                    <option value="OD">Opérations diverses</option>
+                  </select>
+
+                  <div className="hidden lg:flex items-center gap-2">
+                    <span className="text-xs text-gray-500">Période</span>
+                    <input
+                      type="date"
+                      value={dateRange.start || ""}
+                      onChange={(e) => setDateRange((prev) => ({ ...prev, start: e.target.value || undefined }))}
+                      className="px-2 py-1 border border-gray-200 rounded-lg text-xs text-gray-600 focus:outline-none focus:ring-1 focus:ring-[#0d4a44]"
+                    />
+                    <span className="text-xs text-gray-400">au</span>
+                    <input
+                      type="date"
+                      value={dateRange.end || ""}
+                      onChange={(e) => setDateRange((prev) => ({ ...prev, end: e.target.value || undefined }))}
+                      className="px-2 py-1 border border-gray-200 rounded-lg text-xs text-gray-600 focus:outline-none focus:ring-1 focus:ring-[#0d4a44]"
+                    />
+                  </div>
+                </div>
+              </div>
+              {/* Petits compteurs de statuts */}
+              <div className="flex flex-wrap gap-3 text-xs text-gray-500">
+                <span>Brouillons : <span className="font-semibold text-gray-800">{entries.filter(e => e.status === "draft").length}</span></span>
+                <span>Validés : <span className="font-semibold text-blue-700">{entries.filter(e => e.status === "validated").length}</span></span>
+                <span>Comptabilisés : <span className="font-semibold text-green-700">{entries.filter(e => e.status === "posted").length}</span></span>
               </div>
             </div>
 

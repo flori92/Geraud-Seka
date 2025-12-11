@@ -277,6 +277,22 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(['bank_account_id'], ['bank_accounts.id']),
     )
 
+    # Lignes de rapprochement bancaire
+    op.create_table(
+        'bank_reconciliation_items',
+        sa.Column('id', postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column('reconciliation_id', postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column('transaction_id', postgresql.UUID(as_uuid=True), nullable=True),
+        sa.Column('entry_line_id', postgresql.UUID(as_uuid=True), nullable=True),
+        sa.Column('amount', sa.Numeric(18, 2), nullable=False),
+        sa.Column('is_matched', sa.Boolean(), default=False),
+        sa.Column('matched_at', sa.DateTime(), nullable=True),
+        sa.PrimaryKeyConstraint('id'),
+        sa.ForeignKeyConstraint(['reconciliation_id'], ['bank_reconciliations.id'], ondelete='CASCADE'),
+        sa.ForeignKeyConstraint(['transaction_id'], ['bank_transactions.id']),
+        sa.ForeignKeyConstraint(['entry_line_id'], ['journal_entry_lines.id']),
+    )
+
     # Déclarations TVA
     op.create_table(
         'vat_declarations',
@@ -305,6 +321,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_table('vat_declarations')
+    op.drop_table('bank_reconciliation_items')
     op.drop_table('bank_reconciliations')
     op.drop_table('budget_lines')
     op.drop_table('budgets')
