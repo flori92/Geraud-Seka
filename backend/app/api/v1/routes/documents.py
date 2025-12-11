@@ -29,14 +29,20 @@ async def upload_document(
     Upload a new document, save to storage, and trigger OCR.
     """
     # 1. Upload to Storage
-    file_path = await storage_service.upload_file(file)
-    
-    # 2. Get file size
-    file.file.seek(0, 2)  # Seek to end
-    file_size = file.file.tell()
-    file.file.seek(0)  # Reset to beginning
-    
-    # 3. Create Document in DB
+    upload_result = await storage_service.upload_file(file, tenant_id=str(current_user.tenant_id))
+
+    # Extract file path from upload result (storage service returns a dict)
+    if isinstance(upload_result, dict):
+        file_path = upload_result.get('key') or upload_result.get('url') or upload_result.get('path')
+        file_size = upload_result.get('size', 0)
+    else:
+        # Fallback if it's a string (old behavior)
+        file_path = str(upload_result)
+        file.file.seek(0, 2)
+        file_size = file.file.tell()
+        file.file.seek(0)
+
+    # 2. Create Document in DB
     doc_data = {
         "filename": file.filename,
         "original_filename": file.filename,
