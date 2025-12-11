@@ -70,6 +70,8 @@ def create_application() -> FastAPI:
         "https://api.sekagestion.com",
         "http://localhost:3000",
         "http://localhost:3001",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
     ]
     
     # Merge with settings origins (avoid duplicates)
@@ -93,6 +95,9 @@ def create_application() -> FastAPI:
             "Access-Control-Allow-Origin",
             "Cache-Control",
             "Pragma",
+            "Origin",
+            "User-Agent",
+            "Referer",
         ],
         expose_headers=["*"],
     )
@@ -183,15 +188,30 @@ def create_application() -> FastAPI:
     
     @app.exception_handler(Exception)
     async def global_exception_handler(request: Request, exc: Exception):
-        logger.error(f"Global error: {str(exc)}")
+        logger.error(f"Global error on {request.url.path}: {str(exc)}")
+        logger.error(f"Request method: {request.method}")
+        logger.error(f"Request headers: {dict(request.headers)}")
         traceback.print_exc()
-        return JSONResponse(
+        
+        # Return CORS headers even for errors
+        response = JSONResponse(
             status_code=500,
             content={
                 "detail": f"Internal Server Error: {str(exc)}",
-                "path": request.url.path
+                "path": request.url.path,
+                "error_type": type(exc).__name__
             },
         )
+        
+        # Add CORS headers manually for error responses
+        origin = request.headers.get("origin")
+        if origin in cors_origins:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+            response.headers["Access-Control-Allow-Headers"] = "Accept, Accept-Language, Content-Language, Content-Type, Authorization, X-Requested-With, X-CSRF-Token, Access-Control-Allow-Origin, Cache-Control, Pragma, Origin, User-Agent, Referer"
+        
+        return response
     
     @app.on_event("shutdown") 
     async def shutdown_event():
