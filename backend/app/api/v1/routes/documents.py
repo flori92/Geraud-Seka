@@ -23,7 +23,7 @@ async def upload_document(
     db: Session = Depends(deps.get_db_session),
     file: UploadFile = File(...),
     current_user: User = Depends(deps.get_current_user),
-    client_id: UUID, # Passed as query param for now, or could be inferred from user if restricted
+    client_id: Optional[UUID] = None, # Made optional - can be linked later
 ) -> Any:
     """
     Upload a new document, save to storage, and trigger OCR.
@@ -37,47 +37,52 @@ async def upload_document(
     file.file.seek(0)  # Reset to beginning
     
     # 3. Create Document in DB
-    doc_in = DocumentCreate(
-        filename=file.filename,
-        file_path=file_path,
-        content_type=file.content_type or "application/octet-stream",
-        file_size=file_size,
-        client_id=client_id
-    )
-    
-    db_obj = Document(
-        **doc_in.dict(exclude={"file_size", "content_type"}), # Adjust based on model fields
-        content_type=doc_in.content_type,
-        file_size=doc_in.file_size,
-        status=DocumentStatus.OCR_PROCESSING
-    )
+    doc_data = {
+        "filename": file.filename,
+        "original_filename": file.filename,
+        "file_path": file_path,
+        "content_type": file.content_type or "application/octet-stream",
+        "file_size": file_size,
+        "file_extension": f".{file.filename.split('.')[-1]}" if '.' in file.filename else "",
+        "status": DocumentStatus.OCR_PROCESSING,
+        "tenant_id": current_user.tenant_id,
+        "uploaded_by": current_user.id,
+    }
+
+    # Add client_id only if provided
+    if client_id:
+        doc_data["client_id"] = client_id
+
+    db_obj = Document(**doc_data)
     db.add(db_obj)
     db.commit()
     db.refresh(db_obj)
     
-    # 2. Process with OCR (Mindee)
+    # 4. Process with OCR (Mindee)
     try:
         ocr_data = await ocr_service.process_invoice(file_path)
-        
+
         # Update document with OCR data
         db_obj.reference_number = ocr_data.get("reference_number")
-        db_obj.date = ocr_data.get("date")
+        db_obj.document_date = ocr_data.get("date")  # Use document_date field
         db_obj.due_date = ocr_data.get("due_date")
         db_obj.amount_ht = ocr_data.get("amount_ht")
         db_obj.amount_vat = ocr_data.get("amount_vat")
         db_obj.amount_ttc = ocr_data.get("amount_ttc")
         db_obj.currency = ocr_data.get("currency")
+        db_obj.ocr_data = ocr_data  # Store full OCR data
+        db_obj.ocr_confidence = ocr_data.get("confidence", 0.0)
         db_obj.status = DocumentStatus.OCR_COMPLETED
-        
-        db.add(db_obj)
+
         db.commit()
         db.refresh(db_obj)
-        
+
     except Exception as e:
         print(f"OCR Error: {e}")
-        # Don't fail the request, just log and keep status as PROCESSING or ERROR
-        # For now, let's just return the object
-        pass
+        # Set status to UPLOADED if OCR fails
+        db_obj.status = DocumentStatus.UPLOADED
+        db.commit()
+        db.refresh(db_obj)
 
     return db_obj
 
