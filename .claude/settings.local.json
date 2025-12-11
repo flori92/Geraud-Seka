@@ -36,7 +36,10 @@
       "Bash(frontend/.gitignore)",
       "Bash(railway run:*)",
       "Bash(xargs:*)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(tee:*)",
+      "Bash(/tmp/test_production.sh)",
+      "Bash(python -m alembic revision:*)"
     ],
     "deny": [],
     "ask": []

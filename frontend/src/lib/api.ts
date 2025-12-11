@@ -911,6 +911,24 @@ export async function createJournalEntry(data: JournalEntryCreate, accessToken: 
 }
 
 // Balance Sheet
+export interface TrialBalanceItem {
+  account_number: string;
+  account_name: string;
+  debit: number;
+  credit: number;
+  solde_debit: number;
+  solde_credit: number;
+}
+
+export interface TrialBalanceResponse {
+  accounts: TrialBalanceItem[];
+  totals: {
+    total_debit: number;
+    total_credit: number;
+    is_balanced: boolean;
+  };
+}
+
 export interface BalanceSheet {
   assets: {
     current_assets: number;
@@ -930,13 +948,29 @@ export interface BalanceSheet {
   period: string;
 }
 
-export async function getBalanceSheet(accessToken: string, period?: string): Promise<BalanceSheet> {
-  const params = period ? `?period=${period}` : "";
+export const getTrialBalance = async (token: string, startDate?: string, endDate?: string): Promise<TrialBalanceResponse | null> => {
+  try {
+    const params = new URLSearchParams();
+    if (startDate) params.append("start_date", startDate);
+    if (endDate) params.append("end_date", endDate);
+
+    const response = await api.get(`/accounting/advanced/balance?${params.toString()}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching trial balance:", error);
+    return null;
+  }
+};
+
+export const getBalanceSheet = async (token: string, date?: string): Promise<BalanceSheet> => {
+  const params = date ? `?date=${date}` : "";
   const response = await api.get<BalanceSheet>(`/accounting/balance${params}`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
+    headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;
-}
+};
 
 // Ledger
 export interface LedgerAccount {

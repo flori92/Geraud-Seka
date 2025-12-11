@@ -10,12 +10,9 @@ import {
   FileText,
   Package,
   Activity,
-  FileDown,
-  BrainCircuit,
   Wallet,
   ShoppingCart,
   Receipt,
-  TrendingUp,
   BarChart3,
   Settings,
   Pin,
@@ -25,6 +22,10 @@ import {
   CreditCard,
   UserCog,
   CalendarCheck,
+  Briefcase,
+  ArrowLeftRight,
+  Calculator,
+  Files
 } from "lucide-react";
 
 interface SubMenuItem {
@@ -37,147 +38,136 @@ interface SubMenuItem {
 interface MenuItem {
   id: string;
   label: string;
-  icon: typeof LayoutDashboard;
+  icon: any;
   href?: string;
   submenu?: SubMenuItem[];
   badge?: string;
   badgeVariant?: "default" | "success" | "warning" | "error";
 }
 
-// Organisation des menus selon les modules backend SEKA
-const menuItems: MenuItem[] = [
+// Menu "GESTION" (Dirigeant) - Images 2, 3, 4, 5
+const menuItemsManagement: MenuItem[] = [
   {
-    id: "dashboard",
-    label: "Tableau de bord",
+    id: "home",
+    label: "Accueil",
     icon: LayoutDashboard,
     href: "/dashboard",
   },
   {
-    id: "accounting",
-    label: "Comptabilité",
-    icon: Receipt,
-    submenu: [
-      { label: "Journal", href: "/accounting/journal" },
-      { label: "Balance", href: "/accounting/balance" },
-      { label: "Grand livre", href: "/accounting/ledger" },
-      { label: "Plan comptable", href: "/accounting/chart" },
-    ],
+    id: "transactions",
+    label: "Transactions",
+    icon: ArrowLeftRight, // Icone plus proche de 'Transactions'
+    href: "/treasury/transactions",
   },
   {
-    id: "treasury",
-    label: "Trésorerie",
+    id: "pro_account",
+    label: "Compte Pro",
     icon: Wallet,
-    submenu: [
-      { label: "Dashboard", href: "/treasury" },
-      { label: "Comptes bancaires", href: "/treasury/accounts" },
-      { label: "Transactions", href: "/treasury/transactions" },
-      { label: "Prévisions", href: "/treasury/forecast" },
-    ],
+    href: "/treasury/account",
+    badge: "INCLUS",
+    badgeVariant: "success"
   },
   {
-    id: "clients",
-    label: "Clients & CRM",
-    icon: Users,
-    submenu: [
-      { label: "Liste clients", href: "/clients" },
-      { label: "Contacts", href: "/crm/contacts" },
-      { label: "Opportunités", href: "/crm/opportunities" },
-      { label: "Leads", href: "/crm/leads" },
-      { label: "Activités CRM", href: "/crm/activities" },
-      { label: "Campagnes", href: "/crm/campaigns", badge: "NEW", badgeVariant: "success" },
-      { label: "Automatisations", href: "/crm/automations" },
-      { label: "Analytics CRM", href: "/crm/analytics" },
-      { label: "Import/Export", href: "/crm/import-export" },
-    ],
+    id: "purchases",
+    label: "Achats",
+    icon: ShoppingCart,
+    href: "/sales/purchase-orders",
   },
   {
     id: "sales",
     label: "Ventes",
-    icon: ShoppingCart,
-    submenu: [
-      { label: "Devis", href: "/sales/quotes" },
-      { label: "Factures", href: "/sales/invoices" },
-      { label: "Bons de commande", href: "/sales/purchase-orders" },
-      { label: "Bons de livraison", href: "/sales/delivery-notes" },
-    ],
+    icon: FileText,
+    href: "/sales/invoices",
   },
   {
-    id: "hr",
-    label: "Ressources Humaines",
-    icon: UserCog,
-    submenu: [
-      { label: "Employés", href: "/hr/employees" },
-      { label: "Contrats", href: "/hr/contracts" },
-      { label: "Bulletins de paie", href: "/hr/payslips" },
-      { label: "Congés", href: "/hr/leaves" },
-    ],
+    id: "analytics",
+    label: "Analytique",
+    icon: BarChart3,
+    href: "/analytics",
   },
   {
-    id: "stock",
-    label: "Stock & Produits",
-    icon: Package,
-    submenu: [
-      { label: "Produits & Services", href: "/products" },
-      { label: "Gestion stock", href: "/stock" },
-      { label: "Fournisseurs", href: "/suppliers" },
-    ],
+    id: "reports",
+    label: "Rapports comptables",
+    icon: Files,
+    href: "/reports/accounting",
   },
   {
     id: "documents",
-    label: "Documents & GED",
-    icon: FileText,
+    label: "Documents partagés",
+    icon: Package,
+    href: "/documents",
+  }
+];
+
+// Menu "COMPTABILITÉ" (Expert) - Image 1
+const menuItemsAccounting: MenuItem[] = [
+  {
+    id: "saisie",
+    label: "Saisie",
+    icon: FileText, // Icone crayon/edit serait mieux, mais FileText standard
     submenu: [
-      { label: "Mes documents", href: "/documents" },
-      { label: "GED", href: "/ged", badge: "NEW", badgeVariant: "success" },
+      { label: "Factures fournisseurs", href: "/sales/purchase-orders" },
+      { label: "Factures clients", href: "/sales/invoices" },
+      { label: "Saisie en masse", href: "/sales/bulk-entry" },
+      { label: "Reprise de TVA", href: "/accounting/vat-recovery" },
     ],
   },
   {
-    id: "intelligence",
-    label: "Intelligence AI",
-    icon: BrainCircuit,
-    href: "/intelligence",
-    badge: "LIVE",
-    badgeVariant: "success",
+    id: "revision",
+    label: "Révision",
+    icon: Calculator,
+    submenu: [
+      { label: "Balance générale", href: "/accounting/trial-balance" },
+      { label: "Grand livre", href: "/accounting/ledger" },
+      { label: "Dossiers de travail", href: "/accounting/workpapers" },
+    ],
   },
   {
-    id: "reporting",
-    label: "Reporting",
+    id: "tax",
+    label: "Fiscalité",
+    icon: Building2,
+    submenu: [
+      { label: "Déclarations TVA", href: "/accounting/vat" },
+      { label: "Liasse fiscale", href: "/accounting/tax-bundle" },
+    ],
+  },
+  {
+    id: "synthesis",
+    label: "États de synthèse",
     icon: BarChart3,
     submenu: [
-      { label: "Dashboard", href: "/reports" },
-      { label: "Rapport comptable", href: "/reports/accounting" },
-      { label: "Rapport ventes", href: "/reports/sales" },
-      { label: "Rapport RH", href: "/reports/hr" },
-      { label: "Exports comptables", href: "/exports" },
+      { label: "Bilan", href: "/accounting/balance-sheet" },
+      { label: "Compte de résultat", href: "/accounting/income-statement" },
     ],
   },
   {
-    id: "activities",
-    label: "Activités",
-    icon: Activity,
-    href: "/activities",
-  },
-  {
-    id: "billing",
-    label: "Abonnement",
-    icon: CreditCard,
-    href: "/billing",
+    id: "client_file",
+    label: "Dossier du client",
+    icon: Briefcase,
+    submenu: [
+      { label: "GED", href: "/ged" },
+      { label: "Plan comptable", href: "/accounting/chart" },
+    ],
   },
 ];
 
 const badgeColors = {
-  default: "bg-accents-3 text-white",
-  success: "bg-success text-white",
-  warning: "bg-warning text-white",
-  error: "bg-error text-white",
+  default: "bg-teal-700 text-white", // Adjusted for dark theme
+  success: "bg-emerald-500 text-white",
+  warning: "bg-amber-500 text-white",
+  error: "bg-red-500 text-white",
 };
 
 export function ModernSidebar() {
-  const [isLocked, setIsLocked] = useState(false);
-  const [openMenus, setOpenMenus] = useState<string[]>(["accounting", "treasury"]);
+  const [isLocked, setIsLocked] = useState(true); // Default to locked (open) like screenshots
+  const [viewMode, setViewMode] = useState<"management" | "accounting">("management");
+  const [openMenus, setOpenMenus] = useState<string[]>(["saisie"]);
   const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
   const pathname = router.pathname || "";
+
+  // Dynamic menu based on mode
+  const currentMenuItems = viewMode === "management" ? menuItemsManagement : menuItemsAccounting;
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -210,108 +200,115 @@ export function ModernSidebar() {
 
   return (
     <div
-      className={`sidebar fixed left-0 top-0 h-full bg-foreground text-background flex flex-col z-50 overflow-y-auto transition-all duration-300 ease-in-out border-r border-accents-8 ${
-        isLocked ? "locked w-72" : "w-[72px] hover:w-72"
-      }`}
+      className={`sidebar fixed left-0 top-0 h-full flex flex-col z-50 overflow-y-auto transition-all duration-300 ease-in-out border-r border-teal-800 ${isLocked ? "w-64" : "w-[72px] hover:w-64"
+        }`}
+      style={{ backgroundColor: "#0f514b" }} // Seka/Pennylane Dark Green
     >
-      {/* Header */}
-      <div className="p-4 border-b border-accents-8 sticky top-0 bg-foreground z-10 flex items-center justify-between min-h-[80px]">
-        <div className="flex items-center gap-3">
-          <div className="flex-shrink-0 sidebar-logo-compact">
-            <div className="h-8 w-8 rounded-full bg-background flex items-center justify-center">
-              <span className="text-foreground font-bold text-sm">S</span>
-            </div>
-          </div>
-          <div className="sidebar-content">
-            <div className="text-lg font-bold">SEKA Gestion</div>
-            <div className="text-xs text-accents-4">ERP Professionnel</div>
-          </div>
+      {/* Header & Toggle */}
+      <div className="p-3 sticky top-0 z-10 bg-[#0f514b]">
+        {/* Toggle Switch */}
+        <div className={`flex bg-teal-900/50 rounded-lg p-1 mb-4 ${!isLocked && "hidden group-hover:flex"}`}>
+          <button
+            onClick={() => setViewMode("accounting")}
+            className={`flex-1 text-xs font-medium py-1.5 px-2 rounded-md transition-all ${viewMode === "accounting"
+              ? "bg-white text-teal-900 shadow-sm"
+              : "text-teal-100 hover:text-white"
+              }`}
+          >
+            Comptabilité
+          </button>
+          <button
+            onClick={() => setViewMode("management")}
+            className={`flex-1 text-xs font-medium py-1.5 px-2 rounded-md transition-all ${viewMode === "management"
+              ? "bg-white text-teal-900 shadow-sm"
+              : "text-teal-100 hover:text-white"
+              }`}
+          >
+            Gestion
+          </button>
         </div>
-        <button
-          onClick={() => setIsLocked(!isLocked)}
-          className={`sidebar-content p-1.5 rounded hover:bg-accents-8 transition-all ${
-            isLocked ? "text-success" : "text-accents-4"
-          }`}
-          title={isLocked ? "Déverrouiller" : "Verrouiller"}
-        >
-          <Pin className={`w-4 h-4 transition-transform ${isLocked ? "rotate-45" : ""}`} />
-        </button>
+
+        <div className="flex items-center justify-between pb-2">
+          {/* Logo text hidden when collapsed */}
+          <div className={`text-white font-bold text-lg tracking-tight ${!isLocked && "hidden"}`}>
+            Seka
+          </div>
+
+          <button
+            onClick={() => setIsLocked(!isLocked)}
+            className="text-teal-300 hover:text-white p-1 rounded hover:bg-teal-800 transition-colors"
+          >
+            <Pin className={`w-4 h-4 transition-transform ${isLocked ? "rotate-45" : ""}`} />
+          </button>
+        </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-3 space-y-1">
-        {menuItems.map((item) => (
+      <nav className="flex-1 px-3 space-y-1">
+        {currentMenuItems.map((item) => (
           <div key={item.id}>
             {item.submenu ? (
               <>
                 <div
-                  className="flex items-center justify-between px-3 py-2.5 cursor-pointer hover:bg-accents-8 rounded-lg transition-all group"
+                  className={`flex items-center justify-between px-3 py-2 cursor-pointer rounded-md transition-all group ${openMenus.includes(item.id) ? "bg-teal-800/50 text-white" : "text-teal-100 hover:bg-teal-800 hover:text-white"
+                    }`}
                   onClick={() => toggleMenu(item.id)}
                 >
                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <item.icon className="w-5 h-5 flex-shrink-0 text-accents-3" strokeWidth={1.5} />
-                    <span className="sidebar-content text-sm font-medium truncate">
+                    <item.icon className="w-5 h-5 flex-shrink-0" strokeWidth={1.5} />
+                    <span className={`text-sm font-medium truncate ${!isLocked ? "hidden group-hover:block" : ""}`}>
                       {item.label}
                     </span>
                   </div>
-                  <ChevronDown
-                    className={`sidebar-content w-4 h-4 text-accents-4 transition-transform flex-shrink-0 ${
-                      openMenus.includes(item.id) ? "rotate-180" : ""
-                    }`}
-                    strokeWidth={1.5}
-                  />
+                  {isLocked && (
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform ${openMenus.includes(item.id) ? "rotate-180" : ""}`}
+                      strokeWidth={1.5}
+                    />
+                  )}
                 </div>
-                <div
-                  className={`submenu overflow-hidden transition-all duration-300 ${
-                    openMenus.includes(item.id) ? "max-h-96" : "max-h-0"
-                  }`}
-                >
-                  <div className="pl-5 pr-3 py-1 space-y-1">
-                    {item.submenu.map((subItem, idx) => (
-                      <Link
-                        key={idx}
-                        href={subItem.href}
-                        className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
-                          isActive(subItem.href)
-                            ? "bg-background text-foreground font-medium"
-                            : "text-accents-3 hover:bg-accents-8 hover:text-background"
-                        }`}
-                      >
-                        <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-                          isActive(subItem.href) ? "bg-foreground" : "bg-accents-6"
-                        }`} />
-                        <span className="sidebar-content text-sm truncate">{subItem.label}</span>
-                        {subItem.badge && (
-                          <span
-                            className={`sidebar-content text-[10px] px-1.5 py-0.5 rounded font-medium flex-shrink-0 ${
-                              badgeColors[subItem.badgeVariant || "default"]
+                {/* Submenu */}
+                {isLocked && (
+                  <div
+                    className={`overflow-hidden transition-all duration-300 ${openMenus.includes(item.id) ? "max-h-96" : "max-h-0"
+                      }`}
+                  >
+                    <div className="pl-9 pr-2 py-1 space-y-1">
+                      {item.submenu.map((subItem, idx) => (
+                        <Link
+                          key={idx}
+                          href={subItem.href}
+                          className={`block py-1.5 text-sm transition-colors cursor-pointer hover:text-white ${isActive(subItem.href) ? "text-white font-medium" : "text-teal-200"
                             }`}
-                          >
-                            {subItem.badge}
-                          </span>
-                        )}
-                      </Link>
-                    ))}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="truncate">{subItem.label}</span>
+                            {subItem.badge && (
+                              <span className={`text-[10px] px-1.5 rounded ml-2 ${badgeColors[subItem.badgeVariant || "default"]}`}>
+                                {subItem.badge}
+                              </span>
+                            )}
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
               </>
             ) : (
               <Link
                 href={item.href || "#"}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
-                  isActive(item.href || "")
-                    ? "bg-background text-foreground font-medium"
-                    : "text-accents-3 hover:bg-accents-8 hover:text-background"
-                }`}
+                className={`flex items-center gap-3 px-3 py-2 rounded-md transition-all group ${isActive(item.href || "")
+                  ? "bg-[#186a63] text-white font-medium"
+                  : "text-teal-100 hover:bg-teal-800 hover:text-white"
+                  }`}
               >
                 <item.icon className="w-5 h-5 flex-shrink-0" strokeWidth={1.5} />
-                <span className="sidebar-content text-sm font-medium truncate">{item.label}</span>
-                {item.badge && (
-                  <span
-                    className={`sidebar-content text-[10px] px-1.5 py-0.5 rounded font-medium flex-shrink-0 ${
-                      badgeColors[item.badgeVariant || "default"]
-                    }`}
-                  >
+                <span className={`text-sm font-medium truncate ${!isLocked ? "hidden group-hover:block" : ""}`}>
+                  {item.label}
+                </span>
+                {item.badge && isLocked && (
+                  <span className={`ml-auto text-[10px] px-1.5 py-0.5 rounded font-medium ${badgeColors[item.badgeVariant || "default"]}`}>
                     {item.badge}
                   </span>
                 )}
@@ -321,83 +318,29 @@ export function ModernSidebar() {
         ))}
       </nav>
 
-      {/* Settings & User Footer */}
-      <div className="p-3 border-t border-accents-8 sticky bottom-0 bg-foreground space-y-1">
-        <Link
-          href="/settings"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-accents-3 hover:bg-accents-8 hover:text-background"
-        >
-          <Settings className="w-5 h-5 flex-shrink-0" strokeWidth={1.5} />
-          <span className="sidebar-content text-sm font-medium">Paramètres</span>
-        </Link>
-
-        <div className="flex items-center gap-3 px-3 py-2 rounded-lg">
-          <div className="w-8 h-8 rounded-full bg-success flex items-center justify-center text-sm font-semibold flex-shrink-0">
-            {user?.full_name ? user.full_name.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase() || "U"}
+      {/* User Footer */}
+      <div className="p-4 border-t border-teal-800 bg-[#0d4540]">
+        <div className={`flex items-center gap-3 ${!isLocked && "justify-center"}`}>
+          <div className="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center text-white text-xs font-bold ring-2 ring-teal-700">
+            {user?.full_name ? user.full_name.charAt(0).toUpperCase() : "U"}
           </div>
-          <div className="sidebar-content flex-1 min-w-0">
-            <div className="text-sm font-medium truncate">{user?.full_name || user?.email || "Utilisateur"}</div>
-            <div className="text-xs text-accents-4">{user?.role || "User"}</div>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="sidebar-content w-8 h-8 rounded-lg hover:bg-accents-8 flex items-center justify-center transition-all flex-shrink-0"
-            title="Déconnexion"
-          >
-            <LogOut className="w-4 h-4 text-accents-4 hover:text-background transition-all" strokeWidth={1.5} />
-          </button>
+          {isLocked && (
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-white truncate">{user?.full_name || "Utilisateur"}</p>
+              <p className="text-xs text-teal-300 truncate">{user?.email}</p>
+            </div>
+          )}
+          {isLocked && (
+            <button
+              onClick={handleLogout}
+              className="text-teal-400 hover:text-white transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
-
-      <style jsx>{`
-        .sidebar {
-          width: 72px;
-        }
-        .sidebar.locked {
-          width: 288px;
-        }
-        .sidebar:hover {
-          width: 288px;
-        }
-
-        .sidebar-content {
-          opacity: 0;
-          transition: opacity 0.3s ease;
-          white-space: nowrap;
-        }
-
-        .sidebar-logo-compact {
-          transition: opacity 0.3s ease;
-        }
-
-        .sidebar:hover .sidebar-logo-compact,
-        .sidebar.locked .sidebar-logo-compact {
-          opacity: 0;
-          display: none;
-        }
-
-        .sidebar:hover .sidebar-content,
-        .sidebar.locked .sidebar-content {
-          opacity: 1;
-        }
-
-        ::-webkit-scrollbar {
-          width: 6px;
-        }
-
-        ::-webkit-scrollbar-track {
-          background: transparent;
-        }
-
-        ::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.2);
-          border-radius: 3px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-          background: rgba(255, 255, 255, 0.3);
-        }
-      `}</style>
     </div>
   );
 }
+
