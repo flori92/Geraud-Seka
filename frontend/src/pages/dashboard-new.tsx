@@ -5,23 +5,27 @@ import { useRouter } from "next/router";
 import { PennylaneSidebar } from "@/components/layout/PennylaneSidebar";
 import { 
   Plus, 
-  Upload, 
   FileText, 
   Receipt, 
   FolderOpen,
   TrendingUp,
   TrendingDown,
-  AlertCircle,
   CheckCircle2,
-  Clock,
   ChevronRight,
   Bell,
-  MessageSquare,
   MoreHorizontal,
-  RefreshCw
+  Loader2
 } from "lucide-react";
+import {
+  getDashboardStatsExtended,
+  getBankTransactions,
+  getInvoices,
+  type BankTransaction,
+  type Invoice as APIInvoice,
+  type DashboardStatsExtended
+} from "@/lib/api";
 
-interface Transaction {
+interface DisplayTransaction {
   id: string;
   description: string;
   date: string;
@@ -29,7 +33,7 @@ interface Transaction {
   status: "pending" | "justified" | "error";
 }
 
-interface Invoice {
+interface DisplayInvoice {
   id: string;
   client: string;
   date: string;
@@ -41,27 +45,27 @@ interface Invoice {
 export default function DashboardNew() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
-  const [stats, setStats] = useState({
-    solde: 300401.03,
-    encaissements: 567264.20,
-    decaissements: 458062.33,
-    totalFacture: 589280.00,
-    totalAchats: 146400.00,
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<DashboardStatsExtended>({
+    total_clients: 0,
+    active_clients: 0,
+    documents_pending: 0,
+    documents_processed_this_month: 0,
+    tasks_overdue: 0,
+    tasks_due_this_week: 0,
+    solde_comptes: 0,
+    encaissements: 0,
+    decaissements: 0,
+    total_facture_ht: 0,
+    total_achats_ttc: 0,
+    transactions_a_justifier: 0,
+    factures_en_retard: 0,
+    demandes_comptables: 0,
+    rapprochements_suggeres: 0,
   });
   
-  const [transactionsToJustify, setTransactionsToJustify] = useState<Transaction[]>([
-    { id: "1", description: "Donation Restos du cœur", date: "14/10/2025", amount: 150.00, status: "pending" },
-    { id: "2", description: "PRLVMT FACERK META IE9892928", date: "13/10/2025", amount: -18724.77, status: "pending" },
-    { id: "3", description: "VIRT MAISON RICHOUX ACOMPTE 1/2", date: "12/10/2025", amount: -800.00, status: "pending" },
-    { id: "4", description: "UBER+TRIP", date: "12/10/2025", amount: 74.00, status: "pending" },
-  ]);
-
-  const [overdueInvoices, setOverdueInvoices] = useState<Invoice[]>([
-    { id: "1", client: "AstraTech", date: "09/12/2025", amount: 4850.00, dueDate: "09/12/2025", isOverdue: true },
-    { id: "2", client: "ArboréSens", date: "27/11/2025", amount: 1540.00, dueDate: "27/11/2025", isOverdue: true },
-    { id: "3", client: "AutoFutur", date: "27/11/2025", amount: 11000.00, dueDate: "27/11/2025", isOverdue: true },
-    { id: "4", client: "ArtGusto", date: "27/11/2025", amount: 20200.00, dueDate: "27/11/2025", isOverdue: true },
-  ]);
+  const [transactionsToJustify, setTransactionsToJustify] = useState<DisplayTransaction[]>([]);
+  const [overdueInvoices, setOverdueInvoices] = useState<DisplayInvoice[]>([]);
 
   useEffect(() => {
     const token = localStorage.getItem("seka_access_token");
@@ -69,11 +73,54 @@ export default function DashboardNew() {
       router.push("/login");
       return;
     }
+    
     // Fetch user data
     const userData = localStorage.getItem("user");
     if (userData) {
       setUser(JSON.parse(userData));
     }
+
+    // Fetch dashboard data from APIs
+    const fetchDashboardData = async () => {
+      setLoading(true);
+      try {
+        // Fetch extended stats
+        const statsData = await getDashboardStatsExtended(token);
+        setStats(statsData);
+
+        // Fetch pending transactions (not reconciled)
+        const transactions = await getBankTransactions(token, { status: "pending" }, 0, 10);
+        const displayTx: DisplayTransaction[] = transactions.map((tx: BankTransaction) => ({
+          id: tx.id,
+          description: tx.description,
+          date: new Date(tx.transaction_date).toLocaleDateString("fr-FR"),
+          amount: tx.transaction_type === "debit" ? -tx.amount : tx.amount,
+          status: tx.status === "pending" ? "pending" : "justified"
+        }));
+        setTransactionsToJustify(displayTx);
+
+        // Fetch overdue invoices
+        const invoices = await getInvoices(token);
+        const overdue: DisplayInvoice[] = invoices
+          .filter((inv: APIInvoice) => inv.overdue)
+          .slice(0, 5)
+          .map((inv: APIInvoice) => ({
+            id: inv.id,
+            client: inv.client_name || "Client",
+            date: new Date(inv.date).toLocaleDateString("fr-FR"),
+            amount: inv.amount,
+            dueDate: new Date(inv.due_date).toLocaleDateString("fr-FR"),
+            isOverdue: true
+          }));
+        setOverdueInvoices(overdue);
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
   }, [router]);
 
   const formatCurrency = (amount: number) => {
@@ -104,6 +151,16 @@ export default function DashboardNew() {
               Collaborez efficacement et suivez vos performances.
             </p>
           </div>
+
+          {loading && (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-teal-600" />
+              <span className="ml-2 text-gray-500">Chargement des données...</span>
+            </div>
+          )}
+
+          {!loading && (
+            <>
 
           {/* Document Upload Section */}
           <div className="mb-8">
@@ -178,9 +235,9 @@ export default function DashboardNew() {
                   <p className="text-sm text-gray-500 mb-1">Solde des comptes</p>
                   <div className="flex items-center gap-2">
                     <span className="text-2xl font-semibold text-gray-900">
-                      {formatCurrency(stats.solde)}
+                      {formatCurrency(stats.solde_comptes)}
                     </span>
-                    <span className="text-red-500">🔴🔴</span>
+                    {stats.solde_comptes < 0 && <span className="text-red-500">🔴</span>}
                   </div>
                 </div>
 
@@ -207,13 +264,13 @@ export default function DashboardNew() {
                   <div>
                     <p className="text-sm text-gray-500 mb-1">Total facturé</p>
                     <span className="text-lg font-semibold text-gray-900">
-                      {formatCurrency(stats.totalFacture)} <span className="text-sm font-normal text-gray-500">HT</span>
+                      {formatCurrency(stats.total_facture_ht)} <span className="text-sm font-normal text-gray-500">HT</span>
                     </span>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500 mb-1">Total achats</p>
                     <span className="text-lg font-semibold text-gray-900">
-                      {formatCurrency(stats.totalAchats)} <span className="text-sm font-normal text-gray-500">TTC</span>
+                      {formatCurrency(stats.total_achats_ttc)} <span className="text-sm font-normal text-gray-500">TTC</span>
                     </span>
                   </div>
                 </div>
@@ -338,6 +395,8 @@ export default function DashboardNew() {
               </div>
             </div>
           </div>
+          </>
+          )}
         </main>
       </div>
     </>

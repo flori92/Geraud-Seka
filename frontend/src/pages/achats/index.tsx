@@ -1,14 +1,67 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Head from "next/head";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { PennylaneSidebar } from "@/components/layout/PennylaneSidebar";
 import { 
-  Upload, FileText, Receipt, Users, CreditCard, 
-  ChevronRight, CheckCircle, Shield, Smartphone, Building2
+  Upload, Receipt, CreditCard, 
+  ChevronRight, CheckCircle, Shield, Smartphone, Building2, Loader2
 } from "lucide-react";
+import { getTreasuryDashboard, getBankTransactions, type BankTransaction } from "@/lib/api";
 
 export default function AchatsPage() {
+  const router = useRouter();
   const [activeSubmenu, setActiveSubmenu] = useState("demandes-achat");
+  const [loading, setLoading] = useState(true);
+  const [treasuryData, setTreasuryData] = useState({
+    solde: 0,
+    encaissements30j: 0,
+    decaissements30j: 0,
+    netChange: 0
+  });
+  const [recentTransactions, setRecentTransactions] = useState<BankTransaction[]>([]);
+
+  useEffect(() => {
+    const token = localStorage.getItem("seka_access_token");
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // Fetch treasury dashboard
+        const treasury = await getTreasuryDashboard(token);
+        const cashFlow = treasury.cash_flow_summary;
+        
+        setTreasuryData({
+          solde: treasury.total_balance,
+          encaissements30j: cashFlow?.total_income || 0,
+          decaissements30j: cashFlow?.total_expenses || 0,
+          netChange: cashFlow?.net_cash_flow || 0
+        });
+
+        // Fetch recent transactions
+        const transactions = await getBankTransactions(token, {}, 0, 5);
+        setRecentTransactions(transactions);
+      } catch (error) {
+        console.error("Error fetching treasury data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [router]);
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("fr-FR", {
+      style: "currency",
+      currency: "XOF",
+      minimumFractionDigits: 2,
+    }).format(amount);
+  };
 
   const submenuItems = [
     { id: "importer", label: "Importer des factures", icon: Upload, href: "/achats/import" },
@@ -123,54 +176,69 @@ export default function AchatsPage() {
 
             {/* Dashboard Preview */}
             <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-lg">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Tableau de bord Compte Pro</p>
-                  <p className="text-3xl font-bold text-gray-900">140 000,00 €</p>
-                  <p className="text-sm text-gray-500">Solde disponible</p>
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-teal-600" />
+                  <span className="ml-2 text-gray-500">Chargement...</span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <p className="text-sm text-gray-500">Activité sur les 30 derniers jours</p>
-                    <div className="flex items-center gap-4 mt-1">
-                      <span className="text-emerald-600 font-medium">+ 23 145,00 €</span>
-                      <span className="text-red-600 font-medium">- 18 000,00 €</span>
-                      <span className="text-gray-900 font-medium">= 5 145,00 €</span>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <p className="text-sm text-gray-500 mb-1">Tableau de bord Compte Pro</p>
+                      <p className="text-3xl font-bold text-gray-900">{formatCurrency(treasuryData.solde)}</p>
+                      <p className="text-sm text-gray-500">Solde disponible</p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <p className="text-sm text-gray-500">Activité sur les 30 derniers jours</p>
+                        <div className="flex items-center gap-4 mt-1">
+                          <span className="text-emerald-600 font-medium">+ {formatCurrency(treasuryData.encaissements30j)}</span>
+                          <span className="text-red-600 font-medium">- {formatCurrency(treasuryData.decaissements30j)}</span>
+                          <span className="text-gray-900 font-medium">= {formatCurrency(treasuryData.netChange)}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
 
-              {/* Mini transactions preview */}
-              <div className="border-t border-gray-200 pt-6">
-                <h4 className="font-medium text-gray-900 mb-4">Transactions récentes</h4>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between py-2">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                        <Building2 className="w-4 h-4 text-gray-500" />
+                  {/* Mini transactions preview */}
+                  <div className="border-t border-gray-200 pt-6">
+                    <h4 className="font-medium text-gray-900 mb-4">Transactions récentes</h4>
+                    {recentTransactions.length === 0 ? (
+                      <p className="text-sm text-gray-500 text-center py-4">Aucune transaction récente</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {recentTransactions.map((tx) => (
+                          <div key={tx.id} className="flex items-center justify-between py-2">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                                tx.transaction_type === "credit" ? "bg-emerald-100" : "bg-gray-100"
+                              }`}>
+                                {tx.transaction_type === "credit" ? (
+                                  <CheckCircle className="w-4 h-4 text-emerald-600" />
+                                ) : (
+                                  <Building2 className="w-4 h-4 text-gray-500" />
+                                )}
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">{tx.description}</p>
+                                <p className="text-xs text-gray-500">
+                                  {new Date(tx.transaction_date).toLocaleDateString("fr-FR")}
+                                </p>
+                              </div>
+                            </div>
+                            <span className={`text-sm font-medium ${
+                              tx.transaction_type === "credit" ? "text-emerald-600" : "text-gray-900"
+                            }`}>
+                              {tx.transaction_type === "credit" ? "+" : "-"}{formatCurrency(tx.amount)}
+                            </span>
+                          </div>
+                        ))}
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">VIRT MAISON RICHOUX</p>
-                        <p className="text-xs text-gray-500">12/10/2025</p>
-                      </div>
-                    </div>
-                    <span className="text-sm font-medium text-gray-900">-800,00 €</span>
+                    )}
                   </div>
-                  <div className="flex items-center justify-between py-2">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center">
-                        <CheckCircle className="w-4 h-4 text-emerald-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">VIRT ASTRATECH</p>
-                        <p className="text-xs text-gray-500">10/10/2025</p>
-                      </div>
-                    </div>
-                    <span className="text-sm font-medium text-emerald-600">+5 820,00 €</span>
-                  </div>
-                </div>
-              </div>
+                </>
+              )}
             </div>
           </div>
         </main>

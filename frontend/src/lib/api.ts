@@ -1505,3 +1505,210 @@ export async function deleteSupplier(accessToken: string, supplierId: string): P
     headers: { Authorization: `Bearer ${accessToken}` },
   });
 }
+
+// ========== BANK TRANSACTIONS APIs ==========
+
+export interface BankTransaction {
+  id: string;
+  bank_account_id: string;
+  transaction_date: string;
+  value_date?: string;
+  description: string;
+  amount: number;
+  transaction_type: "credit" | "debit";
+  category?: string;
+  counterparty?: string;
+  reference?: string;
+  status: "pending" | "validated" | "reconciled";
+  is_reconciled: boolean;
+  reconciled_at?: string;
+  bank_statement_line?: string;
+  notes?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface BankTransactionCreate {
+  bank_account_id: string;
+  transaction_date: string;
+  value_date?: string;
+  description: string;
+  amount: number;
+  transaction_type: "credit" | "debit";
+  category?: string;
+  counterparty?: string;
+  reference?: string;
+}
+
+export interface BankTransactionFilters {
+  bank_account_id?: string;
+  transaction_type?: string;
+  status?: string;
+  is_reconciled?: boolean;
+  start_date?: string;
+  end_date?: string;
+  category?: string;
+}
+
+export async function getBankTransactions(
+  accessToken: string, 
+  filters?: BankTransactionFilters,
+  skip: number = 0,
+  limit: number = 100
+): Promise<BankTransaction[]> {
+  try {
+    const params = new URLSearchParams();
+    params.append("skip", skip.toString());
+    params.append("limit", limit.toString());
+    
+    if (filters) {
+      if (filters.bank_account_id) params.append("bank_account_id", filters.bank_account_id);
+      if (filters.transaction_type) params.append("transaction_type", filters.transaction_type);
+      if (filters.status) params.append("status", filters.status);
+      if (filters.is_reconciled !== undefined) params.append("is_reconciled", filters.is_reconciled.toString());
+      if (filters.start_date) params.append("start_date", filters.start_date);
+      if (filters.end_date) params.append("end_date", filters.end_date);
+      if (filters.category) params.append("category", filters.category);
+    }
+    
+    const response = await api.get<BankTransaction[]>(`/bank-transactions/?${params.toString()}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return Array.isArray(response.data) ? response.data : [];
+  } catch (error) {
+    console.error("Error fetching bank transactions:", error);
+    return [];
+  }
+}
+
+export async function getBankTransaction(accessToken: string, transactionId: string): Promise<BankTransaction> {
+  const response = await api.get<BankTransaction>(`/bank-transactions/${transactionId}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function createBankTransaction(accessToken: string, data: BankTransactionCreate): Promise<BankTransaction> {
+  const response = await api.post<BankTransaction>("/bank-transactions/", data, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function updateBankTransaction(
+  accessToken: string, 
+  transactionId: string, 
+  data: Partial<BankTransactionCreate>
+): Promise<BankTransaction> {
+  const response = await api.put<BankTransaction>(`/bank-transactions/${transactionId}`, data, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function deleteBankTransaction(accessToken: string, transactionId: string): Promise<void> {
+  await api.delete(`/bank-transactions/${transactionId}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+export async function reconcileBankTransaction(
+  accessToken: string, 
+  transactionId: string, 
+  bankStatementLine?: string
+): Promise<BankTransaction> {
+  const response = await api.post<BankTransaction>(
+    `/bank-transactions/${transactionId}/reconcile`, 
+    { bank_statement_line: bankStatementLine },
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+  return response.data;
+}
+
+export async function getUnreconciledTransactions(
+  accessToken: string, 
+  bankAccountId?: string
+): Promise<BankTransaction[]> {
+  try {
+    const params = bankAccountId ? `?bank_account_id=${bankAccountId}` : '';
+    const response = await api.get<BankTransaction[]>(`/bank-transactions/unreconciled${params}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return Array.isArray(response.data) ? response.data : [];
+  } catch (error) {
+    console.error("Error fetching unreconciled transactions:", error);
+    return [];
+  }
+}
+
+// ========== BANK ACCOUNTS APIs ==========
+
+export interface BankAccount {
+  id: string;
+  name: string;
+  bank_name: string;
+  account_number: string;
+  iban?: string;
+  bic?: string;
+  currency: string;
+  current_balance: number;
+  is_active: boolean;
+  is_default: boolean;
+  created_at: string;
+  updated_at?: string;
+}
+
+export async function getBankAccounts(accessToken: string): Promise<BankAccount[]> {
+  try {
+    const response = await api.get<BankAccount[]>("/bank-accounts/", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return Array.isArray(response.data) ? response.data : [];
+  } catch (error) {
+    console.error("Error fetching bank accounts:", error);
+    return [];
+  }
+}
+
+// ========== DASHBOARD STATS (Extended) ==========
+
+export interface DashboardStatsExtended extends DashboardStats {
+  solde_comptes: number;
+  encaissements: number;
+  decaissements: number;
+  total_facture_ht: number;
+  total_achats_ttc: number;
+  transactions_a_justifier: number;
+  factures_en_retard: number;
+  demandes_comptables: number;
+  rapprochements_suggeres: number;
+}
+
+export async function getDashboardStatsExtended(accessToken: string): Promise<DashboardStatsExtended> {
+  try {
+    const response = await api.get<DashboardStatsExtended>("/dashboard/stats/extended", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching extended dashboard stats:", error);
+    // Return default values
+    return {
+      total_clients: 0,
+      active_clients: 0,
+      documents_pending: 0,
+      documents_processed_this_month: 0,
+      tasks_overdue: 0,
+      tasks_due_this_week: 0,
+      solde_comptes: 0,
+      encaissements: 0,
+      decaissements: 0,
+      total_facture_ht: 0,
+      total_achats_ttc: 0,
+      transactions_a_justifier: 0,
+      factures_en_retard: 0,
+      demandes_comptables: 0,
+      rapprochements_suggeres: 0,
+    };
+  }
+}

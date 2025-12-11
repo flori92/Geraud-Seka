@@ -59,3 +59,16 @@ class ModuleStats(BaseModel):
     treasury: Optional[dict] = None
     hr: Optional[dict] = None
     stock: Optional[dict] = None
+
+
+class DashboardStatsExtended(DashboardStats):
+    """Extended dashboard stats for Pennylane-style dashboard"""
+    solde_comptes: float = 0.0
+    encaissements: float = 0.0
+    decaissements: float = 0.0
+    total_facture_ht: float = 0.0
+    total_achats_ttc: float = 0.0
+    transactions_a_justifier: int = 0
+    factures_en_retard: int = 0
+    demandes_comptables: int = 0
+    rapprochements_suggeres: int = 0

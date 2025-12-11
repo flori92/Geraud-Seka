@@ -1,14 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Head from "next/head";
+import { useRouter } from "next/router";
 import { PennylaneSidebar } from "@/components/layout/PennylaneSidebar";
 import { 
-  Search, Filter, Calendar, Plus, Download, Upload, Settings2, X,
-  ChevronDown, MoreHorizontal, AlertTriangle, CheckCircle2, FileText
+  Settings2,
+  ChevronDown,
+  Loader2
 } from "lucide-react";
+import { getDocuments, type Document } from "@/lib/api";
 
 type InvoiceStatus = "aucune" | "autoliquid" | "extracom" | "validee" | "20%" | "10%" | "carb_80%";
 
-interface Invoice {
+interface DisplayInvoice {
   id: string;
   emission: string;
   tiers: string;
@@ -22,23 +25,56 @@ interface Invoice {
   categories: string;
 }
 
-const mockInvoices: Invoice[] = [
-  { id: "1", emission: "25/12/2024", tiers: "", numeroFacture: "I4B-59215-20...", numeroCompte: "6288", tauxTVA: "aucune", ajout: "14/01/2025", statutDirigeant: "Import comp...", source: "", codesAnalytiques: "", categories: "" },
-  { id: "2", emission: "22/12/2024", tiers: "Guigui BTP", numeroFacture: "N°12", numeroCompte: "811", tauxTVA: "autoliquid", ajout: "14/01/2025", statutDirigeant: "Import comp...", source: "", codesAnalytiques: "", categories: "" },
-  { id: "3", emission: "20/12/2024", tiers: "AMAZON EU S...", numeroFacture: "FRIYOZNAEUI", numeroCompte: "2183", tauxTVA: "20%", ajout: "14/01/2025", statutDirigeant: "Import comp...", source: "", codesAnalytiques: "", categories: "" },
-  { id: "4", emission: "16/12/2024", tiers: "Miro", numeroFacture: "B2F64386-00...", numeroCompte: "6135", tauxTVA: "extracom", ajout: "14/01/2025", statutDirigeant: "Import comp...", source: "", codesAnalytiques: "", categories: "" },
-  { id: "5", emission: "15/12/2024", tiers: "SFR", numeroFacture: "B322-002908...", numeroCompte: "6262", tauxTVA: "20%", ajout: "14/01/2025", statutDirigeant: "Import comp...", source: "", codesAnalytiques: "BOR902", categories: "Telephone" },
-  { id: "6", emission: "13/12/2024", tiers: "CARREFOUR D...", numeroFacture: "WEB-001076-...", numeroCompte: "6063", tauxTVA: "20%", ajout: "14/01/2025", statutDirigeant: "Import comp...", source: "", codesAnalytiques: "", categories: "" },
-  { id: "7", emission: "10/12/2024", tiers: "CARREFOUR DRIVE", numeroFacture: "F-2022-3", numeroCompte: "6135", tauxTVA: "20%", ajout: "14/01/2025", statutDirigeant: "Import comp...", source: "", codesAnalytiques: "", categories: "Alimenta..." },
-  { id: "8", emission: "10/12/2024", tiers: "Tech et Cie", numeroFacture: "F-2022-3", numeroCompte: "6135", tauxTVA: "20%", ajout: "14/01/2025", statutDirigeant: "Validée", source: "", codesAnalytiques: "", categories: "" },
-  { id: "9", emission: "10/12/2024", tiers: "Pennylane Cabi...", numeroFacture: "F-2024-91", numeroCompte: "6226", tauxTVA: "20%", ajout: "20/05/2025", statutDirigeant: "fx", source: "Import c...", codesAnalytiques: "", categories: "" },
-  { id: "10", emission: "08/12/2024", tiers: "Carburant", numeroFacture: "10100029137", numeroCompte: "6082", tauxTVA: "carb_80%", ajout: "14/01/2025", statutDirigeant: "Import comp...", source: "", codesAnalytiques: "", categories: "" },
-];
-
 export default function FacturesFournisseurs() {
-  const [invoices] = useState<Invoice[]>(mockInvoices);
-  const [searchQuery, setSearchQuery] = useState("");
+  const router = useRouter();
+  const [invoices, setInvoices] = useState<DisplayInvoice[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedExercice, setSelectedExercice] = useState("2024");
+
+  useEffect(() => {
+    const token = localStorage.getItem("seka_access_token");
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    const fetchInvoices = async () => {
+      setLoading(true);
+      try {
+        const documents = await getDocuments(token);
+        // Transform documents to display format
+        const displayInvoices: DisplayInvoice[] = documents.map((doc: Document) => ({
+          id: doc.id,
+          emission: doc.date ? new Date(doc.date).toLocaleDateString("fr-FR") : "-",
+          tiers: doc.supplier_name || "",
+          numeroFacture: doc.reference_number || doc.filename,
+          numeroCompte: "6288", // Default account
+          tauxTVA: determineTVARate(doc.amount_vat, doc.amount_ht),
+          ajout: new Date(doc.created_at).toLocaleDateString("fr-FR"),
+          statutDirigeant: doc.status === "validated" ? "Validée" : "Import comp...",
+          source: "",
+          codesAnalytiques: "",
+          categories: ""
+        }));
+        setInvoices(displayInvoices);
+      } catch (error) {
+        console.error("Error fetching invoices:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInvoices();
+  }, [router]);
+
+  // Helper to determine TVA rate from amounts
+  const determineTVARate = (vat?: number, ht?: number): InvoiceStatus => {
+    if (!vat || !ht || ht === 0) return "aucune";
+    const rate = (vat / ht) * 100;
+    if (rate >= 19 && rate <= 21) return "20%";
+    if (rate >= 9 && rate <= 11) return "10%";
+    return "aucune";
+  };
 
   const getTVABadge = (tva: InvoiceStatus) => {
     const styles: Record<InvoiceStatus, string> = {
@@ -130,6 +166,17 @@ export default function FacturesFournisseurs() {
 
               {/* Table */}
               <div className="overflow-x-auto">
+                {loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-teal-600" />
+                    <span className="ml-2 text-gray-500">Chargement des factures...</span>
+                  </div>
+                ) : invoices.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-gray-500">Aucune facture fournisseur trouvée</p>
+                    <p className="text-sm text-gray-400 mt-1">Importez vos premières factures pour commencer</p>
+                  </div>
+                ) : (
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-gray-200 bg-gray-50">
@@ -170,6 +217,7 @@ export default function FacturesFournisseurs() {
                     ))}
                   </tbody>
                 </table>
+                )}
               </div>
 
               {/* Pagination */}

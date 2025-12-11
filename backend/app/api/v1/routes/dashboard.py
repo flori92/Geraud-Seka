@@ -15,7 +15,7 @@ from app.core.cache import cached
 from app.models.client import Client
 from app.models.document import Document, DocumentStatus
 from app.models.user import User
-from app.schemas.dashboard import DashboardStats, DashboardAlert, RecentActivity
+from app.schemas.dashboard import DashboardStats, DashboardStatsExtended, DashboardAlert, RecentActivity
 
 router = APIRouter()
 
@@ -205,6 +205,132 @@ def get_dashboard_stats(
             "pending_payments": 0,
             "alerts": [{"type": "error", "title": "Erreur de chargement", "message": "Impossible de charger les statistiques."}],
             "recent_activities": []
+        }
+
+
+@router.get("/stats/extended", response_model=DashboardStatsExtended)
+@cached(ttl=60)
+def get_dashboard_stats_extended(
+    db: Session = Depends(deps.get_db_session),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    Get extended dashboard statistics for Pennylane-style dashboard.
+    Includes bank account balances, transactions to justify, overdue invoices, etc.
+    """
+    try:
+        tenant_id = str(current_user.tenant_id) if current_user.tenant_id else None
+        
+        # Get base stats first
+        base_stats = get_dashboard_stats(db, current_user)
+        
+        # Initialize extended stats
+        solde_comptes = 0.0
+        encaissements = 0.0
+        decaissements = 0.0
+        total_facture_ht = 0.0
+        total_achats_ttc = 0.0
+        transactions_a_justifier = 0
+        factures_en_retard = 0
+        
+        if tenant_id:
+            # Try to get bank account balances
+            try:
+                from app.models.treasury import BankAccount, BankTransaction
+                
+                # Sum of all bank account balances
+                balance_result = db.query(func.sum(BankAccount.current_balance)).filter(
+                    BankAccount.tenant_id == tenant_id,
+                    BankAccount.is_active == True
+                ).scalar()
+                solde_comptes = float(balance_result or 0)
+                
+                # Get transactions for this year
+                year_start = datetime.utcnow().replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+                
+                # Encaissements (credits)
+                credits_result = db.query(func.sum(BankTransaction.amount)).filter(
+                    BankTransaction.tenant_id == tenant_id,
+                    BankTransaction.transaction_type == "credit",
+                    BankTransaction.transaction_date >= year_start
+                ).scalar()
+                encaissements = float(credits_result or 0)
+                
+                # Décaissements (debits)
+                debits_result = db.query(func.sum(BankTransaction.amount)).filter(
+                    BankTransaction.tenant_id == tenant_id,
+                    BankTransaction.transaction_type == "debit",
+                    BankTransaction.transaction_date >= year_start
+                ).scalar()
+                decaissements = float(debits_result or 0)
+                
+                # Transactions to justify (pending status)
+                transactions_a_justifier = db.query(BankTransaction).filter(
+                    BankTransaction.tenant_id == tenant_id,
+                    BankTransaction.status == "pending"
+                ).count()
+            except Exception as e:
+                print(f"Error fetching bank data: {e}")
+            
+            # Try to get invoice totals from documents
+            try:
+                # Total invoiced (HT) from validated documents
+                invoiced_result = db.query(func.sum(Document.amount_ht)).filter(
+                    Document.tenant_id == tenant_id,
+                    Document.status == DocumentStatus.VALIDATED
+                ).scalar()
+                total_facture_ht = float(invoiced_result or 0)
+                
+                # Overdue documents (past due date and not validated)
+                factures_en_retard = db.query(Document).filter(
+                    Document.tenant_id == tenant_id,
+                    Document.due_date < datetime.utcnow(),
+                    Document.status != DocumentStatus.VALIDATED
+                ).count()
+            except Exception as e:
+                print(f"Error fetching invoice data: {e}")
+            
+            # Try to get purchase totals
+            try:
+                # Total purchases (TTC) from documents
+                purchases_result = db.query(func.sum(Document.amount_ttc)).filter(
+                    Document.tenant_id == tenant_id,
+                    Document.status == DocumentStatus.VALIDATED
+                ).scalar()
+                total_achats_ttc = float(purchases_result or 0)
+            except Exception as e:
+                print(f"Error fetching purchase data: {e}")
+        
+        return {
+            **base_stats,
+            "solde_comptes": solde_comptes,
+            "encaissements": encaissements,
+            "decaissements": decaissements,
+            "total_facture_ht": total_facture_ht,
+            "total_achats_ttc": total_achats_ttc,
+            "transactions_a_justifier": transactions_a_justifier,
+            "factures_en_retard": factures_en_retard,
+            "demandes_comptables": 0,
+            "rapprochements_suggeres": 0,
+        }
+    except Exception as e:
+        print(f"Error in extended stats: {e}")
+        return {
+            "total_clients": 0,
+            "active_clients": 0,
+            "documents_pending": 0,
+            "documents_processed_this_month": 0,
+            "tasks_overdue": 0,
+            "tasks_due_this_week": 0,
+            "solde_comptes": 0,
+            "encaissements": 0,
+            "decaissements": 0,
+            "total_facture_ht": 0,
+            "total_achats_ttc": 0,
+            "transactions_a_justifier": 0,
+            "factures_en_retard": 0,
+            "demandes_comptables": 0,
+            "rapprochements_suggeres": 0,
         }
 
 
