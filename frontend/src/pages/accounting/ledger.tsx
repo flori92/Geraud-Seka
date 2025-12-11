@@ -57,7 +57,7 @@ export default function GeneralLedger() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-teal-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#0d4a44]" />
       </div>
     );
   }
@@ -85,7 +85,7 @@ export default function GeneralLedger() {
                   placeholder="Rechercher..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0d4a44]"
                 />
               </div>
             </div>

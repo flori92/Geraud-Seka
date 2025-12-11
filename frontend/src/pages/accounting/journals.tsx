@@ -81,7 +81,7 @@ export default function Journals() {
                   onClick={() => setSelectedJournal(journal)}
                   className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                     selectedJournal === journal
-                      ? "border-teal-600 text-teal-600"
+                      ? "border-teal-600 text-[#0d4a44]"
                       : "border-transparent text-gray-500 hover:text-gray-700"
                   }`}
                 >
@@ -93,7 +93,7 @@ export default function Journals() {
             <div className="overflow-x-auto">
               {loading ? (
                 <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-8 h-8 animate-spin text-teal-600" />
+                  <Loader2 className="w-8 h-8 animate-spin text-[#0d4a44]" />
                 </div>
               ) : (
                 <table className="w-full">
