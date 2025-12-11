@@ -98,6 +98,7 @@ const accountingMenu: MenuSection[] = [
         label: "Saisie",
         icon: FileText,
         submenu: [
+          { label: "Saisie avec OCR", href: "/accounting/entries/from-ocr", badge: "IA", badgeVariant: "new" },
           { label: "Écritures comptables", href: "/accounting/entries" },
           { label: "Nouvelle saisie", href: "/accounting/entries/new" },
           { label: "Factures fournisseurs", href: "/achats/factures" },
@@ -143,6 +144,7 @@ const accountingMenu: MenuSection[] = [
         submenu: [
           { label: "Documents", href: "/documents" },
           { label: "Plan comptable", href: "/accounting/chart-of-accounts" },
+          { label: "Règles comptables", href: "/settings/accounting-rules", badge: "IA", badgeVariant: "new" },
           { label: "Centre de règles", href: "/settings/rules" },
           { label: "Paramètres", href: "/settings" },
         ]
