@@ -55,8 +55,6 @@ class DocumentCategory(str, enum.Enum):
     """Catégories principales de documents"""
     ACCOUNTING = "accounting"            # Comptabilité
     HR = "hr"                            # Ressources Humaines
-    SALES = "sales"                      # Commercial/Ventes
-    PURCHASES = "purchases"              # Achats
     LEGAL = "legal"                      # Juridique
     ADMINISTRATIVE = "administrative"    # Administratif
     TECHNICAL = "technical"              # Technique
