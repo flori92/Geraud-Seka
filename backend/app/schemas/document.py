@@ -1,18 +1,19 @@
-from datetime import date
+from datetime import date, datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-from app.models.document import DocumentStatus, DocumentType
+from app.models.document import DocumentStatus, DocumentType, DocumentCategory
 
 
 class DocumentBase(BaseModel):
     filename: str
     status: DocumentStatus = DocumentStatus.UPLOADED
     type: Optional[DocumentType] = DocumentType.OTHER
+    category: Optional[DocumentCategory] = DocumentCategory.OTHER
     reference_number: Optional[str] = None
-    date: Optional[date] = None
+    document_date: Optional[date] = Field(None, alias="date")  # Support both names
     due_date: Optional[date] = None
     amount_ht: Optional[float] = None
     amount_vat: Optional[float] = None
@@ -24,14 +25,15 @@ class DocumentCreate(DocumentBase):
     file_path: str
     content_type: str
     file_size: float
-    client_id: UUID
+    client_id: Optional[UUID] = None  # Made optional
 
 
 class DocumentUpdate(BaseModel):
     status: Optional[DocumentStatus] = None
     type: Optional[DocumentType] = None
+    category: Optional[DocumentCategory] = None
     reference_number: Optional[str] = None
-    date: Optional[date] = None
+    document_date: Optional[date] = None
     due_date: Optional[date] = None
     amount_ht: Optional[float] = None
     amount_vat: Optional[float] = None
@@ -42,13 +44,24 @@ class DocumentUpdate(BaseModel):
 class Document(DocumentBase):
     id: UUID
     file_path: str
-    created_at: date
-    updated_at: date
-    client_id: UUID
+    original_filename: Optional[str] = None
+    file_extension: Optional[str] = None
+    content_type: Optional[str] = None
+    file_size: Optional[int] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    ocr_data: Optional[dict] = None
+    ocr_confidence: Optional[float] = None
+    created_at: datetime
+    updated_at: datetime
+    client_id: Optional[UUID] = None  # Made optional
     supplier_id: Optional[UUID] = None
+    tenant_id: Optional[UUID] = None
+    uploaded_by: Optional[UUID] = None
 
     class Config:
         from_attributes = True
+        populate_by_name = True  # Allow both 'date' and 'document_date'
 
 
 class DocumentUploadResponse(BaseModel):
