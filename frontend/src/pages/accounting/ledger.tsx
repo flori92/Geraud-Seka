@@ -1,303 +1,144 @@
 import { useState, useEffect } from "react";
-import { DashboardLayout } from "@/components/DashboardLayout";
-import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
-import { Skeleton } from "@/components/ui/Skeleton";
-import { Alert } from "@/components/ui/Alert";
-import { getLedgerAccounts, createLedgerAccount, LedgerAccount, LedgerAccountCreate } from "@/lib/api";
-import { useToast } from "@/components/ui/ToastContainer";
-import { TrendingUp, TrendingDown, Minus, Plus, X } from "lucide-react";
+import Head from "next/head";
+import { useRouter } from "next/router";
+import { PennylaneSidebar } from "@/components/layout/PennylaneSidebar";
+import { Search, Download, Loader2 } from "lucide-react";
 
-export default function LedgerPage() {
-  const [accounts, setAccounts] = useState<LedgerAccount[]>([]);
+interface JournalEntry {
+  id: string;
+  entry_number: string;
+  date: string;
+  description: string;
+  debit_account: string;
+  credit_account: string;
+  amount: number;
+}
+
+export default function GeneralLedger() {
+  const router = useRouter();
+  const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [filterType, setFilterType] = useState("all");
-  const [showModal, setShowModal] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const { success, error: showError } = useToast();
-  const [formData, setFormData] = useState({
-    account_code: "",
-    account_name: "",
-    account_type: "asset" as "asset" | "liability" | "equity" | "revenue" | "expense",
-    currency: "XOF",
-    initial_balance: 0
-  });
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    fetchAccounts();
+    fetchEntries();
   }, []);
 
-  const fetchAccounts = async () => {
+  const fetchEntries = async () => {
+    const token = localStorage.getItem("seka_access_token");
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
     try {
-      setLoading(true);
-      const token = localStorage.getItem("seka_access_token");
-      if (!token) {
-        setError("Vous devez être connecté");
-        return;
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/accounting/journal/`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setEntries(data);
       }
-      const data = await getLedgerAccounts(token);
-      setAccounts(data);
-      setError(null);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || "Erreur lors du chargement du grand livre");
+    } catch (error) {
+      console.error("Error fetching entries:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCreateAccount = async () => {
-    try {
-      setSubmitting(true);
-      const token = localStorage.getItem("seka_access_token");
-      if (!token) {
-        showError("Vous devez être connecté");
-        return;
-      }
+  const filteredEntries = entries.filter(
+    (entry) =>
+      entry.entry_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      entry.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-      const accountData: LedgerAccountCreate = {
-        account_code: formData.account_code,
-        account_name: formData.account_name,
-        account_type: formData.account_type,
-        currency: formData.currency,
-        initial_balance: formData.initial_balance
-      };
-
-      await createLedgerAccount(accountData, token);
-      success("Compte créé avec succès");
-      setShowModal(false);
-      setFormData({
-        account_code: "",
-        account_name: "",
-        account_type: "asset",
-        currency: "XOF",
-        initial_balance: 0
-      });
-      fetchAccounts();
-    } catch (err: any) {
-      showError(err.response?.data?.detail || "Erreur lors de la création du compte");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const filteredAccounts = filterType === "all"
-    ? accounts
-    : accounts.filter(a => a.account_type === filterType);
-
-  const getAccountTypeLabel = (type: string) => {
-    const labels: Record<string, string> = {
-      "asset": "Actif",
-      "liability": "Passif",
-      "equity": "Capitaux propres",
-      "revenue": "Produit",
-      "expense": "Charge",
-    };
-    return labels[type] || type;
-  };
-
-  const getAccountTypeColor = (type: string) => {
-    const colors: Record<string, string> = {
-      "asset": "bg-blue-100 text-blue-700",
-      "liability": "bg-red-100 text-red-700",
-      "equity": "bg-purple-100 text-purple-700",
-      "revenue": "bg-green-100 text-green-700",
-      "expense": "bg-orange-100 text-orange-700",
-    };
-    return colors[type] || "bg-gray-100 text-gray-700";
-  };
-
-  const getBalanceIcon = (balance: number, type: string) => {
-    if (balance > 0) {
-      if (type === "asset" || type === "expense") {
-        return <TrendingUp className="h-4 w-4 text-success" />;
-      }
-      return <TrendingDown className="h-4 w-4 text-error" />;
-    } else if (balance < 0) {
-      if (type === "liability" || type === "revenue") {
-        return <TrendingDown className="h-4 w-4 text-error" />;
-      }
-      return <TrendingUp className="h-4 w-4 text-success" />;
-    }
-    return <Minus className="h-4 w-4 text-accents-5" />;
-  };
-
-  const stats = [
-    { label: "Total comptes", value: accounts.length.toString(), color: "bg-blue-600" },
-    { label: "Actifs", value: accounts.filter(a => a.account_type === "asset").length.toString(), color: "bg-green-600" },
-    { label: "Passifs", value: accounts.filter(a => a.account_type === "liability").length.toString(), color: "bg-red-600" },
-    { label: "Produits", value: accounts.filter(a => a.account_type === "revenue").length.toString(), color: "bg-purple-600" },
-  ];
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-teal-600" />
+      </div>
+    );
+  }
 
   return (
-    <DashboardLayout title="Grand livre">
-      {error && (
-        <Alert variant="error" className="mb-6">
-          {error}
-        </Alert>
-      )}
+    <>
+      <Head><title>Grand livre - SEKA</title></Head>
+      <div className="min-h-screen bg-gray-50">
+        <PennylaneSidebar />
+        <main className="ml-[220px] p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-2xl font-semibold text-gray-900">Grand livre</h1>
+            <button className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+              <Download className="w-4 h-4" />
+              Exporter
+            </button>
+          </div>
 
-      {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-4 mb-6">
-        {stats.map((stat, idx) => (
-          <Card key={idx}>
-            <div className="flex items-center gap-3">
-              <div className={`h-12 w-12 rounded-lg ${stat.color} flex items-center justify-center`}>
-                <span className="text-xl font-bold text-white">{stat.value}</span>
+          <div className="bg-white rounded-xl border border-gray-200">
+            <div className="p-4 border-b border-gray-200">
+              <div className="relative max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Rechercher..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                />
               </div>
-              <p className="text-sm font-medium text-accents-6">{stat.label}</p>
             </div>
-          </Card>
-        ))}
-      </div>
 
-      {/* Filters */}
-      <Card className="mb-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-1 gap-3 max-w-2xl">
-            <Input placeholder="Rechercher un compte..." className="flex-1" />
-            <Select value={filterType} onChange={(e) => setFilterType(e.target.value)}>
-              <option value="all">Tous les types</option>
-              <option value="asset">Actifs</option>
-              <option value="liability">Passifs</option>
-              <option value="equity">Capitaux propres</option>
-              <option value="revenue">Produits</option>
-              <option value="expense">Charges</option>
-            </Select>
-          </div>
-          <Button variant="primary" size="md" onClick={() => setShowModal(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nouveau compte
-          </Button>
-        </div>
-      </Card>
-
-      {/* Accounts Table */}
-      <Card>
-        {loading ? (
-          <div className="p-6">
-            <Skeleton className="h-96 w-full" />
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="border-b border-accents-2">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-accents-5">Code</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-accents-5">Nom du compte</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-accents-5">Type</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-accents-5">Devise</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-accents-5">Solde</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-accents-5">Tendance</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-accents-2">
-                {filteredAccounts.map((account) => (
-                  <tr key={account.id} className="hover:bg-accents-1 transition-colors">
-                    <td className="px-4 py-3 text-sm font-mono font-medium text-foreground">
-                      {account.account_code}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-foreground">{account.account_name}</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center rounded px-2 py-1 text-xs font-medium ${getAccountTypeColor(account.account_type)}`}>
-                        {getAccountTypeLabel(account.account_type)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-accents-6">{account.currency}</td>
-                    <td className="px-4 py-3 text-sm font-bold text-right">
-                      <span className={account.balance >= 0 ? "text-success" : "text-error"}>
-                        {account.balance.toLocaleString()} {account.currency}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      {getBalanceIcon(account.balance, account.account_type)}
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200 bg-gray-50">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">N° Écriture</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Compte débit</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Compte crédit</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Montant</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
-
-      {/* Modal Nouveau Compte */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <Card className="w-full max-w-lg mx-4">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-foreground">Nouveau compte comptable</h2>
-                <button onClick={() => setShowModal(false)} className="p-1 hover:bg-gray-100 rounded">
-                  <X className="h-5 w-5 text-gray-500" />
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Code compte *</label>
-                  <Input
-                    value={formData.account_code}
-                    onChange={(e) => setFormData({ ...formData, account_code: e.target.value })}
-                    placeholder="Ex: 411000"
-                    className="font-mono"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Format SYSCOHADA (6 chiffres)</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Nom du compte *</label>
-                  <Input
-                    value={formData.account_name}
-                    onChange={(e) => setFormData({ ...formData, account_name: e.target.value })}
-                    placeholder="Ex: Clients"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Type de compte *</label>
-                  <Select
-                    value={formData.account_type}
-                    onChange={(e) => setFormData({ ...formData, account_type: e.target.value as "asset" | "liability" | "equity" | "revenue" | "expense" })}
-                  >
-                    <option value="asset">Actif</option>
-                    <option value="liability">Passif</option>
-                    <option value="equity">Capitaux propres</option>
-                    <option value="revenue">Produit</option>
-                    <option value="expense">Charge</option>
-                  </Select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Solde initial</label>
-                  <Input
-                    type="number"
-                    value={formData.initial_balance}
-                    onChange={(e) => setFormData({ ...formData, initial_balance: parseFloat(e.target.value) || 0 })}
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-3 mt-6">
-                <Button variant="secondary" onClick={() => setShowModal(false)} className="flex-1">
-                  Annuler
-                </Button>
-                <Button
-                  variant="primary"
-                  disabled={!formData.account_code || !formData.account_name || submitting}
-                  className="flex-1"
-                  onClick={handleCreateAccount}
-                >
-                  {submitting ? "Création..." : "Créer le compte"}
-                </Button>
-              </div>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {filteredEntries.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-12 text-center text-gray-500">
+                        Aucune écriture trouvée
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredEntries.map((entry) => (
+                      <tr key={entry.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 text-sm text-gray-600">
+                          {new Date(entry.date).toLocaleDateString("fr-FR")}
+                        </td>
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                          {entry.entry_number}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-900">
+                          {entry.description}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600">
+                          {entry.debit_account}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600">
+                          {entry.credit_account}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-right text-gray-900">
+                          {entry.amount.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} FCFA
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
-          </Card>
-        </div>
-      )}
-    </DashboardLayout>
+          </div>
+        </main>
+      </div>
+    </>
   );
 }

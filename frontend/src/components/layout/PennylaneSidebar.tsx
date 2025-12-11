@@ -98,17 +98,13 @@ const accountingMenu: MenuSection[] = [
         label: "Saisie",
         icon: FileText,
         submenu: [
-          { label: "Recherche d'écritures", href: "/comptabilite/recherche" },
-          { label: "Nouvelle saisie", href: "/comptabilite/nouvelle-saisie" },
-          { label: "Reprise de TVA", href: "/comptabilite/reprise-tva", badge: "À faire" },
+          { label: "Écritures comptables", href: "/accounting/entries" },
+          { label: "Nouvelle saisie", href: "/accounting/entries/new" },
           { label: "Factures fournisseurs", href: "/achats/factures" },
           { label: "Factures clients", href: "/ventes/factures" },
           { label: "Transactions", href: "/transactions" },
-          { label: "Rapprochement bancaire", href: "/tresorerie/rapprochement" },
-          { label: "Journaux", href: "/comptabilite/journaux" },
-          { label: "Saisie en masse", href: "/comptabilite/saisie-masse" },
-          { label: "Imports", href: "/comptabilite/imports" },
-          { label: "Exports", href: "/comptabilite/exports" },
+          { label: "Rapprochement bancaire", href: "/accounting/reconciliation" },
+          { label: "Journaux", href: "/accounting/journals" },
         ]
       },
       {
@@ -116,20 +112,10 @@ const accountingMenu: MenuSection[] = [
         label: "Révision",
         icon: Calculator,
         submenu: [
-          { label: "Balance générale", href: "/revision/balance-generale" },
-          { label: "Balance fournisseurs", href: "/revision/balance-fournisseurs" },
-          { label: "Balance clients", href: "/revision/balance-clients" },
-          { label: "Balance âgée", href: "/revision/balance-agee" },
-          { label: "Grand livre", href: "/revision/grand-livre" },
-          { label: "Dossier de travail", href: "/revision/dossier-travail" },
-          { label: "Historique", href: "/revision/historique" },
-          { label: "Écritures d'inventaire", href: "/revision/ecritures-inventaire" },
-          { label: "Immobilisations", href: "/revision/immobilisations" },
-          { label: "Emprunts", href: "/revision/emprunts" },
-          { label: "Crédits-bail", href: "/revision/credits-bail" },
-          { label: "Véhicules", href: "/revision/vehicules" },
-          { label: "Subventions", href: "/revision/subventions", badge: "Nouv" },
-          { label: "Créances douteuses", href: "/revision/creances-douteuses", badge: "Nouv" },
+          { label: "Balance générale", href: "/accounting/balance" },
+          { label: "Grand livre", href: "/accounting/ledger" },
+          { label: "Balance fournisseurs", href: "/suppliers/balance" },
+          { label: "Balance clients", href: "/clients/balance" },
         ]
       },
       {
@@ -137,10 +123,8 @@ const accountingMenu: MenuSection[] = [
         label: "Fiscalité",
         icon: Building2,
         submenu: [
-          { label: "Déclarations TVA", href: "/fiscalite/tva" },
-          { label: "Liasse fiscale", href: "/fiscalite/liasse" },
-          { label: "CFE", href: "/fiscalite/cfe" },
-          { label: "CVAE", href: "/fiscalite/cvae" },
+          { label: "Déclarations TVA", href: "/tax/vat" },
+          { label: "Liasse fiscale", href: "/tax/returns" },
         ]
       },
       {
@@ -148,10 +132,8 @@ const accountingMenu: MenuSection[] = [
         label: "États de synthèse",
         icon: Scale,
         submenu: [
-          { label: "Bilan", href: "/etats/bilan" },
-          { label: "Compte de résultat", href: "/etats/resultat" },
-          { label: "SIG", href: "/etats/sig" },
-          { label: "Tableau de financement", href: "/etats/financement" },
+          { label: "Bilan", href: "/reports/balance-sheet" },
+          { label: "Compte de résultat", href: "/reports/income-statement" },
         ]
       },
       {
@@ -159,13 +141,10 @@ const accountingMenu: MenuSection[] = [
         label: "Dossier du client",
         icon: FolderOpen,
         submenu: [
-          { label: "GED", href: "/ged" },
-          { label: "Plan comptable", href: "/comptabilite/plan-comptable" },
-          { label: "Informations entreprise", href: "/settings/entreprise" },
-          { label: "Gestion de l'équipe", href: "/settings/equipe" },
+          { label: "Documents", href: "/documents" },
+          { label: "Plan comptable", href: "/accounting/chart-of-accounts" },
           { label: "Centre de règles", href: "/settings/rules" },
-          { label: "Connectivité", href: "/settings/integrations" },
-          { label: "Fonctionnalités avancées", href: "/settings/avancees" },
+          { label: "Paramètres", href: "/settings" },
         ]
       },
     ]
