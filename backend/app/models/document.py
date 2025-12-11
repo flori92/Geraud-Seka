@@ -54,7 +54,6 @@ class DocumentType(str, enum.Enum):
 class DocumentCategory(str, enum.Enum):
     """Catégories principales de documents"""
     ACCOUNTING = "accounting"            # Comptabilité
-    HR = "hr"                            # Ressources Humaines
     LEGAL = "legal"                      # Juridique
     ADMINISTRATIVE = "administrative"    # Administratif
     TECHNICAL = "technical"              # Technique
