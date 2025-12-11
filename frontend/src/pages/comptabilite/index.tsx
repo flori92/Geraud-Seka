@@ -18,6 +18,14 @@ interface AccountingStats {
   total_assets: number;
   total_liabilities: number;
   equity: number;
+  // Détails actif
+  fixed_assets?: number;
+  inventory?: number;
+  accounts_receivable?: number;
+  // Détails passif
+  loans?: number;
+  accounts_payable?: number;
+  other_liabilities?: number;
 }
 
 export default function ComptabilitePage() {
@@ -237,15 +245,15 @@ export default function ComptabilitePage() {
             <div className="space-y-3">
               <div className="flex justify-between items-center p-3 bg-accents-1 rounded-lg">
                 <span>Immobilisations</span>
-                <span className="font-semibold">{formatCurrency(850000)}</span>
+                <span className="font-semibold">{formatCurrency(stats?.fixed_assets || 0)}</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-accents-1 rounded-lg">
                 <span>Stocks</span>
-                <span className="font-semibold">{formatCurrency(420000)}</span>
+                <span className="font-semibold">{formatCurrency(stats?.inventory || 0)}</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-accents-1 rounded-lg">
                 <span>Créances clients</span>
-                <span className="font-semibold">{formatCurrency(680000)}</span>
+                <span className="font-semibold">{formatCurrency(stats?.accounts_receivable || 0)}</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-accents-1 rounded-lg">
                 <span>Trésorerie</span>
@@ -270,15 +278,15 @@ export default function ComptabilitePage() {
               </div>
               <div className="flex justify-between items-center p-3 bg-accents-1 rounded-lg">
                 <span>Emprunts</span>
-                <span className="font-semibold">{formatCurrency(350000)}</span>
+                <span className="font-semibold">{formatCurrency(stats?.loans || 0)}</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-accents-1 rounded-lg">
                 <span>Dettes fournisseurs</span>
-                <span className="font-semibold">{formatCurrency(280000)}</span>
+                <span className="font-semibold">{formatCurrency(stats?.accounts_payable || 0)}</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-accents-1 rounded-lg">
                 <span>Autres dettes</span>
-                <span className="font-semibold">{formatCurrency(120000)}</span>
+                <span className="font-semibold">{formatCurrency(stats?.other_liabilities || 0)}</span>
               </div>
               <div className="flex justify-between items-center p-3 bg-primary/10 rounded-lg font-bold">
                 <span>Total Passif</span>

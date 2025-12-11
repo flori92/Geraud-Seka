@@ -39,7 +39,12 @@
       "Bash(git log:*)",
       "Bash(tee:*)",
       "Bash(/tmp/test_production.sh)",
-      "Bash(python -m alembic revision:*)"
+      "Bash(python -m alembic revision:*)",
+      "Bash(python -m pytest:*)",
+      "Bash(python:*)",
+      "WebSearch",
+      "WebFetch(domain:www.pennylane.com)",
+      "WebFetch(domain:help.pennylane.com)"
     ],
     "deny": [],
     "ask": []

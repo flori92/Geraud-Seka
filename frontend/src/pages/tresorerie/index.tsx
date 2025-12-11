@@ -29,6 +29,10 @@ interface TreasuryDashboard {
   };
   alerts: Array<{ type: string; message: string; amount: number }>;
   bank_accounts: Array<{ name: string; bank: string; balance: number; currency: string }>;
+  // Données graphiques
+  weekly_balances?: number[];
+  weekly_inflows?: number[];
+  weekly_outflows?: number[];
 }
 
 interface ForecastData {
@@ -121,8 +125,8 @@ export default function TresoreriePage() {
   };
 
   const flowChartSeries = [
-    { name: "Entrées", data: [450000, 380000, 520000, 410000] },
-    { name: "Sorties", data: [320000, 290000, 380000, 350000] }
+    { name: "Entrées", data: dashboard?.weekly_inflows || [0, 0, 0, 0] },
+    { name: "Sorties", data: dashboard?.weekly_outflows || [0, 0, 0, 0] }
   ];
 
   return (

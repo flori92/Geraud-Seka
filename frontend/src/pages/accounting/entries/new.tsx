@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { PennylaneSidebar } from "@/components/layout/PennylaneSidebar";
-import { Plus, Trash2, Save, X } from "lucide-react";
+import { Plus, Trash2, Save, X, Sparkles, Wand2, Search } from "lucide-react";
 
 interface Account {
   id: string;
@@ -25,6 +25,7 @@ export default function NewAccountingEntry() {
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [reference, setReference] = useState("");
   const [description, setDescription] = useState("");
+  const [accountSearch, setAccountSearch] = useState("");
   const [lines, setLines] = useState<EntryLine[]>([
     { account_id: "", label: "", debit: "0", credit: "0" },
     { account_id: "", label: "", debit: "0", credit: "0" }
@@ -118,6 +119,34 @@ export default function NewAccountingEntry() {
     }
   };
 
+  // Filtrer les comptes en fonction de la recherche (code ou libellé)
+  const filteredAccounts = accounts.filter(
+    (a) =>
+      a.account_code.toLowerCase().includes(accountSearch.toLowerCase()) ||
+      a.account_name.toLowerCase().includes(accountSearch.toLowerCase())
+  );
+
+  // Templates rapides (exemples simples)
+  const applyTemplate = (type: "vente" | "achat") => {
+    if (type === "vente") {
+      setJournalType("VTE");
+      setDescription("Vente standard");
+      setLines([
+        { account_id: "", label: "Client", debit: "100000", credit: "0" },
+        { account_id: "", label: "Vente", debit: "0", credit: "83333" },
+        { account_id: "", label: "TVA collectée", debit: "0", credit: "16667" },
+      ]);
+    } else {
+      setJournalType("ACH");
+      setDescription("Achat standard");
+      setLines([
+        { account_id: "", label: "Achat", debit: "83333", credit: "0" },
+        { account_id: "", label: "TVA déductible", debit: "16667", credit: "0" },
+        { account_id: "", label: "Fournisseur", debit: "0", credit: "100000" },
+      ]);
+    }
+  };
+
   return (
     <>
       <Head><title>Nouvelle écriture - SEKA</title></Head>
@@ -204,15 +233,43 @@ export default function NewAccountingEntry() {
             </div>
 
             <div className="mb-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-medium text-gray-700">Lignes d'écriture</h3>
-                <button
-                  onClick={addLine}
-                  className="flex items-center gap-2 px-3 py-1.5 text-sm text-[#0d4a44] hover:bg-[#e6f2f1] rounded-lg"
-                >
-                  <Plus className="w-4 h-4" />
-                  Ajouter une ligne
-                </button>
+              <div className="flex flex-col gap-3 mb-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex items-center gap-3">
+                  <h3 className="text-sm font-medium text-gray-700">Lignes d'écriture</h3>
+                  <div className="flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-600">
+                    <Search className="w-4 h-4 text-gray-400" />
+                    <input
+                      type="text"
+                      value={accountSearch}
+                      onChange={(e) => setAccountSearch(e.target.value)}
+                      placeholder="Recherche compte (code ou libellé)"
+                      className="outline-none text-xs text-gray-700 placeholder:text-gray-400"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    onClick={() => applyTemplate("vente")}
+                    className="flex items-center gap-2 px-3 py-1.5 text-xs bg-blue-50 text-blue-700 border border-blue-100 rounded-lg hover:bg-blue-100"
+                  >
+                    <Wand2 className="w-4 h-4" />
+                    Modèle Vente
+                  </button>
+                  <button
+                    onClick={() => applyTemplate("achat")}
+                    className="flex items-center gap-2 px-3 py-1.5 text-xs bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-lg hover:bg-emerald-100"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    Modèle Achat
+                  </button>
+                  <button
+                    onClick={addLine}
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm text-[#0d4a44] hover:bg-[#e6f2f1] rounded-lg"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Ajouter une ligne
+                  </button>
+                </div>
               </div>
 
               <div className="border border-gray-200 rounded-lg overflow-hidden">
@@ -236,7 +293,7 @@ export default function NewAccountingEntry() {
                             className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-[#0d4a44]"
                           >
                             <option value="">Sélectionner un compte</option>
-                            {accounts.map((account) => (
+                            {filteredAccounts.map((account) => (
                               <option key={account.id} value={account.id}>
                                 {account.account_code} - {account.account_name}
                               </option>

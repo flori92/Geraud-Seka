@@ -192,6 +192,17 @@ export function PennylaneSidebar() {
     fetchUser();
   }, []);
 
+  // Auto-detect view mode based on current route
+  useEffect(() => {
+    const accountingRoutes = ["/comptabilite", "/accounting", "/tax", "/reports/balance-sheet", "/reports/income-statement"];
+    const isAccountingRoute = accountingRoutes.some(route => pathname.startsWith(route));
+    if (isAccountingRoute && viewMode !== "accounting") {
+      setViewMode("accounting");
+    } else if (!isAccountingRoute && viewMode === "accounting") {
+      setViewMode("management");
+    }
+  }, [pathname]);
+
   const toggleMenu = (menuId: string) => {
     setOpenMenus((prev) =>
       prev.includes(menuId) ? prev.filter((id) => id !== menuId) : [...prev, menuId]
@@ -212,7 +223,10 @@ export function PennylaneSidebar() {
       <div className="p-3 border-b border-[#0a3d38]">
         <div className="flex bg-[#0a3d38] rounded-lg p-1 mb-3">
           <button
-            onClick={() => setViewMode("accounting")}
+            onClick={() => {
+              setViewMode("accounting");
+              router.push("/comptabilite");
+            }}
             className={`flex-1 text-xs font-medium py-1.5 px-2 rounded transition-all ${
               viewMode === "accounting"
                 ? "bg-white text-[#0d4a44] shadow-sm"
@@ -222,7 +236,10 @@ export function PennylaneSidebar() {
             Comptabilité
           </button>
           <button
-            onClick={() => setViewMode("management")}
+            onClick={() => {
+              setViewMode("management");
+              router.push("/dashboard");
+            }}
             className={`flex-1 text-xs font-medium py-1.5 px-2 rounded transition-all ${
               viewMode === "management"
                 ? "bg-white text-[#0d4a44] shadow-sm"

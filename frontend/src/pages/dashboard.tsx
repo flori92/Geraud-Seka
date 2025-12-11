@@ -605,8 +605,8 @@ export default function DashboardPage() {
                 legend: { position: "top" }
               }}
               series={[
-                { name: "Revenus", data: [450, 520, 480, 610, 580, accountingStats?.revenue ? accountingStats.revenue / 10000 : 650] },
-                { name: "Charges", data: [320, 380, 350, 420, 390, accountingStats?.expenses ? accountingStats.expenses / 10000 : 450] }
+                { name: "Revenus", data: accountingStats?.monthly_revenue || [0, 0, 0, 0, 0, 0] },
+                { name: "Charges", data: accountingStats?.monthly_expenses || [0, 0, 0, 0, 0, 0] }
               ]}
               type="bar"
               height={250}
@@ -615,15 +615,15 @@ export default function DashboardPage() {
           <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-100">
             <div className="text-center">
               <p className="text-xs text-gray-500">Revenus</p>
-              <p className="text-lg font-bold text-emerald-600">{formatCurrency(accountingStats?.revenue || 1850000)}</p>
+              <p className="text-lg font-bold text-emerald-600">{formatCurrency(accountingStats?.revenue || 0)}</p>
             </div>
             <div className="text-center">
               <p className="text-xs text-gray-500">Charges</p>
-              <p className="text-lg font-bold text-red-600">{formatCurrency(accountingStats?.expenses || 1250000)}</p>
+              <p className="text-lg font-bold text-red-600">{formatCurrency(accountingStats?.expenses || 0)}</p>
             </div>
             <div className="text-center">
               <p className="text-xs text-gray-500">Résultat</p>
-              <p className="text-lg font-bold text-blue-600">{formatCurrency(accountingStats?.net_income || 600000)}</p>
+              <p className="text-lg font-bold text-blue-600">{formatCurrency(accountingStats?.net_income || 0)}</p>
             </div>
           </div>
         </div>
@@ -651,7 +651,7 @@ export default function DashboardPage() {
                 tooltip: { y: { formatter: (val: number) => formatCurrency(val * 10000) } }
               }}
               series={[
-                { name: "Solde", data: [245, 268, 252, 285, 278, treasuryData?.current_balance ? treasuryData.current_balance / 10000 : 295] }
+                { name: "Solde", data: treasuryData?.weekly_balances || [0, 0, 0, 0, 0, 0] }
               ]}
               type="area"
               height={250}
@@ -660,15 +660,15 @@ export default function DashboardPage() {
           <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-100">
             <div className="text-center">
               <p className="text-xs text-gray-500">Solde actuel</p>
-              <p className="text-lg font-bold">{formatCurrency(treasuryData?.current_balance || 2847500)}</p>
+              <p className="text-lg font-bold">{formatCurrency(treasuryData?.current_balance || 0)}</p>
             </div>
             <div className="text-center">
               <p className="text-xs text-gray-500">Entrées mois</p>
-              <p className="text-lg font-bold text-emerald-600">+{formatCurrency(treasuryData?.month_summary?.inflows || 1250000)}</p>
+              <p className="text-lg font-bold text-emerald-600">+{formatCurrency(treasuryData?.month_summary?.inflows || 0)}</p>
             </div>
             <div className="text-center">
               <p className="text-xs text-gray-500">Sorties mois</p>
-              <p className="text-lg font-bold text-red-600">-{formatCurrency(treasuryData?.month_summary?.outflows || 980000)}</p>
+              <p className="text-lg font-bold text-red-600">-{formatCurrency(treasuryData?.month_summary?.outflows || 0)}</p>
             </div>
           </div>
         </div>
@@ -736,7 +736,7 @@ export default function DashboardPage() {
           <div className="mt-4 pt-4 border-t border-gray-100">
             <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Total Actif</span>
-              <span className="font-bold">{formatCurrency(accountingStats?.total_assets || 4500000)}</span>
+              <span className="font-bold">{formatCurrency(accountingStats?.total_assets || 0)}</span>
             </div>
           </div>
         </div>
@@ -754,8 +754,12 @@ export default function DashboardPage() {
                 <p className="text-xs text-gray-500">Résultat / CA</p>
               </div>
               <div className="text-right">
-                <p className="text-xl font-bold text-emerald-600">32.4%</p>
-                <p className="text-xs text-emerald-600">+2.1%</p>
+                <p className="text-xl font-bold text-emerald-600">
+                  {accountingStats?.net_margin ? `${accountingStats.net_margin.toFixed(1)}%` : '0%'}
+                </p>
+                <p className="text-xs text-emerald-600">
+                  {accountingStats?.net_margin_trend ? `${accountingStats.net_margin_trend > 0 ? '+' : ''}${accountingStats.net_margin_trend.toFixed(1)}%` : '-'}
+                </p>
               </div>
             </div>
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -764,8 +768,12 @@ export default function DashboardPage() {
                 <p className="text-xs text-gray-500">Actif CT / Passif CT</p>
               </div>
               <div className="text-right">
-                <p className="text-xl font-bold text-blue-600">2.35</p>
-                <p className="text-xs text-blue-600">Sain</p>
+                <p className="text-xl font-bold text-blue-600">
+                  {accountingStats?.liquidity_ratio ? accountingStats.liquidity_ratio.toFixed(2) : '0'}
+                </p>
+                <p className="text-xs text-blue-600">
+                  {accountingStats?.liquidity_ratio && accountingStats.liquidity_ratio >= 1.5 ? 'Sain' : 'À surveiller'}
+                </p>
               </div>
             </div>
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -774,8 +782,12 @@ export default function DashboardPage() {
                 <p className="text-xs text-gray-500">Délai encaissement</p>
               </div>
               <div className="text-right">
-                <p className="text-xl font-bold text-orange-600">32j</p>
-                <p className="text-xs text-orange-600">-3j</p>
+                <p className="text-xl font-bold text-orange-600">
+                  {accountingStats?.dso ? `${accountingStats.dso}j` : '0j'}
+                </p>
+                <p className="text-xs text-orange-600">
+                  {accountingStats?.dso_trend ? `${accountingStats.dso_trend > 0 ? '+' : ''}${accountingStats.dso_trend}j` : '-'}
+                </p>
               </div>
             </div>
           </div>
