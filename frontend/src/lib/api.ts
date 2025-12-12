@@ -39,6 +39,15 @@ const api = axios.create({
   },
 });
 
+export function getApiErrorMessage(error: unknown): string | null {
+  if (!axios.isAxiosError(error)) return null;
+  const data = error.response?.data as any;
+  if (typeof data?.detail === "string" && data.detail.trim().length > 0) return data.detail;
+  if (typeof data?.message === "string" && data.message.trim().length > 0) return data.message;
+  if (typeof error.message === "string" && error.message.trim().length > 0) return error.message;
+  return null;
+}
+
 // Intercepteur pour gérer automatiquement les erreurs 401 (token invalide/expiré)
 api.interceptors.response.use(
   (response) => response,
@@ -48,8 +57,8 @@ api.interceptors.response.use(
       // Vérifier si nous sommes dans un navigateur (pas côté serveur)
       if (typeof window !== "undefined") {
         // Effacer les données d'authentification
-        localStorage.removeItem("access_token");
-        localStorage.removeItem("refresh_token");
+        localStorage.removeItem("seka_access_token");
+        localStorage.removeItem("seka_refresh_token");
         localStorage.removeItem("user");
 
         // Rediriger vers la page de connexion seulement si on n'y est pas déjà

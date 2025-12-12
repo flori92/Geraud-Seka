@@ -3,7 +3,7 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import Link from "next/link";
 
-import { getCurrentUser, login } from "@/lib/api";
+import { getApiErrorMessage, getCurrentUser, login } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -27,7 +27,8 @@ export default function LoginPage() {
       await getCurrentUser(tokens.access_token);
       router.push("/dashboard");
     } catch (err) {
-      setError("Échec de la connexion. Vérifiez vos identifiants.");
+      const apiMessage = getApiErrorMessage(err);
+      setError(apiMessage ?? "Échec de la connexion. Vérifiez vos identifiants.");
     } finally {
       setLoading(false);
     }
