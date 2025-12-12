@@ -326,7 +326,7 @@ class JournalEntryLine(Base, TimestampMixin):
     entry = relationship("JournalEntry", back_populates="lines")
     account = relationship("ChartOfAccounts", back_populates="entries")
     cost_center = relationship("CostCenter")
-    reconciliation = relationship("Reconciliation")
+    reconciliation = relationship("Reconciliation", back_populates="lines")
 
 
 # ==================== CENTRES DE COÛTS (ANALYTIQUE) ====================

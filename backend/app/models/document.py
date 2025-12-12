@@ -171,6 +171,7 @@ class Document(Base, TimestampMixin):
     opportunity = relationship("Opportunity")
     parent_document = relationship("Document", remote_side=[id], backref="versions")
     accounting_entries = relationship("AccountingEntry", back_populates="document", cascade="all, delete-orphan")
+    classifications = relationship("DocumentClassification", back_populates="document", cascade="all, delete-orphan")
 
     @property
     def file_size_formatted(self) -> str:

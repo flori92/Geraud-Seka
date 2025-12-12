@@ -104,3 +104,11 @@ class Tenant(Base, TimestampMixin):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+
+    # Relations Module Comptabilité
+    accounting_rules = relationship(
+        "AccountingRule",
+        back_populates="tenant",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
