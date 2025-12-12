@@ -6,7 +6,8 @@ from datetime import datetime
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 
-from app.models.accounting import AccountingEntry, Journal, Account
+from app.models.accounting import AccountingEntry, Account
+from app.models.accounting_advanced import Journal
 from app.models.tenant import Tenant
 
 logger = logging.getLogger(__name__)
