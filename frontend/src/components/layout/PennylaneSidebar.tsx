@@ -134,7 +134,7 @@ const managementMenu: MenuSection[] = [
         submenu: [
           { label: "Factures fournisseurs", href: "/achats/factures" },
           { label: "Bons de commande", href: "/sales/purchase-orders" },
-          { label: "Notes de frais", href: "/achats/notes-frais" },
+          { label: "Notes de frais", href: "/coming-soon?feature=Notes de frais" },
           { label: "Fournisseurs", href: "/suppliers" },
         ]
       },
@@ -158,7 +158,7 @@ const managementMenu: MenuSection[] = [
           { label: "Produits", href: "/products" },
           { label: "Inventaire", href: "/stock/inventory" },
           { label: "Mouvements de stock", href: "/stock/movements" },
-          { label: "Alertes stock", href: "/stock/alerts" },
+          { label: "Alertes stock", href: "/coming-soon?feature=Alertes Stock" },
         ]
       },
       {
@@ -168,7 +168,7 @@ const managementMenu: MenuSection[] = [
         submenu: [
           { label: "Tableau de bord", href: "/analytique" },
           { label: "Rapports", href: "/rapports" },
-          { label: "Indicateurs clés", href: "/analytics/kpis" },
+          { label: "Indicateurs clés", href: "/coming-soon?feature=KPIs" },
           { label: "Intelligence IA", href: "/intelligence", badge: "IA", badgeVariant: "new" },
         ]
       },
@@ -187,7 +187,7 @@ const managementMenu: MenuSection[] = [
         icon: Zap,
         submenu: [
           { label: "Applications connectées", href: "/settings/integrations" },
-          { label: "API & Webhooks", href: "/settings/api" },
+          { label: "API & Webhooks", href: "/coming-soon?feature=API" },
           { label: "Import de données", href: "/settings/import" },
         ]
       },
@@ -197,10 +197,10 @@ const managementMenu: MenuSection[] = [
         icon: Settings,
         submenu: [
           { label: "Mon entreprise", href: "/settings" },
-          { label: "Utilisateurs", href: "/settings/users" },
+          { label: "Utilisateurs", href: "/coming-soon?feature=Utilisateurs" },
           { label: "Abonnement", href: "/billing" },
-          { label: "Sécurité", href: "/settings/security" },
-          { label: "Notifications", href: "/settings/notifications" },
+          { label: "Sécurité", href: "/coming-soon?feature=Sécurité" },
+          { label: "Notifications", href: "/coming-soon?feature=Notifications" },
         ]
       },
       { id: "aide", label: "Aide et support", icon: HelpCircle, href: "/aide" },
@@ -221,14 +221,14 @@ const accountingMenu: MenuSection[] = [
           { label: "Saisie avec OCR", href: "/accounting/entries/from-ocr", badge: "IA", badgeVariant: "new" },
           { label: "Écritures comptables", href: "/accounting/entries" },
           { label: "Nouvelle saisie", href: "/accounting/entries/new" },
-          { label: "Saisie rapide", href: "/accounting/entries/quick" },
+          { label: "Saisie rapide", href: "/coming-soon?feature=Saisie rapide" },
           { label: "Factures fournisseurs", href: "/achats/factures" },
           { label: "Factures clients", href: "/ventes/factures" },
           { label: "Transactions bancaires", href: "/transactions" },
           { label: "Rapprochement bancaire", href: "/accounting/bank-reconciliation", badge: "IA", badgeVariant: "new" },
           { label: "Import relevés", href: "/accounting/import-statements" },
-          { label: "OD de paie", href: "/accounting/entries/payroll" },
-          { label: "À-nouveaux", href: "/accounting/entries/opening" },
+          { label: "OD de paie", href: "/coming-soon?feature=Paie" },
+          { label: "À-nouveaux", href: "/coming-soon?feature=À-nouveaux" },
         ]
       },
       {
@@ -236,11 +236,11 @@ const accountingMenu: MenuSection[] = [
         label: "Journaux",
         icon: BookOpen,
         submenu: [
-          { label: "Journal des achats", href: "/accounting/journals/purchases" },
-          { label: "Journal des ventes", href: "/accounting/journals/sales" },
-          { label: "Journal de banque", href: "/accounting/journals/bank" },
-          { label: "Journal de caisse", href: "/accounting/journals/cash" },
-          { label: "Journal des OD", href: "/accounting/journals/misc" },
+          { label: "Journal des achats", href: "/accounting/journals?type=ACH" },
+          { label: "Journal des ventes", href: "/accounting/journals?type=VTE" },
+          { label: "Journal de banque", href: "/accounting/journals?type=BQ" },
+          { label: "Journal de caisse", href: "/accounting/journals?type=CA" },
+          { label: "Journal des OD", href: "/accounting/journals?type=OD" },
           { label: "Tous les journaux", href: "/accounting/journals" },
         ]
       },
@@ -253,8 +253,8 @@ const accountingMenu: MenuSection[] = [
           { label: "Grand livre", href: "/accounting/ledger" },
           { label: "Balance âgée fournisseurs", href: "/suppliers/balance" },
           { label: "Balance âgée clients", href: "/clients/balance" },
-          { label: "Lettrage", href: "/accounting/lettrage" },
-          { label: "Contrôles de cohérence", href: "/accounting/controls", badge: "IA", badgeVariant: "new" },
+          { label: "Lettrage", href: "/coming-soon?feature=Lettrage" },
+          { label: "Contrôles de cohérence", href: "/coming-soon?feature=Contrôles" },
         ]
       },
       {
@@ -263,9 +263,9 @@ const accountingMenu: MenuSection[] = [
         icon: Building2,
         submenu: [
           { label: "Déclaration TVA", href: "/tax/tva-declaration", badge: "AUTO", badgeVariant: "new" },
-          { label: "Liasse fiscale", href: "/tax/returns" },
-          { label: "IS / IR", href: "/tax/corporate" },
-          { label: "Taxes diverses", href: "/tax/misc" },
+          { label: "Liasse fiscale", href: "/coming-soon?feature=Liasse fiscale" },
+          { label: "IS / IR", href: "/coming-soon?feature=Impôts" },
+          { label: "Taxes diverses", href: "/coming-soon?feature=Taxes" },
           { label: "Export FEC", href: "/accounting/export-fec" },
         ]
       },
@@ -276,9 +276,9 @@ const accountingMenu: MenuSection[] = [
         submenu: [
           { label: "Bilan", href: "/reports/balance-sheet" },
           { label: "Compte de résultat", href: "/reports/income-statement" },
-          { label: "SIG", href: "/reports/sig" },
-          { label: "Tableau de financement", href: "/reports/cash-flow" },
-          { label: "Annexes", href: "/reports/annexes" },
+          { label: "SIG", href: "/coming-soon?feature=SIG" },
+          { label: "Tableau de financement", href: "/coming-soon?feature=Tableau de flux" },
+          { label: "Annexes", href: "/coming-soon?feature=Annexes" },
         ]
       },
       {
@@ -286,11 +286,11 @@ const accountingMenu: MenuSection[] = [
         label: "Clôture",
         icon: Lock,
         submenu: [
-          { label: "Écritures de clôture", href: "/accounting/closing" },
-          { label: "Inventaire", href: "/accounting/closing/inventory" },
-          { label: "Provisions", href: "/accounting/closing/provisions" },
-          { label: "Amortissements", href: "/accounting/closing/depreciation" },
-          { label: "Validation période", href: "/accounting/closing/validate" },
+          { label: "Écritures de clôture", href: "/coming-soon?feature=Clôture" },
+          { label: "Inventaire", href: "/coming-soon?feature=Inventaire comptable" },
+          { label: "Provisions", href: "/coming-soon?feature=Provisions" },
+          { label: "Amortissements", href: "/coming-soon?feature=Amortissements" },
+          { label: "Validation période", href: "/coming-soon?feature=Validation période" },
         ]
       },
       {
@@ -302,7 +302,7 @@ const accountingMenu: MenuSection[] = [
           { label: "Documents", href: "/documents" },
           { label: "Plan comptable", href: "/accounting/chart-of-accounts" },
           { label: "Règles comptables", href: "/settings/accounting-rules", badge: "IA", badgeVariant: "new" },
-          { label: "Modèles d'écritures", href: "/accounting/templates" },
+          { label: "Modèles d'écritures", href: "/coming-soon?feature=Modèles" },
           { label: "Paramètres dossier", href: "/settings" },
         ]
       },
@@ -333,9 +333,9 @@ const accountingMenu: MenuSection[] = [
         submenu: [
           { label: "Paramètres généraux", href: "/settings" },
           { label: "Plan comptable", href: "/accounting/chart-of-accounts" },
-          { label: "Journaux", href: "/settings/journals" },
-          { label: "Exercices", href: "/settings/fiscal-years" },
-          { label: "Utilisateurs", href: "/settings/users" },
+          { label: "Journaux", href: "/coming-soon?feature=Journaux" },
+          { label: "Exercices", href: "/coming-soon?feature=Exercices" },
+          { label: "Utilisateurs", href: "/coming-soon?feature=Utilisateurs" },
         ]
       },
       { id: "aide", label: "Aide", icon: HelpCircle, href: "/aide" },
