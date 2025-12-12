@@ -102,6 +102,18 @@ class MindeeOCRService:
             confidence_scores = [p.get("prediction", {}).get("confidence", 0.0) for p in pages]
             avg_confidence = sum(confidence_scores) / len(confidence_scores) if confidence_scores else 0.0
 
+            # Confidences par champ si disponibles
+            fields_confidence = {
+                "reference_number": prediction.get("invoice_number", {}).get("confidence"),
+                "date": prediction.get("date", {}).get("confidence"),
+                "due_date": prediction.get("due_date", {}).get("confidence"),
+                "total_amount": prediction.get("total_amount", {}).get("confidence"),
+                "total_tax": prediction.get("total_tax", {}).get("confidence"),
+                "total_net": prediction.get("total_net", {}).get("confidence"),
+                "supplier_name": prediction.get("supplier_name", {}).get("confidence"),
+                "customer_name": prediction.get("customer_name", {}).get("confidence"),
+            }
+
             return {
                 "reference_number": invoice_number,
                 "date": invoice_date,
@@ -120,6 +132,7 @@ class MindeeOCRService:
                 "raw_text": str(prediction),
                 "confidence": avg_confidence,
                 "confidence_per_page": confidence_scores,
+                "fields_confidence": {k: v for k, v in fields_confidence.items() if v is not None},
                 "source": "mindee",
                 "is_multi_page": page_count > 1
             }

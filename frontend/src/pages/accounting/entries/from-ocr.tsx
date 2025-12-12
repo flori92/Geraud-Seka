@@ -1,7 +1,7 @@
 import { useState } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { PennylaneSidebar } from "@/components/layout/PennylaneSidebar";
+import dynamic from "next/dynamic";
 import { Upload, FileText, CheckCircle, AlertCircle, Sparkles, Edit2, Save, Loader2 } from "lucide-react";
 
 interface OcrData {
@@ -15,6 +15,8 @@ interface OcrData {
   page_count?: number;
   is_multi_page?: boolean;
   confidence: number;
+  fields_confidence?: Record<string, number>;
+  line_items_confidence?: number[];
 }
 
 interface Suggestion {
@@ -37,10 +39,13 @@ export default function AccountingEntryFromOCR() {
   const router = useRouter();
   const [uploading, setUploading] = useState(false);
   const [ocrData, setOcrData] = useState<OcrData | null>(null);
+  const [fileInfo, setFileInfo] = useState<{url?: string; key?: string; page_count?: number; is_multi_page?: boolean}>({});
   const [suggestions, setSuggestions] = useState<Suggestion | null>(null);
   const [entryLines, setEntryLines] = useState<EntryLine[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const PdfViewer = dynamic(() => import('@/components/DocumentPdfViewer'), { ssr: false });
 
   const handleFileUpload = async (file: File) => {
     setUploading(true);
@@ -63,6 +68,7 @@ export default function AccountingEntryFromOCR() {
         setOcrData(result.ocr_data);
         setSuggestions(result.suggestions);
         setEntryLines(result.proposed_entry.lines);
+        setFileInfo(result.file_info || {});
       } else {
         alert("Erreur lors du traitement du document");
       }
@@ -116,10 +122,28 @@ export default function AccountingEntryFromOCR() {
     }
   };
 
+  const recalcTVA = (lines: EntryLine[]) => {
+    // Simple heuristic: ensure Debit(HT)+Debit(TVA)=Credit(TTC) when possible
+    const totalDebit = lines.reduce((s, l) => s + (l.debit || 0), 0);
+    const totalCredit = lines.reduce((s, l) => s + (l.credit || 0), 0);
+    if (Math.abs(totalDebit - totalCredit) < 0.01) return lines;
+    // Try adjust TVA line if present
+    const tvaIndex = lines.findIndex(l => l.label?.toLowerCase().includes('tva'));
+    if (tvaIndex >= 0 && ocrData) {
+      const ht = lines.filter((_, i) => i !== tvaIndex).reduce((s, l) => s + (l.debit || 0), 0);
+      const ttc = lines.reduce((s, l) => s + (l.credit || 0), 0);
+      const newTVA = Math.max(0, ttc - ht);
+      const clone = [...lines];
+      clone[tvaIndex] = { ...clone[tvaIndex], debit: parseFloat(newTVA.toFixed(2)) };
+      return clone;
+    }
+    return lines;
+  };
+
   const updateLine = (index: number, field: keyof EntryLine, value: string | number) => {
     const newLines = [...entryLines];
     (newLines[index] as any)[field] = value;
-    setEntryLines(newLines);
+    setEntryLines(recalcTVA(newLines));
   };
 
   const getTotalDebit = () => entryLines.reduce((sum, line) => sum + (line.debit || 0), 0);
@@ -179,6 +203,16 @@ export default function AccountingEntryFromOCR() {
             {ocrData && (
               <div className="space-y-6">
                 {/* OCR Data Card */}
+                {/* Preview with pagination if available */}
+                {fileInfo?.url && ocrData?.is_multi_page && (
+                  <div className="bg-white rounded-xl border border-gray-200 p-4">
+                    <h3 className="font-semibold mb-2">Aperçu du document</h3>
+                    <p className="text-xs text-gray-500 mb-3">Document multi-pages détecté ({ocrData.page_count} pages). Ouvrir le viewer pour naviguer page par page.</p>
+                    <div className="flex items-center gap-3">
+                      <button onClick={() => setShowPreview(true)} className="px-3 py-1.5 text-sm border rounded">Ouvrir le viewer</button>
+                    </div>
+                  </div>
+                )}
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
@@ -395,6 +429,22 @@ export default function AccountingEntryFromOCR() {
           </div>
         </main>
       </div>
+
+      {/* Modal PDF Viewer */}
+      {showPreview && fileInfo?.url && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setShowPreview(false)} />
+          <div className="relative bg-white rounded-lg shadow-xl w-full max-w-5xl h-[80vh] mx-4 overflow-hidden">
+            <div className="flex items-center justify-between border-b px-4 py-2">
+              <h3 className="font-semibold text-gray-800">Aperçu du document</h3>
+              <button onClick={() => setShowPreview(false)} className="px-2 py-1 rounded hover:bg-gray-100">Fermer</button>
+            </div>
+            <div className="p-4 h-[calc(80vh-48px)] overflow-hidden">
+              <PdfViewer url={fileInfo.url} />
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

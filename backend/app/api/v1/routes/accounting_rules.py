@@ -12,6 +12,7 @@ from app.models.user import User
 from app.models.tenant import Tenant
 from app.models.accounting_rules import AccountingRule, DocumentClassification
 from app.services.ocr import ocr_service
+from app.models.document import Document, DocumentStatus
 from app.services.accounting_rules import AccountingRulesEngine, classify_document
 from app.services.storage import storage_service
 
@@ -170,6 +171,23 @@ async def create_entry_from_document(
     # 1. Upload le fichier
     upload_result = await storage_service.upload_file(file, tenant_id=str(current_tenant.id))
     file_path = upload_result.get('key') or upload_result.get('path')
+
+    # 1bis. Créer un enregistrement Document pour lier l'OCR et la classification
+    doc = Document(
+        filename=upload_result.get('key') or upload_result.get('path') or file.filename,
+        original_filename=file.filename,
+        file_path=upload_result.get('key') or upload_result.get('path') or file.filename,
+        content_type=file.content_type,
+        file_size=upload_result.get('size'),
+        file_extension=(file.filename.split('.')[-1].lower() if '.' in file.filename else None),
+        status=DocumentStatus.OCR_PROCESSING,
+        tenant_id=current_tenant.id,
+        uploaded_by=current_user.id,
+        category=None,
+    )
+    db.add(doc)
+    db.commit()
+    db.refresh(doc)
     
     # 2. Traiter avec OCR (support multi-pages)
     ocr_data = await ocr_service.process_invoice(file_path, extract_all_pages=True)
@@ -208,6 +226,15 @@ async def create_entry_from_document(
             "credit": ocr_data.get("amount_ttc", 0.0)
         })
     
+    # 3bis. Enregistrer le score de confiance et données OCR sur le Document
+    try:
+        doc.ocr_data = ocr_data
+        doc.ocr_confidence = float(ocr_data.get("confidence", 0.0))
+        doc.status = DocumentStatus.OCR_COMPLETED
+        db.commit()
+    except Exception:
+        db.rollback()
+
     return {
         "ocr_data": ocr_data,
         "suggestions": suggestions,
@@ -222,7 +249,10 @@ async def create_entry_from_document(
             "filename": file.filename,
             "path": file_path,
             "page_count": ocr_data.get("page_count", 1),
-            "is_multi_page": ocr_data.get("is_multi_page", False)
+            "is_multi_page": ocr_data.get("is_multi_page", False),
+            "key": upload_result.get("key"),
+            "url": storage_service.get_file_url(upload_result.get("key")) if upload_result.get("key") else upload_result.get("url"),
+            "document_id": str(doc.id)
         }
     }
 
