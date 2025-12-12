@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { getCurrentUser, type User } from "@/lib/api";
+import { useNavigation } from "@/hooks/useNavigation";
 import {
   LayoutDashboard,
   FileText,
@@ -171,11 +172,10 @@ const badgeStyles = {
 };
 
 export function PennylaneSidebar() {
-  const [viewMode, setViewMode] = useState<"management" | "accounting">("management");
-  const [openMenus, setOpenMenus] = useState<string[]>(["saisie"]);
   const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
   const pathname = router.pathname || "";
+  const { viewMode, openMenus, setViewMode, toggleMenu, navigateToSubmenu } = useNavigation();
 
   const currentMenu = viewMode === "management" ? managementMenu : accountingMenu;
 
@@ -194,22 +194,9 @@ export function PennylaneSidebar() {
     fetchUser();
   }, []);
 
-  // Auto-detect view mode based on current route
-  useEffect(() => {
-    const accountingRoutes = ["/comptabilite", "/accounting", "/tax", "/reports/balance-sheet", "/reports/income-statement"];
-    const isAccountingRoute = accountingRoutes.some(route => pathname.startsWith(route));
-    if (isAccountingRoute && viewMode !== "accounting") {
-      setViewMode("accounting");
-    } else if (!isAccountingRoute && viewMode === "accounting") {
-      setViewMode("management");
-    }
-  }, [pathname]);
 
-  const toggleMenu = (menuId: string) => {
-    setOpenMenus((prev) =>
-      prev.includes(menuId) ? prev.filter((id) => id !== menuId) : [...prev, menuId]
-    );
-  };
+
+
 
   const handleLogout = () => {
     localStorage.removeItem("seka_access_token");
@@ -220,32 +207,40 @@ export function PennylaneSidebar() {
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
   return (
-    <div className="fixed left-0 top-0 h-full w-[220px] flex flex-col bg-[#0d4a44] border-r border-[#0a3d38] z-50">
+    <div className="fixed left-0 top-0 h-full w-[220px] flex flex-col bg-[#2c3e50] border-r border-[#34495e] z-40 overflow-hidden">
       {/* Header avec toggle Comptabilité/Gestion */}
-      <div className="p-3 border-b border-[#0a3d38]">
-        <div className="flex bg-[#0a3d38] rounded-lg p-1 mb-3">
+      <div className="p-3 border-b border-[#34495e]">
+        <div className="flex bg-[#34495e] rounded-lg p-1 mb-3">
           <button
             onClick={() => {
-              setViewMode("accounting");
-              router.push("/comptabilite");
+              if (viewMode !== "accounting") {
+                setViewMode("accounting");
+                // Ouvrir le menu saisie par défaut en mode comptabilité
+                setOpenMenus(["saisie"]);
+                // Ne pas naviguer automatiquement, laisser l'utilisateur choisir
+              }
             }}
             className={`flex-1 text-xs font-medium py-1.5 px-2 rounded transition-all ${
               viewMode === "accounting"
-                ? "bg-white text-[#0d4a44] shadow-sm"
-                : "text-teal-200 hover:text-white"
+                ? "bg-white text-[#2c3e50] shadow-sm"
+                : "text-slate-300 hover:text-white"
             }`}
           >
             Comptabilité
           </button>
           <button
             onClick={() => {
-              setViewMode("management");
-              router.push("/dashboard");
+              if (viewMode !== "management") {
+                setViewMode("management");
+                // Fermer tous les sous-menus en mode gestion
+                setOpenMenus([]);
+                // Ne pas naviguer automatiquement, laisser l'utilisateur choisir
+              }
             }}
             className={`flex-1 text-xs font-medium py-1.5 px-2 rounded transition-all ${
               viewMode === "management"
-                ? "bg-white text-[#0d4a44] shadow-sm"
-                : "text-teal-200 hover:text-white"
+                ? "bg-white text-[#2c3e50] shadow-sm"
+                : "text-slate-300 hover:text-white"
             }`}
           >
             Gestion
@@ -255,18 +250,18 @@ export function PennylaneSidebar() {
         {/* Logo SEKA */}
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
-            <span className="text-[#0d4a44] font-bold text-sm">S</span>
+            <span className="text-[#2c3e50] font-bold text-sm">S</span>
           </div>
           <span className="text-white font-semibold text-lg">SEKA</span>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-2">
+      <nav className="flex-1 overflow-y-auto py-2 scrollbar-thin scrollbar-thumb-[#0a3d38] scrollbar-track-transparent">
         {currentMenu.map((section, sectionIdx) => (
-          <div key={sectionIdx} className={sectionIdx > 0 ? "mt-4 pt-4 border-t border-[#0a3d38]" : ""}>
+          <div key={sectionIdx} className={sectionIdx > 0 ? "mt-4 pt-4 border-t border-[#34495e]" : ""}>
             {section.title && (
-              <div className="px-4 py-2 text-xs font-medium text-teal-300 uppercase tracking-wider">
+              <div className="px-4 py-2 text-xs font-medium text-slate-400 uppercase tracking-wider">
                 {section.title}
               </div>
             )}
@@ -279,8 +274,8 @@ export function PennylaneSidebar() {
                         onClick={() => toggleMenu(item.id)}
                         className={`w-full flex items-center justify-between px-3 py-2 rounded-md transition-all text-left ${
                           openMenus.includes(item.id)
-                            ? "bg-[#186a63] text-white"
-                            : "text-teal-100 hover:bg-[#0a3d38] hover:text-white"
+                            ? "bg-[#3498db] text-white"
+                            : "text-slate-200 hover:bg-[#34495e] hover:text-white"
                         }`}
                       >
                         <div className="flex items-center gap-3">
@@ -301,20 +296,20 @@ export function PennylaneSidebar() {
                       >
                         <div className="py-1 space-y-0.5">
                           {item.submenu.map((subItem, idx) => (
-                            <Link
+                            <button
                               key={idx}
-                              href={subItem.href}
-                              className={`flex items-center justify-between pl-10 pr-3 py-1.5 text-sm transition-colors ${
+                              onClick={() => navigateToSubmenu(subItem.href, item.id)}
+                              className={`w-full flex items-center justify-between pl-10 pr-3 py-1.5 text-sm transition-colors text-left ${
                                 isActive(subItem.href)
-                                  ? "text-white bg-[#186a63] rounded-md mx-2"
-                                  : "text-teal-200 hover:text-white"
+                                  ? "text-white bg-[#3498db] rounded-md mx-2"
+                                  : "text-slate-300 hover:text-white"
                               }`}
                             >
                               <span>{subItem.label}</span>
                               {subItem.badge && (
                                 <span className={badgeStyles.new}>{subItem.badge}</span>
                               )}
-                            </Link>
+                            </button>
                           ))}
                         </div>
                       </div>
@@ -324,8 +319,8 @@ export function PennylaneSidebar() {
                       href={item.href || "#"}
                       className={`flex items-center justify-between px-3 py-2 rounded-md transition-all ${
                         isActive(item.href || "")
-                          ? "bg-[#186a63] text-white"
-                          : "text-teal-100 hover:bg-[#0a3d38] hover:text-white"
+                          ? "bg-[#3498db] text-white"
+                          : "text-slate-200 hover:bg-[#34495e] hover:text-white"
                       }`}
                     >
                       <div className="flex items-center gap-3">
@@ -347,20 +342,20 @@ export function PennylaneSidebar() {
       </nav>
 
       {/* User Footer */}
-      <div className="p-3 border-t border-[#0a3d38] bg-[#0a3d38]">
+      <div className="p-3 border-t border-[#34495e] bg-[#34495e]">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center text-white text-xs font-bold">
+          <div className="w-8 h-8 rounded-full bg-[#3498db] flex items-center justify-center text-white text-xs font-bold">
             {user?.full_name ? user.full_name.charAt(0).toUpperCase() : "U"}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-white truncate">
               {user?.full_name || "Utilisateur"}
             </p>
-            <p className="text-xs text-teal-300 truncate">{user?.email}</p>
+            <p className="text-xs text-slate-400 truncate">{user?.email}</p>
           </div>
           <button
             onClick={handleLogout}
-            className="text-teal-400 hover:text-white transition-colors p-1"
+            className="text-slate-400 hover:text-white transition-colors p-1"
             title="Déconnexion"
           >
             <LogOut className="w-4 h-4" />

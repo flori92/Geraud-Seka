@@ -1,0 +1,69 @@
+/* Corrections pour la sidebar et le contenu */
+
+/* Assurer que le contenu principal ne soit pas caché par la sidebar */
+.main-content {
+  margin-left: 220px;
+  min-height: 100vh;
+  transition: margin-left 0.3s ease;
+}
+
+/* Sidebar responsive */
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 0;
+  }
+  
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+  
+  .sidebar.open {
+    transform: translateX(0);
+  }
+}
+
+/* Scrollbar personnalisée pour la sidebar */
+.sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(52, 73, 94, 0.5);
+  border-radius: 2px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(52, 73, 94, 0.8);
+}
+
+/* Éviter le débordement du contenu */
+.page-container {
+  max-width: calc(100vw - 220px);
+  overflow-x: auto;
+}
+
+/* Corrections pour les tables Appsmith */
+.appsmith-table {
+  max-width: 100% !important;
+}
+
+/* Corrections pour les widgets Appsmith */
+.appsmith-widget {
+  max-width: 100% !important;
+}
+
+/* Assurer que les modales ne soient pas cachées */
+.modal-overlay {
+  z-index: 1000 !important;
+}
+
+/* Corrections pour les éléments en position fixe */
+.fixed-element {
+  left: 220px !important;
+  width: calc(100% - 220px) !important;
+}
