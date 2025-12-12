@@ -39,7 +39,29 @@ import {
   MessageSquare,
   Bell,
   Eye,
-  Contact
+  Package,
+  Truck,
+  Briefcase,
+  Calendar,
+  DollarSign,
+  TrendingUp,
+  FileBarChart,
+  Shield,
+  Zap,
+  RefreshCw,
+  Target,
+  Mail,
+  Phone,
+  Globe,
+  Database,
+  Lock,
+  Key,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  Layers,
+  GitBranch,
+  Activity
 } from "lucide-react";
 
 interface SubMenuItem {
@@ -64,34 +86,151 @@ interface MenuSection {
   items: MenuItem[];
 }
 
-// Menu GESTION (Mode Dirigeant)
+// Menu GESTION (Mode Dirigeant) - Style Pennylane complet
 const managementMenu: MenuSection[] = [
   {
     items: [
       { id: "accueil", label: "Accueil", icon: LayoutDashboard, href: "/dashboard" },
-      { id: "contacts", label: "Contacts", icon: Users, href: "/contacts" },
-      { id: "transactions", label: "Transactions", icon: ArrowLeftRight, href: "/transactions" },
+      {
+        id: "contacts",
+        label: "Contacts",
+        icon: Users,
+        submenu: [
+          { label: "Tous les contacts", href: "/contacts" },
+          { label: "Clients", href: "/crm/contacts" },
+          { label: "Fournisseurs", href: "/suppliers" },
+          { label: "Prospects", href: "/crm/leads" },
+          { label: "Importer des contacts", href: "/contacts/import" },
+        ]
+      },
+      {
+        id: "transactions",
+        label: "Transactions",
+        icon: ArrowLeftRight,
+        submenu: [
+          { label: "Toutes les transactions", href: "/transactions" },
+          { label: "Rapprochement bancaire", href: "/accounting/reconciliation" },
+          { label: "Règles de catégorisation", href: "/settings/transaction-rules", badge: "IA", badgeVariant: "new" },
+        ]
+      },
       { id: "compte-pro", label: "Compte Pro", icon: CreditCard, href: "/compte-pro", badge: "INCLUS", badgeVariant: "included" },
-      { id: "achats", label: "Achats", icon: ShoppingCart, href: "/achats" },
-      { id: "ventes", label: "Ventes", icon: Receipt, href: "/ventes" },
-      { id: "analytique", label: "Analytique", icon: BarChart3, href: "/analytique" },
-      { id: "rapports", label: "Rapports comptables", icon: FileSpreadsheet, href: "/rapports" },
-      { id: "documents", label: "Documents partagés", icon: FolderOpen, href: "/documents" },
+      {
+        id: "tresorerie",
+        label: "Trésorerie",
+        icon: Wallet,
+        submenu: [
+          { label: "Vue d'ensemble", href: "/treasury" },
+          { label: "Comptes bancaires", href: "/treasury/accounts" },
+          { label: "Prévisions", href: "/treasury/forecast", badge: "IA", badgeVariant: "new" },
+          { label: "Mouvements", href: "/treasury/transactions" },
+        ]
+      },
+      {
+        id: "achats",
+        label: "Achats",
+        icon: ShoppingCart,
+        submenu: [
+          { label: "Factures fournisseurs", href: "/achats/factures" },
+          { label: "Bons de commande", href: "/sales/purchase-orders" },
+          { label: "Notes de frais", href: "/achats/notes-frais" },
+          { label: "Fournisseurs", href: "/suppliers" },
+        ]
+      },
+      {
+        id: "ventes",
+        label: "Ventes",
+        icon: Receipt,
+        submenu: [
+          { label: "Factures clients", href: "/sales/invoices" },
+          { label: "Devis", href: "/sales/quotes" },
+          { label: "Bons de livraison", href: "/sales/delivery-notes" },
+          { label: "Avoirs", href: "/ventes/avoirs" },
+          { label: "Clients", href: "/crm/contacts" },
+        ]
+      },
+      {
+        id: "stock",
+        label: "Stock",
+        icon: Package,
+        submenu: [
+          { label: "Produits", href: "/products" },
+          { label: "Inventaire", href: "/stock/inventory" },
+          { label: "Mouvements de stock", href: "/stock/movements" },
+          { label: "Alertes stock", href: "/stock/alerts" },
+        ]
+      },
+      {
+        id: "crm",
+        label: "CRM",
+        icon: Target,
+        submenu: [
+          { label: "Pipeline", href: "/crm" },
+          { label: "Opportunités", href: "/crm/opportunities" },
+          { label: "Activités", href: "/crm/activities" },
+          { label: "Campagnes", href: "/crm/campaigns" },
+          { label: "Rapports CRM", href: "/crm/reports" },
+        ]
+      },
+      {
+        id: "rh",
+        label: "RH & Paie",
+        icon: Briefcase,
+        submenu: [
+          { label: "Employés", href: "/hr/employees" },
+          { label: "Contrats", href: "/hr/contracts" },
+          { label: "Fiches de paie", href: "/hr/payslips" },
+          { label: "Congés", href: "/hr/leaves" },
+          { label: "Notes de frais", href: "/achats/notes-frais" },
+        ]
+      },
+      {
+        id: "analytique",
+        label: "Analytique",
+        icon: BarChart3,
+        submenu: [
+          { label: "Tableau de bord", href: "/analytique" },
+          { label: "Rapports", href: "/rapports" },
+          { label: "Indicateurs clés", href: "/analytics/kpis" },
+          { label: "Intelligence IA", href: "/intelligence", badge: "IA", badgeVariant: "new" },
+        ]
+      },
+      { id: "documents", label: "Documents", icon: FolderOpen, href: "/documents" },
     ]
   },
   {
+    title: "Outils",
     items: [
-      { id: "point-vue", label: "Point de vue client", icon: Eye, href: "/point-vue-client" },
-      { id: "comptassistant", label: "ComptAssistant", icon: Sparkles, href: "/assistant" },
+      { id: "comptassistant", label: "ComptAssistant", icon: Sparkles, href: "/assistant", badge: "IA", badgeVariant: "new" },
       { id: "recherche", label: "Recherche rapide", icon: Search, href: "/recherche" },
-      { id: "parametres", label: "Paramètres", icon: Settings, href: "/settings" },
-      { id: "abonnement", label: "Gestion d'abonnement", icon: PiggyBank, href: "/billing" },
+      { id: "exports", label: "Exports", icon: Download, href: "/exports" },
+      {
+        id: "integrations",
+        label: "Intégrations",
+        icon: Zap,
+        submenu: [
+          { label: "Applications connectées", href: "/settings/integrations" },
+          { label: "API & Webhooks", href: "/settings/api" },
+          { label: "Import de données", href: "/settings/import" },
+        ]
+      },
+      {
+        id: "parametres",
+        label: "Paramètres",
+        icon: Settings,
+        submenu: [
+          { label: "Mon entreprise", href: "/settings" },
+          { label: "Utilisateurs", href: "/settings/users" },
+          { label: "Abonnement", href: "/billing" },
+          { label: "Sécurité", href: "/settings/security" },
+          { label: "Notifications", href: "/settings/notifications" },
+        ]
+      },
       { id: "aide", label: "Aide et support", icon: HelpCircle, href: "/aide" },
     ]
   }
 ];
 
-// Menu COMPTABILITÉ (Mode Expert-Comptable)
+// Menu COMPTABILITÉ (Mode Expert-Comptable) - Style Pennylane complet
 const accountingMenu: MenuSection[] = [
   {
     items: [
@@ -103,11 +242,26 @@ const accountingMenu: MenuSection[] = [
           { label: "Saisie avec OCR", href: "/accounting/entries/from-ocr", badge: "IA", badgeVariant: "new" },
           { label: "Écritures comptables", href: "/accounting/entries" },
           { label: "Nouvelle saisie", href: "/accounting/entries/new" },
+          { label: "Saisie rapide", href: "/accounting/entries/quick" },
           { label: "Factures fournisseurs", href: "/achats/factures" },
           { label: "Factures clients", href: "/ventes/factures" },
-          { label: "Transactions", href: "/transactions" },
+          { label: "Transactions bancaires", href: "/transactions" },
           { label: "Rapprochement bancaire", href: "/accounting/reconciliation" },
-          { label: "Journaux", href: "/accounting/journals" },
+          { label: "OD de paie", href: "/accounting/entries/payroll" },
+          { label: "À-nouveaux", href: "/accounting/entries/opening" },
+        ]
+      },
+      {
+        id: "journaux",
+        label: "Journaux",
+        icon: BookOpen,
+        submenu: [
+          { label: "Journal des achats", href: "/accounting/journals/purchases" },
+          { label: "Journal des ventes", href: "/accounting/journals/sales" },
+          { label: "Journal de banque", href: "/accounting/journals/bank" },
+          { label: "Journal de caisse", href: "/accounting/journals/cash" },
+          { label: "Journal des OD", href: "/accounting/journals/misc" },
+          { label: "Tous les journaux", href: "/accounting/journals" },
         ]
       },
       {
@@ -117,8 +271,10 @@ const accountingMenu: MenuSection[] = [
         submenu: [
           { label: "Balance générale", href: "/accounting/balance" },
           { label: "Grand livre", href: "/accounting/ledger" },
-          { label: "Balance fournisseurs", href: "/suppliers/balance" },
-          { label: "Balance clients", href: "/clients/balance" },
+          { label: "Balance âgée fournisseurs", href: "/suppliers/balance" },
+          { label: "Balance âgée clients", href: "/clients/balance" },
+          { label: "Lettrage", href: "/accounting/lettrage" },
+          { label: "Contrôles de cohérence", href: "/accounting/controls", badge: "IA", badgeVariant: "new" },
         ]
       },
       {
@@ -126,8 +282,11 @@ const accountingMenu: MenuSection[] = [
         label: "Fiscalité",
         icon: Building2,
         submenu: [
-          { label: "Déclarations TVA", href: "/tax/vat" },
+          { label: "Déclaration TVA", href: "/tax/vat" },
           { label: "Liasse fiscale", href: "/tax/returns" },
+          { label: "IS / IR", href: "/tax/corporate" },
+          { label: "CFE / CVAE", href: "/tax/local" },
+          { label: "Taxes diverses", href: "/tax/misc" },
         ]
       },
       {
@@ -137,31 +296,69 @@ const accountingMenu: MenuSection[] = [
         submenu: [
           { label: "Bilan", href: "/reports/balance-sheet" },
           { label: "Compte de résultat", href: "/reports/income-statement" },
+          { label: "SIG", href: "/reports/sig" },
+          { label: "Tableau de financement", href: "/reports/cash-flow" },
+          { label: "Annexes", href: "/reports/annexes" },
+        ]
+      },
+      {
+        id: "cloture",
+        label: "Clôture",
+        icon: Lock,
+        submenu: [
+          { label: "Écritures de clôture", href: "/accounting/closing" },
+          { label: "Inventaire", href: "/accounting/closing/inventory" },
+          { label: "Provisions", href: "/accounting/closing/provisions" },
+          { label: "Amortissements", href: "/accounting/closing/depreciation" },
+          { label: "Validation période", href: "/accounting/closing/validate" },
         ]
       },
       {
         id: "dossier-client",
-        label: "Dossier du client",
+        label: "Dossier client",
         icon: FolderOpen,
         submenu: [
           { label: "Contacts", href: "/contacts" },
           { label: "Documents", href: "/documents" },
           { label: "Plan comptable", href: "/accounting/chart-of-accounts" },
           { label: "Règles comptables", href: "/settings/accounting-rules", badge: "IA", badgeVariant: "new" },
-          { label: "Centre de règles", href: "/settings/rules" },
-          { label: "Paramètres", href: "/settings" },
+          { label: "Modèles d'écritures", href: "/accounting/templates" },
+          { label: "Paramètres dossier", href: "/settings" },
         ]
       },
     ]
   },
   {
+    title: "Outils",
     items: [
-      { id: "point-vue", label: "Point de vue client", icon: Eye, href: "/point-vue-client" },
-      { id: "comptassistant", label: "ComptAssistant", icon: Sparkles, href: "/assistant" },
-      { id: "recherche", label: "Recherche rapide", icon: Search, href: "/recherche" },
-      { id: "parametres", label: "Paramètres", icon: Settings, href: "/settings" },
-      { id: "abonnement", label: "Gestion d'abonnement", icon: PiggyBank, href: "/billing" },
-      { id: "aide", label: "Aide et support", icon: HelpCircle, href: "/aide" },
+      { id: "comptassistant", label: "ComptAssistant", icon: Sparkles, href: "/assistant", badge: "IA", badgeVariant: "new" },
+      { id: "recherche", label: "Recherche", icon: Search, href: "/recherche" },
+      {
+        id: "regles",
+        label: "Règles & IA",
+        icon: Zap,
+        submenu: [
+          { label: "Règles comptables", href: "/settings/accounting-rules", badge: "IA", badgeVariant: "new" },
+          { label: "Règles de catégorisation", href: "/settings/transaction-rules" },
+          { label: "Centre de règles", href: "/settings/rules" },
+          { label: "Apprentissage IA", href: "/settings/ai-learning" },
+        ]
+      },
+      { id: "exports", label: "Exports FEC", icon: Download, href: "/exports" },
+      { id: "point-vue", label: "Vue client", icon: Eye, href: "/point-vue-client" },
+      {
+        id: "parametres",
+        label: "Paramètres",
+        icon: Settings,
+        submenu: [
+          { label: "Paramètres généraux", href: "/settings" },
+          { label: "Plan comptable", href: "/accounting/chart-of-accounts" },
+          { label: "Journaux", href: "/settings/journals" },
+          { label: "Exercices", href: "/settings/fiscal-years" },
+          { label: "Utilisateurs", href: "/settings/users" },
+        ]
+      },
+      { id: "aide", label: "Aide", icon: HelpCircle, href: "/aide" },
     ]
   }
 ];
@@ -174,39 +371,26 @@ const badgeStyles = {
 };
 
 export function PennylaneSidebar() {
-  const [viewMode, setViewMode] = useState<"management" | "accounting">(
-    typeof window !== "undefined" && (localStorage.getItem("seka_view_mode") as any) || "accounting"
-  );
+  // Initialiser le mode depuis localStorage ou par défaut "management"
+  const [viewMode, setViewMode] = useState<"management" | "accounting">("management");
   const [openMenus, setOpenMenus] = useState<string[]>([]);
   const [user, setUser] = useState<User | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
   const router = useRouter();
   const pathname = router.pathname || "";
 
   const currentMenu = viewMode === "management" ? managementMenu : accountingMenu;
 
-  // Auto-détection du mode selon la route (priorise les routes comptables)
+  // Charger le mode depuis localStorage au montage (une seule fois)
   useEffect(() => {
-    const accountingRoutes = [
-      "/accounting",
-      "/comptabilite",
-      "/tax",
-      "/reports/balance-sheet",
-      "/reports/income-statement",
-      "/reports",
-    ];
-    const isAccountingRoute = accountingRoutes.some((r) => pathname.startsWith(r) || pathname.includes("/accounting"));
-    if (isAccountingRoute) {
-      if (viewMode !== "accounting") {
-        setViewMode("accounting");
-        if (typeof window !== "undefined") localStorage.setItem("seka_view_mode", "accounting");
+    if (typeof window !== "undefined" && !isInitialized) {
+      const savedMode = localStorage.getItem("seka_view_mode") as "management" | "accounting" | null;
+      if (savedMode) {
+        setViewMode(savedMode);
       }
-    } else {
-      if (viewMode !== "management") {
-        setViewMode("management");
-        if (typeof window !== "undefined") localStorage.setItem("seka_view_mode", "management");
-      }
+      setIsInitialized(true);
     }
-  }, [pathname, viewMode]);
+  }, [isInitialized]);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -223,6 +407,27 @@ export function PennylaneSidebar() {
     fetchUser();
   }, []);
 
+  // Ouvrir automatiquement le menu parent si on est sur une route enfant
+  useEffect(() => {
+    const allMenuItems = currentMenu.flatMap(section => section.items);
+    for (const item of allMenuItems) {
+      if (item.submenu) {
+        const isChildActive = item.submenu.some(sub => pathname === sub.href || pathname.startsWith(sub.href + "/"));
+        if (isChildActive && !openMenus.includes(item.id)) {
+          setOpenMenus(prev => [...prev, item.id]);
+        }
+      }
+    }
+  }, [pathname, currentMenu]);
+
+  const handleModeChange = (mode: "management" | "accounting") => {
+    setViewMode(mode);
+    setOpenMenus([]); // Reset open menus when switching
+    if (typeof window !== "undefined") {
+      localStorage.setItem("seka_view_mode", mode);
+    }
+  };
+
   const toggleMenu = (menuId: string) => {
     setOpenMenus((prev) =>
       prev.includes(menuId) ? prev.filter((id) => id !== menuId) : [...prev, menuId]
@@ -230,16 +435,11 @@ export function PennylaneSidebar() {
   };
 
   const handleSubmenuClick = (href: string, parentMenuId: string) => {
-    // Garder le menu parent ouvert
     if (!openMenus.includes(parentMenuId)) {
       setOpenMenus(prev => [...prev, parentMenuId]);
     }
     router.push(href);
   };
-
-
-
-
 
   const handleLogout = () => {
     localStorage.removeItem("seka_access_token");
@@ -250,32 +450,25 @@ export function PennylaneSidebar() {
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
   return (
-    <div className="sidebar fixed left-0 top-0 h-full w-[220px] flex flex-col bg-emerald-900 border-r border-emerald-800 z-40 overflow-hidden">
+    <div className="sidebar fixed left-0 top-0 h-full w-[240px] flex flex-col bg-[#0d4f48] border-r border-[#0a3d38] z-40 overflow-hidden">
       {/* Header avec toggle Comptabilité/Gestion */}
-      <div className="p-3 border-b border-emerald-800">
-        <div className="flex bg-emerald-800 rounded-lg p-1 mb-3">
+      <div className="p-3 border-b border-[#0a3d38]">
+        {/* Toggle Switch */}
+        <div className="flex bg-[#0a3d38] rounded-lg p-1 mb-3">
           <button
-            onClick={() => {
-              setViewMode("accounting");
-              // Ne pas ouvrir automatiquement "saisie" ici
-              if (typeof window !== "undefined") localStorage.setItem("seka_view_mode", "accounting");
-            }}
-            className={`flex-1 text-xs font-medium py-1.5 px-2 rounded transition-all ${viewMode === "accounting"
-              ? "bg-white text-emerald-900 shadow-sm"
-              : "text-emerald-100 hover:text-white"
+            onClick={() => handleModeChange("accounting")}
+            className={`flex-1 text-xs font-medium py-2 px-3 rounded-md transition-all ${viewMode === "accounting"
+                ? "bg-white text-[#0d4f48] shadow-sm"
+                : "text-white/80 hover:text-white hover:bg-white/10"
               }`}
           >
             Comptabilité
           </button>
           <button
-            onClick={() => {
-              setViewMode("management");
-              setOpenMenus([]);
-              if (typeof window !== "undefined") localStorage.setItem("seka_view_mode", "management");
-            }}
-            className={`flex-1 text-xs font-medium py-1.5 px-2 rounded transition-all ${viewMode === "management"
-              ? "bg-white text-emerald-900 shadow-sm"
-              : "text-emerald-100 hover:text-white"
+            onClick={() => handleModeChange("management")}
+            className={`flex-1 text-xs font-medium py-2 px-3 rounded-md transition-all ${viewMode === "management"
+                ? "bg-white text-[#0d4f48] shadow-sm"
+                : "text-white/80 hover:text-white hover:bg-white/10"
               }`}
           >
             Gestion
@@ -283,20 +476,23 @@ export function PennylaneSidebar() {
         </div>
 
         {/* Logo SEKA */}
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
-            <span className="text-[#2c3e50] font-bold text-sm">S</span>
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center shadow-sm">
+            <span className="text-[#0d4f48] font-bold text-lg">S</span>
           </div>
-          <span className="text-white font-semibold text-lg">SEKA</span>
+          <div>
+            <span className="text-white font-bold text-lg">SEKA</span>
+            <p className="text-white/60 text-[10px] -mt-0.5">Gestion Comptable</p>
+          </div>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-2 scrollbar-thin scrollbar-thumb-[#0a3d38] scrollbar-track-transparent">
+      <nav className="flex-1 overflow-y-auto py-3 scrollbar-thin scrollbar-thumb-[#0a3d38] scrollbar-track-transparent">
         {currentMenu.map((section, sectionIdx) => (
-          <div key={sectionIdx} className={sectionIdx > 0 ? "mt-4 pt-4 border-t border-emerald-800" : ""}>
+          <div key={sectionIdx} className={sectionIdx > 0 ? "mt-4 pt-4 border-t border-[#0a3d38]" : ""}>
             {section.title && (
-              <div className="px-4 py-2 text-xs font-medium text-emerald-100/70 uppercase tracking-wider">
+              <div className="px-4 py-2 text-[10px] font-semibold text-white/50 uppercase tracking-wider">
                 {section.title}
               </div>
             )}
@@ -307,38 +503,38 @@ export function PennylaneSidebar() {
                     <>
                       <button
                         onClick={() => toggleMenu(item.id)}
-                        className={`w-full flex items-center justify-between px-3 py-2 rounded-md transition-all text-left ${openMenus.includes(item.id)
-                          ? "bg-emerald-700 text-white"
-                          : "text-emerald-100 hover:bg-emerald-800 hover:text-white"
+                        className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all text-left ${openMenus.includes(item.id)
+                            ? "bg-[#0a3d38] text-white"
+                            : "text-white/80 hover:bg-[#0a3d38]/50 hover:text-white"
                           }`}
                       >
                         <div className="flex items-center gap-3">
-                          <item.icon className="w-4 h-4" strokeWidth={1.5} />
+                          <item.icon className="w-[18px] h-[18px]" strokeWidth={1.5} />
                           <span className="text-sm font-medium">{item.label}</span>
                         </div>
                         <ChevronDown
-                          className={`w-4 h-4 transition-transform ${openMenus.includes(item.id) ? "rotate-180" : ""
+                          className={`w-4 h-4 transition-transform duration-200 ${openMenus.includes(item.id) ? "rotate-180" : ""
                             }`}
                         />
                       </button>
-                      {/* Submenu */}
+                      {/* Submenu with smooth animation */}
                       <div
-                        className={`overflow-hidden transition-all duration-200 ${openMenus.includes(item.id) ? "max-h-[500px]" : "max-h-0"
+                        className={`overflow-hidden transition-all duration-200 ease-in-out ${openMenus.includes(item.id) ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0"
                           }`}
                       >
-                        <div className="py-1 space-y-0.5">
+                        <div className="py-1 ml-3 border-l border-[#0a3d38]/50 space-y-0.5">
                           {item.submenu.map((subItem, idx) => (
                             <button
                               key={idx}
                               onClick={() => handleSubmenuClick(subItem.href, item.id)}
-                              className={`w-full flex items-center justify-between pl-10 pr-3 py-1.5 text-sm transition-colors text-left ${isActive(subItem.href)
-                                ? "text-white bg-emerald-700 rounded-md mx-2"
-                                : "text-emerald-100 hover:text-white"
+                              className={`w-full flex items-center justify-between pl-6 pr-3 py-2 text-sm transition-colors text-left rounded-r-lg ${isActive(subItem.href)
+                                  ? "text-white bg-[#0a3d38] font-medium"
+                                  : "text-white/70 hover:text-white hover:bg-[#0a3d38]/30"
                                 }`}
                             >
                               <span>{subItem.label}</span>
                               {subItem.badge && (
-                                <span className={badgeStyles.new}>{subItem.badge}</span>
+                                <span className={badgeStyles[subItem.badgeVariant || "new"]}>{subItem.badge}</span>
                               )}
                             </button>
                           ))}
@@ -348,13 +544,13 @@ export function PennylaneSidebar() {
                   ) : (
                     <Link
                       href={item.href || "#"}
-                      className={`flex items-center justify-between px-3 py-2 rounded-md transition-all ${isActive(item.href || "")
-                        ? "bg-emerald-700 text-white"
-                        : "text-emerald-100 hover:bg-emerald-800 hover:text-white"
+                      className={`flex items-center justify-between px-3 py-2.5 rounded-lg transition-all ${isActive(item.href || "")
+                          ? "bg-[#0a3d38] text-white font-medium"
+                          : "text-white/80 hover:bg-[#0a3d38]/50 hover:text-white"
                         }`}
                     >
                       <div className="flex items-center gap-3">
-                        <item.icon className="w-4 h-4" strokeWidth={1.5} />
+                        <item.icon className="w-[18px] h-[18px]" strokeWidth={1.5} />
                         <span className="text-sm font-medium">{item.label}</span>
                       </div>
                       {item.badge && (
@@ -372,20 +568,20 @@ export function PennylaneSidebar() {
       </nav>
 
       {/* User Footer */}
-      <div className="p-3 border-t border-emerald-800 bg-emerald-800">
+      <div className="p-3 border-t border-[#0a3d38] bg-[#0a3d38]/50">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-white text-xs font-bold">
+          <div className="w-9 h-9 rounded-full bg-emerald-500 flex items-center justify-center text-white text-sm font-bold shadow-sm">
             {user?.full_name ? user.full_name.charAt(0).toUpperCase() : "U"}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-white truncate">
               {user?.full_name || "Utilisateur"}
             </p>
-            <p className="text-xs text-emerald-100/70 truncate">{user?.email}</p>
+            <p className="text-xs text-white/60 truncate">{user?.email}</p>
           </div>
           <button
             onClick={handleLogout}
-            className="text-emerald-100/70 hover:text-white transition-colors p-1"
+            className="text-white/60 hover:text-white transition-colors p-1.5 hover:bg-[#0a3d38] rounded-lg"
             title="Déconnexion"
           >
             <LogOut className="w-4 h-4" />
