@@ -6,6 +6,7 @@ import { Upload, FileText, CheckCircle, AlertCircle, Sparkles, Edit2, Save, Load
 import AccountAutocomplete, { type Account } from "@/components/AccountAutocomplete";
 import ConfidenceBadge from "@/components/ConfidenceBadge";
 import Tesseract from 'tesseract.js';
+import * as pdfjsLib from 'pdfjs-dist';
 
 interface OcrData {
   reference_number: string;
@@ -53,6 +54,13 @@ export default function AccountingEntryFromOCR() {
   const [classificationValidated, setClassificationValidated] = useState(false);
   const PdfViewer = dynamic(() => import('@/components/DocumentPdfViewer'), { ssr: false });
 
+  // Configure PDF.js worker
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+    }
+  }, []);
+
   // Fetch accounts for autocomplete
   useEffect(() => {
     const fetchAccounts = async () => {
@@ -93,46 +101,73 @@ export default function AccountingEntryFromOCR() {
     fetchAccounts();
   }, []);
 
+  // Convert PDF to images for OCR processing
+  const convertPdfToImages = async (file: File): Promise<string[]> => {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const images: string[] = [];
+
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const viewport = page.getViewport({ scale: 2.0 }); // Higher scale for better OCR quality
+
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
+
+      await page.render({
+        canvasContext: context!,
+        viewport: viewport
+      }).promise;
+
+      images.push(canvas.toDataURL('image/png'));
+    }
+
+    return images;
+  };
+
   const processWithLocalOCR = async (file: File) => {
     try {
       console.log("Starting local OCR fallback...");
+      let allText = "";
+      let pageCount = 1;
 
-      // If PDF, convert to image first using canvas
-      let processFile: File | Blob = file;
+      // Handle PDF files - Throw error as local PDF OCR is heavy
       if (file.type === 'application/pdf') {
-        console.log("Converting PDF to image for OCR...");
-        // For PDFs, we need to show a message that PDF OCR fallback isn't fully supported
-        // Instead, just show extracted metadata from filename
-        throw new Error("PDF OCR local fallback not fully supported. Please use backend OCR or convert to image first.");
+        throw new Error("L'analyse locale des PDF n'est pas supportée. Veuillez utiliser des images (JPG, PNG) si le serveur ne répond pas.");
       }
 
+      // Handle image files directly with Tesseract
       const result = await Tesseract.recognize(
-        processFile,
+        file,
         'fra',
         { logger: m => console.log(m) }
       );
+      allText = result.data.text;
 
-      const text = result.data.text;
-      console.log("Local OCR Text:", text);
+      console.log("Local OCR Text:", allText);
 
+      // Regex Patterns
       const dateRegex = /(\d{2}[/.-]\d{2}[/.-]\d{4})|(\d{1,2}\s(?:janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\s\d{4})/i;
       const amountRegex = /(\d{1,3}(?:[\s.]\d{3})*(?:,\d{2})?)\s?(?:€|EUR|FCFA|F\s?CFA)/gi;
-      const referenceRegex = /(?:facture|ref|n°)\s?[:.]?\s?([a-z0-9-/]+)/i;
+      const referenceRegex = /(?:facture|ref|n°|invoice)\s?[:.]?\s?([a-z0-9-/]+)/i;
 
       // Find Date
-      const dateMatch = text.match(dateRegex);
+      const dateMatch = allText.match(dateRegex);
       let date = new Date().toISOString().split('T')[0];
       if (dateMatch) {
         try {
           const d = dateMatch[0].replace(/[/.]/g, '-');
-          // Naive parsing, works for some formats, fail safe to today
+          // Basic date parsing logic could be here, strict ISO preferred
         } catch (e) { }
       }
 
       // Find Amounts
       const amounts = [];
       let match;
-      while ((match = amountRegex.exec(text)) !== null) {
+      // Need to reset regex lastIndex if global
+      while ((match = amountRegex.exec(allText)) !== null) {
         const clean = match[1].replace(/\s/g, '').replace(',', '.');
         const val = parseFloat(clean);
         if (!isNaN(val)) amounts.push(val);
@@ -144,8 +179,13 @@ export default function AccountingEntryFromOCR() {
       const amountHT = amountTTC - amountVAT;
 
       // Find Reference
-      const refMatch = text.match(referenceRegex);
+      const refMatch = allText.match(referenceRegex);
       const reference = refMatch ? refMatch[1] : `DOC-${Date.now()}`;
+
+      // Try to extract supplier name
+      const supplierRegex = /(?:société|entreprise|sarl|sa|sas|eurl)\s+([a-zà-ÿ\s-]+)/i;
+      const supplierMatch = allText.match(supplierRegex);
+      const supplierName = supplierMatch ? supplierMatch[1].trim() : "Fournisseur Inconnu (OCR Local)";
 
       const fallbackOcrData: OcrData = {
         reference_number: reference,
@@ -153,14 +193,15 @@ export default function AccountingEntryFromOCR() {
         amount_ht: amountHT,
         amount_vat: amountVAT,
         amount_ttc: amountTTC,
-        supplier_name: "Fournisseur Inconnu (OCR Local)",
+        supplier_name: supplierName,
         is_multi_page: false,
-        confidence: result.data.confidence / 100,
+        page_count: 1,
+        confidence: 0.6,
         fields_confidence: {
           supplier_name: 0.5,
-          date: 0.6,
-          amount_ttc: 0.7,
-          reference_number: 0.6
+          date: 0.5,
+          amount_ttc: 0.6,
+          reference_number: 0.5
         }
       };
 
@@ -173,18 +214,23 @@ export default function AccountingEntryFromOCR() {
         auto_apply: false
       };
 
+      // Update State
       setOcrData(fallbackOcrData);
       setSuggestions(fallbackSuggestions);
       setEntryLines([
         { account_code: "601100", label: `Achat ${reference}`, debit: amountHT, credit: 0 },
         { account_code: "445200", label: "TVA Récupérable", debit: amountVAT, credit: 0 },
-        { account_code: "401100", label: "Fournisseur (Attente)", debit: 0, credit: amountTTC }
+        { account_code: "401100", label: supplierName, debit: 0, credit: amountTTC }
       ]);
-      setFileInfo({ url: URL.createObjectURL(file), page_count: 1, is_multi_page: false });
+      setFileInfo({
+        url: URL.createObjectURL(file),
+        page_count: 1,
+        is_multi_page: false
+      });
 
-    } catch (err) {
+    } catch (err: any) {
       console.error("Local OCR failed:", err);
-      alert("L'analyse locale du document a également échoué.");
+      // alert("L'analyse locale du document a également échoué: " + (err.message || err));
     }
   };
 
