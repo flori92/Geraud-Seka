@@ -174,7 +174,7 @@ export function PennylaneSidebar() {
   const [viewMode, setViewMode] = useState<"management" | "accounting">(
     typeof window !== "undefined" && (localStorage.getItem("seka_view_mode") as any) || "accounting"
   );
-  const [openMenus, setOpenMenus] = useState<string[]>(["saisie"]);
+  const [openMenus, setOpenMenus] = useState<string[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
   const pathname = router.pathname || "";
@@ -194,7 +194,7 @@ export function PennylaneSidebar() {
     const isAccountingRoute = accountingRoutes.some((r) => pathname.startsWith(r) || pathname.includes("/accounting"));
     if (isAccountingRoute && viewMode !== "accounting") {
       setViewMode("accounting");
-      if (!openMenus.includes("saisie")) setOpenMenus((prev) => [...prev, "saisie"]);
+      // Ne pas ouvrir automatiquement le menu "saisie"
       if (typeof window !== "undefined") localStorage.setItem("seka_view_mode", "accounting");
     }
   }, [pathname, viewMode, openMenus]);
@@ -248,9 +248,7 @@ export function PennylaneSidebar() {
           <button
             onClick={() => {
               setViewMode("accounting");
-              if (!openMenus.includes("saisie")) {
-                setOpenMenus(prev => [...prev, "saisie"]);
-              }
+              // Ne pas ouvrir automatiquement "saisie" ici
               if (typeof window !== "undefined") localStorage.setItem("seka_view_mode", "accounting");
             }}
             className={`flex-1 text-xs font-medium py-1.5 px-2 rounded transition-all ${
