@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from app.services.fec_importer import FECImporterService
+import logging
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, or_
 from typing import List, Optional
@@ -21,6 +23,8 @@ from app.schemas.accounting_entries import (
     BankReconciliationResponse, AccountingRevisionCreate,
     AccountingRevisionResponse, LettrageRequest, ValidationRequest
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -346,3 +350,23 @@ def delete_entry(
     db.commit()
     
     return {"message": "Écriture supprimée avec succès"}
+
+
+@router.post("/import/fec")
+async def import_fec_file(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Importe un Fichier des Écritures Comptables (FEC).
+    Accepte .txt ou .csv. Détecte automatiquement le format.
+    """
+    try:
+        content = await file.read()
+        service = FECImporterService(db, str(current_user.tenant_id), str(current_user.id))
+        stats = service.process_file(content, file.filename)
+        return {"message": "Import FEC réussi", "stats": stats}
+    except Exception as e:
+        logger.error(f"Erreur import FEC: {e}")
+        raise HTTPException(status_code=400, detail=str(e))

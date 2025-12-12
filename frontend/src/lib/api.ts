@@ -2114,5 +2114,18 @@ export async function getIncomeStatementReport(accessToken: string, year: number
   return response.data;
 }
 
+export async function uploadFECFile(file: File, accessToken: string): Promise<any> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await api.post("/accounting-entries/import/fec", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+  return response.data;
+}
+
 
 
