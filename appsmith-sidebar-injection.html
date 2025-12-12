@@ -435,6 +435,34 @@ function updateSidebar() {
 
 // Initialiser
 function initSidebar() {
+  const existing = document.getElementById('custom-sidebar');
+  if (existing) existing.remove();
+  
+  const sidebar = createSidebar();
+  document.body.appendChild(sidebar);
+  
+  setTimeout(() => {
+    const canvas = document.querySelector('.t--canvas-artboard, .canvas-container, .appsmith-canvas-container');
+    if (canvas) {
+      canvas.style.marginLeft = '220px';
+      canvas.style.width = 'calc(100% - 220px)';
+    }
+  }, 100);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initSidebar);
+} else {
+  initSidebar();
+}
+
+const observer = new MutationObserver(() => {
+  if (!document.getElementById('custom-sidebar')) initSidebar();
+});
+observer.observe(document.body, { childList: true, subtree: true });
+
+// Initialiser
+function initSidebar() {
   // Supprimer l'ancienne sidebar si elle existe
   const existing = document.getElementById('custom-sidebar');
   if (existing) {

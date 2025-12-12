@@ -67,3 +67,32 @@
   left: 220px !important;
   width: calc(100% - 220px) !important;
 }
+
+/* Corrections pour Railway/Next.js */
+body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* Assurer que le contenu ne déborde pas */
+.main-content {
+  max-width: calc(100vw - 220px);
+  overflow-x: auto;
+}
+
+/* Corrections pour les modales */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1050;
+}
+
+.modal-content {
+  max-width: calc(100vw - 240px);
+  margin-left: auto;
+  margin-right: auto;
+}
