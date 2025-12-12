@@ -2,7 +2,8 @@ import Head from "next/head";
 import { useState, useEffect } from "react";
 import type { ReactNode } from "react";
 import { useRouter } from "next/router";
-import { PennylaneSidebar } from "./PennylaneSidebar";
+// Sidebar is rendered globally in _app.tsx to avoid duplicate sidebars
+
 import { ChatWidget } from "../Chatbot/ChatWidget";
 import { HelpCircle, Bell, X, ChevronRight, Book, MessageCircle, Mail, ExternalLink, Search, Building2 } from "lucide-react";
 
@@ -26,11 +27,8 @@ export function PennylaneLayout({ title, children, showHeader = false, headerAct
         <title>{pageTitle}</title>
       </Head>
       <div className="flex min-h-screen bg-gray-50">
-        {/* Pennylane Sidebar */}
-        <PennylaneSidebar />
-
         {/* Main Content */}
-        <main className="flex-1 ml-[220px]">
+        <main className="flex-1">
           {/* Top Header Bar - Style Pennylane */}
           <header className="sticky top-0 z-40 h-14 bg-white border-b border-gray-200 flex items-center justify-between px-6">
             <div className="flex items-center gap-4">

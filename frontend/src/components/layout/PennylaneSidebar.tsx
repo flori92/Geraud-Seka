@@ -171,13 +171,33 @@ const badgeStyles = {
 };
 
 export function PennylaneSidebar() {
-  const [viewMode, setViewMode] = useState<"management" | "accounting">("accounting");
+  const [viewMode, setViewMode] = useState<"management" | "accounting">(
+    typeof window !== "undefined" && (localStorage.getItem("seka_view_mode") as any) || "accounting"
+  );
   const [openMenus, setOpenMenus] = useState<string[]>(["saisie"]);
   const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
   const pathname = router.pathname || "";
 
   const currentMenu = viewMode === "management" ? managementMenu : accountingMenu;
+
+  // Auto-détection du mode selon la route (priorise les routes comptables)
+  useEffect(() => {
+    const accountingRoutes = [
+      "/accounting",
+      "/comptabilite",
+      "/tax",
+      "/reports/balance-sheet",
+      "/reports/income-statement",
+      "/reports",
+    ];
+    const isAccountingRoute = accountingRoutes.some((r) => pathname.startsWith(r) || pathname.includes("/accounting"));
+    if (isAccountingRoute && viewMode !== "accounting") {
+      setViewMode("accounting");
+      if (!openMenus.includes("saisie")) setOpenMenus((prev) => [...prev, "saisie"]);
+      if (typeof window !== "undefined") localStorage.setItem("seka_view_mode", "accounting");
+    }
+  }, [pathname, viewMode, openMenus]);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -221,21 +241,22 @@ export function PennylaneSidebar() {
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
   return (
-    <div className="fixed left-0 top-0 h-full w-[220px] flex flex-col bg-[#2c3e50] border-r border-[#34495e] z-40 overflow-hidden">
+    <div className="sidebar fixed left-0 top-0 h-full w-[220px] flex flex-col bg-emerald-900 border-r border-emerald-800 z-40 overflow-hidden">
       {/* Header avec toggle Comptabilité/Gestion */}
-      <div className="p-3 border-b border-[#34495e]">
-        <div className="flex bg-[#34495e] rounded-lg p-1 mb-3">
+      <div className="p-3 border-b border-emerald-800">
+        <div className="flex bg-emerald-800 rounded-lg p-1 mb-3">
           <button
             onClick={() => {
               setViewMode("accounting");
               if (!openMenus.includes("saisie")) {
                 setOpenMenus(prev => [...prev, "saisie"]);
               }
+              if (typeof window !== "undefined") localStorage.setItem("seka_view_mode", "accounting");
             }}
             className={`flex-1 text-xs font-medium py-1.5 px-2 rounded transition-all ${
               viewMode === "accounting"
-                ? "bg-white text-[#2c3e50] shadow-sm"
-                : "text-slate-300 hover:text-white"
+                ? "bg-white text-emerald-900 shadow-sm"
+                : "text-emerald-100 hover:text-white"
             }`}
           >
             Comptabilité
@@ -244,11 +265,12 @@ export function PennylaneSidebar() {
             onClick={() => {
               setViewMode("management");
               setOpenMenus([]);
+              if (typeof window !== "undefined") localStorage.setItem("seka_view_mode", "management");
             }}
             className={`flex-1 text-xs font-medium py-1.5 px-2 rounded transition-all ${
               viewMode === "management"
-                ? "bg-white text-[#2c3e50] shadow-sm"
-                : "text-slate-300 hover:text-white"
+                ? "bg-white text-emerald-900 shadow-sm"
+                : "text-emerald-100 hover:text-white"
             }`}
           >
             Gestion
@@ -267,9 +289,9 @@ export function PennylaneSidebar() {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-2 scrollbar-thin scrollbar-thumb-[#0a3d38] scrollbar-track-transparent">
         {currentMenu.map((section, sectionIdx) => (
-          <div key={sectionIdx} className={sectionIdx > 0 ? "mt-4 pt-4 border-t border-[#34495e]" : ""}>
+          <div key={sectionIdx} className={sectionIdx > 0 ? "mt-4 pt-4 border-t border-emerald-800" : ""}>
             {section.title && (
-              <div className="px-4 py-2 text-xs font-medium text-slate-400 uppercase tracking-wider">
+              <div className="px-4 py-2 text-xs font-medium text-emerald-100/70 uppercase tracking-wider">
                 {section.title}
               </div>
             )}
@@ -282,8 +304,8 @@ export function PennylaneSidebar() {
                         onClick={() => toggleMenu(item.id)}
                         className={`w-full flex items-center justify-between px-3 py-2 rounded-md transition-all text-left ${
                           openMenus.includes(item.id)
-                            ? "bg-[#3498db] text-white"
-                            : "text-slate-200 hover:bg-[#34495e] hover:text-white"
+                            ? "bg-emerald-700 text-white"
+                            : "text-emerald-100 hover:bg-emerald-800 hover:text-white"
                         }`}
                       >
                         <div className="flex items-center gap-3">
@@ -309,8 +331,8 @@ export function PennylaneSidebar() {
                               onClick={() => handleSubmenuClick(subItem.href, item.id)}
                               className={`w-full flex items-center justify-between pl-10 pr-3 py-1.5 text-sm transition-colors text-left ${
                                 isActive(subItem.href)
-                                  ? "text-white bg-[#3498db] rounded-md mx-2"
-                                  : "text-slate-300 hover:text-white"
+                                  ? "text-white bg-emerald-700 rounded-md mx-2"
+                                  : "text-emerald-100 hover:text-white"
                               }`}
                             >
                               <span>{subItem.label}</span>
@@ -327,8 +349,8 @@ export function PennylaneSidebar() {
                       href={item.href || "#"}
                       className={`flex items-center justify-between px-3 py-2 rounded-md transition-all ${
                         isActive(item.href || "")
-                          ? "bg-[#3498db] text-white"
-                          : "text-slate-200 hover:bg-[#34495e] hover:text-white"
+                          ? "bg-emerald-700 text-white"
+                          : "text-emerald-100 hover:bg-emerald-800 hover:text-white"
                       }`}
                     >
                       <div className="flex items-center gap-3">
@@ -350,20 +372,20 @@ export function PennylaneSidebar() {
       </nav>
 
       {/* User Footer */}
-      <div className="p-3 border-t border-[#34495e] bg-[#34495e]">
+      <div className="p-3 border-t border-emerald-800 bg-emerald-800">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-[#3498db] flex items-center justify-center text-white text-xs font-bold">
+          <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-white text-xs font-bold">
             {user?.full_name ? user.full_name.charAt(0).toUpperCase() : "U"}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-white truncate">
               {user?.full_name || "Utilisateur"}
             </p>
-            <p className="text-xs text-slate-400 truncate">{user?.email}</p>
+            <p className="text-xs text-emerald-100/70 truncate">{user?.email}</p>
           </div>
           <button
             onClick={handleLogout}
-            className="text-slate-400 hover:text-white transition-colors p-1"
+            className="text-emerald-100/70 hover:text-white transition-colors p-1"
             title="Déconnexion"
           >
             <LogOut className="w-4 h-4" />
