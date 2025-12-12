@@ -46,6 +46,7 @@ from app.api.v1.routes import (
     sales,
     suppliers,
     supplier_invoices,
+    accounting_analytics,
 )
 
 api_router = APIRouter()
@@ -100,6 +101,7 @@ api_router.include_router(accounting.router, prefix="/accounting", tags=["accoun
 api_router.include_router(accounting_advanced.router, prefix="/accounting/advanced", tags=["accounting", "advanced"])
 api_router.include_router(accounting_entries.router, prefix="/accounting-entries", tags=["accounting", "entries"])
 api_router.include_router(accounting_rules.router, prefix="/accounting-rules", tags=["accounting", "rules", "ocr"])
+api_router.include_router(accounting_analytics.router, prefix="/accounting/analytics", tags=["accounting", "analytics"])
 api_router.include_router(treasury_advanced.router, prefix="/treasury/advanced", tags=["treasury", "advanced"])
 
 # Stock Module Routes
