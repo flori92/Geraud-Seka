@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import type { ReactNode } from "react";
 import { useRouter } from "next/router";
-import { PennylaneSidebar } from "./layout/PennylaneSidebar";
+import { ModernSidebar } from "./layout/ModernSidebar";
 import { ChatWidget } from "./Chatbot/ChatWidget";
 import { HelpCircle, Bell, X, ChevronRight, Book, MessageCircle, Mail, ExternalLink } from "lucide-react";
 
@@ -270,8 +270,8 @@ export function DashboardLayout({ title, children }: DashboardLayoutProps) {
         <title>{pageTitle}</title>
       </Head>
       <div className="flex min-h-screen bg-accents-1 font-sans text-foreground">
-        {/* Pennylane Sidebar */}
-        <PennylaneSidebar />
+        {/* Modern Sidebar */}
+        <ModernSidebar />
 
         {/* Main Content */}
         <main className="flex-1 pl-[72px] transition-all duration-300">
