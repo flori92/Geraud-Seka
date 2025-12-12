@@ -99,48 +99,6 @@ export default function AccountingEntryFromOCR() {
     setUploading(true);
     setClassificationValidated(false);
 
-    // Simulation pour le mode démo ou si le backend n'est pas prêt
-    if (file.name === "facture-sample.pdf" || process.env.NODE_ENV === "development") {
-      setTimeout(() => {
-        const mockData: OcrData = {
-          reference_number: "FAC-2024-00123",
-          date: new Date().toISOString().split('T')[0],
-          amount_ht: 450000,
-          amount_vat: 81000,
-          amount_ttc: 531000,
-          supplier_name: "Fournisseur Tech SARL",
-          is_multi_page: false,
-          confidence: 0.95,
-          fields_confidence: {
-            supplier_name: 0.98,
-            date: 0.99,
-            amount_ttc: 0.96,
-            reference_number: 0.92
-          }
-        };
-
-        const mockSuggestions: Suggestion = {
-          rule_name: "Règle Fournisseurs Tech",
-          confidence: 0.89,
-          suggested_debit_account: "606400",
-          suggested_credit_account: "401000",
-          suggested_label: "Achat matériel informatique",
-          auto_apply: true
-        };
-
-        setOcrData(mockData);
-        setSuggestions(mockSuggestions);
-        setEntryLines([
-          { account_code: "606400", label: "Achat matériel informatique", debit: 450000, credit: 0 },
-          { account_code: "445660", label: "TVA déductible", debit: 81000, credit: 0 },
-          { account_code: "401000", label: "Fournisseur Tech SARL", debit: 0, credit: 531000 }
-        ]);
-        setFileInfo({ url: URL.createObjectURL(file), page_count: 1, is_multi_page: false });
-        setUploading(false);
-      }, 1500);
-      return;
-    }
-
     const formData = new FormData();
     formData.append('file', file);
 
@@ -162,14 +120,13 @@ export default function AccountingEntryFromOCR() {
         setEntryLines(result.proposed_entry.lines);
         setFileInfo(result.file_info || {});
       } else {
-        console.warn("OCR API failed, falling back to mock data for demo purposes");
-        // Fallback to mock data on error (temporary for better UX during dev)
-        handleFileUpload(new File(["dummy"], "facture-sample.pdf"));
+        const errorData = await response.json().catch(() => ({ detail: "Erreur inconnue" }));
+        console.error("OCR API error:", errorData);
+        alert(`Erreur lors du traitement du document: ${errorData.detail || response.statusText}`);
       }
     } catch (error) {
-      console.error("Error:", error);
-      // Fallback
-      handleFileUpload(new File(["dummy"], "facture-sample.pdf"));
+      console.error("Network or parsing error:", error);
+      alert("Erreur de connexion lors de l'envoi du fichier.");
     } finally {
       setUploading(false);
     }
@@ -337,16 +294,6 @@ export default function AccountingEntryFromOCR() {
                         className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
                       >
                         Parcourir
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          // Simuler un upload
-                          handleFileUpload(new File(["dummy content"], "facture-sample.pdf", { type: "application/pdf" }));
-                        }}
-                        className="px-6 py-3 border border-purple-200 text-purple-700 rounded-lg hover:bg-purple-50"
-                      >
-                        Simuler (Démo)
                       </button>
                     </div>
                   )}
