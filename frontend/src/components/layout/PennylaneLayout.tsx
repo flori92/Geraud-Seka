@@ -41,7 +41,7 @@ export function PennylaneLayout({ title, children, showHeader = false, headerAct
               {/* Current Dossier */}
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-900">{currentDossier}</span>
-                <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-medium rounded">
+                <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded">
                   Premium Internalisé
                 </span>
                 <ChevronRight className="w-4 h-4 text-gray-400 rotate-90" />

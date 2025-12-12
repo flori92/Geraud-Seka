@@ -109,7 +109,8 @@ const managementMenu: MenuSection[] = [
         icon: ArrowLeftRight,
         submenu: [
           { label: "Toutes les transactions", href: "/transactions" },
-          { label: "Rapprochement bancaire", href: "/accounting/reconciliation" },
+          { label: "Rapprochement bancaire", href: "/accounting/bank-reconciliation", badge: "IA", badgeVariant: "new" },
+          { label: "Import relevés", href: "/accounting/import-statements" },
           { label: "Règles de catégorisation", href: "/settings/transaction-rules", badge: "IA", badgeVariant: "new" },
         ]
       },
@@ -121,6 +122,7 @@ const managementMenu: MenuSection[] = [
         submenu: [
           { label: "Vue d'ensemble", href: "/treasury" },
           { label: "Comptes bancaires", href: "/treasury/accounts" },
+          { label: "Mobile Money", href: "/treasury/mobile-money", badge: "NOUVEAU", badgeVariant: "new" },
           { label: "Prévisions", href: "/treasury/forecast", badge: "IA", badgeVariant: "new" },
           { label: "Mouvements", href: "/treasury/transactions" },
         ]
@@ -234,6 +236,7 @@ const managementMenu: MenuSection[] = [
 const accountingMenu: MenuSection[] = [
   {
     items: [
+      { id: "dashboard-compta", label: "Tableau de bord", icon: Calculator, href: "/accounting/dashboard" },
       {
         id: "saisie",
         label: "Saisie",
@@ -246,7 +249,8 @@ const accountingMenu: MenuSection[] = [
           { label: "Factures fournisseurs", href: "/achats/factures" },
           { label: "Factures clients", href: "/ventes/factures" },
           { label: "Transactions bancaires", href: "/transactions" },
-          { label: "Rapprochement bancaire", href: "/accounting/reconciliation" },
+          { label: "Rapprochement bancaire", href: "/accounting/bank-reconciliation", badge: "IA", badgeVariant: "new" },
+          { label: "Import relevés", href: "/accounting/import-statements" },
           { label: "OD de paie", href: "/accounting/entries/payroll" },
           { label: "À-nouveaux", href: "/accounting/entries/opening" },
         ]
@@ -282,11 +286,11 @@ const accountingMenu: MenuSection[] = [
         label: "Fiscalité",
         icon: Building2,
         submenu: [
-          { label: "Déclaration TVA", href: "/tax/vat" },
+          { label: "Déclaration TVA", href: "/tax/tva-declaration", badge: "AUTO", badgeVariant: "new" },
           { label: "Liasse fiscale", href: "/tax/returns" },
           { label: "IS / IR", href: "/tax/corporate" },
-          { label: "CFE / CVAE", href: "/tax/local" },
           { label: "Taxes diverses", href: "/tax/misc" },
+          { label: "Export FEC", href: "/accounting/export-fec" },
         ]
       },
       {
@@ -364,10 +368,10 @@ const accountingMenu: MenuSection[] = [
 ];
 
 const badgeStyles = {
-  new: "bg-emerald-100 text-emerald-700 text-[10px] px-1.5 py-0.5 rounded font-medium",
+  new: "bg-blue-100 text-blue-700 text-[10px] px-1.5 py-0.5 rounded font-medium",
   beta: "bg-blue-100 text-blue-700 text-[10px] px-1.5 py-0.5 rounded font-medium",
   count: "bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium min-w-[18px] text-center",
-  included: "bg-emerald-500 text-white text-[10px] px-1.5 py-0.5 rounded font-medium",
+  included: "bg-blue-500 text-white text-[10px] px-1.5 py-0.5 rounded font-medium",
 };
 
 export function PennylaneSidebar() {
@@ -450,16 +454,16 @@ export function PennylaneSidebar() {
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
   return (
-    <div className="sidebar fixed left-0 top-0 h-full w-[240px] flex flex-col bg-[#0d4f48] border-r border-[#0a3d38] z-40 overflow-hidden">
+    <div className="sidebar fixed left-0 top-0 h-full w-[240px] flex flex-col bg-[#0f172a] border-r border-[#1e293b] z-40 overflow-hidden">
       {/* Header avec toggle Comptabilité/Gestion */}
-      <div className="p-3 border-b border-[#0a3d38]">
+      <div className="p-3 border-b border-[#1e293b]">
         {/* Toggle Switch */}
-        <div className="flex bg-[#0a3d38] rounded-lg p-1 mb-3">
+        <div className="flex bg-[#1e293b] rounded-lg p-1 mb-3">
           <button
             onClick={() => handleModeChange("accounting")}
             className={`flex-1 text-xs font-medium py-2 px-3 rounded-md transition-all ${viewMode === "accounting"
-                ? "bg-white text-[#0d4f48] shadow-sm"
-                : "text-white/80 hover:text-white hover:bg-white/10"
+              ? "bg-white text-[#0f172a] shadow-sm"
+              : "text-white/80 hover:text-white hover:bg-white/10"
               }`}
           >
             Comptabilité
@@ -467,8 +471,8 @@ export function PennylaneSidebar() {
           <button
             onClick={() => handleModeChange("management")}
             className={`flex-1 text-xs font-medium py-2 px-3 rounded-md transition-all ${viewMode === "management"
-                ? "bg-white text-[#0d4f48] shadow-sm"
-                : "text-white/80 hover:text-white hover:bg-white/10"
+              ? "bg-white text-[#0f172a] shadow-sm"
+              : "text-white/80 hover:text-white hover:bg-white/10"
               }`}
           >
             Gestion
@@ -478,7 +482,7 @@ export function PennylaneSidebar() {
         {/* Logo SEKA */}
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center shadow-sm">
-            <span className="text-[#0d4f48] font-bold text-lg">S</span>
+            <span className="text-[#0f172a] font-bold text-lg">S</span>
           </div>
           <div>
             <span className="text-white font-bold text-lg">SEKA</span>
@@ -488,9 +492,9 @@ export function PennylaneSidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-3 scrollbar-thin scrollbar-thumb-[#0a3d38] scrollbar-track-transparent">
+      <nav className="flex-1 overflow-y-auto py-3 scrollbar-thin scrollbar-thumb-[#1e293b] scrollbar-track-transparent">
         {currentMenu.map((section, sectionIdx) => (
-          <div key={sectionIdx} className={sectionIdx > 0 ? "mt-4 pt-4 border-t border-[#0a3d38]" : ""}>
+          <div key={sectionIdx} className={sectionIdx > 0 ? "mt-4 pt-4 border-t border-[#1e293b]" : ""}>
             {section.title && (
               <div className="px-4 py-2 text-[10px] font-semibold text-white/50 uppercase tracking-wider">
                 {section.title}
@@ -504,8 +508,8 @@ export function PennylaneSidebar() {
                       <button
                         onClick={() => toggleMenu(item.id)}
                         className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all text-left ${openMenus.includes(item.id)
-                            ? "bg-[#0a3d38] text-white"
-                            : "text-white/80 hover:bg-[#0a3d38]/50 hover:text-white"
+                          ? "bg-[#1e293b] text-white"
+                          : "text-white/80 hover:bg-[#1e293b]/50 hover:text-white"
                           }`}
                       >
                         <div className="flex items-center gap-3">
@@ -522,14 +526,14 @@ export function PennylaneSidebar() {
                         className={`overflow-hidden transition-all duration-200 ease-in-out ${openMenus.includes(item.id) ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0"
                           }`}
                       >
-                        <div className="py-1 ml-3 border-l border-[#0a3d38]/50 space-y-0.5">
+                        <div className="py-1 ml-3 border-l border-[#1e293b]/50 space-y-0.5">
                           {item.submenu.map((subItem, idx) => (
                             <button
                               key={idx}
                               onClick={() => handleSubmenuClick(subItem.href, item.id)}
                               className={`w-full flex items-center justify-between pl-6 pr-3 py-2 text-sm transition-colors text-left rounded-r-lg ${isActive(subItem.href)
-                                  ? "text-white bg-[#0a3d38] font-medium"
-                                  : "text-white/70 hover:text-white hover:bg-[#0a3d38]/30"
+                                ? "text-white bg-[#1e293b] font-medium"
+                                : "text-white/70 hover:text-white hover:bg-[#1e293b]/30"
                                 }`}
                             >
                               <span>{subItem.label}</span>
@@ -545,8 +549,8 @@ export function PennylaneSidebar() {
                     <Link
                       href={item.href || "#"}
                       className={`flex items-center justify-between px-3 py-2.5 rounded-lg transition-all ${isActive(item.href || "")
-                          ? "bg-[#0a3d38] text-white font-medium"
-                          : "text-white/80 hover:bg-[#0a3d38]/50 hover:text-white"
+                        ? "bg-[#1e293b] text-white font-medium"
+                        : "text-white/80 hover:bg-[#1e293b]/50 hover:text-white"
                         }`}
                     >
                       <div className="flex items-center gap-3">
@@ -568,9 +572,9 @@ export function PennylaneSidebar() {
       </nav>
 
       {/* User Footer */}
-      <div className="p-3 border-t border-[#0a3d38] bg-[#0a3d38]/50">
+      <div className="p-3 border-t border-[#1e293b] bg-[#1e293b]/50">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-emerald-500 flex items-center justify-center text-white text-sm font-bold shadow-sm">
+          <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-bold shadow-sm">
             {user?.full_name ? user.full_name.charAt(0).toUpperCase() : "U"}
           </div>
           <div className="flex-1 min-w-0">
@@ -581,7 +585,7 @@ export function PennylaneSidebar() {
           </div>
           <button
             onClick={handleLogout}
-            className="text-white/60 hover:text-white transition-colors p-1.5 hover:bg-[#0a3d38] rounded-lg"
+            className="text-white/60 hover:text-white transition-colors p-1.5 hover:bg-[#1e293b] rounded-lg"
             title="Déconnexion"
           >
             <LogOut className="w-4 h-4" />

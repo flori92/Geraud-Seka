@@ -144,7 +144,7 @@ export default function RegisterPage() {
 
             {error && <p className="text-sm text-red-600">{error}</p>}
             {success && (
-              <p className="text-sm text-emerald-600">
+              <p className="text-sm text-blue-600">
                 Cabinet créé avec succès. Vous pouvez maintenant vous connecter.
               </p>
             )}

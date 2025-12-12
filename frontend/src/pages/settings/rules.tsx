@@ -440,7 +440,7 @@ export default function RulesCenter() {
                                 <td className="py-3 text-sm text-gray-600 font-mono">{client.account_number || '—'}</td>
                                 <td className="py-3 text-sm text-gray-600">{client.third_party || 'Choisir...'}</td>
                                 <td className="py-3 text-sm text-gray-600">{client.vat_rate || 'Aucune'}</td>
-                                <td className="py-3 text-sm text-right font-medium text-emerald-600">
+                                <td className="py-3 text-sm text-right font-medium text-blue-600">
                                   {client.balance ? `${client.balance.toLocaleString()} FCFA` : '—'}
                                 </td>
                                 <td className="py-3 text-right">

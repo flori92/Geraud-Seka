@@ -9,7 +9,7 @@ export default function RapportsPage() {
     { title: "Compte de résultat", icon: TrendingUp, href: "/reports/income-statement", description: "Analyse des produits et charges", color: "bg-green-500" },
     { title: "Balance générale", icon: BarChart3, href: "/accounting/balance", description: "Balance des comptes", color: "bg-purple-500" },
     { title: "Grand livre", icon: FileText, href: "/accounting/ledger", description: "Détail des écritures par compte", color: "bg-orange-500" },
-    { title: "Rapport de ventes", icon: TrendingUp, href: "/reports/sales", description: "Analyse des ventes", color: "bg-emerald-500" },
+    { title: "Rapport de ventes", icon: TrendingUp, href: "/reports/sales", description: "Analyse des ventes", color: "bg-blue-500" },
     { title: "Rapport RH", icon: PieChart, href: "/reports/hr", description: "Statistiques ressources humaines", color: "bg-pink-500" },
   ];
 

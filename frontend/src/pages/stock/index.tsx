@@ -242,7 +242,7 @@ export default function StockDashboardPage() {
           value={formatAmount(stats.totalValue) + " FCFA"}
           subtitle="Valeur totale"
           icon={BarChart3}
-          color="bg-emerald-500"
+          color="bg-blue-500"
           href="/stock/inventory"
           loading={loading}
         />
@@ -284,12 +284,12 @@ export default function StockDashboardPage() {
               <>
                 {/* Indicateurs visuels */}
                 <div className="grid grid-cols-3 gap-4 mb-6">
-                  <div className="text-center p-4 bg-emerald-50 rounded-xl">
-                    <Box className="h-8 w-8 text-emerald-500 mx-auto mb-2" />
-                    <p className="text-3xl font-bold text-emerald-600">
+                  <div className="text-center p-4 bg-blue-50 rounded-xl">
+                    <Box className="h-8 w-8 text-blue-500 mx-auto mb-2" />
+                    <p className="text-3xl font-bold text-blue-600">
                       {stats.totalProducts - stats.lowStockCount - stats.outOfStockCount}
                     </p>
-                    <p className="text-sm text-emerald-700 font-medium">Stock OK</p>
+                    <p className="text-sm text-blue-700 font-medium">Stock OK</p>
                   </div>
                   <div className="text-center p-4 bg-orange-50 rounded-xl">
                     <AlertTriangle className="h-8 w-8 text-orange-500 mx-auto mb-2" />
@@ -338,7 +338,7 @@ export default function StockDashboardPage() {
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-gray-900">Actions rapides</h3>
           <QuickAction icon={Plus} label="Nouveau produit" href="/products" color="bg-blue-500" />
-          <QuickAction icon={TrendingUp} label="Entrée de stock" href="/stock/movements" color="bg-emerald-500" />
+          <QuickAction icon={TrendingUp} label="Entrée de stock" href="/stock/movements" color="bg-blue-500" />
           <QuickAction icon={TrendingDown} label="Sortie de stock" href="/stock/movements" color="bg-red-400" />
           <QuickAction icon={Box} label="Inventaire" href="/stock/inventory" color="bg-violet-500" />
           <QuickAction icon={ShoppingCart} label="Bons de commande" href="/sales/purchase-orders" color="bg-orange-500" />
@@ -372,10 +372,10 @@ export default function StockDashboardPage() {
                 {recentMovements.map((movement, idx) => (
                   <div key={idx} className="flex items-center gap-4 py-3 border-b border-gray-50 last:border-0">
                     <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                      movement.movement_type === "in" ? "bg-emerald-100" : "bg-red-100"
+                      movement.movement_type === "in" ? "bg-blue-100" : "bg-red-100"
                     }`}>
                       {movement.movement_type === "in" ? (
-                        <TrendingUp className="h-5 w-5 text-emerald-500" />
+                        <TrendingUp className="h-5 w-5 text-blue-500" />
                       ) : (
                         <TrendingDown className="h-5 w-5 text-red-500" />
                       )}

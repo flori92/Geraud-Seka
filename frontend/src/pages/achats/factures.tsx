@@ -84,7 +84,7 @@ export default function FacturesFournisseurs() {
       "aucune": "bg-gray-100 text-gray-600",
       "autoliquid": "bg-purple-100 text-purple-700",
       "extracom": "bg-blue-100 text-blue-700",
-      "validee": "bg-emerald-100 text-emerald-700",
+      "validee": "bg-blue-100 text-blue-700",
       "20%": "bg-teal-100 text-teal-700",
       "10%": "bg-teal-100 text-teal-700",
       "carb_80%": "bg-orange-100 text-orange-700",
@@ -260,7 +260,7 @@ export default function FacturesFournisseurs() {
                         <td className="px-4 py-3 text-sm text-gray-500">{inv.ajout}</td>
                         <td className="px-4 py-3">
                           {inv.statutDirigeant === "Validée" ? (
-                            <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-medium">Validée</span>
+                            <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-medium">Validée</span>
                           ) : (
                             <span className="text-sm text-gray-500">{inv.statutDirigeant}</span>
                           )}

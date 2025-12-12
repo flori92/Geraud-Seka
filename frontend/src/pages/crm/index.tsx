@@ -181,7 +181,7 @@ export default function CRMDashboardPage() {
         </div>
         <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="bg-emerald-500 p-2.5 rounded-xl">
+            <div className="bg-blue-500 p-2.5 rounded-xl">
               <TrendingUp className="h-5 w-5 text-white" />
             </div>
             <div>

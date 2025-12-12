@@ -81,7 +81,7 @@ const CashFlowChart: React.FC<CashFlowChartProps> = ({ period, height = 300 }) =
           </div>
           <div className="w-full bg-gray-100 rounded-full h-3 flex overflow-hidden">
             <div
-              className="h-3 bg-emerald-500"
+              className="h-3 bg-blue-500"
               style={{ width: `${(row.in / max) * 100}%` }}
             />
             <div

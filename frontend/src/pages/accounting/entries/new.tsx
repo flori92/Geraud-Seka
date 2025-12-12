@@ -257,7 +257,7 @@ export default function NewAccountingEntry() {
                   </button>
                   <button
                     onClick={() => applyTemplate("achat")}
-                    className="flex items-center gap-2 px-3 py-1.5 text-xs bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-lg hover:bg-emerald-100"
+                    className="flex items-center gap-2 px-3 py-1.5 text-xs bg-blue-50 text-blue-700 border border-blue-100 rounded-lg hover:bg-blue-100"
                   >
                     <Sparkles className="w-4 h-4" />
                     Modèle Achat

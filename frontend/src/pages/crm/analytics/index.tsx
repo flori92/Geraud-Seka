@@ -265,7 +265,7 @@ export default function CRMAnalyticsPage() {
                   qualified: "bg-green-500",
                   proposal: "bg-purple-500",
                   negotiation: "bg-orange-500",
-                  won: "bg-emerald-500",
+                  won: "bg-blue-500",
                   lost: "bg-red-500"
                 };
                 return (

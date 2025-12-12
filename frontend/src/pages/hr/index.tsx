@@ -274,7 +274,7 @@ export default function HRDashboardPage() {
           value={formatCurrency(stats.totalPayroll)}
           subtitle="Ce mois"
           icon={DollarSign}
-          color="bg-emerald-500"
+          color="bg-blue-500"
           href="/hr/payslips"
           loading={loading}
         />
@@ -304,10 +304,10 @@ export default function HRDashboardPage() {
               <Skeleton className="h-40 w-full" />
             ) : (
               <div className="grid grid-cols-3 gap-4">
-                <div className="text-center p-4 bg-emerald-50 rounded-xl">
-                  <CheckCircle className="h-8 w-8 text-emerald-500 mx-auto mb-2" />
-                  <p className="text-3xl font-bold text-emerald-600">{stats.activeEmployees}</p>
-                  <p className="text-sm text-emerald-700 font-medium">Actifs</p>
+                <div className="text-center p-4 bg-blue-50 rounded-xl">
+                  <CheckCircle className="h-8 w-8 text-blue-500 mx-auto mb-2" />
+                  <p className="text-3xl font-bold text-blue-600">{stats.activeEmployees}</p>
+                  <p className="text-sm text-blue-700 font-medium">Actifs</p>
                 </div>
                 <div className="text-center p-4 bg-orange-50 rounded-xl">
                   <Clock className="h-8 w-8 text-orange-500 mx-auto mb-2" />
@@ -358,7 +358,7 @@ export default function HRDashboardPage() {
           <h3 className="text-lg font-semibold text-gray-900">Actions rapides</h3>
           <QuickAction icon={UserPlus} label="Nouvel employé" href="/hr/employees" color="bg-blue-500" />
           <QuickAction icon={FileText} label="Nouveau contrat" href="/hr/contracts" color="bg-violet-500" />
-          <QuickAction icon={DollarSign} label="Générer paie" href="/hr/payslips" color="bg-emerald-500" />
+          <QuickAction icon={DollarSign} label="Générer paie" href="/hr/payslips" color="bg-blue-500" />
           <QuickAction icon={Calendar} label="Gérer congés" href="/hr/leaves" color="bg-orange-500" />
           <QuickAction icon={Award} label="Rapport RH" href="/reports/hr" color="bg-pink-500" />
         </div>

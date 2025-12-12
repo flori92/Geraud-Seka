@@ -114,14 +114,14 @@ export default function TransactionsPage() {
   };
 
   const getStatusIcon = (status: TransactionStatus, isReconciled: boolean) => {
-    if (isReconciled) return <CheckCircle2 className="w-4 h-4 text-emerald-500" />;
+    if (isReconciled) return <CheckCircle2 className="w-4 h-4 text-blue-500" />;
     if (status === "validated") return <CheckCircle2 className="w-4 h-4 text-blue-500" />;
     return <X className="w-4 h-4 text-orange-500" />;
   };
 
   const getStatusLabel = (status: TransactionStatus, isReconciled: boolean) => {
     if (isReconciled) {
-      return <span className="text-emerald-600 bg-emerald-50 px-2 py-1 rounded text-xs font-medium">Rapprochée</span>;
+      return <span className="text-blue-600 bg-blue-50 px-2 py-1 rounded text-xs font-medium">Rapprochée</span>;
     }
     if (status === "validated") {
       return <span className="text-blue-600 bg-blue-50 px-2 py-1 rounded text-xs font-medium">Validée</span>;
@@ -155,7 +155,7 @@ export default function TransactionsPage() {
                 Récupérer des transactions
               </button>
               <div className="flex items-center gap-2 text-sm text-gray-500">
-                <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
                 Synchronisé
               </div>
             </div>
@@ -276,7 +276,7 @@ export default function TransactionsPage() {
                     activeTab === "validated" ? "bg-gray-100 text-gray-900" : "text-gray-500 hover:text-gray-700"
                   }`}
                 >
-                  Validée <span className="text-emerald-500 ml-1">{validatedCount}</span>
+                  Validée <span className="text-blue-500 ml-1">{validatedCount}</span>
                 </button>
               </div>
               <button className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900">
@@ -320,7 +320,7 @@ export default function TransactionsPage() {
                         <td className="px-4 py-3 text-sm text-gray-900">{formatDate(tx.transaction_date)}</td>
                         <td className="px-4 py-3 text-sm text-gray-900 max-w-xs truncate">{tx.description}</td>
                         <td className={`px-4 py-3 text-sm font-medium text-right ${
-                          tx.transaction_type === "credit" ? "text-emerald-600" : "text-gray-900"
+                          tx.transaction_type === "credit" ? "text-blue-600" : "text-gray-900"
                         }`}>
                           {tx.transaction_type === "credit" ? "+" : "-"}{formatCurrency(tx.amount)}
                         </td>

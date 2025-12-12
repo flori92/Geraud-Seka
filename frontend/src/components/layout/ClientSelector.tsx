@@ -79,7 +79,7 @@ export default function ClientSelector({ onChange }: ClientSelectorProps) {
                 onClick={() => setIsOpen(!isOpen)}
                 className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors shadow-sm min-w-[200px]"
             >
-                <Building2 className="h-4 w-4 text-emerald-600" />
+                <Building2 className="h-4 w-4 text-blue-600" />
                 <span className="text-sm font-medium text-gray-700 truncate max-w-[150px]">
                     {loading ? "Chargement..." : selectedClient?.name || "Tous les clients"}
                 </span>
@@ -100,7 +100,7 @@ export default function ClientSelector({ onChange }: ClientSelectorProps) {
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 placeholder="Rechercher un client..."
-                                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 autoFocus
                             />
                         </div>
@@ -110,7 +110,7 @@ export default function ClientSelector({ onChange }: ClientSelectorProps) {
                     <div className="max-h-64 overflow-y-auto">
                         <button
                             onClick={() => handleSelectClient(null)}
-                            className={`w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition-colors ${!selectedClient ? "bg-emerald-50" : ""
+                            className={`w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition-colors ${!selectedClient ? "bg-blue-50" : ""
                                 }`}
                         >
                             <div className="flex items-center gap-3">
@@ -121,7 +121,7 @@ export default function ClientSelector({ onChange }: ClientSelectorProps) {
                                     Tous les clients
                                 </span>
                             </div>
-                            {!selectedClient && <Check className="h-4 w-4 text-emerald-600" />}
+                            {!selectedClient && <Check className="h-4 w-4 text-blue-600" />}
                         </button>
 
                         {/* Client list */}
@@ -129,12 +129,12 @@ export default function ClientSelector({ onChange }: ClientSelectorProps) {
                             <button
                                 key={client.id}
                                 onClick={() => handleSelectClient(client)}
-                                className={`w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition-colors ${selectedClient?.id === client.id ? "bg-emerald-50" : ""
+                                className={`w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition-colors ${selectedClient?.id === client.id ? "bg-blue-50" : ""
                                     }`}
                             >
                                 <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
-                                        <span className="text-sm font-bold text-emerald-700">
+                                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                                        <span className="text-sm font-bold text-blue-700">
                                             {client.name.charAt(0).toUpperCase()}
                                         </span>
                                     </div>
@@ -146,7 +146,7 @@ export default function ClientSelector({ onChange }: ClientSelectorProps) {
                                     </div>
                                 </div>
                                 {selectedClient?.id === client.id && (
-                                    <Check className="h-4 w-4 text-emerald-600" />
+                                    <Check className="h-4 w-4 text-blue-600" />
                                 )}
                             </button>
                         ))}
@@ -162,7 +162,7 @@ export default function ClientSelector({ onChange }: ClientSelectorProps) {
                     <div className="border-t border-gray-100 p-2">
                         <a
                             href="/contacts/new"
-                            className="flex items-center gap-2 px-3 py-2 text-sm text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                            className="flex items-center gap-2 px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                         >
                             <Plus className="h-4 w-4" />
                             Ajouter un client

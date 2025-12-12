@@ -71,7 +71,7 @@ function StatCard({ title, value, subtitle, icon: Icon, color, href, loading, tr
           <Icon className="h-6 w-6 text-white" />
         </div>
         {trend && (
-          <div className={`flex items-center text-sm font-medium ${trend === "up" ? "text-emerald-600" : "text-red-500"}`}>
+          <div className={`flex items-center text-sm font-medium ${trend === "up" ? "text-blue-600" : "text-red-500"}`}>
             {trend === "up" ? <TrendingUp className="h-4 w-4 mr-1" /> : <TrendingDown className="h-4 w-4 mr-1" />}
             {trend === "up" ? "+12%" : "-8%"}
           </div>
@@ -244,7 +244,7 @@ export default function AccountingDashboardPage() {
           value={formatCurrency(stats.totalRevenue)}
           subtitle="Ce mois"
           icon={DollarSign}
-          color="bg-emerald-500"
+          color="bg-blue-500"
           href="/reports/accounting"
           loading={loading}
           trend="up"
@@ -254,7 +254,7 @@ export default function AccountingDashboardPage() {
           value={formatCurrency(stats.netProfit)}
           subtitle={stats.netProfit >= 0 ? "Bénéfice" : "Perte"}
           icon={stats.netProfit >= 0 ? CheckCircle : TrendingDown}
-          color={stats.netProfit >= 0 ? "bg-emerald-500" : "bg-red-500"}
+          color={stats.netProfit >= 0 ? "bg-blue-500" : "bg-red-500"}
           href="/reports/accounting"
           loading={loading}
         />
@@ -283,9 +283,9 @@ export default function AccountingDashboardPage() {
                       {formatCurrency(stats.totalDebit)}
                     </p>
                   </div>
-                  <div className="p-4 bg-emerald-50 rounded-xl">
-                    <p className="text-sm text-emerald-600 font-medium">Total Crédits</p>
-                    <p className="text-2xl font-bold text-emerald-700 mt-1">
+                  <div className="p-4 bg-blue-50 rounded-xl">
+                    <p className="text-sm text-blue-600 font-medium">Total Crédits</p>
+                    <p className="text-2xl font-bold text-blue-700 mt-1">
                       {formatCurrency(stats.totalCredit)}
                     </p>
                   </div>
@@ -302,7 +302,7 @@ export default function AccountingDashboardPage() {
                     <p className="text-sm text-gray-500">Comptes</p>
                   </div>
                   <div className="text-center">
-                    <p className={`text-3xl font-bold ${stats.netProfit >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                    <p className={`text-3xl font-bold ${stats.netProfit >= 0 ? "text-blue-600" : "text-red-600"}`}>
                       {stats.netProfit >= 0 ? "+" : ""}{formatAmount(stats.netProfit)}
                     </p>
                     <p className="text-sm text-gray-500">Résultat</p>
@@ -345,7 +345,7 @@ export default function AccountingDashboardPage() {
           <h3 className="text-lg font-semibold text-gray-900">Modules comptables</h3>
           <QuickAction icon={BookOpen} label="Journal" href="/accounting/journal" color="bg-blue-500" />
           <QuickAction icon={Calculator} label="Grand Livre" href="/accounting/ledger" color="bg-violet-500" />
-          <QuickAction icon={PieChart} label="Plan Comptable" href="/accounting/chart" color="bg-emerald-500" />
+          <QuickAction icon={PieChart} label="Plan Comptable" href="/accounting/chart" color="bg-blue-500" />
           <QuickAction icon={BarChart3} label="Bilan" href="/accounting/balance" color="bg-orange-500" />
           <QuickAction icon={Download} label="Exports FEC" href="/exports" color="bg-pink-500" />
         </div>

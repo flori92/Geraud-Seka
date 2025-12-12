@@ -66,7 +66,7 @@ function StatCard({ title, value, subtitle, icon: Icon, color, href, loading, tr
           <Icon className="h-6 w-6 text-white" />
         </div>
         {trend && (
-          <div className={`flex items-center text-sm font-medium ${trend === 'up' ? 'text-emerald-600' : 'text-red-500'}`}>
+          <div className={`flex items-center text-sm font-medium ${trend === 'up' ? 'text-blue-600' : 'text-red-500'}`}>
             {trend === 'up' ? <TrendingUp className="h-4 w-4 mr-1" /> : <TrendingDown className="h-4 w-4 mr-1" />}
           </div>
         )}
@@ -217,7 +217,7 @@ export default function TreasuryDashboard() {
           value={`${stats?.cashRunway || 0} jours`}
           subtitle={stats?.isLowRunway ? 'Attention !' : 'Situation saine'}
           icon={Clock}
-          color={stats?.isLowRunway ? 'bg-orange-500' : 'bg-emerald-500'}
+          color={stats?.isLowRunway ? 'bg-orange-500' : 'bg-blue-500'}
           href="/treasury/forecast"
           loading={loading}
           alert={stats?.isLowRunway}
@@ -227,7 +227,7 @@ export default function TreasuryDashboard() {
           value={formatCurrency(stats?.totalIncome || 0)}
           subtitle="Encaissements"
           icon={TrendingUp}
-          color="bg-emerald-500"
+          color="bg-blue-500"
           href="/treasury/transactions"
           loading={loading}
           trend="up"
@@ -260,12 +260,12 @@ export default function TreasuryDashboard() {
               <>
                 {/* Indicateurs visuels */}
                 <div className="grid grid-cols-3 gap-4 mb-6">
-                  <div className="text-center p-4 bg-emerald-50 rounded-xl">
-                    <TrendingUp className="h-8 w-8 text-emerald-500 mx-auto mb-2" />
-                    <p className="text-2xl font-bold text-emerald-600">
+                  <div className="text-center p-4 bg-blue-50 rounded-xl">
+                    <TrendingUp className="h-8 w-8 text-blue-500 mx-auto mb-2" />
+                    <p className="text-2xl font-bold text-blue-600">
                       {formatAmount(stats?.totalIncome || 0)}
                     </p>
-                    <p className="text-sm text-emerald-700 font-medium">Entrées</p>
+                    <p className="text-sm text-blue-700 font-medium">Entrées</p>
                   </div>
                   <div className="text-center p-4 bg-red-50 rounded-xl">
                     <TrendingDown className="h-8 w-8 text-red-500 mx-auto mb-2" />
@@ -291,10 +291,10 @@ export default function TreasuryDashboard() {
                       {dashboardData.recent_transactions.slice(0, 4).map((transaction, idx) => (
                         <div key={idx} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
                           <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                            transaction.amount >= 0 ? 'bg-emerald-100' : 'bg-red-100'
+                            transaction.amount >= 0 ? 'bg-blue-100' : 'bg-red-100'
                           }`}>
                             {transaction.amount >= 0 ? (
-                              <TrendingUp className="h-5 w-5 text-emerald-500" />
+                              <TrendingUp className="h-5 w-5 text-blue-500" />
                             ) : (
                               <TrendingDown className="h-5 w-5 text-red-500" />
                             )}
@@ -325,7 +325,7 @@ export default function TreasuryDashboard() {
           <h3 className="text-lg font-semibold text-gray-900">Actions rapides</h3>
           <QuickAction icon={Building2} label="Comptes bancaires" href="/treasury/accounts" color="bg-blue-500" />
           <QuickAction icon={CreditCard} label="Transactions" href="/treasury/transactions" color="bg-violet-500" />
-          <QuickAction icon={Calendar} label="Échéances" href="/treasury/forecast" color="bg-emerald-500" />
+          <QuickAction icon={Calendar} label="Échéances" href="/treasury/forecast" color="bg-blue-500" />
           <QuickAction icon={BarChart3} label="Prévisions" href="/treasury/forecast" color="bg-orange-500" />
           <QuickAction icon={Landmark} label="Rapprochement" href="/treasury/reconciliation" color="bg-pink-500" />
         </div>
@@ -346,10 +346,10 @@ export default function TreasuryDashboard() {
                 {dashboardData.upcoming_payments.slice(0, 5).map((payment, idx) => (
                   <div key={idx} className="flex items-center gap-4 py-3 border-b border-gray-50 last:border-0">
                     <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                      payment.is_income ? 'bg-emerald-100' : 'bg-red-100'
+                      payment.is_income ? 'bg-blue-100' : 'bg-red-100'
                     }`}>
                       {payment.is_income ? (
-                        <TrendingUp className="h-5 w-5 text-emerald-500" />
+                        <TrendingUp className="h-5 w-5 text-blue-500" />
                       ) : (
                         <TrendingDown className="h-5 w-5 text-red-500" />
                       )}
@@ -363,7 +363,7 @@ export default function TreasuryDashboard() {
                     <Badge variant={payment.is_income ? 'success' : 'error'}>
                       {payment.is_income ? 'À recevoir' : 'À payer'}
                     </Badge>
-                    <p className={`text-sm font-semibold ${payment.is_income ? 'text-emerald-600' : 'text-red-600'}`}>
+                    <p className={`text-sm font-semibold ${payment.is_income ? 'text-blue-600' : 'text-red-600'}`}>
                       {formatCurrency(payment.remaining_amount)}
                     </p>
                   </div>

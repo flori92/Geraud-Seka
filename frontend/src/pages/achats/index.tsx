@@ -130,7 +130,7 @@ export default function AchatsPage() {
                     }`}>
                       <span>{item.label}</span>
                       {item.badge && (
-                        <span className="bg-emerald-100 text-emerald-700 text-xs px-1.5 py-0.5 rounded font-medium">
+                        <span className="bg-blue-100 text-blue-700 text-xs px-1.5 py-0.5 rounded font-medium">
                           {item.badge}
                         </span>
                       )}
@@ -193,7 +193,7 @@ export default function AchatsPage() {
                       <div className="text-right">
                         <p className="text-sm text-gray-500">Activité sur les 30 derniers jours</p>
                         <div className="flex items-center gap-4 mt-1">
-                          <span className="text-emerald-600 font-medium">+ {formatCurrency(treasuryData.encaissements30j)}</span>
+                          <span className="text-blue-600 font-medium">+ {formatCurrency(treasuryData.encaissements30j)}</span>
                           <span className="text-red-600 font-medium">- {formatCurrency(treasuryData.decaissements30j)}</span>
                           <span className="text-gray-900 font-medium">= {formatCurrency(treasuryData.netChange)}</span>
                         </div>
@@ -212,10 +212,10 @@ export default function AchatsPage() {
                           <div key={tx.id} className="flex items-center justify-between py-2">
                             <div className="flex items-center gap-3">
                               <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                                tx.transaction_type === "credit" ? "bg-emerald-100" : "bg-gray-100"
+                                tx.transaction_type === "credit" ? "bg-blue-100" : "bg-gray-100"
                               }`}>
                                 {tx.transaction_type === "credit" ? (
-                                  <CheckCircle className="w-4 h-4 text-emerald-600" />
+                                  <CheckCircle className="w-4 h-4 text-blue-600" />
                                 ) : (
                                   <Building2 className="w-4 h-4 text-gray-500" />
                                 )}
@@ -228,7 +228,7 @@ export default function AchatsPage() {
                               </div>
                             </div>
                             <span className={`text-sm font-medium ${
-                              tx.transaction_type === "credit" ? "text-emerald-600" : "text-gray-900"
+                              tx.transaction_type === "credit" ? "text-blue-600" : "text-gray-900"
                             }`}>
                               {tx.transaction_type === "credit" ? "+" : "-"}{formatCurrency(tx.amount)}
                             </span>

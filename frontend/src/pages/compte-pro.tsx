@@ -70,7 +70,7 @@ export default function CompteProPage() {
           <p className="text-sm text-gray-500 mt-1">Compte bancaire professionnel intégré à votre comptabilité</p>
         </div>
 
-        <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-xl p-8 text-white">
+        <div className="bg-gradient-to-r from-blue-500 to-teal-600 rounded-xl p-8 text-white">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-3 bg-white/20 rounded-full">
               <Building2 className="h-6 w-6" />
@@ -100,7 +100,7 @@ export default function CompteProPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className="p-6">
-            <CheckCircle className="h-8 w-8 text-emerald-600 mb-3" />
+            <CheckCircle className="h-8 w-8 text-blue-600 mb-3" />
             <h3 className="font-semibold mb-2">IBAN français</h3>
             <p className="text-sm text-gray-600">Recevez et effectuez des virements SEPA instantanés</p>
           </Card>
@@ -127,7 +127,7 @@ export default function CompteProPage() {
               <button className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
                 En savoir plus
               </button>
-              <button className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">
+              <button className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                 Activer maintenant
               </button>
             </div>

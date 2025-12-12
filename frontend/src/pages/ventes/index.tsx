@@ -143,7 +143,7 @@ export default function VentesPage() {
                   <div className="bg-white rounded-xl border border-gray-200 p-6">
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-sm text-gray-600">Chiffre d'affaires</p>
-                      <TrendingUp className="h-5 w-5 text-emerald-600" />
+                      <TrendingUp className="h-5 w-5 text-blue-600" />
                     </div>
                     <p className="text-2xl font-bold text-gray-900">
                       {formatCurrency(stats?.total_revenue || 0)}
@@ -213,7 +213,7 @@ export default function VentesPage() {
                     href="/clients"
                     className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow"
                   >
-                    <CheckCircle className="h-8 w-8 text-emerald-600 mb-3" />
+                    <CheckCircle className="h-8 w-8 text-blue-600 mb-3" />
                     <h3 className="font-semibold text-gray-900 mb-1">Clients</h3>
                     <p className="text-sm text-gray-600">
                       Gérez votre portefeuille clients

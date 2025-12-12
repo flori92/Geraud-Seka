@@ -246,8 +246,8 @@ export default function DashboardNew() {
                   <div>
                     <p className="text-sm text-gray-500 mb-1">Encaissements</p>
                     <div className="flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4 text-emerald-500" />
-                      <span className="text-lg font-semibold text-emerald-600">
+                      <TrendingUp className="w-4 h-4 text-blue-500" />
+                      <span className="text-lg font-semibold text-blue-600">
                         {formatCurrency(stats.encaissements)}
                       </span>
                     </div>
@@ -305,7 +305,7 @@ export default function DashboardNew() {
                             </p>
                             <p className="text-xs text-gray-500">{tx.date}</p>
                           </div>
-                          <span className={`text-sm font-medium ${tx.amount >= 0 ? "text-emerald-600" : "text-gray-900"}`}>
+                          <span className={`text-sm font-medium ${tx.amount >= 0 ? "text-blue-600" : "text-gray-900"}`}>
                             {tx.amount >= 0 ? "+" : ""}{formatCurrency(tx.amount)}
                           </span>
                         </div>
@@ -388,8 +388,8 @@ export default function DashboardNew() {
 
               {/* Success Illustration */}
               <div className="bg-white rounded-xl border border-gray-200 p-6 text-center">
-                <div className="w-32 h-32 mx-auto mb-4 bg-gradient-to-br from-teal-50 to-emerald-50 rounded-full flex items-center justify-center">
-                  <CheckCircle2 className="w-16 h-16 text-emerald-500" />
+                <div className="w-32 h-32 mx-auto mb-4 bg-gradient-to-br from-teal-50 to-blue-50 rounded-full flex items-center justify-center">
+                  <CheckCircle2 className="w-16 h-16 text-blue-500" />
                 </div>
                 <p className="text-gray-600 font-medium">Vous êtes à jour !</p>
               </div>

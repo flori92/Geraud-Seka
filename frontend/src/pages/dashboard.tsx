@@ -113,7 +113,7 @@ function StatCard({ title, value, subtitle, trend, icon: Icon, iconColor, loadin
             <h3 className="text-3xl font-bold tracking-tight text-gray-900">{value}</h3>
             {trend && (
               <span className={`inline-flex items-center text-sm font-medium ${
-                trend.type === "up" ? "text-emerald-600" : 
+                trend.type === "up" ? "text-blue-600" : 
                 trend.type === "down" ? "text-red-600" : "text-gray-500"
               }`}>
                 {trend.type === "up" ? <TrendingUp className="h-4 w-4 mr-0.5" /> : 
@@ -390,9 +390,9 @@ export default function DashboardPage() {
             </p>
             <div className="grid gap-4 md:grid-cols-3">
               <Link href="/achats/factures">
-                <div className="border border-dashed border-gray-300 rounded-xl p-4 hover:border-emerald-500 hover:bg-emerald-50/40 cursor-pointer transition-all">
+                <div className="border border-dashed border-gray-300 rounded-xl p-4 hover:border-blue-500 hover:bg-blue-50/40 cursor-pointer transition-all">
                   <div className="flex items-center gap-2 mb-2">
-                    <Receipt className="h-5 w-5 text-emerald-600" />
+                    <Receipt className="h-5 w-5 text-blue-600" />
                     <span className="font-medium text-sm text-gray-900">Factures fournisseurs</span>
                   </div>
                   <p className="text-xs text-gray-500">
@@ -401,9 +401,9 @@ export default function DashboardPage() {
                 </div>
               </Link>
               <Link href="/ventes/factures">
-                <div className="border border-dashed border-gray-300 rounded-xl p-4 hover:border-emerald-500 hover:bg-emerald-50/40 cursor-pointer transition-all">
+                <div className="border border-dashed border-gray-300 rounded-xl p-4 hover:border-blue-500 hover:bg-blue-50/40 cursor-pointer transition-all">
                   <div className="flex items-center gap-2 mb-2">
-                    <FileText className="h-5 w-5 text-emerald-600" />
+                    <FileText className="h-5 w-5 text-blue-600" />
                     <span className="font-medium text-sm text-gray-900">Factures clients</span>
                   </div>
                   <p className="text-xs text-gray-500">
@@ -412,9 +412,9 @@ export default function DashboardPage() {
                 </div>
               </Link>
               <Link href="/documents">
-                <div className="border border-dashed border-gray-300 rounded-xl p-4 hover:border-emerald-500 hover:bg-emerald-50/40 cursor-pointer transition-all">
+                <div className="border border-dashed border-gray-300 rounded-xl p-4 hover:border-blue-500 hover:bg-blue-50/40 cursor-pointer transition-all">
                   <div className="flex items-center gap-2 mb-2">
-                    <FileText className="h-5 w-5 text-emerald-600" />
+                    <FileText className="h-5 w-5 text-blue-600" />
                     <span className="font-medium text-sm text-gray-900">Autres documents</span>
                   </div>
                   <p className="text-xs text-gray-500">
@@ -440,7 +440,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <p className="text-xs text-gray-500 mb-1">Encaissements</p>
-                <p className="text-lg font-semibold text-emerald-600">
+                <p className="text-lg font-semibold text-blue-600">
                   {formatCurrency(extendedStats?.encaissements ?? 0)}
                 </p>
               </div>
@@ -484,7 +484,7 @@ export default function DashboardPage() {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-gray-600">Rapprochements suggérés</span>
-              <span className="inline-flex items-center justify-center rounded-full bg-emerald-50 text-emerald-700 text-xs px-2 py-0.5">
+              <span className="inline-flex items-center justify-center rounded-full bg-blue-50 text-blue-700 text-xs px-2 py-0.5">
                 {extendedStats?.rapprochements_suggeres ?? 0}
               </span>
             </div>
@@ -505,7 +505,7 @@ export default function DashboardPage() {
           subtitle="Ce mois"
           trend={{ value: "+12.5%", type: "up" }}
           icon={DollarSign}
-          iconColor="bg-emerald-500"
+          iconColor="bg-blue-500"
           loading={loading}
           href="/reports/sales"
         />
@@ -560,8 +560,8 @@ export default function DashboardPage() {
           description="Devis, factures et paiements"
           icon={Receipt}
           href="/sales/invoices"
-          color="bg-emerald-600/50"
-          gradient="bg-gradient-to-br from-emerald-500 to-emerald-700"
+          color="bg-blue-600/50"
+          gradient="bg-gradient-to-br from-blue-500 to-blue-700"
           stats={[
             { label: "Factures", value: calculatedStats.invoiceCount },
             { label: "À encaisser", value: calculatedStats.pendingInvoices }
@@ -615,7 +615,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-gray-100">
             <div className="text-center">
               <p className="text-xs text-gray-500">Revenus</p>
-              <p className="text-lg font-bold text-emerald-600">{formatCurrency(accountingStats?.revenue || 0)}</p>
+              <p className="text-lg font-bold text-blue-600">{formatCurrency(accountingStats?.revenue || 0)}</p>
             </div>
             <div className="text-center">
               <p className="text-xs text-gray-500">Charges</p>
@@ -664,7 +664,7 @@ export default function DashboardPage() {
             </div>
             <div className="text-center">
               <p className="text-xs text-gray-500">Entrées mois</p>
-              <p className="text-lg font-bold text-emerald-600">+{formatCurrency(treasuryData?.month_summary?.inflows || 0)}</p>
+              <p className="text-lg font-bold text-blue-600">+{formatCurrency(treasuryData?.month_summary?.inflows || 0)}</p>
             </div>
             <div className="text-center">
               <p className="text-xs text-gray-500">Sorties mois</p>
@@ -720,7 +720,7 @@ export default function DashboardPage() {
                 <span className="font-medium">45%</span>
               </div>
               <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div className="h-full bg-emerald-500 rounded-full" style={{ width: "45%" }} />
+                <div className="h-full bg-blue-500 rounded-full" style={{ width: "45%" }} />
               </div>
             </div>
             <div>
@@ -744,7 +744,7 @@ export default function DashboardPage() {
         {/* Indicateurs financiers */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
           <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="h-5 w-5 text-emerald-500" />
+            <TrendingUp className="h-5 w-5 text-blue-500" />
             <h3 className="font-semibold text-gray-900">Ratios Clés</h3>
           </div>
           <div className="space-y-4">
@@ -754,10 +754,10 @@ export default function DashboardPage() {
                 <p className="text-xs text-gray-500">Résultat / CA</p>
               </div>
               <div className="text-right">
-                <p className="text-xl font-bold text-emerald-600">
+                <p className="text-xl font-bold text-blue-600">
                   {accountingStats?.net_margin ? `${accountingStats.net_margin.toFixed(1)}%` : '0%'}
                 </p>
-                <p className="text-xs text-emerald-600">
+                <p className="text-xs text-blue-600">
                   {accountingStats?.net_margin_trend ? `${accountingStats.net_margin_trend > 0 ? '+' : ''}${accountingStats.net_margin_trend.toFixed(1)}%` : '-'}
                 </p>
               </div>
@@ -847,7 +847,7 @@ export default function DashboardPage() {
                       icon={activity.action?.includes("facture") ? Receipt : 
                             activity.action?.includes("client") ? Users :
                             activity.action?.includes("paiement") ? CreditCard : FileText}
-                      iconBg={activity.action?.includes("facture") ? "bg-emerald-500" : 
+                      iconBg={activity.action?.includes("facture") ? "bg-blue-500" : 
                               activity.action?.includes("client") ? "bg-blue-500" :
                               activity.action?.includes("paiement") ? "bg-violet-500" : "bg-gray-500"}
                       title={activity.action}
@@ -881,7 +881,7 @@ export default function DashboardPage() {
                 description="Créer une facture client"
                 icon={Receipt}
                 href="/sales/invoices"
-                color="bg-emerald-500"
+                color="bg-blue-500"
               />
               <QuickAction
                 label="Nouveau devis"
