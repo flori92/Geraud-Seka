@@ -162,30 +162,6 @@ const managementMenu: MenuSection[] = [
         ]
       },
       {
-        id: "crm",
-        label: "CRM",
-        icon: Target,
-        submenu: [
-          { label: "Pipeline", href: "/crm" },
-          { label: "Opportunités", href: "/crm/opportunities" },
-          { label: "Activités", href: "/crm/activities" },
-          { label: "Campagnes", href: "/crm/campaigns" },
-          { label: "Rapports CRM", href: "/crm/reports" },
-        ]
-      },
-      {
-        id: "rh",
-        label: "RH & Paie",
-        icon: Briefcase,
-        submenu: [
-          { label: "Employés", href: "/hr/employees" },
-          { label: "Contrats", href: "/hr/contracts" },
-          { label: "Fiches de paie", href: "/hr/payslips" },
-          { label: "Congés", href: "/hr/leaves" },
-          { label: "Notes de frais", href: "/achats/notes-frais" },
-        ]
-      },
-      {
         id: "analytique",
         label: "Analytique",
         icon: BarChart3,

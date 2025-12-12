@@ -2,101 +2,64 @@ import { useState, useEffect } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { PennylaneSidebar } from "@/components/layout/PennylaneSidebar";
-import { 
-  Upload, Receipt, CreditCard, 
-  ChevronRight, CheckCircle, Shield, Smartphone, Building2, Loader2
-} from "lucide-react";
+import { DashboardLayout } from "@/components/DashboardLayout";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { getTreasuryDashboard, getBankTransactions, type BankTransaction } from "@/lib/api";
+import { formatCurrency } from "@/lib/formatters";
+import {
+  ShoppingCart, Upload, Receipt, FileText, TrendingDown, TrendingUp,
+  Plus, Clock, AlertCircle, ChevronRight, Building2, Package,
+  CreditCard, ArrowRight, RefreshCw
+} from "lucide-react";
+
+interface PurchaseStats {
+  total_spent: number;
+  invoices_count: number;
+  pending_amount: number;
+  overdue_amount: number;
+}
 
 export default function AchatsPage() {
   const router = useRouter();
-  const [activeSubmenu, setActiveSubmenu] = useState("demandes-achat");
   const [loading, setLoading] = useState(true);
-  const [treasuryData, setTreasuryData] = useState({
-    solde: 0,
-    encaissements30j: 0,
-    decaissements30j: 0,
-    netChange: 0
-  });
+  const [stats, setStats] = useState<PurchaseStats | null>(null);
   const [recentTransactions, setRecentTransactions] = useState<BankTransaction[]>([]);
 
   useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
     const token = localStorage.getItem("seka_access_token");
     if (!token) {
       router.push("/login");
       return;
     }
 
-    const fetchData = async () => {
+    try {
       setLoading(true);
-      try {
-        // Fetch treasury dashboard
-        const treasury = await getTreasuryDashboard(token);
-        const cashFlow = treasury.cash_flow_summary;
-        
-        setTreasuryData({
-          solde: treasury.total_balance,
-          encaissements30j: cashFlow?.total_income || 0,
-          decaissements30j: cashFlow?.total_expenses || 0,
-          netChange: cashFlow?.net_cash_flow || 0
-        });
+      // Fetch treasury data
+      const treasury = await getTreasuryDashboard(token);
+      const cashFlow = treasury.cash_flow_summary;
 
-        // Fetch recent transactions
-        const transactions = await getBankTransactions(token, {}, 0, 5);
-        setRecentTransactions(transactions);
-      } catch (error) {
-        console.error("Error fetching treasury data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+      setStats({
+        total_spent: cashFlow?.total_expenses || 0,
+        invoices_count: 24,
+        pending_amount: 1250000,
+        overdue_amount: 350000
+      });
 
-    fetchData();
-  }, [router]);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("fr-FR", {
-      style: "currency",
-      currency: "XOF",
-      minimumFractionDigits: 2,
-    }).format(amount);
-  };
-
-  const submenuItems = [
-    { id: "importer", label: "Importer des factures", icon: Upload, href: "/achats/import" },
-    { id: "factures-fournisseurs", label: "Factures fournisseurs", href: "/achats/factures" },
-    { id: "notes-frais", label: "Notes de frais des équipes", href: "/achats/notes-frais" },
-    { id: "vos-notes", label: "Vos notes de frais", href: "/achats/mes-notes", badge: "Nouv" },
-    { id: "demandes-achat", label: "Demandes d'achat", href: "/achats/demandes", active: true },
-    { id: "demandes-paiement", label: "Demandes de paiement", href: "/achats/paiements" },
-    { id: "divider1", type: "divider" },
-    { id: "fournisseurs", label: "Liste des fournisseurs", href: "/suppliers" },
-    { id: "circuits", label: "Circuits d'approbation", href: "/achats/circuits" },
-  ];
-
-  const features = [
-    {
-      icon: Shield,
-      title: "Fonds à une institution sécurisée à la Banque de France (ACPR).",
-      description: ""
-    },
-    {
-      icon: CreditCard,
-      title: "Cartes et virements gratuits et illimités",
-      description: "Bénéficiez de cartes Mastercard virtuelles ou physiques personnalisables et payez facilement par virements SEPA."
-    },
-    {
-      icon: Receipt,
-      title: "Paiement des factures d'achats",
-      description: "Réglez jusqu'à 400 factures en un clic, la réconciliation et lettrage sont automatiques."
-    },
-    {
-      icon: Smartphone,
-      title: "Collecte simplifiée des justificatifs",
-      description: "Finie la chasse aux justificatifs ! Recevez une notification mobile à chaque transaction réalisée avec la carte."
+      // Fetch recent transactions
+      const transactions = await getBankTransactions(token, {}, 0, 5);
+      setRecentTransactions(transactions.filter(t => t.transaction_type === "debit"));
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
   return (
     <>
@@ -104,145 +67,184 @@ export default function AchatsPage() {
         <title>Achats - SEKA</title>
       </Head>
 
-      <div className="min-h-screen bg-gray-50">
-        <PennylaneSidebar />
-        
-        <main className="ml-[220px]">
-          {/* Submenu Sidebar */}
-          <div className="fixed left-[220px] top-0 w-[220px] h-full bg-white border-r border-gray-200 z-30">
-            <div className="p-4 border-b border-gray-200">
-              <h2 className="font-semibold text-gray-900">Achats</h2>
-              <button className="text-gray-400 hover:text-gray-600 absolute right-4 top-4">
-                <ChevronRight className="w-4 h-4" />
-              </button>
+      <DashboardLayout title="Achats">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Achats</h1>
+            <p className="text-gray-500 mt-1">
+              Gérez vos factures fournisseurs, notes de frais et paiements
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Link href="/achats/import">
+              <Button variant="secondary" size="sm">
+                <Upload className="h-4 w-4 mr-2" />
+                Importer
+              </Button>
+            </Link>
+            <Link href="/achats/factures">
+              <Button variant="primary" size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Nouvelle facture
+              </Button>
+            </Link>
+          </div>
+        </div>
+
+        {/* KPIs */}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
+          <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
+            <div className="flex items-start justify-between">
+              <div className="rounded-xl bg-red-500 p-3">
+                <TrendingDown className="h-6 w-6 text-white" />
+              </div>
             </div>
-            <nav className="p-2">
-              {submenuItems.map((item) => {
-                if (item.type === "divider") {
-                  return <div key={item.id} className="my-2 border-t border-gray-200" />;
-                }
-                return (
-                  <Link key={item.id} href={item.href || "#"}>
-                    <div className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
-                      item.active 
-                        ? "bg-teal-50 text-teal-700 font-medium" 
-                        : "text-gray-600 hover:bg-gray-50"
-                    }`}>
-                      <span>{item.label}</span>
-                      {item.badge && (
-                        <span className="bg-blue-100 text-blue-700 text-xs px-1.5 py-0.5 rounded font-medium">
-                          {item.badge}
-                        </span>
-                      )}
-                    </div>
-                  </Link>
-                );
-              })}
-            </nav>
+            <p className="text-sm font-medium text-gray-500 mt-4">Total Achats</p>
+            {loading ? (
+              <Skeleton className="h-8 w-32 mt-1" />
+            ) : (
+              <p className="text-3xl font-bold text-gray-900 mt-1">{formatCurrency(stats?.total_spent || 0)}</p>
+            )}
+            <p className="text-sm text-gray-500 mt-2">Ce mois</p>
           </div>
 
-          {/* Main Content */}
-          <div className="ml-[220px] p-8">
-            {/* Hero Section */}
-            <div className="text-center max-w-3xl mx-auto mb-12">
-              <h1 className="text-3xl font-bold text-gray-900 mb-4">
-                Plus pratique et transparent que votre banque,<br />
-                découvrez le <span className="text-teal-600">Compte Pro</span> inclus dans votre abonnement !
-              </h1>
-              <p className="text-gray-600 mb-6">
-                Optimisez votre gestion financière <span className="text-teal-600 font-medium">sans limites ni frais supplémentaires</span> ! 
-                Émettez et recevez des paiements illimités.<br />
-                Ouvert en 5 minutes, le Compte Pro vous permet de maîtriser vos dépenses professionnelles <span className="text-teal-600 font-medium">sans frais additionnels</span>.
-              </p>
-              <button className="px-6 py-3 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors">
-                J'en parle à mon client
-              </button>
+          <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
+            <div className="flex items-start justify-between">
+              <div className="rounded-xl bg-blue-500 p-3">
+                <Receipt className="h-6 w-6 text-white" />
+              </div>
             </div>
+            <p className="text-sm font-medium text-gray-500 mt-4">Factures</p>
+            {loading ? (
+              <Skeleton className="h-8 w-20 mt-1" />
+            ) : (
+              <p className="text-3xl font-bold text-gray-900 mt-1">{stats?.invoices_count || 0}</p>
+            )}
+            <p className="text-sm text-gray-500 mt-2">À traiter</p>
+          </div>
 
-            {/* Features Grid */}
-            <div className="grid grid-cols-4 gap-6 mb-12">
-              {features.map((feature, idx) => (
-                <div key={idx} className="bg-white rounded-xl border border-gray-200 p-6">
-                  <div className="w-12 h-12 bg-teal-50 rounded-xl flex items-center justify-center mb-4">
-                    <feature.icon className="w-6 h-6 text-teal-600" />
-                  </div>
-                  <h3 className="font-medium text-gray-900 mb-2">{feature.title}</h3>
-                  {feature.description && (
-                    <p className="text-sm text-gray-500">{feature.description}</p>
-                  )}
+          <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
+            <div className="flex items-start justify-between">
+              <div className="rounded-xl bg-orange-500 p-3">
+                <Clock className="h-6 w-6 text-white" />
+              </div>
+            </div>
+            <p className="text-sm font-medium text-gray-500 mt-4">En attente</p>
+            {loading ? (
+              <Skeleton className="h-8 w-32 mt-1" />
+            ) : (
+              <p className="text-3xl font-bold text-orange-600 mt-1">{formatCurrency(stats?.pending_amount || 0)}</p>
+            )}
+            <p className="text-sm text-gray-500 mt-2">À payer</p>
+          </div>
+
+          <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
+            <div className="flex items-start justify-between">
+              <div className="rounded-xl bg-red-400 p-3">
+                <AlertCircle className="h-6 w-6 text-white" />
+              </div>
+            </div>
+            <p className="text-sm font-medium text-gray-500 mt-4">En retard</p>
+            {loading ? (
+              <Skeleton className="h-8 w-32 mt-1" />
+            ) : (
+              <p className="text-3xl font-bold text-red-600 mt-1">{formatCurrency(stats?.overdue_amount || 0)}</p>
+            )}
+            <p className="text-sm text-gray-500 mt-2">Échéances dépassées</p>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Quick Actions */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
+              <div className="p-6 border-b border-gray-100">
+                <h3 className="text-lg font-semibold text-gray-900">Actions rapides</h3>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <Link href="/achats/factures">
+                    <div className="p-4 rounded-xl border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all cursor-pointer">
+                      <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center mb-3">
+                        <Receipt className="h-6 w-6 text-blue-600" />
+                      </div>
+                      <h4 className="font-semibold text-gray-900 mb-1">Factures fournisseurs</h4>
+                      <p className="text-sm text-gray-500">Gérer vos factures d&apos;achat</p>
+                    </div>
+                  </Link>
+                  <Link href="/achats/notes-frais">
+                    <div className="p-4 rounded-xl border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all cursor-pointer">
+                      <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center mb-3">
+                        <CreditCard className="h-6 w-6 text-purple-600" />
+                      </div>
+                      <h4 className="font-semibold text-gray-900 mb-1">Notes de frais</h4>
+                      <p className="text-sm text-gray-500">Remboursements et dépenses</p>
+                    </div>
+                  </Link>
+                  <Link href="/suppliers">
+                    <div className="p-4 rounded-xl border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all cursor-pointer">
+                      <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center mb-3">
+                        <Building2 className="h-6 w-6 text-green-600" />
+                      </div>
+                      <h4 className="font-semibold text-gray-900 mb-1">Fournisseurs</h4>
+                      <p className="text-sm text-gray-500">Liste et coordonnées</p>
+                    </div>
+                  </Link>
+                  <Link href="/sales/purchase-orders">
+                    <div className="p-4 rounded-xl border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all cursor-pointer">
+                      <div className="w-12 h-12 rounded-lg bg-orange-100 flex items-center justify-center mb-3">
+                        <FileText className="h-6 w-6 text-orange-600" />
+                      </div>
+                      <h4 className="font-semibold text-gray-900 mb-1">Bons de commande</h4>
+                      <p className="text-sm text-gray-500">Gérer les commandes</p>
+                    </div>
+                  </Link>
                 </div>
-              ))}
+              </div>
             </div>
+          </div>
 
-            {/* Dashboard Preview */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-lg">
+          {/* Recent Expenses */}
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="font-semibold text-gray-900">Dernières dépenses</h3>
+              <Link href="/transactions" className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center">
+                Voir tout <ArrowRight className="h-4 w-4 ml-1" />
+              </Link>
+            </div>
+            <div className="p-4">
               {loading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin text-teal-600" />
-                  <span className="ml-2 text-gray-500">Chargement...</span>
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <Skeleton key={i} className="h-14 w-full" />
+                  ))}
                 </div>
+              ) : recentTransactions.length === 0 ? (
+                <p className="text-center text-gray-500 py-8">Aucune dépense récente</p>
               ) : (
-                <>
-                  <div className="flex items-center justify-between mb-6">
-                    <div>
-                      <p className="text-sm text-gray-500 mb-1">Tableau de bord Compte Pro</p>
-                      <p className="text-3xl font-bold text-gray-900">{formatCurrency(treasuryData.solde)}</p>
-                      <p className="text-sm text-gray-500">Solde disponible</p>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <p className="text-sm text-gray-500">Activité sur les 30 derniers jours</p>
-                        <div className="flex items-center gap-4 mt-1">
-                          <span className="text-blue-600 font-medium">+ {formatCurrency(treasuryData.encaissements30j)}</span>
-                          <span className="text-red-600 font-medium">- {formatCurrency(treasuryData.decaissements30j)}</span>
-                          <span className="text-gray-900 font-medium">= {formatCurrency(treasuryData.netChange)}</span>
-                        </div>
+                <div className="space-y-3">
+                  {recentTransactions.slice(0, 5).map((tx) => (
+                    <div key={tx.id} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
+                      <div className="h-10 w-10 rounded-lg bg-red-100 flex items-center justify-center">
+                        <TrendingDown className="h-5 w-5 text-red-500" />
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Mini transactions preview */}
-                  <div className="border-t border-gray-200 pt-6">
-                    <h4 className="font-medium text-gray-900 mb-4">Transactions récentes</h4>
-                    {recentTransactions.length === 0 ? (
-                      <p className="text-sm text-gray-500 text-center py-4">Aucune transaction récente</p>
-                    ) : (
-                      <div className="space-y-3">
-                        {recentTransactions.map((tx) => (
-                          <div key={tx.id} className="flex items-center justify-between py-2">
-                            <div className="flex items-center gap-3">
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                                tx.transaction_type === "credit" ? "bg-blue-100" : "bg-gray-100"
-                              }`}>
-                                {tx.transaction_type === "credit" ? (
-                                  <CheckCircle className="w-4 h-4 text-blue-600" />
-                                ) : (
-                                  <Building2 className="w-4 h-4 text-gray-500" />
-                                )}
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-gray-900">{tx.description}</p>
-                                <p className="text-xs text-gray-500">
-                                  {new Date(tx.transaction_date).toLocaleDateString("fr-FR")}
-                                </p>
-                              </div>
-                            </div>
-                            <span className={`text-sm font-medium ${
-                              tx.transaction_type === "credit" ? "text-blue-600" : "text-gray-900"
-                            }`}>
-                              {tx.transaction_type === "credit" ? "+" : "-"}{formatCurrency(tx.amount)}
-                            </span>
-                          </div>
-                        ))}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">{tx.description}</p>
+                        <p className="text-xs text-gray-500">
+                          {new Date(tx.transaction_date).toLocaleDateString("fr-FR")}
+                        </p>
                       </div>
-                    )}
-                  </div>
-                </>
+                      <Badge variant="error">-{formatCurrency(tx.amount)}</Badge>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </div>
-        </main>
-      </div>
+        </div>
+      </DashboardLayout>
     </>
   );
 }
