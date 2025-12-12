@@ -1,8 +1,67 @@
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card } from "@/components/ui/Card";
-import { CreditCard, Building2, Wallet, TrendingUp, CheckCircle, Lock } from "lucide-react";
+import { CreditCard, Building2, Wallet, TrendingUp, CheckCircle, Lock, Loader2 } from "lucide-react";
+import { formatCurrency } from "@/lib/formatters";
+
+interface BankAccount {
+  balance: number;
+  iban: string;
+  bic: string;
+  account_holder: string;
+  currency: string;
+}
 
 export default function CompteProPage() {
+  const [account, setAccount] = useState<BankAccount | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchAccountData = async () => {
+      try {
+        const token = localStorage.getItem("seka_access_token");
+        if (!token) return;
+
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const response = await fetch(`${API_BASE_URL}/api/v1/treasury/accounts/main`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setAccount(data);
+        } else {
+          // Données par défaut si pas de compte configuré
+          setAccount({
+            balance: 0,
+            iban: "FR76 **** **** **** ****",
+            bic: "SEKAFRPP",
+            account_holder: "Votre Entreprise",
+            currency: "XOF"
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching account:", err);
+        setError("Erreur lors du chargement du compte");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAccountData();
+  }, []);
+
+  if (loading) {
+    return (
+      <DashboardLayout title="Compte Pro">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin text-teal-600" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout title="Compte Pro">
       <div className="space-y-6">
@@ -18,21 +77,23 @@ export default function CompteProPage() {
             </div>
             <div>
               <p className="text-sm opacity-80">Solde disponible</p>
-              <h2 className="text-3xl font-bold">2 847 500 FCFA</h2>
+              <h2 className="text-3xl font-bold">
+                {account ? formatCurrency(account.balance, account.currency) : "0 FCFA"}
+              </h2>
             </div>
           </div>
           <div className="grid grid-cols-3 gap-6">
             <div>
               <p className="text-sm opacity-80 mb-1">IBAN</p>
-              <p className="font-mono text-sm">FR76 XXXX XXXX XXXX XXXX</p>
+              <p className="font-mono text-sm">{account?.iban || "Non configuré"}</p>
             </div>
             <div>
               <p className="text-sm opacity-80 mb-1">BIC</p>
-              <p className="font-mono text-sm">SEKAFRPP</p>
+              <p className="font-mono text-sm">{account?.bic || "Non configuré"}</p>
             </div>
             <div>
               <p className="text-sm opacity-80 mb-1">Titulaire</p>
-              <p className="text-sm">Votre Entreprise</p>
+              <p className="text-sm">{account?.account_holder || "Non configuré"}</p>
             </div>
           </div>
         </div>

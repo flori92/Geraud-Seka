@@ -2,119 +2,122 @@ import { useState, useEffect } from "react";
 import Head from "next/head";
 import {
     Users, Plus, Search, Mail, Phone, MessageSquare,
-    MoreVertical, Edit2, Trash2, Building2, MapPin,
-    Send, X, Loader2, Filter, Download, Upload
+    MoreVertical, Edit2, Trash2, X, Loader2, Filter, Download, Upload,
+    Building2, Briefcase
 } from "lucide-react";
-import { getClients, createClient, type Client, type ClientCreate } from "@/lib/api";
-
-interface Contact extends Client {
-    email?: string;
-    phone?: string;
-    address?: string;
-    city?: string;
-    country?: string;
-    contact_person?: string;
-    notes?: string;
-    created_at?: string;
-}
+import {
+    getCRMContacts,
+    createCRMContact,
+    deleteCRMContact,
+    getClients,
+    type CRMContact,
+    type CRMContactCreate,
+    type Client
+} from "@/lib/api";
 
 export default function ContactsPage() {
-    const [contacts, setContacts] = useState<Contact[]>([]);
+    const [contacts, setContacts] = useState<CRMContact[]>([]);
+    const [clients, setClients] = useState<Client[]>([]);
     const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
     const [search, setSearch] = useState("");
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showContactModal, setShowContactModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+    const [selectedContact, setSelectedContact] = useState<CRMContact | null>(null);
     const [messageType, setMessageType] = useState<"email" | "whatsapp" | "sms">("email");
     const [activeMenu, setActiveMenu] = useState<string | null>(null);
 
-    const [newContact, setNewContact] = useState<Partial<Contact>>({
-        name: "",
-        slug: "",
-        sector: "",
+    const [newContact, setNewContact] = useState<Partial<CRMContactCreate>>({
+        first_name: "",
+        last_name: "",
         email: "",
         phone: "",
+        mobile: "",
+        job_title: "",
+        department: "",
         address: "",
         city: "",
         country: "Bénin",
-        contact_person: "",
+        client_id: "",
     });
 
     useEffect(() => {
-        fetchContacts();
+        fetchData();
     }, []);
 
-    const fetchContacts = async () => {
+    const fetchData = async () => {
+        setLoading(true);
         try {
             const token = localStorage.getItem("seka_access_token");
             if (token) {
-                const data = await getClients(token);
-                // Add mock contact info for demo (in production, this comes from backend)
-                const enriched = data.map((c) => ({
-                    ...c,
-                    email: `contact@${c.slug || c.name.toLowerCase().replace(/\s/g, "")}.com`,
-                    phone: "+229 " + Math.floor(Math.random() * 90000000 + 10000000),
-                    country: "Bénin",
-                }));
-                setContacts(enriched);
+                const [contactsData, clientsData] = await Promise.all([
+                    getCRMContacts(token),
+                    getClients(token),
+                ]);
+                setContacts(contactsData);
+                setClients(clientsData);
             }
         } catch (error) {
-            console.error("Failed to fetch contacts:", error);
+            console.error("Failed to fetch data:", error);
         } finally {
             setLoading(false);
         }
     };
 
     const handleCreateContact = async () => {
+        if (!newContact.first_name || !newContact.last_name || !newContact.email) {
+            alert("Veuillez remplir les champs obligatoires (Prénom, Nom, Email)");
+            return;
+        }
+
+        setSaving(true);
         try {
             const token = localStorage.getItem("seka_access_token");
-            if (!token || !newContact.name) return;
-
-            const slug = newContact.slug || newContact.name.toLowerCase().replace(/\s+/g, "-");
-            const clientData: ClientCreate = {
-                name: newContact.name,
-                slug,
-                sector: newContact.sector,
-            };
-
-            await createClient(clientData, token);
-            setShowCreateModal(false);
-            setNewContact({
-                name: "",
-                slug: "",
-                sector: "",
-                email: "",
-                phone: "",
-                address: "",
-                city: "",
-                country: "Bénin",
-                contact_person: "",
-            });
-            fetchContacts();
+            if (token) {
+                await createCRMContact(token, newContact as CRMContactCreate);
+                setShowCreateModal(false);
+                setNewContact({
+                    first_name: "",
+                    last_name: "",
+                    email: "",
+                    phone: "",
+                    mobile: "",
+                    job_title: "",
+                    department: "",
+                    address: "",
+                    city: "",
+                    country: "Bénin",
+                    client_id: "",
+                });
+                fetchData();
+            }
         } catch (error) {
             console.error("Failed to create contact:", error);
             alert("Erreur lors de la création du contact");
+        } finally {
+            setSaving(false);
         }
     };
 
     const handleDeleteContact = async () => {
+        if (!selectedContact) return;
+
         try {
             const token = localStorage.getItem("seka_access_token");
-            if (!token || !selectedContact) return;
-
-            // In production, call delete API
-            // await deleteClient(selectedContact.id, token);
-
-            setContacts((prev) => prev.filter((c) => c.id !== selectedContact.id));
-            setShowDeleteModal(false);
-            setSelectedContact(null);
+            if (token) {
+                await deleteCRMContact(token, selectedContact.id);
+                setContacts(prev => prev.filter(c => c.id !== selectedContact.id));
+                setShowDeleteModal(false);
+                setSelectedContact(null);
+            }
         } catch (error) {
             console.error("Failed to delete contact:", error);
+            alert("Erreur lors de la suppression du contact");
         }
     };
 
-    const handleSendMessage = (contact: Contact, type: "email" | "whatsapp" | "sms") => {
+    const handleSendMessage = (contact: CRMContact, type: "email" | "whatsapp" | "sms") => {
         setSelectedContact(contact);
         setMessageType(type);
         setShowContactModal(true);
@@ -128,27 +131,35 @@ export default function ContactsPage() {
                 window.open(`mailto:${selectedContact.email}`, "_blank");
                 break;
             case "whatsapp":
-                const phone = selectedContact.phone?.replace(/\s/g, "").replace(/^\+/, "");
-                window.open(`https://wa.me/${phone}`, "_blank");
+                const phone = (selectedContact.mobile || selectedContact.phone)?.replace(/\s/g, "").replace(/^\+/, "");
+                if (phone) window.open(`https://wa.me/${phone}`, "_blank");
                 break;
             case "sms":
-                window.open(`sms:${selectedContact.phone}`, "_blank");
+                window.open(`sms:${selectedContact.mobile || selectedContact.phone}`, "_blank");
                 break;
         }
         setShowContactModal(false);
     };
 
-    const filteredContacts = contacts.filter(
-        (c) =>
-            c.name.toLowerCase().includes(search.toLowerCase()) ||
-            c.email?.toLowerCase().includes(search.toLowerCase()) ||
-            c.sector?.toLowerCase().includes(search.toLowerCase())
-    );
+    const getFullName = (contact: CRMContact) => {
+        return contact.full_name || `${contact.first_name} ${contact.last_name}`;
+    };
+
+    const filteredContacts = contacts.filter(c => {
+        const fullName = getFullName(c).toLowerCase();
+        const searchLower = search.toLowerCase();
+        return (
+            fullName.includes(searchLower) ||
+            c.email?.toLowerCase().includes(searchLower) ||
+            c.job_title?.toLowerCase().includes(searchLower) ||
+            c.client_name?.toLowerCase().includes(searchLower)
+        );
+    });
 
     return (
         <>
             <Head>
-                <title>Contacts - SEKA</title>
+                <title>Contacts CRM - SEKA</title>
             </Head>
 
             <div className="min-h-screen bg-gray-50 pt-14">
@@ -159,10 +170,10 @@ export default function ContactsPage() {
                             <div>
                                 <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
                                     <Users className="h-7 w-7 text-emerald-600" />
-                                    Contacts / Clients
+                                    Contacts CRM
                                 </h1>
                                 <p className="text-sm text-gray-500 mt-1">
-                                    Gérez vos clients et contacts professionnels
+                                    Gérez vos contacts professionnels et relations client
                                 </p>
                             </div>
                             <button
@@ -183,7 +194,7 @@ export default function ContactsPage() {
                                         type="text"
                                         value={search}
                                         onChange={(e) => setSearch(e.target.value)}
-                                        placeholder="Rechercher par nom, email, secteur..."
+                                        placeholder="Rechercher par nom, email, fonction..."
                                         className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                                     />
                                 </div>
@@ -236,7 +247,7 @@ export default function ContactsPage() {
                                             <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Contact</th>
                                             <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">Email</th>
                                             <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">Téléphone</th>
-                                            <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">Secteur</th>
+                                            <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">Entreprise</th>
                                             <th className="text-center px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                                         </tr>
                                     </thead>
@@ -247,13 +258,16 @@ export default function ContactsPage() {
                                                     <div className="flex items-center gap-3">
                                                         <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
                                                             <span className="text-emerald-700 font-bold">
-                                                                {contact.name.charAt(0).toUpperCase()}
+                                                                {contact.first_name?.charAt(0).toUpperCase() || "?"}
                                                             </span>
                                                         </div>
                                                         <div>
-                                                            <p className="font-medium text-gray-900">{contact.name}</p>
-                                                            {contact.contact_person && (
-                                                                <p className="text-xs text-gray-500">{contact.contact_person}</p>
+                                                            <p className="font-medium text-gray-900">{getFullName(contact)}</p>
+                                                            {contact.job_title && (
+                                                                <p className="text-xs text-gray-500 flex items-center gap-1">
+                                                                    <Briefcase className="h-3 w-3" />
+                                                                    {contact.job_title}
+                                                                </p>
                                                             )}
                                                         </div>
                                                     </div>
@@ -262,38 +276,45 @@ export default function ContactsPage() {
                                                     {contact.email || "-"}
                                                 </td>
                                                 <td className="px-6 py-4 text-sm text-gray-600 hidden lg:table-cell">
-                                                    {contact.phone || "-"}
+                                                    {contact.mobile || contact.phone || "-"}
                                                 </td>
                                                 <td className="px-6 py-4 hidden lg:table-cell">
-                                                    {contact.sector && (
-                                                        <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded-full">
-                                                            {contact.sector}
+                                                    {contact.client_name && (
+                                                        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
+                                                            <Building2 className="h-3 w-3" />
+                                                            {contact.client_name}
                                                         </span>
                                                     )}
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center justify-center gap-1">
-                                                        <button
-                                                            onClick={() => handleSendMessage(contact, "email")}
-                                                            className="p-2 hover:bg-blue-50 rounded-lg text-blue-600 transition-colors"
-                                                            title="Envoyer un email"
-                                                        >
-                                                            <Mail className="h-4 w-4" />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleSendMessage(contact, "whatsapp")}
-                                                            className="p-2 hover:bg-green-50 rounded-lg text-green-600 transition-colors"
-                                                            title="WhatsApp"
-                                                        >
-                                                            <MessageSquare className="h-4 w-4" />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleSendMessage(contact, "sms")}
-                                                            className="p-2 hover:bg-purple-50 rounded-lg text-purple-600 transition-colors"
-                                                            title="SMS"
-                                                        >
-                                                            <Phone className="h-4 w-4" />
-                                                        </button>
+                                                        {contact.email && (
+                                                            <button
+                                                                onClick={() => handleSendMessage(contact, "email")}
+                                                                className="p-2 hover:bg-blue-50 rounded-lg text-blue-600 transition-colors"
+                                                                title="Envoyer un email"
+                                                            >
+                                                                <Mail className="h-4 w-4" />
+                                                            </button>
+                                                        )}
+                                                        {(contact.mobile || contact.phone) && (
+                                                            <>
+                                                                <button
+                                                                    onClick={() => handleSendMessage(contact, "whatsapp")}
+                                                                    className="p-2 hover:bg-green-50 rounded-lg text-green-600 transition-colors"
+                                                                    title="WhatsApp"
+                                                                >
+                                                                    <MessageSquare className="h-4 w-4" />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleSendMessage(contact, "sms")}
+                                                                    className="p-2 hover:bg-purple-50 rounded-lg text-purple-600 transition-colors"
+                                                                    title="SMS"
+                                                                >
+                                                                    <Phone className="h-4 w-4" />
+                                                                </button>
+                                                            </>
+                                                        )}
                                                         <div className="relative">
                                                             <button
                                                                 onClick={() => setActiveMenu(activeMenu === contact.id ? null : contact.id)}
@@ -307,7 +328,7 @@ export default function ContactsPage() {
                                                                         onClick={() => {
                                                                             setSelectedContact(contact);
                                                                             setActiveMenu(null);
-                                                                            // Open edit modal
+                                                                            // TODO: Open edit modal
                                                                         }}
                                                                         className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
                                                                     >
@@ -357,75 +378,100 @@ export default function ContactsPage() {
                             </button>
                         </div>
                         <div className="p-6 space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Prénom *</label>
+                                    <input
+                                        type="text"
+                                        value={newContact.first_name || ""}
+                                        onChange={(e) => setNewContact({ ...newContact, first_name: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                                        placeholder="Jean"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
+                                    <input
+                                        type="text"
+                                        value={newContact.last_name || ""}
+                                        onChange={(e) => setNewContact({ ...newContact, last_name: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                                        placeholder="Dupont"
+                                    />
+                                </div>
+                            </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Nom de l&apos;entreprise *</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
                                 <input
-                                    type="text"
-                                    value={newContact.name}
-                                    onChange={(e) => setNewContact({ ...newContact, name: e.target.value })}
+                                    type="email"
+                                    value={newContact.email || ""}
+                                    onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                                    placeholder="Ex: ACME Corp"
+                                    placeholder="jean.dupont@exemple.com"
                                 />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Identifiant (slug)</label>
-                                    <input
-                                        type="text"
-                                        value={newContact.slug}
-                                        onChange={(e) => setNewContact({ ...newContact, slug: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                                        placeholder="acme-corp"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Secteur</label>
-                                    <input
-                                        type="text"
-                                        value={newContact.sector}
-                                        onChange={(e) => setNewContact({ ...newContact, sector: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                                        placeholder="Commerce"
-                                    />
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                                    <input
-                                        type="email"
-                                        value={newContact.email}
-                                        onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                                        placeholder="contact@exemple.com"
-                                    />
-                                </div>
-                                <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
                                     <input
                                         type="tel"
-                                        value={newContact.phone}
+                                        value={newContact.phone || ""}
                                         onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                                         placeholder="+229 XX XX XX XX"
                                     />
                                 </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Mobile</label>
+                                    <input
+                                        type="tel"
+                                        value={newContact.mobile || ""}
+                                        onChange={(e) => setNewContact({ ...newContact, mobile: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                                        placeholder="+229 XX XX XX XX"
+                                    />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Fonction</label>
+                                    <input
+                                        type="text"
+                                        value={newContact.job_title || ""}
+                                        onChange={(e) => setNewContact({ ...newContact, job_title: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                                        placeholder="Directeur Commercial"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Département</label>
+                                    <input
+                                        type="text"
+                                        value={newContact.department || ""}
+                                        onChange={(e) => setNewContact({ ...newContact, department: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                                        placeholder="Commercial"
+                                    />
+                                </div>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Personne de contact</label>
-                                <input
-                                    type="text"
-                                    value={newContact.contact_person}
-                                    onChange={(e) => setNewContact({ ...newContact, contact_person: e.target.value })}
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Entreprise (Client)</label>
+                                <select
+                                    value={newContact.client_id || ""}
+                                    onChange={(e) => setNewContact({ ...newContact, client_id: e.target.value })}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                                    placeholder="Jean Dupont"
-                                />
+                                >
+                                    <option value="">Sélectionner un client...</option>
+                                    {clients.map(client => (
+                                        <option key={client.id} value={client.id}>{client.name}</option>
+                                    ))}
+                                </select>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
                                 <input
                                     type="text"
-                                    value={newContact.address}
+                                    value={newContact.address || ""}
                                     onChange={(e) => setNewContact({ ...newContact, address: e.target.value })}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                                     placeholder="123 Avenue..."
@@ -436,7 +482,7 @@ export default function ContactsPage() {
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Ville</label>
                                     <input
                                         type="text"
-                                        value={newContact.city}
+                                        value={newContact.city || ""}
                                         onChange={(e) => setNewContact({ ...newContact, city: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                                         placeholder="Cotonou"
@@ -446,7 +492,7 @@ export default function ContactsPage() {
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Pays</label>
                                     <input
                                         type="text"
-                                        value={newContact.country}
+                                        value={newContact.country || ""}
                                         onChange={(e) => setNewContact({ ...newContact, country: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                                         placeholder="Bénin"
@@ -463,9 +509,10 @@ export default function ContactsPage() {
                             </button>
                             <button
                                 onClick={handleCreateContact}
-                                disabled={!newContact.name}
-                                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled={saving || !newContact.first_name || !newContact.last_name || !newContact.email}
+                                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50"
                             >
+                                {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                                 Créer le contact
                             </button>
                         </div>
@@ -485,12 +532,12 @@ export default function ContactsPage() {
                                 {messageType === "sms" && <Phone className="h-8 w-8 text-purple-600" />}
                             </div>
                             <h2 className="text-lg font-semibold mb-2">
-                                Contacter {selectedContact.name}
+                                Contacter {getFullName(selectedContact)}
                             </h2>
                             <p className="text-sm text-gray-500 mb-6">
                                 {messageType === "email" && `Email: ${selectedContact.email}`}
-                                {messageType === "whatsapp" && `WhatsApp: ${selectedContact.phone}`}
-                                {messageType === "sms" && `SMS: ${selectedContact.phone}`}
+                                {messageType === "whatsapp" && `WhatsApp: ${selectedContact.mobile || selectedContact.phone}`}
+                                {messageType === "sms" && `SMS: ${selectedContact.mobile || selectedContact.phone}`}
                             </p>
                             <div className="flex gap-3 justify-center">
                                 <button
@@ -503,7 +550,6 @@ export default function ContactsPage() {
                                     onClick={openExternalMessage}
                                     className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
                                 >
-                                    <Send className="h-4 w-4" />
                                     Ouvrir
                                 </button>
                             </div>
@@ -523,7 +569,7 @@ export default function ContactsPage() {
                             </div>
                             <h2 className="text-lg font-semibold mb-2">Supprimer ce contact ?</h2>
                             <p className="text-sm text-gray-500 mb-6">
-                                Êtes-vous sûr de vouloir supprimer <strong>{selectedContact.name}</strong> ?
+                                Êtes-vous sûr de vouloir supprimer <strong>{getFullName(selectedContact)}</strong> ?
                                 Cette action est irréversible.
                             </p>
                             <div className="flex gap-3 justify-center">

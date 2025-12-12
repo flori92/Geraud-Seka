@@ -1560,7 +1560,7 @@ export interface BankTransactionFilters {
 }
 
 export async function getBankTransactions(
-  accessToken: string, 
+  accessToken: string,
   filters?: BankTransactionFilters,
   skip: number = 0,
   limit: number = 100
@@ -1569,7 +1569,7 @@ export async function getBankTransactions(
     const params = new URLSearchParams();
     params.append("skip", skip.toString());
     params.append("limit", limit.toString());
-    
+
     if (filters) {
       if (filters.bank_account_id) params.append("bank_account_id", filters.bank_account_id);
       if (filters.transaction_type) params.append("transaction_type", filters.transaction_type);
@@ -1579,7 +1579,7 @@ export async function getBankTransactions(
       if (filters.end_date) params.append("end_date", filters.end_date);
       if (filters.category) params.append("category", filters.category);
     }
-    
+
     const response = await api.get<BankTransaction[]>(`/bank-transactions/?${params.toString()}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
@@ -1605,8 +1605,8 @@ export async function createBankTransaction(accessToken: string, data: BankTrans
 }
 
 export async function updateBankTransaction(
-  accessToken: string, 
-  transactionId: string, 
+  accessToken: string,
+  transactionId: string,
   data: Partial<BankTransactionCreate>
 ): Promise<BankTransaction> {
   const response = await api.put<BankTransaction>(`/bank-transactions/${transactionId}`, data, {
@@ -1622,12 +1622,12 @@ export async function deleteBankTransaction(accessToken: string, transactionId: 
 }
 
 export async function reconcileBankTransaction(
-  accessToken: string, 
-  transactionId: string, 
+  accessToken: string,
+  transactionId: string,
   bankStatementLine?: string
 ): Promise<BankTransaction> {
   const response = await api.post<BankTransaction>(
-    `/bank-transactions/${transactionId}/reconcile`, 
+    `/bank-transactions/${transactionId}/reconcile`,
     { bank_statement_line: bankStatementLine },
     { headers: { Authorization: `Bearer ${accessToken}` } }
   );
@@ -1635,7 +1635,7 @@ export async function reconcileBankTransaction(
 }
 
 export async function getUnreconciledTransactions(
-  accessToken: string, 
+  accessToken: string,
   bankAccountId?: string
 ): Promise<BankTransaction[]> {
   try {
@@ -1721,3 +1721,357 @@ export async function getDashboardStatsExtended(accessToken: string): Promise<Da
     };
   }
 }
+
+// ========== ACCOUNTING RULES APIs ==========
+
+export interface AccountingRule {
+  id: string;
+  name: string;
+  description?: string;
+  priority: number;
+  conditions: Array<{
+    type: string;
+    operator: string;
+    value: string;
+  }>;
+  actions: Array<{
+    type: string;
+    debit_account?: string;
+    credit_account?: string;
+    vat_rate?: number;
+    label_template?: string;
+  }>;
+  is_active: boolean;
+  auto_apply: boolean;
+  confidence_threshold?: number;
+  match_count?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface AccountingRuleCreate {
+  name: string;
+  description?: string;
+  priority?: number;
+  conditions: Array<{
+    type: string;
+    operator: string;
+    value: string;
+  }>;
+  actions: Array<{
+    type: string;
+    debit_account?: string;
+    credit_account?: string;
+    vat_rate?: number;
+    label_template?: string;
+  }>;
+  auto_apply?: boolean;
+  confidence_threshold?: number;
+}
+
+export async function getAccountingRules(accessToken: string): Promise<AccountingRule[]> {
+  try {
+    const response = await api.get<AccountingRule[]>("/accounting-rules/rules", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return Array.isArray(response.data) ? response.data : [];
+  } catch (error) {
+    console.error("Error fetching accounting rules:", error);
+    return [];
+  }
+}
+
+export async function createAccountingRule(
+  accessToken: string,
+  data: AccountingRuleCreate
+): Promise<AccountingRule> {
+  const response = await api.post<AccountingRule>("/accounting-rules/rules", data, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function updateAccountingRule(
+  accessToken: string,
+  ruleId: string,
+  data: Partial<AccountingRuleCreate>
+): Promise<AccountingRule> {
+  const response = await api.put<AccountingRule>(`/accounting-rules/rules/${ruleId}`, data, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function deleteAccountingRule(accessToken: string, ruleId: string): Promise<void> {
+  await api.delete(`/accounting-rules/rules/${ruleId}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+export async function toggleAccountingRule(
+  accessToken: string,
+  ruleId: string,
+  isActive: boolean
+): Promise<AccountingRule> {
+  const response = await api.put<AccountingRule>(
+    `/accounting-rules/rules/${ruleId}`,
+    { is_active: isActive },
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+  return response.data;
+}
+
+// ========== JOURNALS APIs ==========
+
+export interface Journal {
+  id: string;
+  code: string;
+  name: string;
+  type: "purchases" | "sales" | "bank" | "cash" | "misc";
+  is_active: boolean;
+  entries_count?: number;
+  last_entry_date?: string;
+  total_debit?: number;
+  total_credit?: number;
+  created_at?: string;
+}
+
+export async function getJournals(accessToken: string): Promise<Journal[]> {
+  try {
+    const response = await api.get<Journal[]>("/accounting/journals", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return Array.isArray(response.data) ? response.data : [];
+  } catch (error) {
+    console.error("Error fetching journals:", error);
+    return [];
+  }
+}
+
+export async function getJournalEntriesFiltered(
+  accessToken: string,
+  journalCode?: string,
+  startDate?: string,
+  endDate?: string
+): Promise<JournalEntry[]> {
+  try {
+    const params = new URLSearchParams();
+    if (journalCode) params.append("journal_code", journalCode);
+    if (startDate) params.append("start_date", startDate);
+    if (endDate) params.append("end_date", endDate);
+
+    const response = await api.get<JournalEntry[]>(`/accounting/journal/?${params.toString()}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return Array.isArray(response.data) ? response.data : [];
+  } catch (error) {
+    console.error("Error fetching journal entries:", error);
+    return [];
+  }
+}
+
+// ========== AI LEARNING APIs ==========
+
+export interface AILearningModel {
+  id: string;
+  type: "classification" | "extraction" | "prediction";
+  description: string;
+  accuracy: number;
+  samples_count: number;
+  status: "learning" | "stable" | "needs_review";
+  last_updated: string;
+  created_at: string;
+}
+
+export interface AILearningStats {
+  average_accuracy: number;
+  total_samples: number;
+  stable_models: number;
+  improvement_rate: number;
+  models: AILearningModel[];
+}
+
+export async function getAILearningStats(accessToken: string): Promise<AILearningStats> {
+  try {
+    const response = await api.get<AILearningStats>("/analytics/ai-learning", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching AI learning stats:", error);
+    // Return default if API doesn't exist yet
+    return {
+      average_accuracy: 0,
+      total_samples: 0,
+      stable_models: 0,
+      improvement_rate: 0,
+      models: [],
+    };
+  }
+}
+
+export async function submitAIFeedback(
+  accessToken: string,
+  modelId: string,
+  isCorrect: boolean,
+  corrections?: Record<string, any>
+): Promise<void> {
+  await api.post(
+    "/analytics/ai-feedback",
+    { model_id: modelId, is_correct: isCorrect, corrections },
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+}
+
+// ========== CRM CONTACTS APIs ==========
+
+export interface CRMContact {
+  id: string;
+  first_name: string;
+  last_name: string;
+  full_name?: string;
+  email: string;
+  phone?: string;
+  mobile?: string;
+  job_title?: string;
+  department?: string;
+  contact_type?: string;
+  address?: string;
+  city?: string;
+  postal_code?: string;
+  country?: string;
+  preferred_contact_method?: string;
+  language?: string;
+  linkedin_url?: string;
+  is_primary?: boolean;
+  is_active?: boolean;
+  do_not_contact?: boolean;
+  email_opt_out?: boolean;
+  notes?: string;
+  tags?: string[];
+  client_id?: string;
+  client_name?: string;
+  lead_id?: string;
+  assigned_to?: string;
+  last_contact_date?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CRMContactCreate {
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
+  mobile?: string;
+  job_title?: string;
+  department?: string;
+  contact_type?: string;
+  address?: string;
+  city?: string;
+  postal_code?: string;
+  country?: string;
+  preferred_contact_method?: string;
+  linkedin_url?: string;
+  is_primary?: boolean;
+  notes?: string;
+  tags?: string[];
+  client_id?: string;
+  lead_id?: string;
+}
+
+export async function getCRMContacts(accessToken: string, search?: string): Promise<CRMContact[]> {
+  try {
+    const params = search ? `?search=${encodeURIComponent(search)}` : '';
+    const response = await api.get<CRMContact[]>(`/crm/contacts/${params}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return Array.isArray(response.data) ? response.data : [];
+  } catch (error) {
+    console.error("Error fetching CRM contacts:", error);
+    return [];
+  }
+}
+
+export async function getCRMContact(accessToken: string, contactId: string): Promise<CRMContact | null> {
+  try {
+    const response = await api.get<CRMContact>(`/crm/contacts/${contactId}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching CRM contact:", error);
+    return null;
+  }
+}
+
+export async function createCRMContact(accessToken: string, data: CRMContactCreate): Promise<CRMContact> {
+  const response = await api.post<CRMContact>("/crm/contacts/", data, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function updateCRMContact(
+  accessToken: string,
+  contactId: string,
+  data: Partial<CRMContactCreate>
+): Promise<CRMContact> {
+  const response = await api.put<CRMContact>(`/crm/contacts/${contactId}`, data, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function deleteCRMContact(accessToken: string, contactId: string): Promise<void> {
+  await api.delete(`/crm/contacts/${contactId}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+// ========== EXTENDED CRM APIs ==========
+
+export async function getCRMLeads(accessToken: string, status?: string): Promise<Lead[]> {
+  try {
+    const params = status ? `?status=${status}` : '';
+    const response = await api.get<Lead[]>(`/crm/leads/${params}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return Array.isArray(response.data) ? response.data : [];
+  } catch (error) {
+    console.error("Error fetching CRM leads:", error);
+    return [];
+  }
+}
+
+export async function getCRMOpportunities(accessToken: string, stage?: string): Promise<Opportunity[]> {
+  try {
+    const params = stage ? `?stage=${stage}` : '';
+    const response = await api.get<Opportunity[]>(`/crm/opportunities/${params}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return Array.isArray(response.data) ? response.data : [];
+  } catch (error) {
+    console.error("Error fetching CRM opportunities:", error);
+    return [];
+  }
+}
+
+export async function getOpportunitiesPipeline(accessToken: string): Promise<{
+  stages: Array<{ stage: string; count: number; total_amount: number; weighted_amount: number }>;
+  total_value: number;
+  total_weighted: number;
+}> {
+  try {
+    const response = await api.get("/crm/opportunities/pipeline", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching opportunities pipeline:", error);
+    return { stages: [], total_value: 0, total_weighted: 0 };
+  }
+}
+
+
+

@@ -8,29 +8,39 @@ const THOUSAND = 1000;
 const MILLION = 1000000;
 const BILLION = 1000000000;
 
+// Currency mappings
+const CURRENCY_SYMBOLS = {
+  'XOF': 'FCFA',
+  'EUR': '€',
+  'USD': '$',
+  'FCFA': 'FCFA'
+};
+
 /**
  * Format amount with appropriate scale (K for thousands, M for millions)
  * @param amount - The amount to format
- * @param currency - Currency suffix (default: "FCFA")
+ * @param currency - Currency code (XOF, EUR, USD) or symbol (default: "XOF")
  * @param decimals - Number of decimal places (default: 0)
  */
-export function formatCurrency(amount: number | undefined | null, currency: string = "FCFA", decimals: number = 0): string {
+export function formatCurrency(amount: number | undefined | null, currency: string = "XOF", decimals: number = 0): string {
   // Handle invalid values
   const numAmount = typeof amount === 'number' ? amount : Number(amount);
   if (isNaN(numAmount) || amount === null || amount === undefined) {
-    return `0 ${currency}`;
+    return `0 ${CURRENCY_SYMBOLS[currency as keyof typeof CURRENCY_SYMBOLS] || currency}`;
   }
   
+  const currencySymbol = CURRENCY_SYMBOLS[currency as keyof typeof CURRENCY_SYMBOLS] || currency;
+  
   if (numAmount >= BILLION) {
-    return `${(numAmount / BILLION).toFixed(decimals)}B ${currency}`;
+    return `${(numAmount / BILLION).toFixed(decimals)}B ${currencySymbol}`;
   }
   if (numAmount >= MILLION) {
-    return `${(numAmount / MILLION).toFixed(decimals)}M ${currency}`;
+    return `${(numAmount / MILLION).toFixed(decimals)}M ${currencySymbol}`;
   }
   if (numAmount >= THOUSAND) {
-    return `${(numAmount / THOUSAND).toFixed(decimals)}K ${currency}`;
+    return `${(numAmount / THOUSAND).toFixed(decimals)}K ${currencySymbol}`;
   }
-  return `${numAmount.toFixed(decimals)} ${currency}`;
+  return `${numAmount.toLocaleString('fr-FR', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })} ${currencySymbol}`;
 }
 
 /**
