@@ -120,7 +120,7 @@ export default function SuppliersPage() {
           </p>
         </div>
         <div className="flex gap-3">
-          <Link href="/sales/purchase-orders">
+          <Link href="/achats/bons-commande">
             <Button variant="secondary" size="sm">
               <ShoppingBag className="h-4 w-4 mr-2" />
               Commandes

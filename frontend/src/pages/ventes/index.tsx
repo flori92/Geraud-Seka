@@ -103,13 +103,13 @@ export default function VentesPage() {
             </p>
           </div>
           <div className="flex gap-3">
-            <Link href="/sales/quotes">
+            <Link href="/ventes/nouveau-devis">
               <Button variant="secondary" size="sm">
                 <FileText className="h-4 w-4 mr-2" />
                 Nouveau devis
               </Button>
             </Link>
-            <Link href="/sales/invoices">
+            <Link href="/ventes/factures-clients">
               <Button variant="primary" size="sm">
                 <Plus className="h-4 w-4 mr-2" />
                 Nouvelle facture
@@ -191,7 +191,7 @@ export default function VentesPage() {
               </div>
               <div className="p-6">
                 <div className="grid grid-cols-2 gap-4">
-                  <Link href="/sales/invoices">
+                  <Link href="/ventes/factures-clients">
                     <div className="p-4 rounded-xl border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all cursor-pointer">
                       <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center mb-3">
                         <Receipt className="h-6 w-6 text-blue-600" />
@@ -200,7 +200,7 @@ export default function VentesPage() {
                       <p className="text-sm text-gray-500">Créer et gérer les factures</p>
                     </div>
                   </Link>
-                  <Link href="/sales/quotes">
+                  <Link href="/ventes/nouveau-devis">
                     <div className="p-4 rounded-xl border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all cursor-pointer">
                       <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center mb-3">
                         <FileText className="h-6 w-6 text-purple-600" />
@@ -218,7 +218,7 @@ export default function VentesPage() {
                       <p className="text-sm text-gray-500">Gérer le portefeuille</p>
                     </div>
                   </Link>
-                  <Link href="/sales/delivery-notes">
+                  <Link href="/ventes/bons-livraison">
                     <div className="p-4 rounded-xl border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all cursor-pointer">
                       <div className="w-12 h-12 rounded-lg bg-orange-100 flex items-center justify-center mb-3">
                         <Package className="h-6 w-6 text-orange-600" />
@@ -236,7 +236,7 @@ export default function VentesPage() {
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
             <div className="p-6 border-b border-gray-100 flex items-center justify-between">
               <h3 className="font-semibold text-gray-900">Factures récentes</h3>
-              <Link href="/sales/invoices" className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center">
+              <Link href="/ventes/factures-clients" className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center">
                 Voir tout <ArrowRight className="h-4 w-4 ml-1" />
               </Link>
             </div>
@@ -251,7 +251,7 @@ export default function VentesPage() {
                 <div className="text-center py-8">
                   <Receipt className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                   <p className="text-gray-500 mb-4">Aucune facture pour le moment</p>
-                  <Link href="/sales/invoices">
+                  <Link href="/ventes/factures-clients">
                     <Button variant="primary" size="sm">
                       <Plus className="h-4 w-4 mr-2" />
                       Créer une facture
@@ -264,7 +264,7 @@ export default function VentesPage() {
                     <div
                       key={invoice.id}
                       className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0 cursor-pointer hover:bg-gray-50 rounded-lg px-2 -mx-2"
-                      onClick={() => router.push(`/sales/invoices/${invoice.id}`)}
+                      onClick={() => router.push(`/ventes/factures/${invoice.id}`)}
                     >
                       <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
                         <Receipt className="h-5 w-5 text-blue-500" />

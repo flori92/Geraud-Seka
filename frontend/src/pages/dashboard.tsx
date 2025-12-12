@@ -364,7 +364,7 @@ export default function DashboardPage() {
             <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
             Actualiser
           </Button>
-          <Link href="/sales/invoices">
+          <Link href="/ventes/factures-clients">
             <Button variant="primary" size="sm">
               <Plus className="h-4 w-4 mr-2" />
               Nouvelle facture
@@ -537,7 +537,7 @@ export default function DashboardPage() {
           icon={Receipt}
           iconColor={calculatedStats.pendingInvoices > 0 ? "bg-red-500" : "bg-gray-400"}
           loading={loading}
-          href="/sales/invoices"
+          href="/ventes/factures-clients"
         />
       </div>
 
@@ -559,7 +559,7 @@ export default function DashboardPage() {
           title="Facturation"
           description="Devis, factures et paiements"
           icon={Receipt}
-          href="/sales/invoices"
+          href="/ventes/factures-clients"
           color="bg-blue-600/50"
           gradient="bg-gradient-to-br from-blue-500 to-blue-700"
           stats={[
@@ -880,14 +880,14 @@ export default function DashboardPage() {
                 label="Nouvelle facture"
                 description="Créer une facture client"
                 icon={Receipt}
-                href="/sales/invoices"
+                href="/ventes/factures-clients"
                 color="bg-blue-500"
               />
               <QuickAction
                 label="Nouveau devis"
                 description="Établir un devis commercial"
                 icon={FileText}
-                href="/sales/quotes"
+                href="/ventes/nouveau-devis"
                 color="bg-blue-500"
               />
               <QuickAction

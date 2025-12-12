@@ -192,7 +192,7 @@ export default function AchatsPage() {
                       <p className="text-sm text-gray-500">Liste et coordonnées</p>
                     </div>
                   </Link>
-                  <Link href="/sales/purchase-orders">
+                  <Link href="/achats/bons-commande">
                     <div className="p-4 rounded-xl border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all cursor-pointer">
                       <div className="w-12 h-12 rounded-lg bg-orange-100 flex items-center justify-center mb-3">
                         <FileText className="h-6 w-6 text-orange-600" />

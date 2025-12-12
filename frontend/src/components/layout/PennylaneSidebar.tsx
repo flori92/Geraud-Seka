@@ -133,7 +133,7 @@ const managementMenu: MenuSection[] = [
         icon: ShoppingCart,
         submenu: [
           { label: "Factures fournisseurs", href: "/achats/factures" },
-          { label: "Bons de commande", href: "/sales/purchase-orders" },
+          { label: "Bons de commande", href: "/achats/bons-commande" },
           { label: "Notes de frais", href: "/coming-soon?feature=Notes de frais" },
           { label: "Fournisseurs", href: "/suppliers" },
         ]
@@ -143,9 +143,9 @@ const managementMenu: MenuSection[] = [
         label: "Ventes",
         icon: Receipt,
         submenu: [
-          { label: "Factures clients", href: "/sales/invoices" },
-          { label: "Devis", href: "/sales/quotes" },
-          { label: "Bons de livraison", href: "/sales/delivery-notes" },
+          { label: "Factures clients", href: "/ventes/factures-clients" },
+          { label: "Devis", href: "/ventes/nouveau-devis" },
+          { label: "Bons de livraison", href: "/ventes/bons-livraison" },
           { label: "Avoirs", href: "/ventes/avoirs" },
           { label: "Clients", href: "/crm/contacts" },
         ]

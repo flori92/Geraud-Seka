@@ -341,7 +341,7 @@ export default function StockDashboardPage() {
           <QuickAction icon={TrendingUp} label="Entrée de stock" href="/stock/movements" color="bg-blue-500" />
           <QuickAction icon={TrendingDown} label="Sortie de stock" href="/stock/movements" color="bg-red-400" />
           <QuickAction icon={Box} label="Inventaire" href="/stock/inventory" color="bg-violet-500" />
-          <QuickAction icon={ShoppingCart} label="Bons de commande" href="/sales/purchase-orders" color="bg-orange-500" />
+          <QuickAction icon={ShoppingCart} label="Bons de commande" href="/achats/bons-commande" color="bg-orange-500" />
         </div>
       </div>
 
