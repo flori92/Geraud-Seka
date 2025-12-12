@@ -69,3 +69,4 @@ google-generativeai==0.8.3
 
 # Scheduler - Cron expressions
 croniter==2.0.1
+pdf2image==1.17.0
