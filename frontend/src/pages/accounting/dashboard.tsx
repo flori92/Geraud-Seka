@@ -69,24 +69,26 @@ export default function AccountingDashboardPage() {
             const cashFlow = treasury.cash_flow_summary;
 
             setStats({
-                revenue: cashFlow?.total_income || 85000000,
-                expenses: cashFlow?.total_expenses || 62000000,
-                net_income: (cashFlow?.total_income || 85000000) - (cashFlow?.total_expenses || 62000000),
-                total_assets: 250000000,
-                total_liabilities: 95000000,
-                equity: 155000000,
-                receivables: invoices.filter((i: any) => i.status === "pending").reduce((sum: number, i: any) => sum + (i.amount || 0), 0) || 12500000,
-                payables: 8700000,
-                cash_balance: treasury.total_balance || 45000000
+                revenue: cashFlow?.total_income || 0,
+                expenses: cashFlow?.total_expenses || 0,
+                net_income: (cashFlow?.total_income || 0) - (cashFlow?.total_expenses || 0),
+                total_assets: 0,
+                total_liabilities: 0,
+                equity: 0,
+                receivables: invoices.filter((i: any) => i.status === "pending").reduce((sum: number, i: any) => sum + (i.amount || 0), 0),
+                payables: 0,
+                cash_balance: treasury.total_balance || 0
             });
 
-            // Generate forecasts
+            // Generate realistic forecasts based on actual data if available, else zero
+            // For now, we set empty forecast to avoid misleading random data
             const months = ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"];
-            const forecastData = months.slice(0, 6).map((month, idx) => ({
+            const currentMonthIdx = new Date().getMonth();
+            const forecastData = months.slice(currentMonthIdx, currentMonthIdx + 6).map((month) => ({
                 month,
-                projected_income: 8500000 + Math.random() * 2000000,
-                projected_expenses: 6200000 + Math.random() * 1500000,
-                projected_balance: 45000000 + (idx * 2300000) + Math.random() * 1000000
+                projected_income: 0,
+                projected_expenses: 0,
+                projected_balance: 0
             }));
             setForecasts(forecastData);
 

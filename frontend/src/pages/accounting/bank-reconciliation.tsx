@@ -16,7 +16,7 @@ import {
     Calendar,
     DollarSign
 } from "lucide-react";
-import { Card } from "@/components/ui/card"; // Assuming UI components exist or inline styles
+import { Card } from "@/components/ui/Card";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -139,8 +139,8 @@ export default function BankReconciliationPage() {
                                         key={tx.id}
                                         onClick={() => setSelectedTransaction(tx.id)}
                                         className={`p-4 rounded-lg border cursor-pointer transition-all hover:shadow-md ${selectedTransaction === tx.id
-                                                ? 'bg-blue-50 border-blue-500 ring-1 ring-blue-500'
-                                                : 'bg-white border-gray-200 hover:border-blue-300'
+                                            ? 'bg-blue-50 border-blue-500 ring-1 ring-blue-500'
+                                            : 'bg-white border-gray-200 hover:border-blue-300'
                                             }`}
                                     >
                                         <div className="flex justify-between items-start mb-1">
