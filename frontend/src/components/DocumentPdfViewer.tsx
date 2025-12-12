@@ -16,8 +16,10 @@ export default function DocumentPdfViewer({ url }: { url: string }) {
       setLoading(true);
       try {
         const pdfjsLib = await import('pdfjs-dist');
-        const workerSrc = await import('pdfjs-dist/build/pdf.worker.min.js?url');
-        (pdfjsLib as any).GlobalWorkerOptions.workerSrc = workerSrc.default;
+        // Utiliser le CDN pour le worker - plus fiable avec Next.js
+        const PDFJS_VERSION = '4.7.76';
+        (pdfjsLib as any).GlobalWorkerOptions.workerSrc =
+          `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VERSION}/build/pdf.worker.min.mjs`;
 
         const pdf = await (pdfjsLib as any).getDocument(url).promise;
         if (cancelled) return;
