@@ -44,7 +44,14 @@
       "Bash(python:*)",
       "WebSearch",
       "WebFetch(domain:www.pennylane.com)",
-      "WebFetch(domain:help.pennylane.com)"
+      "WebFetch(domain:help.pennylane.com)",
+      "Bash(for:*)",
+      "Bash(do echo \"=== $f ===\")",
+      "Bash(done)",
+      "Bash(while read file)",
+      "Bash(.railway-deploy)",
+      "Bash(do echo \"$f\")",
+      "Bash(while read f)"
     ],
     "deny": [],
     "ask": []
