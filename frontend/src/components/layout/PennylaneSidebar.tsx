@@ -98,14 +98,14 @@ const accountingMenu: MenuSection[] = [
         label: "Saisie",
         icon: FileText,
         submenu: [
-          { label: "Écritures comptables", href: "/accounting/entries" },
-          { label: "Journaux", href: "/accounting/journals" },
-          { label: "Rapprochement bancaire", href: "/accounting/reconciliation" },
-          { label: "Factures fournisseurs", href: "/accounting/purchase-invoices" },
-          { label: "Factures clients", href: "/accounting/invoices" },
-          { label: "Transactions", href: "/accounting/transactions" },
           { label: "Saisie avec OCR", href: "/accounting/entries/from-ocr", badge: "IA", badgeVariant: "new" },
+          { label: "Écritures comptables", href: "/accounting/entries" },
           { label: "Nouvelle saisie", href: "/accounting/entries/new" },
+          { label: "Factures fournisseurs", href: "/achats/factures" },
+          { label: "Factures clients", href: "/ventes/factures" },
+          { label: "Transactions", href: "/transactions" },
+          { label: "Rapprochement bancaire", href: "/accounting/reconciliation" },
+          { label: "Journaux", href: "/accounting/journals" },
         ]
       },
       {
