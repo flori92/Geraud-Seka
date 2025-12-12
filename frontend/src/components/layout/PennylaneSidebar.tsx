@@ -192,12 +192,18 @@ export function PennylaneSidebar() {
       "/reports",
     ];
     const isAccountingRoute = accountingRoutes.some((r) => pathname.startsWith(r) || pathname.includes("/accounting"));
-    if (isAccountingRoute && viewMode !== "accounting") {
-      setViewMode("accounting");
-      // Ne pas ouvrir automatiquement le menu "saisie"
-      if (typeof window !== "undefined") localStorage.setItem("seka_view_mode", "accounting");
+    if (isAccountingRoute) {
+      if (viewMode !== "accounting") {
+        setViewMode("accounting");
+        if (typeof window !== "undefined") localStorage.setItem("seka_view_mode", "accounting");
+      }
+    } else {
+      if (viewMode !== "management") {
+        setViewMode("management");
+        if (typeof window !== "undefined") localStorage.setItem("seka_view_mode", "management");
+      }
     }
-  }, [pathname, viewMode, openMenus]);
+  }, [pathname, viewMode]);
 
   useEffect(() => {
     const fetchUser = async () => {

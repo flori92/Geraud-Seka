@@ -130,8 +130,7 @@ export default function AccountingEntryFromOCR() {
     <>
       <Head><title>Saisie avec OCR - SEKA</title></Head>
       <div className="min-h-screen bg-gray-50">
-        <PennylaneSidebar />
-        <main className="ml-[220px] p-6">
+        <main className="p-6">
           <div className="max-w-6xl mx-auto">
             <div className="flex items-center gap-3 mb-6">
               <Sparkles className="h-8 w-8 text-purple-600" />

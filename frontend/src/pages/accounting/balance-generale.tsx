@@ -177,8 +177,7 @@ export default function BalanceGeneralePage() {
         <title>Balance générale - SEKA</title>
       </Head>
       <div className="min-h-screen bg-gray-50">
-        <PennylaneSidebar />
-        <main className="ml-[220px]">
+        <main>
           {/* Header */}
           <div className="bg-white border-b border-gray-200 px-6 py-4">
             <div className="flex items-center justify-between">

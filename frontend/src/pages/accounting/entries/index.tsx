@@ -203,8 +203,7 @@ export default function AccountingEntries() {
     <>
       <Head><title>Écritures comptables - SEKA</title></Head>
       <div className="min-h-screen bg-gray-50">
-        <PennylaneSidebar />
-        <main className="ml-[220px] p-6">
+        <main className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-semibold text-gray-900">Écritures comptables</h1>
             <div className="flex items-center gap-3">
