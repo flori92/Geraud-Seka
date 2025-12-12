@@ -29,7 +29,7 @@ export default function ComingSoonPage() {
                 </p>
 
                 <div className="flex gap-4">
-                    <Button variant="outline" onClick={() => router.back()} className="flex items-center gap-2">
+                    <Button variant="secondary" onClick={() => router.back()} className="flex items-center gap-2">
                         <ArrowLeft className="w-4 h-4" />
                         Retour
                     </Button>
