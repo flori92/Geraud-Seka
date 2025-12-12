@@ -140,9 +140,9 @@ export default function BankReconciliationPage() {
                 {/* Header Actions */}
                 <div className="flex justify-between items-center mb-6">
                     <div className="flex gap-4 items-center">
-                        <div className="bg-white border rounded-lg p-3 flex gap-4 min-w-[250px]">
+                        <div className="bg-white border rounded-lg p-3 flex gap-4 min-w-[300px]">
                             <div className="text-sm flex-1">
-                                <span className="text-gray-500 block mb-1">Compte bancaire</span>
+                                <span className="text-gray-500 block mb-1">Compte (Banque / Mobile Money)</span>
                                 <select
                                     value={selectedAccountId}
                                     onChange={(e) => setSelectedAccountId(e.target.value)}
@@ -150,7 +150,10 @@ export default function BankReconciliationPage() {
                                 >
                                     {bankAccounts.length === 0 && <option value="">Aucun compte trouvé</option>}
                                     {bankAccounts.map(acc => (
-                                        <option key={acc.id} value={acc.id}>{acc.name} ({acc.currency})</option>
+                                        <option key={acc.id} value={acc.id}>
+                                            {acc.name.toLowerCase().includes('orange') || acc.name.toLowerCase().includes('mtn') || acc.name.toLowerCase().includes('moov') || acc.name.toLowerCase().includes('wave') || acc.bank_name?.toLowerCase().includes('mobile') ? '📱 ' : '🏦 '}
+                                            {acc.name} ({acc.currency})
+                                        </option>
                                     ))}
                                 </select>
                             </div>

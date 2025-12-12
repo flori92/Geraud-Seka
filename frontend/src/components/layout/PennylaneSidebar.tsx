@@ -134,7 +134,7 @@ const managementMenu: MenuSection[] = [
         submenu: [
           { label: "Factures fournisseurs", href: "/achats/factures" },
           { label: "Bons de commande", href: "/achats/bons-commande" },
-          { label: "Notes de frais", href: "/coming-soon?feature=Notes de frais" },
+          { label: "Notes de frais", href: "/achats/notes-frais" },
           { label: "Fournisseurs", href: "/suppliers" },
         ]
       },
@@ -221,7 +221,7 @@ const accountingMenu: MenuSection[] = [
           { label: "Saisie avec OCR", href: "/accounting/entries/from-ocr", badge: "IA", badgeVariant: "new" },
           { label: "Écritures comptables", href: "/accounting/entries" },
           { label: "Nouvelle saisie", href: "/accounting/entries/new" },
-          { label: "Saisie rapide", href: "/coming-soon?feature=Saisie rapide" },
+          { label: "Saisie rapide", href: "/accounting/entries/quick-entry", badge: "NEW", badgeVariant: "new" },
           { label: "Factures fournisseurs", href: "/achats/factures" },
           { label: "Factures clients", href: "/ventes/factures" },
           { label: "Transactions bancaires", href: "/transactions" },
