@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { getCurrentUser, type User } from "@/lib/api";
-import { useNavigation } from "@/hooks/useNavigation";
 import {
   LayoutDashboard,
   FileText,
@@ -172,10 +171,11 @@ const badgeStyles = {
 };
 
 export function PennylaneSidebar() {
+  const [viewMode, setViewMode] = useState<"management" | "accounting">("management");
+  const [openMenus, setOpenMenus] = useState<string[]>(["saisie"]);
   const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
   const pathname = router.pathname || "";
-  const { viewMode, openMenus, setViewMode, toggleMenu, navigateToSubmenu } = useNavigation();
 
   const currentMenu = viewMode === "management" ? managementMenu : accountingMenu;
 
@@ -193,6 +193,12 @@ export function PennylaneSidebar() {
     };
     fetchUser();
   }, []);
+
+  const toggleMenu = (menuId: string) => {
+    setOpenMenus((prev) =>
+      prev.includes(menuId) ? prev.filter((id) => id !== menuId) : [...prev, menuId]
+    );
+  };
 
 
 
@@ -212,14 +218,7 @@ export function PennylaneSidebar() {
       <div className="p-3 border-b border-[#34495e]">
         <div className="flex bg-[#34495e] rounded-lg p-1 mb-3">
           <button
-            onClick={() => {
-              if (viewMode !== "accounting") {
-                setViewMode("accounting");
-                // Ouvrir le menu saisie par défaut en mode comptabilité
-                setOpenMenus(["saisie"]);
-                // Ne pas naviguer automatiquement, laisser l'utilisateur choisir
-              }
-            }}
+            onClick={() => setViewMode("accounting")}
             className={`flex-1 text-xs font-medium py-1.5 px-2 rounded transition-all ${
               viewMode === "accounting"
                 ? "bg-white text-[#2c3e50] shadow-sm"
@@ -229,14 +228,7 @@ export function PennylaneSidebar() {
             Comptabilité
           </button>
           <button
-            onClick={() => {
-              if (viewMode !== "management") {
-                setViewMode("management");
-                // Fermer tous les sous-menus en mode gestion
-                setOpenMenus([]);
-                // Ne pas naviguer automatiquement, laisser l'utilisateur choisir
-              }
-            }}
+            onClick={() => setViewMode("management")}
             className={`flex-1 text-xs font-medium py-1.5 px-2 rounded transition-all ${
               viewMode === "management"
                 ? "bg-white text-[#2c3e50] shadow-sm"
@@ -298,7 +290,7 @@ export function PennylaneSidebar() {
                           {item.submenu.map((subItem, idx) => (
                             <button
                               key={idx}
-                              onClick={() => navigateToSubmenu(subItem.href, item.id)}
+                              onClick={() => router.push(subItem.href)}
                               className={`w-full flex items-center justify-between pl-10 pr-3 py-1.5 text-sm transition-colors text-left ${
                                 isActive(subItem.href)
                                   ? "text-white bg-[#3498db] rounded-md mx-2"
