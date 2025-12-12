@@ -171,7 +171,7 @@ const badgeStyles = {
 };
 
 export function PennylaneSidebar() {
-  const [viewMode, setViewMode] = useState<"management" | "accounting">("management");
+  const [viewMode, setViewMode] = useState<"management" | "accounting">("accounting");
   const [openMenus, setOpenMenus] = useState<string[]>(["saisie"]);
   const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
@@ -200,6 +200,14 @@ export function PennylaneSidebar() {
     );
   };
 
+  const handleSubmenuClick = (href: string, parentMenuId: string) => {
+    // Garder le menu parent ouvert
+    if (!openMenus.includes(parentMenuId)) {
+      setOpenMenus(prev => [...prev, parentMenuId]);
+    }
+    router.push(href);
+  };
+
 
 
 
@@ -218,7 +226,12 @@ export function PennylaneSidebar() {
       <div className="p-3 border-b border-[#34495e]">
         <div className="flex bg-[#34495e] rounded-lg p-1 mb-3">
           <button
-            onClick={() => setViewMode("accounting")}
+            onClick={() => {
+              setViewMode("accounting");
+              if (!openMenus.includes("saisie")) {
+                setOpenMenus(prev => [...prev, "saisie"]);
+              }
+            }}
             className={`flex-1 text-xs font-medium py-1.5 px-2 rounded transition-all ${
               viewMode === "accounting"
                 ? "bg-white text-[#2c3e50] shadow-sm"
@@ -228,7 +241,10 @@ export function PennylaneSidebar() {
             Comptabilité
           </button>
           <button
-            onClick={() => setViewMode("management")}
+            onClick={() => {
+              setViewMode("management");
+              setOpenMenus([]);
+            }}
             className={`flex-1 text-xs font-medium py-1.5 px-2 rounded transition-all ${
               viewMode === "management"
                 ? "bg-white text-[#2c3e50] shadow-sm"
@@ -290,7 +306,7 @@ export function PennylaneSidebar() {
                           {item.submenu.map((subItem, idx) => (
                             <button
                               key={idx}
-                              onClick={() => router.push(subItem.href)}
+                              onClick={() => handleSubmenuClick(subItem.href, item.id)}
                               className={`w-full flex items-center justify-between pl-10 pr-3 py-1.5 text-sm transition-colors text-left ${
                                 isActive(subItem.href)
                                   ? "text-white bg-[#3498db] rounded-md mx-2"

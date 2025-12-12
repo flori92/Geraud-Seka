@@ -1,0 +1,473 @@
+<!-- Widget HTML à ajouter dans chaque page Appsmith -->
+<div id="custom-sidebar-container"></div>
+
+<style>
+/* Masquer la sidebar native d'Appsmith */
+.bp3-drawer, 
+.t--sidebar,
+.appsmith-sidebar,
+nav[data-testid="t--sidebar"] {
+  display: none !important;
+}
+
+/* Masquer la navigation top d'Appsmith */
+.t--app-viewer-navigation,
+.appsmith-navbar,
+.bp3-navbar {
+  display: none !important;
+}
+
+/* Ajuster le contenu principal */
+.t--canvas-artboard,
+.canvas-container,
+.appsmith-canvas-container {
+  margin-left: 220px !important;
+  width: calc(100% - 220px) !important;
+  transition: margin-left 0.3s ease !important;
+}
+
+/* Sidebar personnalisée */
+#custom-sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100vh;
+  width: 220px;
+  background: #2c3e50;
+  border-right: 1px solid #34495e;
+  z-index: 1000;
+  overflow-y: auto;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Header */
+.sidebar-header {
+  padding: 12px;
+  border-bottom: 1px solid #34495e;
+}
+
+.mode-toggle {
+  display: flex;
+  background: #34495e;
+  border-radius: 6px;
+  padding: 4px;
+  margin-bottom: 12px;
+}
+
+.mode-btn {
+  flex: 1;
+  padding: 6px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mode-btn.active {
+  background: white;
+  color: #2c3e50;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.mode-btn:not(.active) {
+  background: transparent;
+  color: #cbd5e1;
+}
+
+.mode-btn:not(.active):hover {
+  color: white;
+}
+
+/* Logo */
+.logo-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo-icon {
+  width: 32px;
+  height: 32px;
+  background: white;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 14px;
+  color: #2c3e50;
+}
+
+.logo-text {
+  color: white;
+  font-weight: 600;
+  font-size: 18px;
+}
+
+/* Navigation */
+.sidebar-nav {
+  flex: 1;
+  padding: 8px 0;
+  overflow-y: auto;
+}
+
+.nav-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #34495e;
+}
+
+.nav-section:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.nav-item {
+  margin: 2px 8px;
+}
+
+.nav-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #e2e8f0;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+}
+
+.nav-button:hover {
+  background: #34495e;
+  color: white;
+}
+
+.nav-button.active {
+  background: #3498db;
+  color: white;
+}
+
+.nav-button-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nav-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* Submenu */
+.submenu {
+  overflow: hidden;
+  transition: max-height 0.2s ease;
+}
+
+.submenu.closed {
+  max-height: 0;
+}
+
+.submenu.open {
+  max-height: 500px;
+}
+
+.submenu-item {
+  padding: 6px 12px 6px 40px;
+  margin: 2px 8px;
+  color: #cbd5e1;
+  font-size: 13px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.submenu-item:hover {
+  color: white;
+}
+
+.submenu-item.active {
+  color: white;
+  background: #3498db;
+}
+
+/* Footer */
+.sidebar-footer {
+  padding: 12px;
+  border-top: 1px solid #34495e;
+  background: #34495e;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #3498db;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.user-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-email {
+  font-size: 12px;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .t--canvas-artboard,
+  .canvas-container,
+  .appsmith-canvas-container {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+  
+  #custom-sidebar {
+    transform: translateX(-100%);
+  }
+}
+</style>
+
+<script>
+// Données de navigation
+const accountingMenu = [
+  {
+    id: "saisie",
+    label: "Saisie",
+    submenu: [
+      { label: "Saisie avec OCR", href: "/accounting/entries/from-ocr" },
+      { label: "Écritures comptables", href: "/accounting/entries" },
+      { label: "Nouvelle saisie", href: "/accounting/entries/new" },
+      { label: "Factures fournisseurs", href: "/achats/factures" },
+      { label: "Factures clients", href: "/ventes/factures" },
+      { label: "Transactions", href: "/transactions" }
+    ]
+  },
+  {
+    id: "revision",
+    label: "Révision",
+    submenu: [
+      { label: "Balance générale", href: "/accounting/balance" },
+      { label: "Grand livre", href: "/accounting/ledger" },
+      { label: "Balance fournisseurs", href: "/suppliers/balance" },
+      { label: "Balance clients", href: "/clients/balance" }
+    ]
+  },
+  {
+    id: "fiscalite",
+    label: "Fiscalité",
+    submenu: [
+      { label: "Déclarations TVA", href: "/tax/vat" },
+      { label: "Liasse fiscale", href: "/tax/returns" }
+    ]
+  }
+];
+
+const managementMenu = [
+  { id: "accueil", label: "Accueil", href: "/dashboard" },
+  { id: "transactions", label: "Transactions", href: "/transactions" },
+  { id: "achats", label: "Achats", href: "/achats" },
+  { id: "ventes", label: "Ventes", href: "/ventes" },
+  { id: "analytique", label: "Analytique", href: "/analytique" }
+];
+
+// État de l'application
+let currentMode = 'accounting';
+let openMenus = ['saisie'];
+
+// Créer la sidebar
+function createSidebar() {
+  const sidebar = document.createElement('div');
+  sidebar.id = 'custom-sidebar';
+  
+  sidebar.innerHTML = `
+    <div class="sidebar-header">
+      <div class="mode-toggle">
+        <button class="mode-btn ${currentMode === 'accounting' ? 'active' : ''}" onclick="setMode('accounting')">
+          Comptabilité
+        </button>
+        <button class="mode-btn ${currentMode === 'management' ? 'active' : ''}" onclick="setMode('management')">
+          Gestion
+        </button>
+      </div>
+      <div class="logo-section">
+        <div class="logo-icon">S</div>
+        <div class="logo-text">SEKA</div>
+      </div>
+    </div>
+    
+    <nav class="sidebar-nav" id="sidebar-nav">
+      ${renderMenu()}
+    </nav>
+    
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="user-avatar">U</div>
+        <div class="user-details">
+          <div class="user-name">Utilisateur</div>
+          <div class="user-email">user@seka.com</div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  return sidebar;
+}
+
+// Rendre le menu
+function renderMenu() {
+  const menu = currentMode === 'accounting' ? accountingMenu : managementMenu;
+  
+  return menu.map(item => {
+    if (item.submenu) {
+      const isOpen = openMenus.includes(item.id);
+      return `
+        <div class="nav-item">
+          <button class="nav-button ${isOpen ? 'active' : ''}" onclick="toggleMenu('${item.id}')">
+            <div class="nav-button-content">
+              <span>${item.label}</span>
+            </div>
+            <span style="transform: rotate(${isOpen ? '180' : '0'}deg); transition: transform 0.2s;">▼</span>
+          </button>
+          <div class="submenu ${isOpen ? 'open' : 'closed'}">
+            ${item.submenu.map(subItem => `
+              <div class="submenu-item" onclick="navigateTo('${subItem.href}', '${item.id}')">
+                ${subItem.label}
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    } else {
+      return `
+        <div class="nav-item">
+          <button class="nav-button" onclick="navigateTo('${item.href}')">
+            <div class="nav-button-content">
+              <span>${item.label}</span>
+            </div>
+          </button>
+        </div>
+      `;
+    }
+  }).join('');
+}
+
+// Fonctions globales
+window.setMode = function(mode) {
+  currentMode = mode;
+  if (mode === 'accounting') {
+    openMenus = ['saisie'];
+  } else {
+    openMenus = [];
+  }
+  updateSidebar();
+};
+
+window.toggleMenu = function(menuId) {
+  if (openMenus.includes(menuId)) {
+    openMenus = openMenus.filter(id => id !== menuId);
+  } else {
+    openMenus.push(menuId);
+  }
+  updateSidebar();
+};
+
+window.navigateTo = function(href, parentMenuId) {
+  if (parentMenuId && !openMenus.includes(parentMenuId)) {
+    openMenus.push(parentMenuId);
+    updateSidebar();
+  }
+  // Navigation Appsmith
+  if (typeof navigateTo === 'function') {
+    navigateTo(href);
+  } else {
+    console.log('Navigate to:', href);
+  }
+};
+
+function updateSidebar() {
+  const nav = document.getElementById('sidebar-nav');
+  if (nav) {
+    nav.innerHTML = renderMenu();
+  }
+  
+  // Mettre à jour les boutons de mode
+  document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  document.querySelector(`.mode-btn[onclick="setMode('${currentMode}')"]`).classList.add('active');
+}
+
+// Initialiser
+function initSidebar() {
+  // Supprimer l'ancienne sidebar si elle existe
+  const existing = document.getElementById('custom-sidebar');
+  if (existing) {
+    existing.remove();
+  }
+  
+  // Créer et ajouter la nouvelle sidebar
+  const sidebar = createSidebar();
+  document.body.appendChild(sidebar);
+  
+  // Appliquer les corrections de layout
+  setTimeout(() => {
+    const canvas = document.querySelector('.t--canvas-artboard, .canvas-container, .appsmith-canvas-container');
+    if (canvas) {
+      canvas.style.marginLeft = '220px';
+      canvas.style.width = 'calc(100% - 220px)';
+    }
+  }, 100);
+}
+
+// Démarrer quand le DOM est prêt
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initSidebar);
+} else {
+  initSidebar();
+}
+
+// Observer pour réappliquer si nécessaire
+const observer = new MutationObserver(() => {
+  if (!document.getElementById('custom-sidebar')) {
+    initSidebar();
+  }
+});
+
+observer.observe(document.body, { childList: true, subtree: true });
+</script>
