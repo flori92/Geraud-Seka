@@ -7,7 +7,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { getTreasuryDashboard, getInvoices, getBankTransactions } from "@/lib/api";
+import { getTreasuryDashboard, getInvoices, getBankTransactions, getAccountingAnalyticsStats, getAccountingMonthlyTrends } from "@/lib/api";
 import { formatCurrency } from "@/lib/formatters";
 import {
     Calculator, TrendingUp, TrendingDown, FileText, BarChart3, PieChart,
@@ -46,6 +46,11 @@ export default function AccountingDashboardPage() {
     const [forecasts, setForecasts] = useState<Forecast[]>([]);
     const [pendingTasks, setPendingTasks] = useState<number>(0);
     const [recentEntries, setRecentEntries] = useState<any[]>([]);
+    const [monthlyData, setMonthlyData] = useState({
+        categories: ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"],
+        revenue: [] as number[],
+        expenses: [] as number[]
+    });
 
     useEffect(() => {
         fetchData();
@@ -60,28 +65,25 @@ export default function AccountingDashboardPage() {
 
         setLoading(true);
         try {
-            const [treasury, invoices, transactions] = await Promise.all([
-                getTreasuryDashboard(token),
-                getInvoices(token),
+            const year = parseInt(period) || 2024;
+            // Fetch real accounting data from backend Analytics Engine
+            const [statsData, trendsData, transactions] = await Promise.all([
+                getAccountingAnalyticsStats(token, year),
+                getAccountingMonthlyTrends(token, year),
                 getBankTransactions(token, {}, 0, 10)
             ]);
 
-            const cashFlow = treasury.cash_flow_summary;
+            setStats(statsData);
 
-            setStats({
-                revenue: cashFlow?.total_income || 0,
-                expenses: cashFlow?.total_expenses || 0,
-                net_income: (cashFlow?.total_income || 0) - (cashFlow?.total_expenses || 0),
-                total_assets: 0,
-                total_liabilities: 0,
-                equity: 0,
-                receivables: invoices.filter((i: any) => i.status === "pending").reduce((sum: number, i: any) => sum + (i.amount || 0), 0),
-                payables: 0,
-                cash_balance: treasury.total_balance || 0
-            });
+            if (trendsData) {
+                setMonthlyData({
+                    categories: trendsData.labels || monthlyData.categories,
+                    revenue: trendsData.revenue || [],
+                    expenses: trendsData.expenses || []
+                });
+            }
 
-            // Generate realistic forecasts based on actual data if available, else zero
-            // For now, we set empty forecast to avoid misleading random data
+            // Generate simple forecasts (empty for now to avoid fake data)
             const months = ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"];
             const currentMonthIdx = new Date().getMonth();
             const forecastData = months.slice(currentMonthIdx, currentMonthIdx + 6).map((month) => ({
@@ -99,13 +101,6 @@ export default function AccountingDashboardPage() {
         } finally {
             setLoading(false);
         }
-    };
-
-    // Charts data
-    const monthlyData = {
-        categories: ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"],
-        revenue: [7.2, 8.5, 9.2, 8.8, 10.5, 11.2, 9.8, 10.5, 12.0, 11.5, 12.8, 14.5],
-        expenses: [5.8, 6.2, 6.8, 7.0, 7.5, 8.0, 7.2, 7.8, 8.5, 8.2, 8.8, 9.5]
     };
 
     const expenseBreakdown = [

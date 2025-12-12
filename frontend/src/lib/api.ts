@@ -2073,5 +2073,46 @@ export async function getOpportunitiesPipeline(accessToken: string): Promise<{
   }
 }
 
+// ========== ACCOUNTING ANALYTICS APIs ==========
+
+export interface AccountingAnalyticsStats {
+  revenue: number;
+  expenses: number;
+  net_income: number;
+  total_assets: number;
+  total_liabilities: number;
+  equity: number;
+  receivables: number;
+  payables: number;
+  cash_balance: number;
+}
+
+export interface MonthlyTrends {
+  revenue: number[];
+  expenses: number[];
+  labels: string[];
+}
+
+export async function getAccountingAnalyticsStats(accessToken: string, year: number = 2024): Promise<AccountingAnalyticsStats> {
+  const response = await api.get<AccountingAnalyticsStats>(`/accounting/analytics/dashboard-stats?year=${year}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function getAccountingMonthlyTrends(accessToken: string, year: number = 2024): Promise<MonthlyTrends> {
+  const response = await api.get<MonthlyTrends>(`/accounting/analytics/reports/monthly-trends?year=${year}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function getIncomeStatementReport(accessToken: string, year: number = 2024): Promise<any> {
+  const response = await api.get<any>(`/accounting/analytics/reports/income-statement?year=${year}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
 
 
