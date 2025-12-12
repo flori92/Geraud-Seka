@@ -139,8 +139,11 @@ export default function AccountingDashboardPage() {
                             onChange={(e) => setPeriod(e.target.value)}
                             className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
                         >
-                            <option value="2024">Exercice 2024</option>
-                            <option value="2023">Exercice 2023</option>
+                            {Array.from({ length: 6 }, (_, i) => new Date().getFullYear() + 1 - i).map(year => (
+                                <option key={year} value={year.toString()}>
+                                    Exercice {year}
+                                </option>
+                            ))}
                         </select>
                         <Button variant="secondary" size="sm" onClick={fetchData}>
                             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
