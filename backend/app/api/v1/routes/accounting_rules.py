@@ -168,11 +168,15 @@ async def create_entry_from_document(
     Upload un document (facture PDF/image), extrait les données par OCR,
     applique les règles comptables et suggère une écriture
     """
-    # 1. Upload le fichier
+    # 1. Lire le contenu pour OCR
+    file_content = await file.read()
+    await file.seek(0)
+
+    # 1bis. Upload le fichier
     upload_result = await storage_service.upload_file(file, tenant_id=str(current_tenant.id))
     file_path = upload_result.get('key') or upload_result.get('path')
 
-    # 1bis. Créer un enregistrement Document pour lier l'OCR et la classification
+    # 1ter. Créer un enregistrement Document pour lier l'OCR et la classification
     doc = Document(
         filename=upload_result.get('key') or upload_result.get('path') or file.filename,
         original_filename=file.filename,
@@ -190,7 +194,7 @@ async def create_entry_from_document(
     db.refresh(doc)
     
     # 2. Traiter avec OCR (support multi-pages)
-    ocr_data = await ocr_service.process_invoice(file_path, extract_all_pages=True)
+    ocr_data = await ocr_service.process_invoice(file_path, file_content=file_content, extract_all_pages=True)
     
     # 3. Appliquer les règles comptables
     engine = AccountingRulesEngine(db, str(current_tenant.id))
