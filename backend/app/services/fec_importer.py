@@ -6,7 +6,8 @@ from datetime import datetime
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 
-from app.models.accounting import AccountingEntry, Account
+from app.models.accounting import AccountingEntry
+from app.models.ledger_account import LedgerAccount
 from app.models.accounting_advanced import Journal
 from app.models.tenant import Tenant
 
@@ -129,9 +130,8 @@ class FECImporterService:
                     date=entry_date,
                     debit=debit,
                     credit=credit,
-                    reference=ref[:100],
-                    uploaded_by=self.user_id, # Si champ existe, sinon ignorer
-                    origin="FEC_IMPORT"
+                    reference=ref[:100]
+                    # Removed invalid fields: uploaded_by, origin
                 )
                 entries_to_create.append(entry)
 
