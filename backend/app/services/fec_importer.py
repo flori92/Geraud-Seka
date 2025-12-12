@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.models.accounting import AccountingEntry
 from app.models.ledger_account import LedgerAccount
-from app.models.accounting_advanced import Journal
+from app.models.accounting_advanced import AccountingJournal
 from app.models.tenant import Tenant
 
 logger = logging.getLogger(__name__)
@@ -90,7 +90,7 @@ class FECImporterService:
         }
 
         # Cache pour éviter requêtes DB répétitives
-        existing_journals = {j.code for j in self.db.query(Journal).filter(Journal.tenant_id == self.tenant_id).all()}
+        existing_journals = {j.code for j in self.db.query(AccountingJournal).filter(AccountingJournal.tenant_id == self.tenant_id).all()}
         # Note: Accounts checking omitted for speed for now, or simplify
         
         # Mapping helpers
