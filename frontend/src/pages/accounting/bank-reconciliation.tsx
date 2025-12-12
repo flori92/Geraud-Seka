@@ -1,396 +1,266 @@
 import { useState, useEffect } from "react";
 import Head from "next/head";
+import { DashboardLayout } from "@/components/DashboardLayout";
 import {
-    ArrowLeftRight, Check, X, Zap, RefreshCw, Loader2, Search, Filter,
-    Download, AlertCircle, CheckCircle, Clock, Building2, Calendar,
-    ChevronDown, ChevronRight, Sparkles, Eye, Link2, Unlink
+    CheckCircle,
+    XCircle,
+    Search,
+    Filter,
+    RefreshCw,
+    ArrowRight,
+    AlertCircle,
+    FileText,
+    CreditCard,
+    Plus,
+    Loader2,
+    Calendar,
+    DollarSign
 } from "lucide-react";
-import { formatCurrency } from "@/lib/formatters";
+import { Card } from "@/components/ui/card"; // Assuming UI components exist or inline styles
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
+// Types simulés
 interface BankTransaction {
     id: string;
     date: string;
-    description: string;
+    label: string;
     amount: number;
-    type: "credit" | "debit";
-    account_name: string;
-    reference?: string;
-    status: "pending" | "matched" | "manual";
+    status: 'pending' | 'matched';
+    currency: string;
 }
 
-interface AccountingEntry {
+interface Document {
     id: string;
-    entry_number: string;
     date: string;
-    description: string;
-    amount: number;
-    account_code: string;
-    account_name: string;
-    status: "unmatched" | "matched";
-}
-
-interface ReconciliationSuggestion {
-    id: string;
-    bank_transaction: BankTransaction;
-    suggested_entry: AccountingEntry | null;
-    confidence: number;
-    reason: string;
+    supplier: string;
+    amount_ttc: number;
+    reference: string;
+    status: 'pending' | 'matched';
 }
 
 export default function BankReconciliationPage() {
-    const [transactions, setTransactions] = useState<BankTransaction[]>([]);
-    const [suggestions, setSuggestions] = useState<ReconciliationSuggestion[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [analyzing, setAnalyzing] = useState(false);
-    const [search, setSearch] = useState("");
-    const [selectedPeriod, setSelectedPeriod] = useState("month");
-    const [showMatched, setShowMatched] = useState(false);
-    const [stats, setStats] = useState({
-        total: 0,
-        matched: 0,
-        pending: 0,
-        total_amount: 0
-    });
+    const [bankTransactions, setBankTransactions] = useState<BankTransaction[]>([]);
+    const [documents, setDocuments] = useState<Document[]>([]);
+    const [selectedTransaction, setSelectedTransaction] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [reconciling, setReconciling] = useState(false);
 
+    // Simulation chargement données
     useEffect(() => {
-        fetchData();
+        setLoading(true);
+        setTimeout(() => {
+            setBankTransactions([
+                { id: 'tx1', date: '2024-12-10', label: 'OVH HEBERGEMENT', amount: -14.99, status: 'pending', currency: 'EUR' },
+                { id: 'tx2', date: '2024-12-09', label: 'RESTAURANT LE GOURMET', amount: -45.50, status: 'pending', currency: 'EUR' },
+                { id: 'tx3', date: '2024-12-08', label: 'UBER *TRIP', amount: -22.10, status: 'pending', currency: 'EUR' },
+                { id: 'tx4', date: '2024-12-05', label: 'VIREMENT CLIENT ACME', amount: 4500.00, status: 'pending', currency: 'EUR' },
+                { id: 'tx5', date: '2024-12-01', label: 'ADOBE CREATIVE CLOUD', amount: -59.99, status: 'pending', currency: 'EUR' },
+            ]);
+            setDocuments([
+                { id: 'doc1', date: '2024-12-10', supplier: 'OVH Cloud', amount_ttc: 14.99, reference: 'FACT-2024-88', status: 'pending' },
+                { id: 'doc2', date: '2024-12-05', supplier: 'ACME Corp', amount_ttc: 4500.00, reference: 'INV-4022', status: 'pending' },
+                { id: 'doc3', date: '2024-12-01', supplier: 'Adobe', amount_ttc: 59.99, reference: 'ADB-992', status: 'pending' },
+                { id: 'doc4', date: '2024-11-28', supplier: 'Amazon', amount_ttc: 125.00, reference: 'AMZ-110', status: 'pending' },
+            ]);
+            setLoading(false);
+        }, 800);
     }, []);
 
-    const fetchData = async () => {
-        setLoading(true);
-        try {
-            const token = localStorage.getItem("seka_access_token");
-            if (token) {
-                // Fetch bank transactions and accounting entries
-                // For now, using mock data to demonstrate the UI
-                const mockTransactions: BankTransaction[] = [
-                    { id: "1", date: "2024-12-10", description: "VIREMENT ENTRANT - CLIENT ABC", amount: 1250000, type: "credit", account_name: "Compte courant", reference: "VIR202412001", status: "pending" },
-                    { id: "2", date: "2024-12-09", description: "PAIEMENT FOURNISSEUR SARL XYZ", amount: 450000, type: "debit", account_name: "Compte courant", reference: "CHQ789456", status: "pending" },
-                    { id: "3", date: "2024-12-08", description: "FACTURE ELECTRICITE SBEE", amount: 87500, type: "debit", account_name: "Compte courant", status: "pending" },
-                    { id: "4", date: "2024-12-07", description: "VIREMENT CLIENT DEF SARL", amount: 780000, type: "credit", account_name: "Compte courant", status: "matched" },
-                    { id: "5", date: "2024-12-05", description: "FRAIS BANCAIRES MENSUELS", amount: 15000, type: "debit", account_name: "Compte courant", status: "pending" },
-                ];
-
-                const mockSuggestions: ReconciliationSuggestion[] = [
-                    {
-                        id: "s1",
-                        bank_transaction: mockTransactions[0],
-                        suggested_entry: { id: "e1", entry_number: "VE-2024-0125", date: "2024-12-10", description: "Facture client ABC Corp", amount: 1250000, account_code: "411000", account_name: "Clients", status: "unmatched" },
-                        confidence: 95,
-                        reason: "Montant exact et nom client correspondant"
-                    },
-                    {
-                        id: "s2",
-                        bank_transaction: mockTransactions[1],
-                        suggested_entry: { id: "e2", entry_number: "AC-2024-0089", date: "2024-12-08", description: "Achat fournitures XYZ", amount: 450000, account_code: "401000", account_name: "Fournisseurs", status: "unmatched" },
-                        confidence: 87,
-                        reason: "Montant et fournisseur similaires"
-                    },
-                    {
-                        id: "s3",
-                        bank_transaction: mockTransactions[2],
-                        suggested_entry: null,
-                        confidence: 0,
-                        reason: "Aucune écriture comptable correspondante trouvée"
-                    },
-                    {
-                        id: "s4",
-                        bank_transaction: mockTransactions[4],
-                        suggested_entry: { id: "e3", entry_number: "OD-2024-0012", date: "2024-12-01", description: "Provision frais bancaires", amount: 15000, account_code: "627000", account_name: "Frais bancaires", status: "unmatched" },
-                        confidence: 92,
-                        reason: "Libellé et montant correspondants"
-                    }
-                ];
-
-                setTransactions(mockTransactions);
-                setSuggestions(mockSuggestions);
-                setStats({
-                    total: mockTransactions.length,
-                    matched: mockTransactions.filter(t => t.status === "matched").length,
-                    pending: mockTransactions.filter(t => t.status === "pending").length,
-                    total_amount: mockTransactions.reduce((sum, t) => sum + (t.type === "credit" ? t.amount : -t.amount), 0)
-                });
-            }
-        } catch (error) {
-            console.error("Failed to fetch data:", error);
-        } finally {
-            setLoading(false);
-        }
+    // Suggestions automatiques (Montant exact)
+    const getSuggestions = (tx: BankTransaction) => {
+        return documents.filter(d => Math.abs(d.amount_ttc - Math.abs(tx.amount)) < 0.01);
     };
 
-    const runAIAnalysis = async () => {
-        setAnalyzing(true);
-        // Simulate AI analysis
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        setAnalyzing(false);
-    };
-
-    const handleApprove = (suggestionId: string) => {
-        setSuggestions(prev => prev.filter(s => s.id !== suggestionId));
-        setStats(prev => ({ ...prev, matched: prev.matched + 1, pending: prev.pending - 1 }));
-    };
-
-    const handleReject = (suggestionId: string) => {
-        setSuggestions(prev => prev.map(s =>
-            s.id === suggestionId ? { ...s, suggested_entry: null, confidence: 0, reason: "Suggestion rejetée" } : s
-        ));
-    };
-
-    const filteredSuggestions = suggestions.filter(s =>
-        s.bank_transaction.description.toLowerCase().includes(search.toLowerCase()) ||
-        s.suggested_entry?.description.toLowerCase().includes(search.toLowerCase())
-    );
-
-    const getConfidenceColor = (confidence: number) => {
-        if (confidence >= 90) return "bg-green-100 text-green-700";
-        if (confidence >= 70) return "bg-yellow-100 text-yellow-700";
-        if (confidence >= 50) return "bg-orange-100 text-orange-700";
-        return "bg-gray-100 text-gray-600";
+    const handleReconcile = (txId: string, docId: string) => {
+        setReconciling(true);
+        setTimeout(() => {
+            setBankTransactions(prev => prev.filter(t => t.id !== txId));
+            setDocuments(prev => prev.filter(d => d.id !== docId));
+            setSelectedTransaction(null);
+            setReconciling(false);
+        }, 600);
     };
 
     return (
-        <>
-            <Head>
-                <title>Rapprochement Bancaire - SEKA</title>
-            </Head>
+        <DashboardLayout title="Rapprochement Bancaire">
+            <div className="flex flex-col h-[calc(100vh-140px)]">
 
-            <div className="min-h-screen bg-gray-50 pt-14">
-                <main className="p-6">
-                    <div className="max-w-7xl mx-auto">
-                        {/* Header */}
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
-                                    <ArrowLeftRight className="h-7 w-7 text-white" />
-                                </div>
-                                <div>
-                                    <h1 className="text-2xl font-bold text-gray-900">Rapprochement Bancaire</h1>
-                                    <p className="text-sm text-gray-500">Réconciliez automatiquement vos transactions avec l&apos;IA</p>
-                                </div>
+                {/* Header Actions */}
+                <div className="flex justify-between items-center mb-6">
+                    <div className="flex gap-4 items-center">
+                        <div className="bg-white border rounded-lg p-3 flex gap-4">
+                            <div className="text-sm">
+                                <span className="text-gray-500">Compte:</span>
+                                <span className="font-semibold ml-2">Qonto Principal (**4291)</span>
                             </div>
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={runAIAnalysis}
-                                    disabled={analyzing}
-                                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all shadow-sm disabled:opacity-50"
-                                >
-                                    {analyzing ? (
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                    ) : (
-                                        <Sparkles className="h-4 w-4" />
-                                    )}
-                                    {analyzing ? "Analyse en cours..." : "Analyser avec IA"}
-                                </button>
-                                <button onClick={fetchData} className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50">
-                                    <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-                                    Actualiser
-                                </button>
+                            <div className="h-5 w-px bg-gray-200"></div>
+                            <div className="text-sm">
+                                <span className="text-gray-500">Solde:</span>
+                                <span className="font-semibold ml-2 text-green-600">14 250,50 €</span>
                             </div>
                         </div>
+                        <button className="text-blue-600 text-sm hover:underline flex items-center gap-1">
+                            <RefreshCw className="w-3 h-3" /> Actualiser
+                        </button>
+                    </div>
 
-                        {/* Stats */}
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                            <div className="bg-white rounded-xl border border-gray-200 p-5">
-                                <div className="flex items-center justify-between mb-2">
-                                    <Calendar className="h-5 w-5 text-gray-400" />
-                                </div>
-                                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
-                                <p className="text-sm text-gray-500">Transactions totales</p>
-                            </div>
-                            <div className="bg-white rounded-xl border border-gray-200 p-5">
-                                <div className="flex items-center justify-between mb-2">
-                                    <CheckCircle className="h-5 w-5 text-green-500" />
-                                </div>
-                                <p className="text-2xl font-bold text-green-600">{stats.matched}</p>
-                                <p className="text-sm text-gray-500">Rapprochées</p>
-                            </div>
-                            <div className="bg-white rounded-xl border border-gray-200 p-5">
-                                <div className="flex items-center justify-between mb-2">
-                                    <Clock className="h-5 w-5 text-orange-500" />
-                                </div>
-                                <p className="text-2xl font-bold text-orange-600">{stats.pending}</p>
-                                <p className="text-sm text-gray-500">En attente</p>
-                            </div>
-                            <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl p-5 text-white">
-                                <div className="flex items-center justify-between mb-2">
-                                    <Zap className="h-5 w-5 opacity-80" />
-                                </div>
-                                <p className="text-2xl font-bold">{suggestions.filter(s => s.confidence >= 80).length}</p>
-                                <p className="text-sm opacity-80">Suggestions fiables</p>
-                            </div>
+                    <div className="flex gap-2">
+                        <div className="relative">
+                            <Search className="w-4 h-4 absolute left-3 top-2.5 text-gray-400" />
+                            <input
+                                type="text"
+                                placeholder="Rechercher..."
+                                className="pl-9 pr-4 py-2 border rounded-lg text-sm w-64 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            />
                         </div>
+                    </div>
+                </div>
 
-                        {/* Search & Filters */}
-                        <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
-                            <div className="flex flex-col sm:flex-row gap-4">
-                                <div className="flex-1 relative">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                                    <input
-                                        type="text"
-                                        value={search}
-                                        onChange={(e) => setSearch(e.target.value)}
-                                        placeholder="Rechercher dans les transactions..."
-                                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                    />
-                                </div>
-                                <select
-                                    value={selectedPeriod}
-                                    onChange={(e) => setSelectedPeriod(e.target.value)}
-                                    className="px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="week">Cette semaine</option>
-                                    <option value="month">Ce mois</option>
-                                    <option value="quarter">Ce trimestre</option>
-                                    <option value="year">Cette année</option>
-                                </select>
-                                <label className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
-                                    <input
-                                        type="checkbox"
-                                        checked={showMatched}
-                                        onChange={(e) => setShowMatched(e.target.checked)}
-                                        className="rounded text-blue-600"
-                                    />
-                                    <span className="text-sm text-gray-600">Afficher rapprochées</span>
-                                </label>
+                {/* Main Content - 2 Columns */}
+                {loading ? (
+                    <div className="flex-1 flex items-center justify-center">
+                        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                    </div>
+                ) : (
+                    <div className="flex-1 grid grid-cols-2 gap-0 border rounded-xl overflow-hidden shadow-sm bg-white">
+
+                        {/* Colonne Gauche: Transactions Bancaires */}
+                        <div className="border-r bg-gray-50/50 flex flex-col">
+                            <div className="p-4 border-b bg-white sticky top-0 z-10">
+                                <h3 className="font-semibold flex items-center gap-2">
+                                    <CreditCard className="w-4 h-4 text-gray-500" />
+                                    Transactions à rapprocher ({bankTransactions.length})
+                                </h3>
                             </div>
-                        </div>
-
-                        {/* Suggestions List */}
-                        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                                <h2 className="font-semibold text-gray-900 flex items-center gap-2">
-                                    <Sparkles className="h-5 w-5 text-blue-500" />
-                                    Suggestions de rapprochement
-                                </h2>
-                                <span className="text-sm text-gray-500">{filteredSuggestions.length} suggestions</span>
-                            </div>
-
-                            {loading ? (
-                                <div className="flex items-center justify-center py-20">
-                                    <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
-                                </div>
-                            ) : filteredSuggestions.length === 0 ? (
-                                <div className="text-center py-20">
-                                    <CheckCircle className="h-12 w-12 text-green-300 mx-auto mb-4" />
-                                    <h3 className="text-lg font-medium text-gray-900 mb-2">Tout est rapproché !</h3>
-                                    <p className="text-gray-500">Aucune transaction en attente de rapprochement</p>
-                                </div>
-                            ) : (
-                                <div className="divide-y divide-gray-100">
-                                    {filteredSuggestions.map((suggestion) => (
-                                        <div key={suggestion.id} className="p-6 hover:bg-gray-50 transition-colors">
-                                            <div className="flex items-start gap-6">
-                                                {/* Bank Transaction */}
-                                                <div className="flex-1 bg-gray-50 rounded-lg p-4">
-                                                    <div className="flex items-center gap-2 mb-2">
-                                                        <Building2 className="h-4 w-4 text-gray-400" />
-                                                        <span className="text-xs font-medium text-gray-500 uppercase">Transaction Bancaire</span>
-                                                    </div>
-                                                    <p className="font-medium text-gray-900 mb-1">{suggestion.bank_transaction.description}</p>
-                                                    <div className="flex items-center gap-4 text-sm text-gray-500">
-                                                        <span>{new Date(suggestion.bank_transaction.date).toLocaleDateString()}</span>
-                                                        <span className={`font-semibold ${suggestion.bank_transaction.type === "credit" ? "text-green-600" : "text-red-600"}`}>
-                                                            {suggestion.bank_transaction.type === "credit" ? "+" : "-"}{formatCurrency(suggestion.bank_transaction.amount)}
-                                                        </span>
-                                                    </div>
-                                                </div>
-
-                                                {/* Arrow */}
-                                                <div className="flex flex-col items-center justify-center py-4">
-                                                    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${suggestion.confidence >= 80 ? "bg-green-100" :
-                                                            suggestion.confidence >= 50 ? "bg-yellow-100" : "bg-gray-100"
-                                                        }`}>
-                                                        {suggestion.suggested_entry ? (
-                                                            <Link2 className={`h-5 w-5 ${suggestion.confidence >= 80 ? "text-green-600" :
-                                                                    suggestion.confidence >= 50 ? "text-yellow-600" : "text-gray-400"
-                                                                }`} />
-                                                        ) : (
-                                                            <Unlink className="h-5 w-5 text-gray-400" />
-                                                        )}
-                                                    </div>
-                                                    {suggestion.confidence > 0 && (
-                                                        <span className={`mt-1 text-xs font-bold px-2 py-0.5 rounded-full ${getConfidenceColor(suggestion.confidence)}`}>
-                                                            {suggestion.confidence}%
-                                                        </span>
-                                                    )}
-                                                </div>
-
-                                                {/* Suggested Entry */}
-                                                <div className="flex-1 bg-blue-50 rounded-lg p-4">
-                                                    <div className="flex items-center gap-2 mb-2">
-                                                        <Sparkles className="h-4 w-4 text-blue-500" />
-                                                        <span className="text-xs font-medium text-blue-600 uppercase">Écriture suggérée</span>
-                                                    </div>
-                                                    {suggestion.suggested_entry ? (
-                                                        <>
-                                                            <p className="font-medium text-gray-900 mb-1">{suggestion.suggested_entry.description}</p>
-                                                            <div className="flex items-center gap-4 text-sm text-gray-500">
-                                                                <span className="font-mono text-blue-600">{suggestion.suggested_entry.entry_number}</span>
-                                                                <span>{formatCurrency(suggestion.suggested_entry.amount)}</span>
-                                                            </div>
-                                                        </>
-                                                    ) : (
-                                                        <div className="text-center text-gray-500 py-2">
-                                                            <p className="text-sm">Aucune correspondance trouvée</p>
-                                                            <button className="mt-2 text-sm text-blue-600 hover:text-blue-700 font-medium">
-                                                                Créer une écriture
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                {/* Actions */}
-                                                {suggestion.suggested_entry && (
-                                                    <div className="flex flex-col gap-2">
-                                                        <button
-                                                            onClick={() => handleApprove(suggestion.id)}
-                                                            className="p-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition-colors"
-                                                            title="Valider"
-                                                        >
-                                                            <Check className="h-5 w-5" />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleReject(suggestion.id)}
-                                                            className="p-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg transition-colors"
-                                                            title="Rejeter"
-                                                        >
-                                                            <X className="h-5 w-5" />
-                                                        </button>
-                                                        <button className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors" title="Voir détails">
-                                                            <Eye className="h-5 w-5" />
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            {suggestion.reason && (
-                                                <p className="mt-3 text-xs text-gray-500 italic pl-4 border-l-2 border-blue-200">
-                                                    {suggestion.reason}
-                                                </p>
+                            <div className="overflow-y-auto flex-1 p-2 space-y-2">
+                                {bankTransactions.map(tx => (
+                                    <div
+                                        key={tx.id}
+                                        onClick={() => setSelectedTransaction(tx.id)}
+                                        className={`p-4 rounded-lg border cursor-pointer transition-all hover:shadow-md ${selectedTransaction === tx.id
+                                                ? 'bg-blue-50 border-blue-500 ring-1 ring-blue-500'
+                                                : 'bg-white border-gray-200 hover:border-blue-300'
+                                            }`}
+                                    >
+                                        <div className="flex justify-between items-start mb-1">
+                                            <span className="font-medium text-gray-900">{tx.label}</span>
+                                            <span className={`font-bold ${tx.amount > 0 ? 'text-green-600' : 'text-gray-900'}`}>
+                                                {tx.amount > 0 ? '+' : ''}{tx.amount.toFixed(2)} €
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between text-xs text-gray-500">
+                                            <span>{format(new Date(tx.date), 'dd MMM yyyy', { locale: fr })}</span>
+                                            {getSuggestions(tx).length > 0 && (
+                                                <span className="text-green-600 font-medium flex items-center gap-1">
+                                                    <CheckCircle className="w-3 h-3" />
+                                                    Suggestion trouvée
+                                                </span>
                                             )}
                                         </div>
-                                    ))}
-                                </div>
-                            )}
+                                    </div>
+                                ))}
+                                {bankTransactions.length === 0 && (
+                                    <div className="p-8 text-center text-gray-500">
+                                        <CheckCircle className="w-12 h-12 mx-auto text-green-500 mb-3" />
+                                        <p>Tout est rapproché ! 🎉</p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
-                        {/* Tips */}
-                        <div className="mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100 p-6">
-                            <div className="flex items-start gap-4">
-                                <div className="p-2 bg-blue-100 rounded-lg">
-                                    <Zap className="h-5 w-5 text-blue-600" />
-                                </div>
-                                <div>
-                                    <h3 className="font-semibold text-gray-900 mb-1">Rapprochement automatique avec IA</h3>
-                                    <p className="text-sm text-gray-600">
-                                        L&apos;IA analyse vos transactions bancaires et les compare à vos écritures comptables pour suggérer
-                                        des correspondances. Plus vous validez de suggestions, plus le système devient précis.
-                                    </p>
-                                </div>
+                        {/* Colonne Droite: Justificatifs / Actions */}
+                        <div className="bg-white flex flex-col">
+                            <div className="p-4 border-b bg-gray-50 sticky top-0 z-10 flex justify-between items-center">
+                                <h3 className="font-semibold flex items-center gap-2">
+                                    <FileText className="w-4 h-4 text-gray-500" />
+                                    Justificatifs & Contreparties
+                                </h3>
+                                {selectedTransaction && (
+                                    <button className="text-xs bg-white border px-2 py-1 rounded hover:bg-gray-50">
+                                        Créer une saisie manuelle
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className="overflow-y-auto flex-1 p-4">
+                                {selectedTransaction ? (
+                                    <div className="space-y-6">
+                                        {/* Suggestions */}
+                                        <div>
+                                            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                                                Suggestions automatiques
+                                            </h4>
+                                            {getSuggestions(bankTransactions.find(t => t.id === selectedTransaction)!).length > 0 ? (
+                                                <div className="space-y-3">
+                                                    {getSuggestions(bankTransactions.find(t => t.id === selectedTransaction)!).map(doc => (
+                                                        <div key={doc.id} className="border rounded-lg p-4 flex justify-between items-center bg-green-50 border-green-200">
+                                                            <div>
+                                                                <div className="font-medium">{doc.supplier}</div>
+                                                                <div className="text-xs text-gray-500">{doc.reference} • {format(new Date(doc.date), 'dd MMM yyyy')}</div>
+                                                            </div>
+                                                            <div className="flex items-center gap-4">
+                                                                <span className="font-bold">{doc.amount_ttc.toFixed(2)} €</span>
+                                                                <button
+                                                                    onClick={() => handleReconcile(selectedTransaction, doc.id)}
+                                                                    disabled={reconciling}
+                                                                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium text-sm flex items-center gap-2"
+                                                                >
+                                                                    {reconciling ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                                                                    Rapprocher
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="p-6 border-2 border-dashed rounded-lg text-center text-gray-500">
+                                                    <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                                                    <p>Aucune suggestion évidente trouvée.</p>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Recherche manuelle */}
+                                        <div>
+                                            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 mt-6">
+                                                Rechercher un justificatif
+                                            </h4>
+                                            <div className="space-y-2">
+                                                {documents.filter(d => !getSuggestions(bankTransactions.find(t => t.id === selectedTransaction)!).includes(d)).map(doc => (
+                                                    <div key={doc.id} className="border rounded-lg p-3 flex justify-between items-center hover:bg-gray-50 group">
+                                                        <div>
+                                                            <div className="font-medium">{doc.supplier}</div>
+                                                            <div className="text-xs text-gray-500">{doc.reference} • {doc.amount_ttc.toFixed(2)} €</div>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => handleReconcile(selectedTransaction, doc.id)}
+                                                            className="opacity-0 group-hover:opacity-100 px-3 py-1.5 border border-gray-300 rounded text-sm hover:bg-white transition-opacity"
+                                                        >
+                                                            Sélectionner
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                                <button className="w-full py-3 border-2 border-dashed rounded-lg text-gray-500 hover:border-blue-300 hover:text-blue-600 flex items-center justify-center gap-2 transition-colors">
+                                                    <Plus className="w-4 h-4" />
+                                                    Importer un nouveau document
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                ) : (
+                                    <div className="h-full flex flex-col items-center justify-center text-gray-400">
+                                        <ArrowRight className="w-12 h-12 mb-4 opacity-20" />
+                                        <p className="text-lg font-medium">Sélectionnez une transaction</p>
+                                        <p className="text-sm">pour voir les suggestions de rapprochement</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
-                </main>
+                )}
             </div>
-        </>
+        </DashboardLayout>
     );
 }
