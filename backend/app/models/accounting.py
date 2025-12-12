@@ -29,9 +29,11 @@ class AccountingEntry(Base, TimestampMixin):
     reference = Column(String(100), nullable=True)
     
     document_id = Column(UUID(as_uuid=True), ForeignKey("documents.id", ondelete="CASCADE"), nullable=True)
-    client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id", ondelete="CASCADE"), nullable=False)
+    client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id", ondelete="CASCADE"), nullable=True)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
     
     document = relationship("Document", back_populates="accounting_entries")
     client = relationship("Client", backref="accounting_entries")
+    tenant = relationship("Tenant")
 
     __table_args__ = ({"sqlite_autoincrement": True},)
