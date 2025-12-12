@@ -45,6 +45,7 @@ from app.api.v1.routes import (
     billing,
     sales,
     suppliers,
+    supplier_invoices,
 )
 
 api_router = APIRouter()
@@ -80,6 +81,9 @@ api_router.include_router(sales.router, prefix="/sales", tags=["sales"])
 # Original routes
 api_router.include_router(quotes.router, prefix="/quotes", tags=["sales", "quotes"])
 api_router.include_router(sales_invoices.router, prefix="/sales-invoices", tags=["sales", "invoices"])
+
+# Purchases/Achats Module Routes
+api_router.include_router(supplier_invoices.router, prefix="/supplier-invoices", tags=["purchases", "supplier-invoices"])
 api_router.include_router(purchase_orders.router, prefix="/purchase-orders", tags=["purchases", "orders"])
 api_router.include_router(delivery_notes.router, prefix="/delivery-notes", tags=["purchases", "deliveries"])
 
