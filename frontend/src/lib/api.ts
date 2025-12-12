@@ -1580,7 +1580,7 @@ export async function getBankTransactions(
       if (filters.category) params.append("category", filters.category);
     }
 
-    const response = await api.get<BankTransaction[]>(`/bank-transactions/?${params.toString()}`, {
+    const response = await api.get<BankTransaction[]>(`/treasury/transactions/?${params.toString()}`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     return Array.isArray(response.data) ? response.data : [];
@@ -1591,14 +1591,14 @@ export async function getBankTransactions(
 }
 
 export async function getBankTransaction(accessToken: string, transactionId: string): Promise<BankTransaction> {
-  const response = await api.get<BankTransaction>(`/bank-transactions/${transactionId}`, {
+  const response = await api.get<BankTransaction>(`/treasury/transactions/${transactionId}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
 }
 
 export async function createBankTransaction(accessToken: string, data: BankTransactionCreate): Promise<BankTransaction> {
-  const response = await api.post<BankTransaction>("/bank-transactions/", data, {
+  const response = await api.post<BankTransaction>("/treasury/transactions/", data, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
@@ -1669,7 +1669,7 @@ export interface BankAccount {
 
 export async function getBankAccounts(accessToken: string): Promise<BankAccount[]> {
   try {
-    const response = await api.get<BankAccount[]>("/bank-accounts/", {
+    const response = await api.get<BankAccount[]>("/treasury/accounts/", {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     return Array.isArray(response.data) ? response.data : [];

@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import Head from "next/head";
+import { useRouter } from "next/router";
+import { getBankAccounts, getBankTransactions, getDocuments } from "@/lib/api";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import {
     CheckCircle,
@@ -46,26 +48,75 @@ export default function BankReconciliationPage() {
     const [loading, setLoading] = useState(false);
     const [reconciling, setReconciling] = useState(false);
 
-    // Simulation chargement données
-    useEffect(() => {
+    const [bankAccounts, setBankAccounts] = useState<any[]>([]);
+    const [selectedAccountId, setSelectedAccountId] = useState<string>("");
+    const router = useRouter(); // Need to add useRouter import
+
+    const fetchData = async () => {
+        const token = localStorage.getItem("seka_access_token");
+        if (!token) {
+            // router.push("/login"); // router needed
+            return;
+        }
+
         setLoading(true);
-        setTimeout(() => {
-            setBankTransactions([
-                { id: 'tx1', date: '2024-12-10', label: 'OVH HEBERGEMENT', amount: -14.99, status: 'pending', currency: 'EUR' },
-                { id: 'tx2', date: '2024-12-09', label: 'RESTAURANT LE GOURMET', amount: -45.50, status: 'pending', currency: 'EUR' },
-                { id: 'tx3', date: '2024-12-08', label: 'UBER *TRIP', amount: -22.10, status: 'pending', currency: 'EUR' },
-                { id: 'tx4', date: '2024-12-05', label: 'VIREMENT CLIENT ACME', amount: 4500.00, status: 'pending', currency: 'EUR' },
-                { id: 'tx5', date: '2024-12-01', label: 'ADOBE CREATIVE CLOUD', amount: -59.99, status: 'pending', currency: 'EUR' },
-            ]);
-            setDocuments([
-                { id: 'doc1', date: '2024-12-10', supplier: 'OVH Cloud', amount_ttc: 14.99, reference: 'FACT-2024-88', status: 'pending' },
-                { id: 'doc2', date: '2024-12-05', supplier: 'ACME Corp', amount_ttc: 4500.00, reference: 'INV-4022', status: 'pending' },
-                { id: 'doc3', date: '2024-12-01', supplier: 'Adobe', amount_ttc: 59.99, reference: 'ADB-992', status: 'pending' },
-                { id: 'doc4', date: '2024-11-28', supplier: 'Amazon', amount_ttc: 125.00, reference: 'AMZ-110', status: 'pending' },
-            ]);
+        try {
+            // 1. Fetch Bank Accounts
+            const accounts = await getBankAccounts(token);
+            setBankAccounts(accounts);
+
+            if (accounts.length > 0 && !selectedAccountId) {
+                setSelectedAccountId(accounts[0].id);
+            }
+
+            // 2. Fetch Documents (e.g. Invoices to reconcile)
+            // Using getDocuments for now, ideally fetching supplier invoices specifically
+            const docsData = await getDocuments(token);
+            const formattedDocs = docsData.map((d: any) => ({
+                id: d.id,
+                date: d.created_at || new Date().toISOString(),
+                supplier: d.client?.name || "Tier Tiers",
+                amount_ttc: d.total_amount || 0,
+                reference: d.number || "REF",
+                status: 'pending' as 'pending'
+            }));
+            setDocuments(formattedDocs);
+
+        } catch (error) {
+            console.error("Error fetching reconciliation data:", error);
+        } finally {
             setLoading(false);
-        }, 800);
+        }
+    };
+
+    useEffect(() => {
+        fetchData();
     }, []);
+
+    useEffect(() => {
+        const fetchTransactions = async () => {
+            if (!selectedAccountId) return;
+            const token = localStorage.getItem("seka_access_token");
+            if (!token) return;
+
+            try {
+                const txs = await getBankTransactions(token, { bank_account_id: selectedAccountId });
+                // Filter unreconciled client side or ensure API filtering
+                const unreconciledTxs = txs.filter((t: any) => !t.is_reconciled).map((t: any) => ({
+                    id: t.id,
+                    date: t.date,
+                    label: t.description || t.label, // backend uses description sometimes
+                    amount: t.amount,
+                    status: 'pending' as 'pending',
+                    currency: t.currency || 'EUR'
+                }));
+                setBankTransactions(unreconciledTxs);
+            } catch (err) {
+                console.error("Error fetching transactions:", err);
+            }
+        };
+        fetchTransactions();
+    }, [selectedAccountId]);
 
     // Suggestions automatiques (Montant exact)
     const getSuggestions = (tx: BankTransaction) => {
@@ -89,18 +140,22 @@ export default function BankReconciliationPage() {
                 {/* Header Actions */}
                 <div className="flex justify-between items-center mb-6">
                     <div className="flex gap-4 items-center">
-                        <div className="bg-white border rounded-lg p-3 flex gap-4">
-                            <div className="text-sm">
-                                <span className="text-gray-500">Compte:</span>
-                                <span className="font-semibold ml-2">Qonto Principal (**4291)</span>
-                            </div>
-                            <div className="h-5 w-px bg-gray-200"></div>
-                            <div className="text-sm">
-                                <span className="text-gray-500">Solde:</span>
-                                <span className="font-semibold ml-2 text-green-600">14 250,50 €</span>
+                        <div className="bg-white border rounded-lg p-3 flex gap-4 min-w-[250px]">
+                            <div className="text-sm flex-1">
+                                <span className="text-gray-500 block mb-1">Compte bancaire</span>
+                                <select
+                                    value={selectedAccountId}
+                                    onChange={(e) => setSelectedAccountId(e.target.value)}
+                                    className="font-semibold text-gray-900 w-full bg-transparent border-none p-0 focus:ring-0 cursor-pointer"
+                                >
+                                    {bankAccounts.length === 0 && <option value="">Aucun compte trouvé</option>}
+                                    {bankAccounts.map(acc => (
+                                        <option key={acc.id} value={acc.id}>{acc.name} ({acc.currency})</option>
+                                    ))}
+                                </select>
                             </div>
                         </div>
-                        <button className="text-blue-600 text-sm hover:underline flex items-center gap-1">
+                        <button onClick={() => fetchData()} className="text-blue-600 text-sm hover:underline flex items-center gap-1">
                             <RefreshCw className="w-3 h-3" /> Actualiser
                         </button>
                     </div>
