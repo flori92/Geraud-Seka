@@ -21,6 +21,8 @@ from app.models.treasury import BankAccount, BankTransaction, PaymentSchedule
 # Import CRM models
 from app.models.crm import Lead, Opportunity, CRMActivity
 
+from app.models.accounting_rules import AccountingRule, DocumentClassification
+
 __all__ = [
     "Tenant",
     "User",
@@ -49,4 +51,6 @@ __all__ = [
     "Lead",
     "Opportunity",
     "CRMActivity",
+    "AccountingRule",
+    "DocumentClassification",
 ]
