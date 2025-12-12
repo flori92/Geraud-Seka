@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import dynamic from "next/dynamic";
-import { Upload, FileText, CheckCircle, AlertCircle, Sparkles, Edit2, Save, Loader2 } from "lucide-react";
+import { Upload, FileText, CheckCircle, AlertCircle, Sparkles, Edit2, Save, Loader2, ThumbsUp, X } from "lucide-react";
+import AccountAutocomplete, { type Account } from "@/components/AccountAutocomplete";
+import ConfidenceBadge from "@/components/ConfidenceBadge";
 
 interface OcrData {
   reference_number: string;
@@ -39,16 +41,63 @@ export default function AccountingEntryFromOCR() {
   const router = useRouter();
   const [uploading, setUploading] = useState(false);
   const [ocrData, setOcrData] = useState<OcrData | null>(null);
-  const [fileInfo, setFileInfo] = useState<{url?: string; key?: string; page_count?: number; is_multi_page?: boolean}>({});
+  const [fileInfo, setFileInfo] = useState<{ url?: string; key?: string; page_count?: number; is_multi_page?: boolean; document_id?: string }>({});
   const [suggestions, setSuggestions] = useState<Suggestion | null>(null);
   const [entryLines, setEntryLines] = useState<EntryLine[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [validatingClassification, setValidatingClassification] = useState(false);
+  const [classificationValidated, setClassificationValidated] = useState(false);
   const PdfViewer = dynamic(() => import('@/components/DocumentPdfViewer'), { ssr: false });
+
+  // Fetch accounts for autocomplete
+  useEffect(() => {
+    const fetchAccounts = async () => {
+      try {
+        const token = localStorage.getItem("seka_access_token");
+        const response = await fetch(`/api/accounting/accounts`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          // Handle both array and wrapped response
+          const accountList = Array.isArray(data) ? data : data.accounts || [];
+          setAccounts(accountList.map((acc: any) => ({
+            code: acc.code || acc.account_code,
+            name: acc.name || acc.label || acc.account_name,
+            type: acc.type,
+            class: acc.class,
+          })));
+        }
+      } catch (error) {
+        console.error("Failed to fetch accounts:", error);
+        // Fallback to common accounts
+        setAccounts([
+          { code: "401000", name: "Fournisseurs" },
+          { code: "411000", name: "Clients" },
+          { code: "445620", name: "TVA déductible sur immobilisations" },
+          { code: "445660", name: "TVA déductible sur autres biens et services" },
+          { code: "601000", name: "Achats de matières premières" },
+          { code: "602000", name: "Achats de fournitures" },
+          { code: "606100", name: "Fournitures non stockables (eau, énergie)" },
+          { code: "606400", name: "Fournitures administratives" },
+          { code: "613200", name: "Locations immobilières" },
+          { code: "615500", name: "Entretien et réparations" },
+          { code: "616000", name: "Primes d'assurance" },
+          { code: "622600", name: "Honoraires" },
+          { code: "626000", name: "Frais postaux et télécommunications" },
+          { code: "627000", name: "Services bancaires" },
+        ]);
+      }
+    };
+    fetchAccounts();
+  }, []);
 
   const handleFileUpload = async (file: File) => {
     setUploading(true);
+    setClassificationValidated(false);
     const formData = new FormData();
     formData.append('file', file);
 
@@ -77,6 +126,43 @@ export default function AccountingEntryFromOCR() {
       alert("Erreur lors de l'upload");
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleValidateClassification = async () => {
+    if (!fileInfo.document_id || !suggestions) return;
+
+    setValidatingClassification(true);
+    try {
+      const token = localStorage.getItem("seka_access_token");
+
+      // Find debit and credit accounts from entry lines
+      const debitLine = entryLines.find(l => l.debit > 0 && !l.label.toLowerCase().includes('tva'));
+      const creditLine = entryLines.find(l => l.credit > 0);
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/accounting-rules/entries/validate-classification?document_id=${fileInfo.document_id}&debit_account=${debitLine?.account_code || ''}&credit_account=${creditLine?.account_code || ''}&label=${encodeURIComponent(suggestions.suggested_label || '')}`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.ok) {
+        setClassificationValidated(true);
+        alert("Classification validée ! Cela améliorera les suggestions futures.");
+      } else {
+        const error = await response.json();
+        alert(error.detail || "Erreur lors de la validation");
+      }
+    } catch (error) {
+      console.error("Error validating classification:", error);
+      alert("Erreur lors de la validation de la classification");
+    } finally {
+      setValidatingClassification(false);
     }
   };
 
@@ -150,10 +236,15 @@ export default function AccountingEntryFromOCR() {
   const getTotalCredit = () => entryLines.reduce((sum, line) => sum + (line.credit || 0), 0);
   const isBalanced = Math.abs(getTotalDebit() - getTotalCredit()) < 0.01;
 
+  // Helper to get field confidence
+  const getFieldConfidence = (fieldName: string): number | undefined => {
+    return ocrData?.fields_confidence?.[fieldName];
+  };
+
   return (
     <>
       <Head><title>Saisie avec OCR - SEKA</title></Head>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 pt-14">
         <main className="p-6">
           <div className="max-w-6xl mx-auto">
             <div className="flex items-center gap-3 mb-6">
@@ -202,7 +293,6 @@ export default function AccountingEntryFromOCR() {
             {/* OCR Results */}
             {ocrData && (
               <div className="space-y-6">
-                {/* OCR Data Card */}
                 {/* Preview with pagination if available */}
                 {fileInfo?.url && ocrData?.is_multi_page && (
                   <div className="bg-white rounded-xl border border-gray-200 p-4">
@@ -213,6 +303,8 @@ export default function AccountingEntryFromOCR() {
                     </div>
                   </div>
                 )}
+
+                {/* OCR Data Card with Confidence Badges */}
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
@@ -225,60 +317,107 @@ export default function AccountingEntryFromOCR() {
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        ocrData.confidence > 0.9
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${ocrData.confidence > 0.9
                           ? 'bg-green-100 text-green-700'
                           : ocrData.confidence > 0.7
-                          ? 'bg-yellow-100 text-yellow-700'
-                          : 'bg-red-100 text-red-700'
-                      }`}>
-                        Confiance: {(ocrData.confidence * 100).toFixed(0)}%
+                            ? 'bg-yellow-100 text-yellow-700'
+                            : 'bg-red-100 text-red-700'
+                        }`}>
+                        Confiance globale: {(ocrData.confidence * 100).toFixed(0)}%
                       </span>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
-                      <label className="text-xs text-gray-500">Fournisseur</label>
+                      <div className="flex items-center gap-2 mb-1">
+                        <label className="text-xs text-gray-500">Fournisseur</label>
+                        {getFieldConfidence('supplier_name') !== undefined && (
+                          <ConfidenceBadge confidence={getFieldConfidence('supplier_name')!} />
+                        )}
+                      </div>
                       <p className="font-medium">{ocrData.supplier_name}</p>
                     </div>
                     <div>
-                      <label className="text-xs text-gray-500">Référence</label>
+                      <div className="flex items-center gap-2 mb-1">
+                        <label className="text-xs text-gray-500">Référence</label>
+                        {getFieldConfidence('reference_number') !== undefined && (
+                          <ConfidenceBadge confidence={getFieldConfidence('reference_number')!} />
+                        )}
+                      </div>
                       <p className="font-medium">{ocrData.reference_number}</p>
                     </div>
                     <div>
-                      <label className="text-xs text-gray-500">Date</label>
+                      <div className="flex items-center gap-2 mb-1">
+                        <label className="text-xs text-gray-500">Date</label>
+                        {getFieldConfidence('date') !== undefined && (
+                          <ConfidenceBadge confidence={getFieldConfidence('date')!} />
+                        )}
+                      </div>
                       <p className="font-medium">{ocrData.date}</p>
                     </div>
                     <div>
-                      <label className="text-xs text-gray-500">Montant TTC</label>
+                      <div className="flex items-center gap-2 mb-1">
+                        <label className="text-xs text-gray-500">Montant TTC</label>
+                        {getFieldConfidence('amount_ttc') !== undefined && (
+                          <ConfidenceBadge confidence={getFieldConfidence('amount_ttc')!} />
+                        )}
+                      </div>
                       <p className="font-medium text-lg">{ocrData.amount_ttc.toLocaleString()} FCFA</p>
                     </div>
                   </div>
                 </div>
 
-                {/* Suggestions Card */}
+                {/* Suggestions Card with Validate Button */}
                 {suggestions && (
-                  <div className={`rounded-xl border-2 p-6 ${
-                    suggestions.auto_apply
-                      ? 'bg-green-50 border-green-300'
-                      : 'bg-yellow-50 border-yellow-300'
-                  }`}>
-                    <div className="flex items-center gap-3 mb-4">
-                      {suggestions.auto_apply ? (
-                        <CheckCircle className="h-6 w-6 text-green-600" />
-                      ) : (
-                        <AlertCircle className="h-6 w-6 text-yellow-600" />
-                      )}
-                      <div>
-                        <h3 className="font-semibold">
-                          {suggestions.rule_name || "Suggestion par défaut"}
-                        </h3>
-                        <p className="text-sm text-gray-600">
-                          Confiance: {(suggestions.confidence * 100).toFixed(0)}%
-                          {suggestions.auto_apply && " - Application automatique"}
-                        </p>
+                  <div className={`rounded-xl border-2 p-6 ${classificationValidated
+                      ? 'bg-blue-50 border-blue-300'
+                      : suggestions.auto_apply
+                        ? 'bg-green-50 border-green-300'
+                        : 'bg-yellow-50 border-yellow-300'
+                    }`}>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        {classificationValidated ? (
+                          <ThumbsUp className="h-6 w-6 text-blue-600" />
+                        ) : suggestions.auto_apply ? (
+                          <CheckCircle className="h-6 w-6 text-green-600" />
+                        ) : (
+                          <AlertCircle className="h-6 w-6 text-yellow-600" />
+                        )}
+                        <div>
+                          <h3 className="font-semibold">
+                            {classificationValidated
+                              ? "Classification validée"
+                              : suggestions.rule_name || "Suggestion par défaut"}
+                          </h3>
+                          <p className="text-sm text-gray-600">
+                            Confiance: {(suggestions.confidence * 100).toFixed(0)}%
+                            {suggestions.auto_apply && !classificationValidated && " - Application automatique"}
+                          </p>
+                        </div>
                       </div>
+
+                      {/* Validate Classification Button */}
+                      {!classificationValidated && fileInfo.document_id && (
+                        <button
+                          onClick={handleValidateClassification}
+                          disabled={validatingClassification}
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                        >
+                          {validatingClassification ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Validation...
+                            </>
+                          ) : (
+                            <>
+                              <ThumbsUp className="h-4 w-4" />
+                              Valider classification
+                            </>
+                          )}
+                        </button>
+                      )}
                     </div>
                     <div className="grid grid-cols-3 gap-4 text-sm">
                       <div>
@@ -297,13 +436,14 @@ export default function AccountingEntryFromOCR() {
                   </div>
                 )}
 
-                {/* Entry Lines */}
+                {/* Entry Lines with Account Autocomplete */}
                 <div className="bg-white rounded-xl border border-gray-200 p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-semibold">Écriture proposée</h3>
                     <button
                       onClick={() => setIsEditing(!isEditing)}
-                      className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                      disabled={classificationValidated}
+                      className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <Edit2 className="h-4 w-4" />
                       {isEditing ? "Verrouiller" : "Modifier"}
@@ -313,10 +453,10 @@ export default function AccountingEntryFromOCR() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-gray-200">
-                        <th className="text-left py-2 text-sm font-medium text-gray-600">Compte</th>
+                        <th className="text-left py-2 text-sm font-medium text-gray-600 w-48">Compte</th>
                         <th className="text-left py-2 text-sm font-medium text-gray-600">Libellé</th>
-                        <th className="text-right py-2 text-sm font-medium text-gray-600">Débit</th>
-                        <th className="text-right py-2 text-sm font-medium text-gray-600">Crédit</th>
+                        <th className="text-right py-2 text-sm font-medium text-gray-600 w-32">Débit</th>
+                        <th className="text-right py-2 text-sm font-medium text-gray-600 w-32">Crédit</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -324,11 +464,11 @@ export default function AccountingEntryFromOCR() {
                         <tr key={idx} className="border-b border-gray-100">
                           <td className="py-3">
                             {isEditing ? (
-                              <input
-                                type="text"
+                              <AccountAutocomplete
                                 value={line.account_code}
-                                onChange={(e) => updateLine(idx, 'account_code', e.target.value)}
-                                className="w-full px-2 py-1 border border-gray-300 rounded font-mono text-sm"
+                                onChange={(code) => updateLine(idx, 'account_code', code)}
+                                accounts={accounts}
+                                placeholder="Rechercher..."
                               />
                             ) : (
                               <span className="font-mono text-sm">{line.account_code}</span>
@@ -437,7 +577,9 @@ export default function AccountingEntryFromOCR() {
           <div className="relative bg-white rounded-lg shadow-xl w-full max-w-5xl h-[80vh] mx-4 overflow-hidden">
             <div className="flex items-center justify-between border-b px-4 py-2">
               <h3 className="font-semibold text-gray-800">Aperçu du document</h3>
-              <button onClick={() => setShowPreview(false)} className="px-2 py-1 rounded hover:bg-gray-100">Fermer</button>
+              <button onClick={() => setShowPreview(false)} className="p-2 rounded hover:bg-gray-100">
+                <X className="h-5 w-5" />
+              </button>
             </div>
             <div className="p-4 h-[calc(80vh-48px)] overflow-hidden">
               <PdfViewer url={fileInfo.url} />

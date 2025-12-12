@@ -38,7 +38,8 @@ import {
   UserCheck,
   MessageSquare,
   Bell,
-  Eye
+  Eye,
+  Contact
 } from "lucide-react";
 
 interface SubMenuItem {
@@ -68,6 +69,7 @@ const managementMenu: MenuSection[] = [
   {
     items: [
       { id: "accueil", label: "Accueil", icon: LayoutDashboard, href: "/dashboard" },
+      { id: "contacts", label: "Contacts", icon: Users, href: "/contacts" },
       { id: "transactions", label: "Transactions", icon: ArrowLeftRight, href: "/transactions" },
       { id: "compte-pro", label: "Compte Pro", icon: CreditCard, href: "/compte-pro", badge: "INCLUS", badgeVariant: "included" },
       { id: "achats", label: "Achats", icon: ShoppingCart, href: "/achats" },
@@ -142,6 +144,7 @@ const accountingMenu: MenuSection[] = [
         label: "Dossier du client",
         icon: FolderOpen,
         submenu: [
+          { label: "Contacts", href: "/contacts" },
           { label: "Documents", href: "/documents" },
           { label: "Plan comptable", href: "/accounting/chart-of-accounts" },
           { label: "Règles comptables", href: "/settings/accounting-rules", badge: "IA", badgeVariant: "new" },
@@ -257,11 +260,10 @@ export function PennylaneSidebar() {
               // Ne pas ouvrir automatiquement "saisie" ici
               if (typeof window !== "undefined") localStorage.setItem("seka_view_mode", "accounting");
             }}
-            className={`flex-1 text-xs font-medium py-1.5 px-2 rounded transition-all ${
-              viewMode === "accounting"
-                ? "bg-white text-emerald-900 shadow-sm"
-                : "text-emerald-100 hover:text-white"
-            }`}
+            className={`flex-1 text-xs font-medium py-1.5 px-2 rounded transition-all ${viewMode === "accounting"
+              ? "bg-white text-emerald-900 shadow-sm"
+              : "text-emerald-100 hover:text-white"
+              }`}
           >
             Comptabilité
           </button>
@@ -271,16 +273,15 @@ export function PennylaneSidebar() {
               setOpenMenus([]);
               if (typeof window !== "undefined") localStorage.setItem("seka_view_mode", "management");
             }}
-            className={`flex-1 text-xs font-medium py-1.5 px-2 rounded transition-all ${
-              viewMode === "management"
-                ? "bg-white text-emerald-900 shadow-sm"
-                : "text-emerald-100 hover:text-white"
-            }`}
+            className={`flex-1 text-xs font-medium py-1.5 px-2 rounded transition-all ${viewMode === "management"
+              ? "bg-white text-emerald-900 shadow-sm"
+              : "text-emerald-100 hover:text-white"
+              }`}
           >
             Gestion
           </button>
         </div>
-        
+
         {/* Logo SEKA */}
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
@@ -306,38 +307,34 @@ export function PennylaneSidebar() {
                     <>
                       <button
                         onClick={() => toggleMenu(item.id)}
-                        className={`w-full flex items-center justify-between px-3 py-2 rounded-md transition-all text-left ${
-                          openMenus.includes(item.id)
-                            ? "bg-emerald-700 text-white"
-                            : "text-emerald-100 hover:bg-emerald-800 hover:text-white"
-                        }`}
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-md transition-all text-left ${openMenus.includes(item.id)
+                          ? "bg-emerald-700 text-white"
+                          : "text-emerald-100 hover:bg-emerald-800 hover:text-white"
+                          }`}
                       >
                         <div className="flex items-center gap-3">
                           <item.icon className="w-4 h-4" strokeWidth={1.5} />
                           <span className="text-sm font-medium">{item.label}</span>
                         </div>
                         <ChevronDown
-                          className={`w-4 h-4 transition-transform ${
-                            openMenus.includes(item.id) ? "rotate-180" : ""
-                          }`}
+                          className={`w-4 h-4 transition-transform ${openMenus.includes(item.id) ? "rotate-180" : ""
+                            }`}
                         />
                       </button>
                       {/* Submenu */}
                       <div
-                        className={`overflow-hidden transition-all duration-200 ${
-                          openMenus.includes(item.id) ? "max-h-[500px]" : "max-h-0"
-                        }`}
+                        className={`overflow-hidden transition-all duration-200 ${openMenus.includes(item.id) ? "max-h-[500px]" : "max-h-0"
+                          }`}
                       >
                         <div className="py-1 space-y-0.5">
                           {item.submenu.map((subItem, idx) => (
                             <button
                               key={idx}
                               onClick={() => handleSubmenuClick(subItem.href, item.id)}
-                              className={`w-full flex items-center justify-between pl-10 pr-3 py-1.5 text-sm transition-colors text-left ${
-                                isActive(subItem.href)
-                                  ? "text-white bg-emerald-700 rounded-md mx-2"
-                                  : "text-emerald-100 hover:text-white"
-                              }`}
+                              className={`w-full flex items-center justify-between pl-10 pr-3 py-1.5 text-sm transition-colors text-left ${isActive(subItem.href)
+                                ? "text-white bg-emerald-700 rounded-md mx-2"
+                                : "text-emerald-100 hover:text-white"
+                                }`}
                             >
                               <span>{subItem.label}</span>
                               {subItem.badge && (
@@ -351,11 +348,10 @@ export function PennylaneSidebar() {
                   ) : (
                     <Link
                       href={item.href || "#"}
-                      className={`flex items-center justify-between px-3 py-2 rounded-md transition-all ${
-                        isActive(item.href || "")
-                          ? "bg-emerald-700 text-white"
-                          : "text-emerald-100 hover:bg-emerald-800 hover:text-white"
-                      }`}
+                      className={`flex items-center justify-between px-3 py-2 rounded-md transition-all ${isActive(item.href || "")
+                        ? "bg-emerald-700 text-white"
+                        : "text-emerald-100 hover:bg-emerald-800 hover:text-white"
+                        }`}
                     >
                       <div className="flex items-center gap-3">
                         <item.icon className="w-4 h-4" strokeWidth={1.5} />
