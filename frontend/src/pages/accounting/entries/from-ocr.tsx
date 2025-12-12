@@ -58,21 +58,22 @@ export default function AccountingEntryFromOCR() {
     const fetchAccounts = async () => {
       try {
         const token = localStorage.getItem("seka_access_token");
-        const response = await fetch(`/api/accounting/accounts`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/accounting/advanced/accounts`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (response.ok) {
           const data = await response.json();
           const accountList = Array.isArray(data) ? data : data.accounts || [];
           setAccounts(accountList.map((acc: any) => ({
-            code: acc.code || acc.account_code,
+            code: acc.account_number || acc.code || acc.account_code,
             name: acc.name || acc.label || acc.account_name,
-            type: acc.type,
-            class: acc.class,
+            type: acc.account_type || acc.type,
+            class: acc.account_class || acc.class,
           })));
         }
       } catch (error) {
         console.error("Failed to fetch accounts:", error);
+        // Fallback accounts
         setAccounts([
           { code: "401000", name: "Fournisseurs" },
           { code: "411000", name: "Clients" },
@@ -95,8 +96,18 @@ export default function AccountingEntryFromOCR() {
   const processWithLocalOCR = async (file: File) => {
     try {
       console.log("Starting local OCR fallback...");
+
+      // If PDF, convert to image first using canvas
+      let processFile: File | Blob = file;
+      if (file.type === 'application/pdf') {
+        console.log("Converting PDF to image for OCR...");
+        // For PDFs, we need to show a message that PDF OCR fallback isn't fully supported
+        // Instead, just show extracted metadata from filename
+        throw new Error("PDF OCR local fallback not fully supported. Please use backend OCR or convert to image first.");
+      }
+
       const result = await Tesseract.recognize(
-        file,
+        processFile,
         'fra',
         { logger: m => console.log(m) }
       );
