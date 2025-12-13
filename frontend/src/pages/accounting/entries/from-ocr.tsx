@@ -57,7 +57,7 @@ export default function AccountingEntryFromOCR() {
   // Configure PDF.js worker
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
     }
   }, []);
 
@@ -102,12 +102,13 @@ export default function AccountingEntryFromOCR() {
   }, []);
 
   // Convert PDF to images for OCR processing
-  const convertPdfToImages = async (file: File): Promise<string[]> => {
+  const convertPdfToImages = async (file: File, maxPages?: number): Promise<string[]> => {
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     const images: string[] = [];
 
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+    const limit = typeof maxPages === 'number' ? Math.min(pdf.numPages, maxPages) : pdf.numPages;
+    for (let pageNum = 1; pageNum <= limit; pageNum++) {
       const page = await pdf.getPage(pageNum);
       const viewport = page.getViewport({ scale: 2.0 }); // Higher scale for better OCR quality
 
@@ -127,23 +128,33 @@ export default function AccountingEntryFromOCR() {
     return images;
   };
 
+  const dataUrlToFile = async (dataUrl: string, filename: string): Promise<File> => {
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    return new File([blob], filename, { type: blob.type || 'image/png' });
+  };
+
   const processWithLocalOCR = async (file: File) => {
     try {
       console.log("Starting local OCR fallback...");
       let allText = "";
       let pageCount = 1;
+      let isMultiPage = false;
 
-      // Handle PDF files - Throw error as local PDF OCR is heavy
-      if (file.type === 'application/pdf') {
-        throw new Error("L'analyse locale des PDF n'est pas supportée. Veuillez utiliser des images (JPG, PNG) si le serveur ne répond pas.");
-      }
+      const fileToOcr = await (async () => {
+        if (file.type === 'application/pdf') {
+          const images = await convertPdfToImages(file, 1);
+          pageCount = images.length > 0 ? images.length : 1;
+          isMultiPage = true;
+          if (images.length === 0) {
+            throw new Error("Impossible de convertir le PDF en image pour l’OCR local.");
+          }
+          return dataUrlToFile(images[0], `ocr-page-1-${Date.now()}.png`);
+        }
+        return file;
+      })();
 
-      // Handle image files directly with Tesseract
-      const result = await Tesseract.recognize(
-        file,
-        'fra',
-        { logger: m => console.log(m) }
-      );
+      const result = await Tesseract.recognize(fileToOcr, 'fra', { logger: m => console.log(m) });
       allText = result.data.text;
 
       console.log("Local OCR Text:", allText);
@@ -224,8 +235,8 @@ export default function AccountingEntryFromOCR() {
       ]);
       setFileInfo({
         url: URL.createObjectURL(file),
-        page_count: 1,
-        is_multi_page: false
+        page_count: pageCount,
+        is_multi_page: isMultiPage
       });
 
     } catch (err: any) {
@@ -238,30 +249,48 @@ export default function AccountingEntryFromOCR() {
     setUploading(true);
     setClassificationValidated(false);
 
-    const formData = new FormData();
-    formData.append('file', file);
-
     try {
       const token = localStorage.getItem("seka_access_token");
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/accounting-rules/entries/from-document`,
-        {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData
-        }
-      );
 
-      if (response.ok) {
-        const result = await response.json();
-        setOcrData(result.ocr_data);
-        setSuggestions(result.suggestions);
-        setEntryLines(result.proposed_entry.lines);
-        setFileInfo(result.file_info || {});
-      } else {
-        console.warn("Server OCR failed (maybe CORS or 500), trying local fallback...");
-        await processWithLocalOCR(file);
+      const tryServer = async (f: File) => {
+        const formData = new FormData();
+        formData.append('file', f);
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/v1/accounting-rules/entries/from-document`,
+          {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+            body: formData
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`Server OCR failed with status ${response.status}`);
+        }
+        return response.json();
+      };
+
+      let result: any;
+      try {
+        result = await tryServer(file);
+      } catch (e) {
+        if (file.type === 'application/pdf') {
+          const images = await convertPdfToImages(file, 1);
+          if (images.length > 0) {
+            const imageFile = await dataUrlToFile(images[0], `ocr-page-1-${Date.now()}.png`);
+            result = await tryServer(imageFile);
+          } else {
+            throw e;
+          }
+        } else {
+          throw e;
+        }
       }
+
+      setOcrData(result.ocr_data);
+      setSuggestions(result.suggestions);
+      setEntryLines(result.proposed_entry.lines);
+      setFileInfo(result.file_info || {});
     } catch (error) {
       console.error("Network or parsing error:", error);
       console.warn("Network error, trying local fallback...");
