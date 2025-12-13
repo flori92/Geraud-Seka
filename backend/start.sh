@@ -29,4 +29,4 @@ fi
 
 # Démarrage de l'API
 echo "🌟 Lancement de l'API SEKA..."
-exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1
+exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1# Force redeploy Sam 13 déc 2025 10:49:25 CET
