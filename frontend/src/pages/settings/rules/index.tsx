@@ -99,15 +99,30 @@ export default function RulesCenter() {
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-semibold text-gray-900">Centre de règles</h1>
             <div className="flex items-center gap-3">
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+              <button
+                className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+                onClick={() => {
+                  if (activeTab === "transactions") router.push("/settings/transaction-rules");
+                }}
+              >
                 <Download className="w-4 h-4" />
                 Exporter
               </button>
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+              <button
+                className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+                onClick={() => {
+                  if (activeTab === "transactions") router.push("/settings/transaction-rules");
+                }}
+              >
                 <Upload className="w-4 h-4" />
                 Importer
               </button>
-              <button className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700">
+              <button
+                className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700"
+                onClick={() => {
+                  if (activeTab === "transactions") router.push("/settings/transaction-rules");
+                }}
+              >
                 <Plus className="w-4 h-4" />
                 Nouveau
               </button>
@@ -161,20 +176,16 @@ export default function RulesCenter() {
               {activeTab === "transactions" && (
                 <div className="p-6 text-sm text-gray-600">
                   <p className="mb-2 font-medium text-gray-900">
-                    Règles de transactions (à venir)
+                    Règles de transactions
                   </p>
                   <p className="mb-4">
-                    Cette section permettra bientôt de définir des règles automatiques de catégorisation pour vos
-                    transactions bancaires, comme dans Pennylane.
-                  </p>
-                  <p className="mb-4">
-                    En attendant, vous pouvez gérer vos transactions et leurs catégories depuis la page dédiée :
+                    Définissez des règles automatiques de catégorisation pour vos transactions bancaires.
                   </p>
                   <button
-                    onClick={() => router.push("/transactions")}
+                    onClick={() => router.push("/settings/transaction-rules")}
                     className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700"
                   >
-                    Aller aux transactions
+                    Ouvrir les règles de transactions
                   </button>
                 </div>
               )}

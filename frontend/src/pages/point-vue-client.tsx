@@ -1,8 +1,11 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card } from "@/components/ui/Card";
 import { Eye, FileText, CreditCard, BarChart3, MessageSquare, Bell } from "lucide-react";
+import { useRouter } from "next/router";
 
 export default function PointVueClientPage() {
+  const router = useRouter();
+
   return (
     <DashboardLayout title="Point de Vue Client">
       <div className="space-y-6">
@@ -51,7 +54,10 @@ export default function PointVueClientPage() {
               <h3 className="font-semibold">Conversations</h3>
             </div>
             <p className="text-sm text-gray-600">Échangez directement avec votre cabinet comptable sur vos documents et questions.</p>
-            <button className="mt-4 w-full py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm">
+            <button
+              className="mt-4 w-full py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
+              onClick={() => router.push("/crm/contacts")}
+            >
               Voir les conversations
             </button>
           </Card>
@@ -62,7 +68,10 @@ export default function PointVueClientPage() {
               <h3 className="font-semibold">Tableaux de bord partagés</h3>
             </div>
             <p className="text-sm text-gray-600">Consultez les rapports et analyses préparés par votre expert-comptable.</p>
-            <button className="mt-4 w-full py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm">
+            <button
+              className="mt-4 w-full py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
+              onClick={() => router.push("/crm/reports")}
+            >
               Accéder aux rapports
             </button>
           </Card>

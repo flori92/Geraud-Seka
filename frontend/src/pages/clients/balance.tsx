@@ -178,7 +178,50 @@ export default function ClientBalancePage() {
   const totalPages = Math.ceil(filteredClients.length / perPage);
 
   const exportToExcel = () => {
-    console.log('Exporting client balance to Excel...');
+    const headers = [
+      "client_name",
+      "client_code",
+      "balance",
+      "overdue_amount",
+      "upcoming_30d_amount",
+      "last_invoice_date",
+      "last_invoice_number",
+      "payment_terms",
+      "invoices_count",
+      "contact_email",
+      "contact_phone",
+    ];
+
+    const escapeCsv = (value: unknown) => {
+      const s = value === null || value === undefined ? "" : String(value);
+      const escaped = s.replace(/\"/g, '""');
+      return `"${escaped}"`;
+    };
+
+    const rows = filteredClients.map((c) => [
+      c.client_name,
+      c.client_code,
+      c.balance,
+      c.overdue_amount,
+      c.upcoming_30d_amount,
+      c.last_invoice_date,
+      c.last_invoice_number,
+      c.payment_terms,
+      c.invoices_count,
+      c.contact_email || "",
+      c.contact_phone || "",
+    ]);
+
+    const csv = [headers.map(escapeCsv).join(","), ...rows.map((r) => r.map(escapeCsv).join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `balance-clients-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   };
 
   return (

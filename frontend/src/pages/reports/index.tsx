@@ -44,6 +44,18 @@ const reports = [
 ];
 
 export default function ReportsDashboardPage() {
+  const downloadJson = (filename: string, data: unknown) => {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <DashboardLayout title="Reporting">
       {/* Header */}
@@ -140,7 +152,11 @@ export default function ReportsDashboardPage() {
                       Consulter
                     </Button>
                   </Link>
-                  <Button variant="secondary" size="md">
+                  <Button
+                    variant="secondary"
+                    size="md"
+                    onClick={() => downloadJson(`report-${report.id}.json`, report)}
+                  >
                     <Download className="h-4 w-4" />
                   </Button>
                 </div>

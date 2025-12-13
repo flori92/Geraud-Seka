@@ -3,6 +3,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card } from "@/components/ui/Card";
 import { CreditCard, Building2, Wallet, TrendingUp, CheckCircle, Lock, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
+import { useRouter } from "next/router";
 
 interface BankAccount {
   balance: number;
@@ -13,6 +14,7 @@ interface BankAccount {
 }
 
 export default function CompteProPage() {
+  const router = useRouter();
   const [account, setAccount] = useState<BankAccount | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -124,10 +126,16 @@ export default function CompteProPage() {
             <h3 className="text-lg font-semibold mb-2">Activez votre Compte Pro</h3>
             <p className="text-gray-600 mb-6 max-w-md mx-auto">Simplifiez votre gestion avec un compte bancaire synchronisé automatiquement avec votre comptabilité.</p>
             <div className="flex gap-3 justify-center">
-              <button className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+              <button
+                className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                onClick={() => router.push("/treasury/accounts")}
+              >
                 En savoir plus
               </button>
-              <button className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+              <button
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                onClick={() => router.push("/treasury/accounts")}
+              >
                 Activer maintenant
               </button>
             </div>

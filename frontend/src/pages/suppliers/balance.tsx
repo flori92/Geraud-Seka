@@ -158,7 +158,52 @@ export default function SupplierBalancePage() {
   const totalPages = Math.ceil(filteredSuppliers.length / perPage);
 
   const exportToExcel = () => {
-    console.log('Exporting supplier balance to Excel...');
+    const headers = [
+      "supplier_name",
+      "supplier_code",
+      "balance",
+      "overdue_amount",
+      "upcoming_30d_amount",
+      "last_invoice_date",
+      "last_invoice_number",
+      "payment_terms",
+      "invoices_count",
+      "oldest_overdue_date",
+      "contact_email",
+      "contact_phone",
+    ];
+
+    const escapeCsv = (value: unknown) => {
+      const s = value === null || value === undefined ? "" : String(value);
+      const escaped = s.replace(/\"/g, '""');
+      return `"${escaped}"`;
+    };
+
+    const rows = filteredSuppliers.map((s) => [
+      s.supplier_name,
+      s.supplier_code,
+      s.balance,
+      s.overdue_amount,
+      s.upcoming_30d_amount,
+      s.last_invoice_date,
+      s.last_invoice_number,
+      s.payment_terms,
+      s.invoices_count,
+      s.oldest_overdue_date || "",
+      s.contact_email || "",
+      s.contact_phone || "",
+    ]);
+
+    const csv = [headers.map(escapeCsv).join(","), ...rows.map((r) => r.map(escapeCsv).join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `balance-fournisseurs-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   };
 
   return (
