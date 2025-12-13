@@ -20,7 +20,7 @@ async def get_accounting_stats(
     Retourne les statistiques agrégées pour le tableau de bord comptable.
     Calculé dynamiquement à partir des écritures.
     """
-    service = AccountingAnalyticsService(db, str(current_tenant.id))
+    service = AccountingAnalyticsService(db, current_tenant.id)
     return service.get_dashboard_summary()
 
 @router.get("/reports/income-statement")
@@ -30,7 +30,7 @@ async def get_income_statement(
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """Retourne le compte de résultat pour l'année donnée"""
-    service = AccountingAnalyticsService(db, str(current_tenant.id))
+    service = AccountingAnalyticsService(db, current_tenant.id)
     return service.get_income_statement(year)
 
 @router.get("/reports/monthly-trends")
@@ -40,5 +40,27 @@ async def get_monthly_trends(
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """Retourne les données pour les graphiques mensuels"""
-    service = AccountingAnalyticsService(db, str(current_tenant.id))
+    service = AccountingAnalyticsService(db, current_tenant.id)
     return service.get_monthly_trends(year)
+
+
+@router.get("/reports/sig")
+async def get_sig(
+    year: int = 2024,
+    current_tenant: Tenant = Depends(get_current_tenant),
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """Retourne les SIG pour l'année donnée"""
+    service = AccountingAnalyticsService(db, current_tenant.id)
+    return service.get_sig(year)
+
+
+@router.get("/reports/cash-flow")
+async def get_cash_flow(
+    year: int = 2024,
+    current_tenant: Tenant = Depends(get_current_tenant),
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """Retourne un tableau de financement (simplifié) pour l'année donnée"""
+    service = AccountingAnalyticsService(db, current_tenant.id)
+    return service.get_cash_flow(year)

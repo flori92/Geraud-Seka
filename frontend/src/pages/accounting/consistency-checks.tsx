@@ -1,14 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/Button";
-import { CheckCircle, AlertTriangle, RefreshCw, Download } from "lucide-react";
-
-type CheckItem = {
-  id: string;
-  label: string;
-  status: "ok" | "warning";
-  details: string;
-};
+import { CheckCircle, AlertTriangle, RefreshCw, Download, Loader2 } from "lucide-react";
+import { getConsistencyChecks, type ConsistencyCheckItem } from "@/lib/api";
 
 function downloadCsv(filename: string, rows: Record<string, string | number>[]) {
   const headers = Object.keys(rows[0] || {});
@@ -32,19 +27,40 @@ function downloadCsv(filename: string, rows: Record<string, string | number>[]) 
 }
 
 export default function ConsistencyChecksPage() {
-  const [checks, setChecks] = useState<CheckItem[]>(
-    useMemo(
-      () => [
-        { id: "balance", label: "Balance équilibrée", status: "ok", details: "Débit = Crédit" },
-        { id: "journaux", label: "Journaux sans trou", status: "ok", details: "Séquences cohérentes" },
-        { id: "tva", label: "TVA à contrôler", status: "warning", details: "Écritures à vérifier" },
-      ],
-      []
-    )
-  );
+  const router = useRouter();
+  const [checks, setChecks] = useState<ConsistencyCheckItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchData = async () => {
+    const token = localStorage.getItem("seka_access_token");
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const year = new Date().getFullYear();
+      const data = await getConsistencyChecks(token, year);
+      setChecks(data.checks || []);
+    } catch (e) {
+      console.error("Error fetching consistency checks:", e);
+      setError("Erreur lors du chargement des contrôles");
+      setChecks([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const runChecks = () => {
-    setChecks((prev) => prev.map((c) => ({ ...c })));
+    fetchData();
   };
 
   const handleExport = () => {
@@ -75,22 +91,34 @@ export default function ConsistencyChecksPage() {
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="divide-y divide-gray-100">
-          {checks.map((c) => (
-            <div key={c.id} className="px-4 py-4 flex items-start justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  {c.status === "ok" ? (
-                    <CheckCircle className="w-5 h-5 text-emerald-600" />
-                  ) : (
-                    <AlertTriangle className="w-5 h-5 text-amber-600" />
-                  )}
-                  <div className="font-medium text-gray-900">{c.label}</div>
-                </div>
-                <div className="text-sm text-gray-500 mt-1">{c.details}</div>
-              </div>
-              <Button variant="secondary" onClick={() => {}}>Détails</Button>
+          {loading ? (
+            <div className="px-4 py-10 flex items-center justify-center">
+              <Loader2 className="w-6 h-6 animate-spin text-[#0d4a44]" />
             </div>
-          ))}
+          ) : error ? (
+            <div className="px-4 py-6 text-sm text-red-700">{error}</div>
+          ) : checks.length === 0 ? (
+            <div className="px-4 py-10 text-center text-sm text-gray-500">Aucun contrôle à afficher</div>
+          ) : (
+            checks.map((c) => (
+              <div key={c.id} className="px-4 py-4 flex items-start justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    {c.status === "ok" ? (
+                      <CheckCircle className="w-5 h-5 text-emerald-600" />
+                    ) : (
+                      <AlertTriangle className="w-5 h-5 text-amber-600" />
+                    )}
+                    <div className="font-medium text-gray-900">{c.label}</div>
+                  </div>
+                  <div className="text-sm text-gray-500 mt-1">{c.details}</div>
+                </div>
+                <Button variant="secondary" onClick={() => {}}>
+                  Détails
+                </Button>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </DashboardLayout>

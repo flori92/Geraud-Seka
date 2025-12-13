@@ -2093,6 +2093,227 @@ export interface MonthlyTrends {
   labels: string[];
 }
 
+export interface SigLine {
+  label: string;
+  amount: number;
+}
+
+export interface SigReport {
+  year: number;
+  lines: SigLine[];
+}
+
+export interface CashFlowLine {
+  section: string;
+  label: string;
+  amount: number;
+}
+
+export interface CashFlowReport {
+  year: number;
+  lines: CashFlowLine[];
+}
+
+export interface LiasseFiscaleItem {
+  code: string;
+  label: string;
+  status: "à préparer" | "prêt";
+}
+
+export interface LiasseFiscaleResponse {
+  year: number;
+  items: LiasseFiscaleItem[];
+  generated_at?: string;
+}
+
+export interface IsIrLine {
+  label: string;
+  base: number;
+  rate: number;
+  amount: number;
+}
+
+export interface IsIrResponse {
+  year: number;
+  lines: IsIrLine[];
+}
+
+export interface OtherTaxLine {
+  name: string;
+  period: string;
+  base: number;
+  rate: number;
+  amount: number;
+}
+
+export interface OtherTaxesResponse {
+  year: number;
+  lines: OtherTaxLine[];
+}
+
+export interface ConsistencyCheckItem {
+  id: string;
+  label: string;
+  status: "ok" | "warning";
+  details: string;
+}
+
+export interface ConsistencyChecksResponse {
+  year: number;
+  totals?: { total_debit: number; total_credit: number };
+  checks: ConsistencyCheckItem[];
+}
+
+export interface LetteringItem {
+  id: string;
+  tier: string;
+  reference: string;
+  amount: number;
+  status: string;
+}
+
+export interface LetteringResponse {
+  year: number;
+  items: LetteringItem[];
+}
+
+export interface PeriodItem {
+  id: string;
+  label: string;
+  is_closed: boolean;
+}
+
+export interface PeriodsResponse {
+  periods: PeriodItem[];
+}
+
+export interface EntryTemplateItem {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export interface EntryTemplatesResponse {
+  templates: EntryTemplateItem[];
+}
+
+export interface AccountingInventoryLine {
+  item: string;
+  quantity: number;
+  unit_cost: number;
+  total: number;
+}
+
+export interface AccountingInventoryResponse {
+  lines: AccountingInventoryLine[];
+}
+
+export interface ProvisionLineApi {
+  label: string;
+  amount: number;
+  type: string;
+}
+
+export interface ProvisionsResponse {
+  lines: ProvisionLineApi[];
+}
+
+export interface DepreciationLineApi {
+  asset: string;
+  start_date: string;
+  duration_months: number;
+  amount: number;
+  accumulated: number;
+}
+
+export interface DepreciationsResponse {
+  lines: DepreciationLineApi[];
+}
+
+export async function getSigReport(accessToken: string, year: number = 2024): Promise<SigReport> {
+  const response = await api.get<SigReport>(`/accounting/analytics/reports/sig?year=${year}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function getCashFlowReport(accessToken: string, year: number = 2024): Promise<CashFlowReport> {
+  const response = await api.get<CashFlowReport>(`/accounting/analytics/reports/cash-flow?year=${year}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function getLiasseFiscale(accessToken: string, year: number = 2024): Promise<LiasseFiscaleResponse> {
+  const response = await api.get<LiasseFiscaleResponse>(`/tax/liasse-fiscale?year=${year}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function getIsIr(accessToken: string, year: number = 2024): Promise<IsIrResponse> {
+  const response = await api.get<IsIrResponse>(`/tax/is-ir?year=${year}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function getOtherTaxes(accessToken: string, year: number = 2024): Promise<OtherTaxesResponse> {
+  const response = await api.get<OtherTaxesResponse>(`/tax/other-taxes?year=${year}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function getConsistencyChecks(accessToken: string, year: number = 2024): Promise<ConsistencyChecksResponse> {
+  const response = await api.get<ConsistencyChecksResponse>(`/accounting/workflow/consistency-checks?year=${year}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function getLetteringSummary(accessToken: string, year: number = 2024): Promise<LetteringResponse> {
+  const response = await api.get<LetteringResponse>(`/accounting/workflow/lettering?year=${year}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function getAccountingPeriods(accessToken: string): Promise<PeriodsResponse> {
+  const response = await api.get<PeriodsResponse>("/accounting/workflow/periods", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function getEntryTemplates(accessToken: string): Promise<EntryTemplatesResponse> {
+  const response = await api.get<EntryTemplatesResponse>("/accounting/workflow/entry-templates", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function getAccountingInventory(accessToken: string): Promise<AccountingInventoryResponse> {
+  const response = await api.get<AccountingInventoryResponse>("/accounting/workflow/inventory", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function getProvisions(accessToken: string): Promise<ProvisionsResponse> {
+  const response = await api.get<ProvisionsResponse>("/accounting/workflow/provisions", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function getDepreciations(accessToken: string): Promise<DepreciationsResponse> {
+  const response = await api.get<DepreciationsResponse>("/accounting/workflow/depreciations", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
 export async function getAccountingAnalyticsStats(accessToken: string, year: number = 2024): Promise<AccountingAnalyticsStats> {
   const response = await api.get<AccountingAnalyticsStats>(`/accounting/analytics/dashboard-stats?year=${year}`, {
     headers: { Authorization: `Bearer ${accessToken}` },

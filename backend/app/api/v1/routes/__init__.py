@@ -4,6 +4,7 @@ from . import (
     accounting_entries,
     accounting_rules,
     accounting_analytics,
+    accounting_workflow,
     activities,
     analytics,
     auth,
@@ -44,6 +45,7 @@ from . import (
     treasury_advanced,
     treasury_dashboard,
     treasury_forecast,
+    tax,
 )
 
 __all__ = [
@@ -52,6 +54,7 @@ __all__ = [
     "accounting_entries",
     "accounting_rules",
     "accounting_analytics",
+    "accounting_workflow",
     "activities",
     "analytics",
     "auth",
@@ -92,4 +95,5 @@ __all__ = [
     "treasury_advanced",
     "treasury_dashboard",
     "treasury_forecast",
+    "tax",
 ]

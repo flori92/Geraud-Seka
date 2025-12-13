@@ -1,15 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/Button";
-import { Download, Plus } from "lucide-react";
-
-type OtherTaxLine = {
-  name: string;
-  period: string;
-  base: number;
-  rate: number;
-  amount: number;
-};
+import { Download, Loader2, Plus } from "lucide-react";
+import { getOtherTaxes, type OtherTaxLine } from "@/lib/api";
 
 function downloadCsv(filename: string, rows: Record<string, string | number>[]) {
   const headers = Object.keys(rows[0] || {});
@@ -33,22 +27,36 @@ function downloadCsv(filename: string, rows: Record<string, string | number>[]) 
 }
 
 export default function OtherTaxesPage() {
-  const [lines, setLines] = useState<OtherTaxLine[]>(
-    useMemo(
-      () => [
-        { name: "Taxe professionnelle", period: "2025", base: 0, rate: 0, amount: 0 },
-        { name: "Patente", period: "2025", base: 0, rate: 0, amount: 0 },
-      ],
-      []
-    )
-  );
+  const router = useRouter();
+  const [lines, setLines] = useState<OtherTaxLine[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleAdd = () => {
-    setLines((prev) => [
-      ...prev,
-      { name: "Nouvelle taxe", period: new Date().getFullYear().toString(), base: 0, rate: 0, amount: 0 },
-    ]);
-  };
+  useEffect(() => {
+    const fetchData = async () => {
+      const token = localStorage.getItem("seka_access_token");
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+      try {
+        const year = new Date().getFullYear();
+        const data = await getOtherTaxes(token, year);
+        setLines(data.lines || []);
+      } catch (e) {
+        console.error("Error fetching other taxes:", e);
+        setError("Erreur lors du chargement des taxes diverses");
+        setLines([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [router]);
 
   const handleExport = () => {
     downloadCsv(
@@ -65,7 +73,7 @@ export default function OtherTaxesPage() {
           <p className="text-sm text-gray-500 mt-1">Suivi des taxes hors TVA et IS/IR</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="secondary" onClick={handleAdd} className="flex items-center gap-2">
+          <Button variant="secondary" disabled className="flex items-center gap-2">
             <Plus className="w-4 h-4" />
             Ajouter
           </Button>
@@ -85,15 +93,25 @@ export default function OtherTaxesPage() {
           <div className="text-right">Montant</div>
         </div>
         <div className="divide-y divide-gray-100">
-          {lines.map((l, idx) => (
-            <div key={`${l.name}-${idx}`} className="grid grid-cols-5 px-4 py-3 text-sm">
-              <div className="text-gray-800">{l.name}</div>
-              <div className="text-gray-700">{l.period}</div>
-              <div className="text-right text-gray-900">{l.base.toLocaleString("fr-FR")}</div>
-              <div className="text-right text-gray-900">{(l.rate * 100).toFixed(2)}%</div>
-              <div className="text-right font-medium text-gray-900">{l.amount.toLocaleString("fr-FR")}</div>
+          {loading ? (
+            <div className="px-4 py-10 flex items-center justify-center">
+              <Loader2 className="w-6 h-6 animate-spin text-[#0d4a44]" />
             </div>
-          ))}
+          ) : error ? (
+            <div className="px-4 py-6 text-sm text-red-700">{error}</div>
+          ) : lines.length === 0 ? (
+            <div className="px-4 py-10 text-center text-sm text-gray-500">Aucune donnée disponible</div>
+          ) : (
+            lines.map((l, idx) => (
+              <div key={`${l.name}-${idx}`} className="grid grid-cols-5 px-4 py-3 text-sm">
+                <div className="text-gray-800">{l.name}</div>
+                <div className="text-gray-700">{l.period}</div>
+                <div className="text-right text-gray-900">{l.base.toLocaleString("fr-FR")}</div>
+                <div className="text-right text-gray-900">{(l.rate * 100).toFixed(2)}%</div>
+                <div className="text-right font-medium text-gray-900">{l.amount.toLocaleString("fr-FR")}</div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </DashboardLayout>

@@ -1,14 +1,9 @@
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/Button";
-import { Download } from "lucide-react";
-
-type InventoryLine = {
-  item: string;
-  quantity: number;
-  unit_cost: number;
-  total: number;
-};
+import { Download, Loader2 } from "lucide-react";
+import { getAccountingInventory, type AccountingInventoryLine } from "@/lib/api";
 
 function downloadCsv(filename: string, rows: Record<string, string | number>[]) {
   const headers = Object.keys(rows[0] || {});
@@ -32,13 +27,35 @@ function downloadCsv(filename: string, rows: Record<string, string | number>[]) 
 }
 
 export default function InventoryPage() {
-  const lines = useMemo<InventoryLine[]>(
-    () => [
-      { item: "Stock A", quantity: 0, unit_cost: 0, total: 0 },
-      { item: "Stock B", quantity: 0, unit_cost: 0, total: 0 },
-    ],
-    []
-  );
+  const router = useRouter();
+  const [lines, setLines] = useState<AccountingInventoryLine[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const token = localStorage.getItem("seka_access_token");
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await getAccountingInventory(token);
+        setLines(data.lines || []);
+      } catch (e) {
+        console.error("Error fetching inventory:", e);
+        setError("Erreur lors du chargement de l'inventaire");
+        setLines([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [router]);
 
   const handleExport = () => {
     downloadCsv(
@@ -68,14 +85,24 @@ export default function InventoryPage() {
           <div className="text-right">Total</div>
         </div>
         <div className="divide-y divide-gray-100">
-          {lines.map((l) => (
-            <div key={l.item} className="grid grid-cols-4 px-4 py-3 text-sm">
-              <div className="text-gray-900">{l.item}</div>
-              <div className="text-right text-gray-900">{l.quantity.toLocaleString("fr-FR")}</div>
-              <div className="text-right text-gray-900">{l.unit_cost.toLocaleString("fr-FR")}</div>
-              <div className="text-right font-medium text-gray-900">{l.total.toLocaleString("fr-FR")}</div>
+          {loading ? (
+            <div className="px-4 py-10 flex items-center justify-center">
+              <Loader2 className="w-6 h-6 animate-spin text-[#0d4a44]" />
             </div>
-          ))}
+          ) : error ? (
+            <div className="px-4 py-6 text-sm text-red-700">{error}</div>
+          ) : lines.length === 0 ? (
+            <div className="px-4 py-10 text-center text-sm text-gray-500">Aucune ligne d'inventaire</div>
+          ) : (
+            lines.map((l, idx) => (
+              <div key={`${l.item}-${idx}`} className="grid grid-cols-4 px-4 py-3 text-sm">
+                <div className="text-gray-900">{l.item}</div>
+                <div className="text-right text-gray-900">{l.quantity.toLocaleString("fr-FR")}</div>
+                <div className="text-right text-gray-900">{l.unit_cost.toLocaleString("fr-FR")}</div>
+                <div className="text-right font-medium text-gray-900">{l.total.toLocaleString("fr-FR")}</div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </DashboardLayout>

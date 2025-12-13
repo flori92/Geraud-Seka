@@ -1,28 +1,40 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/Button";
-import { Lock, Unlock } from "lucide-react";
-
-type Period = {
-  id: string;
-  label: string;
-  is_closed: boolean;
-};
+import { Lock, Loader2, Unlock } from "lucide-react";
+import { getAccountingPeriods, type PeriodItem } from "@/lib/api";
 
 export default function PeriodValidationPage() {
-  const [periods, setPeriods] = useState<Period[]>(
-    useMemo(
-      () => [
-        { id: "2025-01", label: "Janvier 2025", is_closed: false },
-        { id: "2024-12", label: "Décembre 2024", is_closed: true },
-      ],
-      []
-    )
-  );
+  const router = useRouter();
+  const [periods, setPeriods] = useState<PeriodItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const toggle = (id: string) => {
-    setPeriods((prev) => prev.map((p) => (p.id === id ? { ...p, is_closed: !p.is_closed } : p)));
-  };
+  useEffect(() => {
+    const fetchData = async () => {
+      const token = localStorage.getItem("seka_access_token");
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await getAccountingPeriods(token);
+        setPeriods(data.periods || []);
+      } catch (e) {
+        console.error("Error fetching periods:", e);
+        setError("Erreur lors du chargement des périodes");
+        setPeriods([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [router]);
 
   return (
     <DashboardLayout title="Validation période">
@@ -38,22 +50,28 @@ export default function PeriodValidationPage() {
           <div className="text-right">Action</div>
         </div>
         <div className="divide-y divide-gray-100">
-          {periods.map((p) => (
-            <div key={p.id} className="grid grid-cols-3 px-4 py-3 text-sm items-center">
-              <div className="text-gray-900">{p.label}</div>
-              <div className="text-gray-700">{p.is_closed ? "Clôturée" : "Ouverte"}</div>
-              <div className="text-right">
-                <Button
-                  variant="secondary"
-                  onClick={() => toggle(p.id)}
-                  className="inline-flex items-center gap-2"
-                >
-                  {p.is_closed ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-                  {p.is_closed ? "Réouvrir" : "Clôturer"}
-                </Button>
-              </div>
+          {loading ? (
+            <div className="px-4 py-10 flex items-center justify-center">
+              <Loader2 className="w-6 h-6 animate-spin text-[#0d4a44]" />
             </div>
-          ))}
+          ) : error ? (
+            <div className="px-4 py-6 text-sm text-red-700">{error}</div>
+          ) : periods.length === 0 ? (
+            <div className="px-4 py-10 text-center text-sm text-gray-500">Aucune période configurée</div>
+          ) : (
+            periods.map((p) => (
+              <div key={p.id} className="grid grid-cols-3 px-4 py-3 text-sm items-center">
+                <div className="text-gray-900">{p.label}</div>
+                <div className="text-gray-700">{p.is_closed ? "Clôturée" : "Ouverte"}</div>
+                <div className="text-right">
+                  <Button variant="secondary" disabled className="inline-flex items-center gap-2">
+                    {p.is_closed ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+                    {p.is_closed ? "Réouvrir" : "Clôturer"}
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </DashboardLayout>

@@ -1,13 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/Button";
-import { Download, Plus, Trash2 } from "lucide-react";
-
-type EntryTemplate = {
-  id: string;
-  name: string;
-  description: string;
-};
+import { Download, Loader2, Plus, Trash2 } from "lucide-react";
+import { getEntryTemplates, type EntryTemplateItem } from "@/lib/api";
 
 function downloadCsv(filename: string, rows: Record<string, string | number>[]) {
   const headers = Object.keys(rows[0] || {});
@@ -31,26 +27,35 @@ function downloadCsv(filename: string, rows: Record<string, string | number>[]) 
 }
 
 export default function EntryTemplatesPage() {
-  const [templates, setTemplates] = useState<EntryTemplate[]>(
-    useMemo(
-      () => [
-        { id: "1", name: "OD - Ajustement", description: "Modèle d'opération diverse" },
-        { id: "2", name: "Écriture de banque", description: "Frais bancaires" },
-      ],
-      []
-    )
-  );
+  const router = useRouter();
+  const [templates, setTemplates] = useState<EntryTemplateItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleAdd = () => {
-    setTemplates((prev) => [
-      ...prev,
-      { id: String(Date.now()), name: "Nouveau modèle", description: "" },
-    ]);
-  };
+  useEffect(() => {
+    const fetchData = async () => {
+      const token = localStorage.getItem("seka_access_token");
+      if (!token) {
+        router.push("/login");
+        return;
+      }
 
-  const handleDelete = (id: string) => {
-    setTemplates((prev) => prev.filter((t) => t.id !== id));
-  };
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await getEntryTemplates(token);
+        setTemplates(data.templates || []);
+      } catch (e) {
+        console.error("Error fetching templates:", e);
+        setError("Erreur lors du chargement des modèles");
+        setTemplates([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [router]);
 
   const handleExport = () => {
     downloadCsv(
@@ -67,7 +72,7 @@ export default function EntryTemplatesPage() {
           <p className="text-sm text-gray-500 mt-1">Préparer des écritures réutilisables</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="secondary" onClick={handleAdd} className="flex items-center gap-2">
+          <Button variant="secondary" disabled className="flex items-center gap-2">
             <Plus className="w-4 h-4" />
             Nouveau
           </Button>
@@ -85,20 +90,27 @@ export default function EntryTemplatesPage() {
           <div className="text-right">Actions</div>
         </div>
         <div className="divide-y divide-gray-100">
-          {templates.map((t) => (
-            <div key={t.id} className="grid grid-cols-3 px-4 py-3 text-sm items-center">
-              <div className="text-gray-900 font-medium">{t.name}</div>
-              <div className="text-gray-700">{t.description}</div>
-              <div className="text-right">
-                <Button variant="secondary" onClick={() => handleDelete(t.id)} className="inline-flex items-center gap-2">
-                  <Trash2 className="w-4 h-4" />
-                  Supprimer
-                </Button>
-              </div>
+          {loading ? (
+            <div className="px-4 py-10 flex items-center justify-center">
+              <Loader2 className="w-6 h-6 animate-spin text-[#0d4a44]" />
             </div>
-          ))}
-          {templates.length === 0 && (
+          ) : error ? (
+            <div className="px-4 py-6 text-sm text-red-700">{error}</div>
+          ) : templates.length === 0 ? (
             <div className="px-4 py-10 text-center text-sm text-gray-500">Aucun modèle</div>
+          ) : (
+            templates.map((t) => (
+              <div key={t.id} className="grid grid-cols-3 px-4 py-3 text-sm items-center">
+                <div className="text-gray-900 font-medium">{t.name}</div>
+                <div className="text-gray-700">{t.description}</div>
+                <div className="text-right">
+                  <Button variant="secondary" disabled className="inline-flex items-center gap-2">
+                    <Trash2 className="w-4 h-4" />
+                    Supprimer
+                  </Button>
+                </div>
+              </div>
+            ))
           )}
         </div>
       </div>

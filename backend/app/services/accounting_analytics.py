@@ -7,9 +7,144 @@ from sqlalchemy import func, case, and_
 from app.models.accounting import AccountingEntry
 
 class AccountingAnalyticsService:
-    def __init__(self, db: Session, tenant_id: str):
+    def __init__(self, db: Session, tenant_id):
         self.db = db
         self.tenant_id = tenant_id
+
+    def get_sig(self, year: int) -> Dict[str, Any]:
+        start_date = date(year, 1, 1)
+        end_date = date(year, 12, 31)
+
+        # Chiffre d'affaires: comptes 70* (approx)
+        revenue = self.db.query(func.sum(AccountingEntry.credit - AccountingEntry.debit)).filter(
+            AccountingEntry.tenant_id == self.tenant_id,
+            AccountingEntry.account_number.like("70%"),
+            AccountingEntry.date.between(start_date, end_date)
+        ).scalar() or 0.0
+
+        # Achats consommés: comptes 60* (approx)
+        purchases = self.db.query(func.sum(AccountingEntry.debit - AccountingEntry.credit)).filter(
+            AccountingEntry.tenant_id == self.tenant_id,
+            AccountingEntry.account_number.like("60%"),
+            AccountingEntry.date.between(start_date, end_date)
+        ).scalar() or 0.0
+
+        # Charges externes: 61/62*
+        external_charges = self.db.query(func.sum(AccountingEntry.debit - AccountingEntry.credit)).filter(
+            AccountingEntry.tenant_id == self.tenant_id,
+            AccountingEntry.account_number.like("61%") | AccountingEntry.account_number.like("62%"),
+            AccountingEntry.date.between(start_date, end_date)
+        ).scalar() or 0.0
+
+        # Impôts & taxes: 63*
+        taxes = self.db.query(func.sum(AccountingEntry.debit - AccountingEntry.credit)).filter(
+            AccountingEntry.tenant_id == self.tenant_id,
+            AccountingEntry.account_number.like("63%"),
+            AccountingEntry.date.between(start_date, end_date)
+        ).scalar() or 0.0
+
+        # Charges de personnel: 64*
+        payroll = self.db.query(func.sum(AccountingEntry.debit - AccountingEntry.credit)).filter(
+            AccountingEntry.tenant_id == self.tenant_id,
+            AccountingEntry.account_number.like("64%"),
+            AccountingEntry.date.between(start_date, end_date)
+        ).scalar() or 0.0
+
+        # Dotations: 68*
+        depreciation = self.db.query(func.sum(AccountingEntry.debit - AccountingEntry.credit)).filter(
+            AccountingEntry.tenant_id == self.tenant_id,
+            AccountingEntry.account_number.like("68%"),
+            AccountingEntry.date.between(start_date, end_date)
+        ).scalar() or 0.0
+
+        # Produits/charges financiers: 76* / 66*
+        financial_products = self.db.query(func.sum(AccountingEntry.credit - AccountingEntry.debit)).filter(
+            AccountingEntry.tenant_id == self.tenant_id,
+            AccountingEntry.account_number.like("76%"),
+            AccountingEntry.date.between(start_date, end_date)
+        ).scalar() or 0.0
+
+        financial_charges = self.db.query(func.sum(AccountingEntry.debit - AccountingEntry.credit)).filter(
+            AccountingEntry.tenant_id == self.tenant_id,
+            AccountingEntry.account_number.like("66%"),
+            AccountingEntry.date.between(start_date, end_date)
+        ).scalar() or 0.0
+
+        marge_commerciale = revenue - purchases
+        valeur_ajoutee = marge_commerciale - external_charges
+        ebe = valeur_ajoutee - taxes - payroll
+        resultat_exploitation = ebe - depreciation
+        resultat_financier = financial_products - financial_charges
+        resultat_courant = resultat_exploitation + resultat_financier
+
+        # Résultat net: revenus classe 7 - charges classe 6
+        income_stmt = self.get_income_statement(year)
+
+        lines = [
+            {"label": "Chiffre d'affaires", "amount": float(revenue)},
+            {"label": "Marge commerciale", "amount": float(marge_commerciale)},
+            {"label": "Valeur ajoutée", "amount": float(valeur_ajoutee)},
+            {"label": "EBE", "amount": float(ebe)},
+            {"label": "Résultat d'exploitation", "amount": float(resultat_exploitation)},
+            {"label": "Résultat financier", "amount": float(resultat_financier)},
+            {"label": "Résultat courant", "amount": float(resultat_courant)},
+            {"label": "Résultat net", "amount": float(income_stmt.get("net_income") or 0.0)},
+        ]
+
+        return {"year": year, "lines": lines}
+
+    def get_cash_flow(self, year: int) -> Dict[str, Any]:
+        start_date = date(year, 1, 1)
+        end_date = date(year, 12, 31)
+
+        # Approximation: variation trésorerie = solde classe 5 (débit - crédit)
+        cash = self.db.query(func.sum(AccountingEntry.debit - AccountingEntry.credit)).filter(
+            AccountingEntry.tenant_id == self.tenant_id,
+            AccountingEntry.account_number.like("5%"),
+            AccountingEntry.date.between(start_date, end_date)
+        ).scalar() or 0.0
+
+        # On renvoie une structure simple (lignes) consommable par le front
+        return {
+            "year": year,
+            "lines": [
+                {"section": "Exploitation", "label": "Flux de trésorerie", "amount": float(cash)},
+            ],
+        }
+
+    def get_is_ir(self, year: int) -> Dict[str, Any]:
+        income_stmt = self.get_income_statement(year)
+        result = float(income_stmt.get("net_income") or 0.0)
+
+        # Base simplifiée = résultat net (à affiner ensuite)
+        base = max(0.0, result)
+        rate = 0.0
+        amount = base * rate
+
+        return {
+            "year": year,
+            "lines": [
+                {"label": "Résultat fiscal", "base": base, "rate": rate, "amount": amount},
+            ],
+        }
+
+    def get_other_taxes(self, year: int) -> Dict[str, Any]:
+        start_date = date(year, 1, 1)
+        end_date = date(year, 12, 31)
+
+        # Taxes diverses: classe 63* (impôts & taxes)
+        total = self.db.query(func.sum(AccountingEntry.debit - AccountingEntry.credit)).filter(
+            AccountingEntry.tenant_id == self.tenant_id,
+            AccountingEntry.account_number.like("63%"),
+            AccountingEntry.date.between(start_date, end_date)
+        ).scalar() or 0.0
+
+        return {
+            "year": year,
+            "lines": [
+                {"name": "Impôts & taxes (classe 63)", "period": str(year), "base": float(total), "rate": 0.0, "amount": float(total)},
+            ],
+        }
 
     def get_account_balance(self, account_number: str, start_date: Optional[date] = None, end_date: Optional[date] = None) -> float:
         """Calcule le solde d'un compte (Crédit - Débit pour passif/pdts, Débit - Crédit pour actif/charges)"""

@@ -1,28 +1,45 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/router";
 import Link from "next/link";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Search, ArrowRight } from "lucide-react";
-
-type LetteringItem = {
-  id: string;
-  tier: string;
-  reference: string;
-  amount: number;
-  status: "à lettrer" | "lettré";
-};
+import { Search, ArrowRight, Loader2 } from "lucide-react";
+import { getLetteringSummary, type LetteringItem } from "@/lib/api";
 
 export default function LetteringPage() {
+  const router = useRouter();
   const [search, setSearch] = useState("");
 
-  const items = useMemo<LetteringItem[]>(
-    () => [
-      { id: "1", tier: "Client A", reference: "FAC-0001", amount: 0, status: "à lettrer" },
-      { id: "2", tier: "Fournisseur B", reference: "ACH-0007", amount: 0, status: "lettré" },
-    ],
-    []
-  );
+  const [items, setItems] = useState<LetteringItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const token = localStorage.getItem("seka_access_token");
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+      try {
+        const year = new Date().getFullYear();
+        const data = await getLetteringSummary(token, year);
+        setItems(data.items || []);
+      } catch (e) {
+        console.error("Error fetching lettering:", e);
+        setError("Erreur lors du chargement du lettrage");
+        setItems([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [router]);
 
   const filtered = items.filter((i) => {
     const q = search.toLowerCase();
@@ -88,21 +105,28 @@ export default function LetteringPage() {
           <div className="text-right">Action</div>
         </div>
         <div className="divide-y divide-gray-100">
-          {filtered.map((i) => (
-            <div key={i.id} className="grid grid-cols-5 px-4 py-3 text-sm items-center">
-              <div className="text-gray-900">{i.tier}</div>
-              <div className="font-mono text-gray-700">{i.reference}</div>
-              <div className="text-right text-gray-900">{i.amount.toLocaleString("fr-FR", { minimumFractionDigits: 2 })}</div>
-              <div className="text-gray-700">{i.status}</div>
-              <div className="text-right">
-                <Button variant="secondary" onClick={() => {}}>
-                  Ouvrir
-                </Button>
-              </div>
+          {loading ? (
+            <div className="px-4 py-10 flex items-center justify-center">
+              <Loader2 className="w-6 h-6 animate-spin text-[#0d4a44]" />
             </div>
-          ))}
-          {filtered.length === 0 && (
+          ) : error ? (
+            <div className="px-4 py-6 text-sm text-red-700">{error}</div>
+          ) : filtered.length === 0 ? (
             <div className="px-4 py-10 text-center text-sm text-gray-500">Aucun élément</div>
+          ) : (
+            filtered.map((i) => (
+              <div key={i.id} className="grid grid-cols-5 px-4 py-3 text-sm items-center">
+                <div className="text-gray-900">{i.tier}</div>
+                <div className="font-mono text-gray-700">{i.reference}</div>
+                <div className="text-right text-gray-900">{i.amount.toLocaleString("fr-FR", { minimumFractionDigits: 2 })}</div>
+                <div className="text-gray-700">{i.status}</div>
+                <div className="text-right">
+                  <Button variant="secondary" onClick={() => {}}>
+                    Ouvrir
+                  </Button>
+                </div>
+              </div>
+            ))
           )}
         </div>
       </div>
