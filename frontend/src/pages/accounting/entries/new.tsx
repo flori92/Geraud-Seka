@@ -82,6 +82,11 @@ export default function NewAccountingEntry() {
       return;
     }
 
+    if (lines.some((line) => !line.account_id)) {
+      alert("Veuillez sélectionner un compte pour chaque ligne");
+      return;
+    }
+
     const token = localStorage.getItem("seka_access_token");
     try {
       const response = await fetch(

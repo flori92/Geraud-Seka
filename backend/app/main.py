@@ -174,6 +174,19 @@ def create_application() -> FastAPI:
                             """))
                         logger.info("✅ Fixed ledger_accounts.is_active type to BOOLEAN")
 
+            # Hotfix: ensure documents.file_extension exists (some DBs are behind GED migrations)
+            if 'documents' in existing_tables:
+                doc_columns = {col['name']: col for col in inspector.get_columns('documents')}
+                if 'file_extension' not in doc_columns:
+                    logger.info("🔧 Adding missing documents.file_extension column...")
+                    from sqlalchemy import text
+                    with engine.begin() as conn:
+                        conn.execute(text("""
+                            ALTER TABLE documents
+                            ADD COLUMN IF NOT EXISTS file_extension VARCHAR(10)
+                        """))
+                    logger.info("✅ Added documents.file_extension")
+
         except Exception as e:
             logger.error(f"❌ Error during startup database check: {e}")
         

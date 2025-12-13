@@ -2,6 +2,7 @@
 Service for Quote (Devis) operations
 """
 from typing import List, Optional
+from uuid import UUID
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, desc
 from datetime import datetime
@@ -14,11 +15,11 @@ class QuoteService:
     def get_quotes(
         self,
         db: Session,
-        tenant_id: str,
+        tenant_id: UUID,
         skip: int = 0,
         limit: int = 100,
         status: Optional[str] = None,
-        client_id: Optional[str] = None,
+        client_id: Optional[UUID] = None,
     ) -> List[Quote]:
         """Get all quotes for a tenant with optional filters"""
         query = db.query(Quote).filter(Quote.tenant_id == tenant_id)
@@ -31,7 +32,7 @@ class QuoteService:
 
         return query.order_by(desc(Quote.created_at)).offset(skip).limit(limit).all()
 
-    def get_quote_by_id(self, db: Session, quote_id: str, tenant_id: str) -> Optional[Quote]:
+    def get_quote_by_id(self, db: Session, quote_id: str, tenant_id: UUID) -> Optional[Quote]:
         """Get a specific quote by ID"""
         return db.query(Quote).filter(
             and_(
@@ -40,7 +41,7 @@ class QuoteService:
             )
         ).first()
 
-    def create_quote(self, db: Session, tenant_id: str, quote_data: dict) -> Quote:
+    def create_quote(self, db: Session, tenant_id: UUID, quote_data: dict) -> Quote:
         """Create a new quote"""
         # Extract items if present
         items_data = quote_data.pop("items", [])

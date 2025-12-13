@@ -101,6 +101,11 @@ export default function QuickAccountingEntry() {
             return;
         }
 
+        if (lines.some((line) => !line.account_id)) {
+            alert("Veuillez sélectionner un compte pour chaque ligne");
+            return;
+        }
+
         setIsSubmitting(true);
         const token = localStorage.getItem("seka_access_token");
         try {
