@@ -261,8 +261,8 @@ const accountingMenu: MenuSection[] = [
           { label: "Grand livre", href: "/accounting/ledger" },
           { label: "Balance âgée fournisseurs", href: "/suppliers/balance" },
           { label: "Balance âgée clients", href: "/clients/balance" },
-          { label: "Lettrage", href: "/coming-soon?feature=Lettrage" },
-          { label: "Contrôles de cohérence", href: "/coming-soon?feature=Contrôles" },
+          { label: "Lettrage", href: "/accounting/lettering" },
+          { label: "Contrôles de cohérence", href: "/accounting/consistency-checks" },
         ]
       },
       {
@@ -271,9 +271,9 @@ const accountingMenu: MenuSection[] = [
         icon: Building2,
         submenu: [
           { label: "Déclaration TVA", href: "/tax/tva-declaration", badge: "AUTO", badgeVariant: "new" },
-          { label: "Liasse fiscale", href: "/coming-soon?feature=Liasse fiscale" },
-          { label: "IS / IR", href: "/coming-soon?feature=Impôts" },
-          { label: "Taxes diverses", href: "/coming-soon?feature=Taxes" },
+          { label: "Liasse fiscale", href: "/tax/liasse-fiscale" },
+          { label: "IS / IR", href: "/tax/is-ir" },
+          { label: "Taxes diverses", href: "/tax/other-taxes" },
           { label: "Export FEC", href: "/accounting/export-fec" },
         ]
       },
@@ -284,9 +284,9 @@ const accountingMenu: MenuSection[] = [
         submenu: [
           { label: "Bilan", href: "/reports/balance-sheet" },
           { label: "Compte de résultat", href: "/reports/income-statement" },
-          { label: "SIG", href: "/coming-soon?feature=SIG" },
-          { label: "Tableau de financement", href: "/coming-soon?feature=Tableau de flux" },
-          { label: "Annexes", href: "/coming-soon?feature=Annexes" },
+          { label: "SIG", href: "/reports/sig" },
+          { label: "Tableau de financement", href: "/reports/cash-flow" },
+          { label: "Annexes", href: "/reports/annexes" },
         ]
       },
       {
@@ -294,11 +294,11 @@ const accountingMenu: MenuSection[] = [
         label: "Clôture",
         icon: Lock,
         submenu: [
-          { label: "Écritures de clôture", href: "/coming-soon?feature=Clôture" },
-          { label: "Inventaire", href: "/coming-soon?feature=Inventaire comptable" },
-          { label: "Provisions", href: "/coming-soon?feature=Provisions" },
-          { label: "Amortissements", href: "/coming-soon?feature=Amortissements" },
-          { label: "Validation période", href: "/coming-soon?feature=Validation période" },
+          { label: "Écritures de clôture", href: "/accounting/closing-entries" },
+          { label: "Inventaire", href: "/accounting/inventory" },
+          { label: "Provisions", href: "/accounting/provisions" },
+          { label: "Amortissements", href: "/accounting/depreciations" },
+          { label: "Validation période", href: "/accounting/period-validation" },
         ]
       },
       {
@@ -310,7 +310,7 @@ const accountingMenu: MenuSection[] = [
           { label: "Documents", href: "/documents" },
           { label: "Plan comptable", href: "/accounting/chart-of-accounts" },
           { label: "Règles comptables", href: "/settings/accounting-rules", badge: "IA", badgeVariant: "new" },
-          { label: "Modèles d'écritures", href: "/coming-soon?feature=Modèles" },
+          { label: "Modèles d'écritures", href: "/accounting/entry-templates" },
           { label: "Paramètres dossier", href: "/settings" },
         ]
       },
