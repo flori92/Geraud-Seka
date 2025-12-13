@@ -99,6 +99,48 @@ def ensure_tenant_columns():
         print(f"⚠️  Erreur lors de l'ajout des colonnes tenant: {e}")
 
 
+def ensure_documents_columns():
+    """Ajoute les colonnes manquantes à la table documents si nécessaire.
+
+    Ce fallback est utile en production quand Alembic ne peut pas appliquer `upgrade head`
+    (ex: plusieurs heads). On évite ainsi des erreurs 500 sur les inserts ORM.
+    """
+    try:
+        with engine.connect() as conn:
+            # Vérifier si la colonne title existe
+            result = conn.execute(
+                text(
+                    """
+                    SELECT column_name FROM information_schema.columns
+                    WHERE table_name = 'documents' AND column_name = 'title'
+                    """
+                )
+            )
+            if not result.fetchone():
+                print("🔧 Ajout de la colonne title à documents...")
+                conn.execute(text("ALTER TABLE documents ADD COLUMN title VARCHAR(500)"))
+                conn.commit()
+                print("✅ Colonne title ajoutée")
+
+            # Vérifier si la colonne description existe
+            result = conn.execute(
+                text(
+                    """
+                    SELECT column_name FROM information_schema.columns
+                    WHERE table_name = 'documents' AND column_name = 'description'
+                    """
+                )
+            )
+            if not result.fetchone():
+                print("🔧 Ajout de la colonne description à documents...")
+                conn.execute(text("ALTER TABLE documents ADD COLUMN description TEXT"))
+                conn.commit()
+                print("✅ Colonne description ajoutée")
+
+    except Exception as e:
+        print(f"⚠️  Erreur lors de l'ajout des colonnes documents: {e}")
+
+
 def run_migrations():
     """Exécute les migrations Alembic et crée les tables"""
     try:
@@ -112,6 +154,9 @@ def run_migrations():
         
         # Assurer que les colonnes tenant existent
         ensure_tenant_columns()
+
+        # Assurer que les colonnes documents existent (fallback prod si Alembic est bloqué)
+        ensure_documents_columns()
 
         # Vérifier que les tables existent
         with engine.connect() as conn:
