@@ -293,14 +293,215 @@ class AccountingAnalyticsService:
             "labels": ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"]
         }
 
+    def get_tva_declaration(self, year: int, month: int) -> Dict[str, Any]:
+        """
+        Génère une déclaration TVA mensuelle basée sur les écritures comptables.
+
+        En UEMOA/CI:
+        - TVA Collectée (sur ventes): compte 4431
+        - TVA Déductible (sur achats): compte 4451
+        - Taux standard: 18%
+        """
+        from calendar import monthrange
+
+        # Déterminer les dates de la période
+        start_date = date(year, month, 1)
+        last_day = monthrange(year, month)[1]
+        end_date = date(year, month, last_day)
+
+        # TVA Collectée (4431) - Créditeur normal
+        tva_collectee = self.db.query(func.sum(AccountingEntry.credit - AccountingEntry.debit)).filter(
+            AccountingEntry.tenant_id == self.tenant_id,
+            AccountingEntry.account_number.like("4431%"),
+            AccountingEntry.date.between(start_date, end_date)
+        ).scalar() or 0.0
+
+        # TVA Déductible (4451) - Débiteur normal
+        tva_deductible = self.db.query(func.sum(AccountingEntry.debit - AccountingEntry.credit)).filter(
+            AccountingEntry.tenant_id == self.tenant_id,
+            AccountingEntry.account_number.like("4451%"),
+            AccountingEntry.date.between(start_date, end_date)
+        ).scalar() or 0.0
+
+        # Calcul de la base HT à partir de la TVA (base = TVA / taux)
+        # Pour 18%, base_ht = tva / 0.18
+
+        # Lignes TVA collectée (détail par taux)
+        collectee_lines = []
+
+        # Ventes soumises à 18%
+        if tva_collectee > 0:
+            base_18 = tva_collectee / 0.18
+            collectee_lines.append({
+                "code": "CA3-01",
+                "label": "Ventes de marchandises et services (18%)",
+                "base": round(base_18, 2),
+                "tva": round(tva_collectee, 2),
+                "rate": "18%"
+            })
+
+        # Ventes exonérées (estimer à partir des ventes sans TVA)
+        # On peut approximer en regardant les ventes (classe 70) sans TVA correspondante
+        revenue_total = self.db.query(func.sum(AccountingEntry.credit - AccountingEntry.debit)).filter(
+            AccountingEntry.tenant_id == self.tenant_id,
+            AccountingEntry.account_number.like("70%"),
+            AccountingEntry.date.between(start_date, end_date)
+        ).scalar() or 0.0
+
+        # Ventes exonérées = Revenue total - Base soumise à TVA
+        base_exempt = max(0, revenue_total - (tva_collectee / 0.18 if tva_collectee > 0 else 0))
+        if base_exempt > 100:  # Seuil minimal pour afficher
+            collectee_lines.append({
+                "code": "CA3-02",
+                "label": "Ventes exonérées",
+                "base": round(base_exempt, 2),
+                "tva": 0,
+                "rate": "0%"
+            })
+
+        # Lignes TVA déductible (détail par nature)
+        deductible_lines = []
+
+        if tva_deductible > 0:
+            # Répartir la TVA déductible par nature d'achat (approximatif)
+            # On regarde les comptes de charges correspondants
+
+            # Achats de marchandises (60)
+            achats_marchandises = self.db.query(func.sum(AccountingEntry.debit - AccountingEntry.credit)).filter(
+                AccountingEntry.tenant_id == self.tenant_id,
+                AccountingEntry.account_number.like("60%"),
+                AccountingEntry.date.between(start_date, end_date)
+            ).scalar() or 0.0
+
+            # Services extérieurs (61/62)
+            services = self.db.query(func.sum(AccountingEntry.debit - AccountingEntry.credit)).filter(
+                AccountingEntry.tenant_id == self.tenant_id,
+                (AccountingEntry.account_number.like("61%") | AccountingEntry.account_number.like("62%")),
+                AccountingEntry.date.between(start_date, end_date)
+            ).scalar() or 0.0
+
+            # Immobilisations (2x)
+            immobilisations = self.db.query(func.sum(AccountingEntry.debit - AccountingEntry.credit)).filter(
+                AccountingEntry.tenant_id == self.tenant_id,
+                AccountingEntry.account_number.like("2%"),
+                AccountingEntry.date.between(start_date, end_date)
+            ).scalar() or 0.0
+
+            total_charges = achats_marchandises + services + immobilisations
+
+            if total_charges > 0:
+                # Répartir proportionnellement la TVA déductible
+                if achats_marchandises > 0:
+                    tva_achats = tva_deductible * (achats_marchandises / total_charges)
+                    deductible_lines.append({
+                        "code": "DD-01",
+                        "label": "Achats de marchandises",
+                        "base": round(achats_marchandises, 2),
+                        "tva": round(tva_achats, 2),
+                        "rate": "18%"
+                    })
+
+                if services > 0:
+                    tva_services = tva_deductible * (services / total_charges)
+                    deductible_lines.append({
+                        "code": "DD-02",
+                        "label": "Services extérieurs",
+                        "base": round(services, 2),
+                        "tva": round(tva_services, 2),
+                        "rate": "18%"
+                    })
+
+                if immobilisations > 0:
+                    tva_immob = tva_deductible * (immobilisations / total_charges)
+                    deductible_lines.append({
+                        "code": "DD-03",
+                        "label": "Investissements (immobilisations)",
+                        "base": round(immobilisations, 2),
+                        "tva": round(tva_immob, 2),
+                        "rate": "18%"
+                    })
+            else:
+                # Pas de détail, afficher juste le total
+                deductible_lines.append({
+                    "code": "DD-01",
+                    "label": "TVA déductible sur achats",
+                    "base": round(tva_deductible / 0.18, 2),
+                    "tva": round(tva_deductible, 2),
+                    "rate": "18%"
+                })
+
+        # Calcul TVA à payer (ou crédit de TVA)
+        tva_due = tva_collectee - tva_deductible
+
+        # Date limite de paiement (généralement 15 du mois suivant)
+        if month == 12:
+            due_date = date(year + 1, 1, 15)
+        else:
+            due_date = date(year, month + 1, 15)
+
+        # Récupérer l'historique des déclarations précédentes (3 derniers mois)
+        history = []
+        for i in range(1, 4):
+            prev_month = month - i
+            prev_year = year
+            if prev_month <= 0:
+                prev_month += 12
+                prev_year -= 1
+
+            prev_start = date(prev_year, prev_month, 1)
+            prev_last_day = monthrange(prev_year, prev_month)[1]
+            prev_end = date(prev_year, prev_month, prev_last_day)
+
+            prev_collectee = self.db.query(func.sum(AccountingEntry.credit - AccountingEntry.debit)).filter(
+                AccountingEntry.tenant_id == self.tenant_id,
+                AccountingEntry.account_number.like("4431%"),
+                AccountingEntry.date.between(prev_start, prev_end)
+            ).scalar() or 0.0
+
+            prev_deductible = self.db.query(func.sum(AccountingEntry.debit - AccountingEntry.credit)).filter(
+                AccountingEntry.tenant_id == self.tenant_id,
+                AccountingEntry.account_number.like("4451%"),
+                AccountingEntry.date.between(prev_start, prev_end)
+            ).scalar() or 0.0
+
+            prev_due = prev_collectee - prev_deductible
+
+            if prev_month == 12:
+                prev_due_date = date(prev_year + 1, 1, 15)
+            else:
+                prev_due_date = date(prev_year, prev_month + 1, 15)
+
+            history.append({
+                "id": f"h{i}",
+                "period": f"{prev_year}-{prev_month:02d}",
+                "due_date": prev_due_date.isoformat(),
+                "status": "paid" if prev_due_date < date.today() else "submitted",
+                "tva_collectee": round(prev_collectee, 2),
+                "tva_deductible": round(prev_deductible, 2),
+                "tva_due": round(prev_due, 2)
+            })
+
+        return {
+            "period": f"{year}-{month:02d}",
+            "due_date": due_date.isoformat(),
+            "status": "draft" if date.today() < due_date else "overdue",
+            "tva_collectee": round(tva_collectee, 2),
+            "tva_deductible": round(tva_deductible, 2),
+            "tva_due": round(tva_due, 2),
+            "collectee_lines": collectee_lines,
+            "deductible_lines": deductible_lines,
+            "history": history,
+            "generated_at": date.today().isoformat()
+        }
+
     def get_dashboard_summary(self) -> Dict[str, Any]:
         """Agrège tout pour le dashboard"""
         current_year = date.today().year
-        
+
         income_stmt = self.get_income_statement(current_year)
         balance_sheet = self.get_balance_sheet_summary()
         rec_pay = self.get_receivables_payables()
-        
+
         # Cash = Classe 5 (Actif)
         cash_balance = self.db.query(func.sum(AccountingEntry.debit - AccountingEntry.credit)).filter(
             AccountingEntry.tenant_id == self.tenant_id,

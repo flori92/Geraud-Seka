@@ -45,39 +45,46 @@ export default function TVADeclarationPage() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            // Mock data
-            setDeclaration({
-                id: "1",
-                period: selectedPeriod,
-                due_date: "2025-01-15",
-                status: "draft",
-                tva_collectee: 2850000,
-                tva_deductible: 1420000,
-                tva_due: 1430000,
-                credit_report: 0
+            // Parse year and month from selectedPeriod (format: "YYYY-MM")
+            const [year, month] = selectedPeriod.split("-").map(Number);
+
+            const response = await fetch(`/api/v1/tax/tva-declaration?year=${year}&month=${month}`, {
+                headers: {
+                    "Authorization": `Bearer ${localStorage.getItem("token")}`,
+                },
             });
 
-            setCollecteeLines([
-                { code: "CA3-01", label: "Ventes de marchandises (18%)", base: 12500000, tva: 2250000, rate: "18%" },
-                { code: "CA3-02", label: "Prestations de services (18%)", base: 3000000, tva: 540000, rate: "18%" },
-                { code: "CA3-03", label: "Ventes exonérées", base: 500000, tva: 0, rate: "0%" },
-                { code: "CA3-04", label: "Autres opérations (10%)", base: 600000, tva: 60000, rate: "10%" },
-            ]);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
 
-            setDeductibleLines([
-                { code: "DD-01", label: "Achats de marchandises", base: 5500000, tva: 990000, rate: "18%" },
-                { code: "DD-02", label: "Services extérieurs", base: 1200000, tva: 216000, rate: "18%" },
-                { code: "DD-03", label: "Investissements (immob.)", base: 800000, tva: 144000, rate: "18%" },
-                { code: "DD-04", label: "Autres charges déductibles", base: 388889, tva: 70000, rate: "18%" },
-            ]);
+            const data = await response.json();
 
-            setHistory([
-                { id: "h1", period: "2024-11", due_date: "2024-12-15", status: "paid", tva_collectee: 2650000, tva_deductible: 1180000, tva_due: 1470000 },
-                { id: "h2", period: "2024-10", due_date: "2024-11-15", status: "paid", tva_collectee: 2420000, tva_deductible: 1050000, tva_due: 1370000 },
-                { id: "h3", period: "2024-09", due_date: "2024-10-15", status: "paid", tva_collectee: 2780000, tva_deductible: 1320000, tva_due: 1460000 },
-            ]);
+            // Map API response to frontend state
+            setDeclaration({
+                id: "1",
+                period: data.period,
+                due_date: data.due_date,
+                status: data.status as "draft" | "submitted" | "validated" | "paid",
+                tva_collectee: data.tva_collectee,
+                tva_deductible: data.tva_deductible,
+                tva_due: data.tva_due,
+                credit_report: data.tva_due < 0 ? Math.abs(data.tva_due) : 0
+            });
+
+            // Set collectee and deductible lines from API
+            setCollecteeLines(data.collectee_lines || []);
+            setDeductibleLines(data.deductible_lines || []);
+
+            // Set history from API
+            setHistory(data.history || []);
         } catch (error) {
-            console.error("Failed to fetch data:", error);
+            console.error("Failed to fetch TVA declaration:", error);
+            // Keep empty state on error
+            setDeclaration(null);
+            setCollecteeLines([]);
+            setDeductibleLines([]);
+            setHistory([]);
         } finally {
             setLoading(false);
         }
@@ -85,7 +92,7 @@ export default function TVADeclarationPage() {
 
     const handleRecalculate = async () => {
         setCalculating(true);
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await fetchData();
         setCalculating(false);
     };
 
