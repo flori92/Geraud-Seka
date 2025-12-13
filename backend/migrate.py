@@ -161,15 +161,15 @@ def ensure_documents_columns():
                         END $$;
                     """))
                     conn.commit()
+                    print("✅ Type enum documentcategory créé/vérifié")
                 except Exception as e:
                     print(f"⚠️  Info: Type enum existe peut-être déjà: {e}")
 
-                # Ajouter la colonne sans default (on le met après)
+                # Ajouter la colonne avec cast explicite pour le default
                 try:
-                    conn.execute(text("ALTER TABLE documents ADD COLUMN category documentcategory"))
-                    conn.commit()
-                    # Puis définir la valeur par défaut
-                    conn.execute(text("ALTER TABLE documents ALTER COLUMN category SET DEFAULT 'other'::documentcategory"))
+                    conn.execute(text("""
+                        ALTER TABLE documents ADD COLUMN category documentcategory DEFAULT CAST('other' AS documentcategory)
+                    """))
                     conn.commit()
                     print("✅ Colonne category ajoutée")
                 except Exception as e:
