@@ -12,9 +12,11 @@ Exécutez le script fourni :
 
 Le script va :
 - Vérifier que Railway CLI est installé
-- Supprimer toutes les variables d'environnement Sentry du frontend
-- Supprimer toutes les variables d'environnement Sentry du backend
-- Vous guider pour redéployer les services
+- Lister toutes les variables Sentry existantes sur Railway
+- Ouvrir l'interface Railway dans votre navigateur
+- Vous guider pour supprimer manuellement les variables
+
+⚠️ **Note importante** : Railway CLI ne permet pas de supprimer directement les variables d'environnement. Vous devrez les supprimer manuellement via l'interface web Railway.
 
 ## 📋 Méthode 2 : Désactivation manuelle
 
@@ -34,41 +36,28 @@ railway login
 
 #### Frontend
 
-Naviguez vers le projet frontend sur Railway et supprimez ces variables d'environnement :
+⚠️ **Railway CLI ne permet pas de supprimer directement les variables.** Vous devez utiliser l'interface web :
 
-```bash
-cd frontend
-railway link  # Si pas déjà lié
-
-# Supprimer les variables Sentry
-railway variables --delete "NEXT_PUBLIC_SENTRY_DSN"
-railway variables --delete "NEXT_PUBLIC_SENTRY_ENABLED"
-railway variables --delete "SENTRY_AUTH_TOKEN"
-railway variables --delete "SENTRY_ORG"
-railway variables --delete "SENTRY_PROJECT"
-```
-
-**Ou via l'interface Railway :**
 1. Allez sur https://railway.app
 2. Sélectionnez votre projet frontend
-3. Allez dans l'onglet "Variables"
-4. Supprimez les variables listées ci-dessus
+3. Allez dans l'onglet "Variables" ou "Environment Variables"
+4. Trouvez et supprimez ces variables :
+   - `NEXT_PUBLIC_SENTRY_DSN`
+   - `NEXT_PUBLIC_SENTRY_ENABLED`
+   - `SENTRY_AUTH_TOKEN`
+   - `SENTRY_ORG`
+   - `SENTRY_PROJECT`
+5. Cliquez sur l'icône de suppression (🗑️) à côté de chaque variable
+6. Confirmez la suppression
 
 #### Backend
 
-```bash
-cd backend
-railway link  # Si pas déjà lié
-
-# Supprimer la variable Sentry
-railway variables --delete "SENTRY_DSN"
-```
-
-**Ou via l'interface Railway :**
 1. Allez sur https://railway.app
 2. Sélectionnez votre projet backend
-3. Allez dans l'onglet "Variables"
-4. Supprimez `SENTRY_DSN`
+3. Allez dans l'onglet "Variables" ou "Environment Variables"
+4. Trouvez et supprimez la variable `SENTRY_DSN`
+5. Cliquez sur l'icône de suppression (🗑️)
+6. Confirmez la suppression
 
 ### Redéploiement
 
