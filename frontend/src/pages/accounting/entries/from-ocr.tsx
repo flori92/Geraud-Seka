@@ -141,6 +141,8 @@ export default function AccountingEntryFromOCR() {
       let pageCount = 1;
       let isMultiPage = false;
 
+      const round2 = (n: number) => Math.round(n * 100) / 100;
+
       const fileToOcr = await (async () => {
         if (file.type === 'application/pdf') {
           const images = await convertPdfToImages(file, 1);
@@ -160,17 +162,51 @@ export default function AccountingEntryFromOCR() {
       console.log("Local OCR Text:", allText);
 
       // Regex Patterns
-      const dateRegex = /(\d{2}[/.-]\d{2}[/.-]\d{4})|(\d{1,2}\s(?:janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\s\d{4})/i;
-      const amountRegex = /(\d{1,3}(?:[\s.]\d{3})*(?:,\d{2})?)\s?(?:€|EUR|FCFA|F\s?CFA)/gi;
-      const referenceRegex = /(?:facture|ref|n°|invoice)\s?[:.]?\s?([a-z0-9-/]+)/i;
+      const dateRegex = /(\d{2}[/.-]\d{2}[/.-]\d{4})|(\d{1,2}\s(?:janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\s(?:\d{4}|N))/i;
+      const amountRegex = /(\d{1,3}(?:[\s.]\d{3})*(?:,\d{2})?)/g;
+      const referenceRegex = /(?:facture|invoice)\s*(?:n[°o]?\s*)?([a-z0-9-/]+)/i;
 
       // Find Date
       const dateMatch = allText.match(dateRegex);
       let date = new Date().toISOString().split('T')[0];
       if (dateMatch) {
         try {
-          const d = dateMatch[0].replace(/[/.]/g, '-');
-          // Basic date parsing logic could be here, strict ISO preferred
+          const raw = dateMatch[0].trim();
+          const m1 = raw.match(/^(\d{2})[\/.-](\d{2})[\/.-](\d{4})$/);
+          if (m1) {
+            const yyyy = m1[3];
+            const mm = m1[2];
+            const dd = m1[1];
+            date = `${yyyy}-${mm}-${dd}`;
+          } else {
+            const m2 = raw.match(/^(\d{1,2})\s+(janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\s+(\d{4}|N)$/i);
+            if (m2) {
+              const day = parseInt(m2[1], 10);
+              const monthName = m2[2].toLowerCase();
+              const yearStr = m2[3].toUpperCase();
+              const monthMap: Record<string, number> = {
+                janvier: 1,
+                février: 2,
+                mars: 3,
+                avril: 4,
+                mai: 5,
+                juin: 6,
+                juillet: 7,
+                août: 8,
+                septembre: 9,
+                octobre: 10,
+                novembre: 11,
+                décembre: 12,
+              };
+              const year = yearStr === 'N' ? new Date().getFullYear() : parseInt(yearStr, 10);
+              const month = monthMap[monthName];
+              if (month && !Number.isNaN(day) && !Number.isNaN(year)) {
+                const mm = `${month}`.padStart(2, '0');
+                const dd = `${day}`.padStart(2, '0');
+                date = `${year}-${mm}-${dd}`;
+              }
+            }
+          }
         } catch (e) { }
       }
 
@@ -179,24 +215,37 @@ export default function AccountingEntryFromOCR() {
       let match;
       // Need to reset regex lastIndex if global
       while ((match = amountRegex.exec(allText)) !== null) {
-        const clean = match[1].replace(/\s/g, '').replace(',', '.');
+        const raw = match[1];
+        const looksLikeAmount = raw.includes(',') || /\d{1,3}[\s.]\d{3}/.test(raw);
+        if (!looksLikeAmount) continue;
+        const clean = raw.replace(/\s/g, '').replace(/\./g, '').replace(',', '.');
         const val = parseFloat(clean);
-        if (!isNaN(val)) amounts.push(val);
+        if (!isNaN(val) && val > 0) amounts.push(val);
       }
 
       const maxAmount = amounts.length > 0 ? Math.max(...amounts) : 0;
       const amountTTC = maxAmount;
-      const amountVAT = Math.round(amountTTC * 0.18 / 1.18);
-      const amountHT = amountTTC - amountVAT;
+      const vatMatch = allText.match(/TVA\s*([0-9]{1,2})\s*%/i);
+      const vatRate = vatMatch ? parseFloat(vatMatch[1]) / 100 : 0.18;
+      const amountHT = amountTTC > 0 ? round2(amountTTC / (1 + vatRate)) : 0;
+      const amountVAT = amountTTC > 0 ? round2(amountTTC - amountHT) : 0;
 
       // Find Reference
       const refMatch = allText.match(referenceRegex);
       const reference = refMatch ? refMatch[1] : `DOC-${Date.now()}`;
 
       // Try to extract supplier name
+      const lines = allText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      const supplierCandidate = lines.find(l => {
+        if (l.length < 3 || l.length > 60) return false;
+        if (!/[a-zà-ÿ]/i.test(l)) return false;
+        if (/coordonn|facture|désignation|designation|quantité|quantite|prix|montant|total|tva|rabat|net/i.test(l)) return false;
+        if (/\d/.test(l) && l.length < 8) return false;
+        return true;
+      });
       const supplierRegex = /(?:société|entreprise|sarl|sa|sas|eurl)\s+([a-zà-ÿ\s-]+)/i;
       const supplierMatch = allText.match(supplierRegex);
-      const supplierName = supplierMatch ? supplierMatch[1].trim() : "Fournisseur Inconnu (OCR Local)";
+      const supplierName = (supplierCandidate || (supplierMatch ? supplierMatch[1] : "") || "Fournisseur Inconnu (OCR Local)").trim();
 
       const fallbackOcrData: OcrData = {
         reference_number: reference,
@@ -205,8 +254,8 @@ export default function AccountingEntryFromOCR() {
         amount_vat: amountVAT,
         amount_ttc: amountTTC,
         supplier_name: supplierName,
-        is_multi_page: false,
-        page_count: 1,
+        is_multi_page: isMultiPage,
+        page_count: pageCount,
         confidence: 0.6,
         fields_confidence: {
           supplier_name: 0.5,
@@ -265,7 +314,8 @@ export default function AccountingEntryFromOCR() {
         );
 
         if (!response.ok) {
-          throw new Error(`Server OCR failed with status ${response.status}`);
+          const detail = await response.text().catch(() => '');
+          throw new Error(`Server OCR failed with status ${response.status}${detail ? `: ${detail}` : ''}`);
         }
         return response.json();
       };

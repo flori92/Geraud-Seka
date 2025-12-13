@@ -23,9 +23,7 @@ settings = get_settings()
 # Clé API Groq (chargée depuis les variables d'environnement)
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
-# Modèle amélioré inspiré de LlamaOCR
-GROQ_MODEL = "llama-3.2-90b-vision-preview"  # Meilleur modèle pour OCR
-GROQ_MODEL_FALLBACK = "llama-3.2-11b-vision-preview"  # Fallback si 90b échoue
+GROQ_MODEL = "llama-3.2-11b-vision-preview"
 
 class GroqOCRService:
     """Service d'extraction de données via Groq Llama Vision."""
