@@ -15,7 +15,8 @@ import {
   Shield,
   Mail,
   Globe,
-  Save
+  Save,
+  ChevronRight
 } from "lucide-react";
 import { useRouter } from "next/router";
 
@@ -27,9 +28,18 @@ export default function SettingsPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("profile");
 
+  const tabFromQuery = typeof router.query.tab === "string" ? router.query.tab : null;
+  const isHub = !tabFromQuery;
+
   useEffect(() => {
     fetchUser();
   }, []);
+
+  useEffect(() => {
+    if (tabFromQuery) {
+      setActiveTab(tabFromQuery);
+    }
+  }, [tabFromQuery]);
 
   const fetchUser = async () => {
     try {
@@ -56,6 +66,37 @@ export default function SettingsPage() {
     { id: "preferences", label: "Préférences", icon: Palette },
   ];
 
+  const hubSections = [
+    {
+      title: "Paramètres",
+      items: [
+        { label: "Connexions bancaires", href: "/treasury/accounts" },
+        { label: "Transmission de factures", href: "/accounting/import-statements" },
+        { label: "Facturation client", href: "/ventes/factures-clients" },
+        { label: "Familles analytiques", href: "/coming-soon?feature=Familles analytiques" },
+        { label: "Centre de règles", href: "/settings/rules" },
+        { label: "Connectivité", href: "/settings/integrations" },
+        { label: "Fonctionnalités avancées", href: "/coming-soon?feature=Fonctionnalités avancées" },
+        { label: "Plan comptable", href: "/accounting/chart-of-accounts" },
+      ]
+    },
+    {
+      title: "",
+      items: [
+        { label: "Informations entreprise", href: "/settings?tab=company" },
+        { label: "Gestion de l’équipe", href: "/coming-soon?feature=Gestion de l'équipe" },
+        { label: "Gestion d’abonnement", href: "/billing" },
+      ]
+    },
+    {
+      title: "Historique",
+      items: [
+        { label: "Imports", href: "/settings/import" },
+        { label: "Exports", href: "/exports" },
+      ]
+    }
+  ];
+
   const handleSave = () => {
     setSuccess("Paramètres sauvegardés avec succès");
     setTimeout(() => setSuccess(null), 3000);
@@ -74,34 +115,61 @@ export default function SettingsPage() {
         </Alert>
       )}
 
-      <div className="flex gap-6">
-        {/* Sidebar */}
-        <div className="w-64 flex-shrink-0">
-          <Card className="p-2">
-            <nav className="space-y-1">
-              {tabs.map((tab) => {
-                const Icon = tab.icon;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      activeTab === tab.id
-                        ? "bg-primary text-white"
-                        : "text-accents-6 hover:bg-accents-1 hover:text-foreground"
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </nav>
+      {isHub ? (
+        <div className="max-w-3xl">
+          <Card className="overflow-hidden">
+            <div className="divide-y divide-accents-2">
+              {hubSections.map((section, sectionIdx) => (
+                <div key={sectionIdx}>
+                  {section.title ? (
+                    <div className="px-6 py-4 text-xs font-semibold text-accents-5 uppercase tracking-wider bg-accents-1">
+                      {section.title}
+                    </div>
+                  ) : null}
+                  <div className="divide-y divide-accents-2">
+                    {section.items.map((item, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => router.push(item.href)}
+                        className="w-full flex items-center justify-between px-6 py-4 text-sm text-foreground hover:bg-accents-1 transition-colors"
+                      >
+                        <span className="font-medium">{item.label}</span>
+                        <ChevronRight className="h-4 w-4 text-accents-5" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           </Card>
         </div>
+      ) : (
+        <div className="flex gap-6">
+          <div className="w-64 flex-shrink-0">
+            <Card className="p-2">
+              <nav className="space-y-1">
+                {tabs.map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => router.push(`/settings?tab=${tab.id}`)}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        activeTab === tab.id
+                          ? "bg-primary text-white"
+                          : "text-accents-6 hover:bg-accents-1 hover:text-foreground"
+                      }`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </nav>
+            </Card>
+          </div>
 
-        {/* Content */}
-        <div className="flex-1">
+          <div className="flex-1">
           {activeTab === "profile" && (
             <Card>
               <div className="p-6">
@@ -390,8 +458,9 @@ export default function SettingsPage() {
               </div>
             </Card>
           )}
+          </div>
         </div>
-      </div>
+      )}
     </DashboardLayout>
   );
 }
