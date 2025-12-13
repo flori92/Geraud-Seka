@@ -10,7 +10,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "20251213_force_add_supplier_contact_name"
-down_revision = "20241213_force_add_original_filename"
+down_revision = "fix_ledger_is_active"
 branch_labels = None
 depends_on = None
 
