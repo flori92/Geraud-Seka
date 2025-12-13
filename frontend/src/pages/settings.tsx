@@ -84,7 +84,7 @@ export default function SettingsPage() {
       title: "",
       items: [
         { label: "Informations entreprise", href: "/settings?tab=company" },
-        { label: "Gestion de l’équipe", href: "/coming-soon?feature=Gestion de l'équipe" },
+        { label: "Gestion de l’équipe", href: "/settings/team" },
         { label: "Gestion d’abonnement", href: "/billing" },
       ]
     },

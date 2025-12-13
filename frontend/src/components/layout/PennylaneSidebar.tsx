@@ -205,7 +205,7 @@ const managementMenu: MenuSection[] = [
           { label: "Fonctionnalités avancées", href: "/coming-soon?feature=Fonctionnalités avancées" },
           { label: "Plan comptable", href: "/accounting/chart-of-accounts" },
           { label: "Informations entreprise", href: "/settings?tab=company" },
-          { label: "Gestion de l’équipe", href: "/coming-soon?feature=Gestion de l'équipe" },
+          { label: "Gestion de l’équipe", href: "/settings/team" },
           { label: "Gestion d’abonnement", href: "/billing" },
           { label: "Imports", href: "/settings/import" },
           { label: "Exports", href: "/exports" },
