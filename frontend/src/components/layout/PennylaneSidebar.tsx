@@ -235,8 +235,6 @@ const accountingMenu: MenuSection[] = [
           { label: "Transactions bancaires", href: "/transactions" },
           { label: "Rapprochement bancaire", href: "/accounting/bank-reconciliation", badge: "IA", badgeVariant: "new" },
           { label: "Import relevés", href: "/accounting/import-statements" },
-          { label: "OD de paie", href: "/coming-soon?feature=Paie" },
-          { label: "À-nouveaux", href: "/coming-soon?feature=À-nouveaux" },
         ]
       },
       {
