@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/Button";
-import { Download, Loader2 } from "lucide-react";
+import { Download, Loader2, AlertCircle } from "lucide-react";
 import { getIsIr, type IsIrLine } from "@/lib/api";
+import { useToast } from "@/components/ui/ToastContainer";
 
 function downloadCsv(filename: string, rows: Record<string, string | number>[]) {
   const headers = Object.keys(rows[0] || {});
@@ -28,6 +29,7 @@ function downloadCsv(filename: string, rows: Record<string, string | number>[]) 
 
 export default function IsIrPage() {
   const router = useRouter();
+  const { error: showErrorToast } = useToast();
   const [lines, setLines] = useState<IsIrLine[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,17 +48,27 @@ export default function IsIrPage() {
         const year = new Date().getFullYear();
         const data = await getIsIr(token, year);
         setLines(data.lines || []);
-      } catch (e) {
+        if (data.lines && data.lines.length === 0) {
+          setError("Aucune donnée disponible pour cette année");
+        }
+      } catch (e: any) {
         console.error("Error fetching IS/IR:", e);
-        setError("Erreur lors du chargement de l'IS/IR");
+        let errorMessage = "Erreur lors du chargement de l'IS/IR";
+        if (e?.response?.status === 500) {
+          errorMessage = "Erreur serveur. L'endpoint IS/IR n'est pas disponible pour le moment.";
+        } else if (e?.response?.status === 404) {
+          errorMessage = "L'endpoint IS/IR n'est pas disponible.";
+        }
+        setError(errorMessage);
         setLines([]);
+        showErrorToast(errorMessage);
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [router]);
+  }, [router, showErrorToast]);
 
   const handleExport = () => {
     downloadCsv(
@@ -91,7 +103,10 @@ export default function IsIrPage() {
               <Loader2 className="w-6 h-6 animate-spin text-[#0d4a44]" />
             </div>
           ) : error ? (
-            <div className="px-4 py-6 text-sm text-red-700">{error}</div>
+            <div className="px-4 py-6 flex items-center gap-2 text-sm text-yellow-800 bg-yellow-50 border-l-4 border-yellow-400">
+              <AlertCircle className="w-5 h-5 text-yellow-600" />
+              <span>{error}</span>
+            </div>
           ) : lines.length === 0 ? (
             <div className="px-4 py-10 text-center text-sm text-gray-500">Aucune donnée disponible</div>
           ) : (

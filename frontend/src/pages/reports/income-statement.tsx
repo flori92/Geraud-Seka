@@ -13,7 +13,8 @@ import {
   Settings,
   ChevronDown,
   FileText,
-  PieChart
+  PieChart,
+  AlertCircle
 } from "lucide-react";
 
 // Types
@@ -48,6 +49,7 @@ export default function IncomeStatementPage() {
   const router = useRouter();
   const [incomeStatement, setIncomeStatement] = useState<IncomeStatementData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
   const [periodType, setPeriodType] = useState<PeriodType>('year');
   const [selectedPeriod, setSelectedPeriod] = useState<string>('');
@@ -65,6 +67,7 @@ export default function IncomeStatementPage() {
     }
 
     setLoading(true);
+    setError(null);
     try {
       const params = new URLSearchParams();
       params.append('year', selectedYear);
@@ -79,9 +82,21 @@ export default function IncomeStatementPage() {
       if (response.ok) {
         const data = await response.json();
         setIncomeStatement(data);
+        setError(null);
+      } else {
+        let errorMessage = "Impossible de charger le compte de résultat";
+        if (response.status === 404) {
+          errorMessage = "L'endpoint compte de résultat n'est pas disponible.";
+        } else if (response.status === 500) {
+          errorMessage = "Erreur serveur. Veuillez réessayer plus tard.";
+        }
+        setError(errorMessage);
+        setIncomeStatement(null);
       }
     } catch (error) {
       console.error("Error fetching income statement:", error);
+      setError("Erreur de connexion. Vérifiez votre connexion internet.");
+      setIncomeStatement(null);
     } finally {
       setLoading(false);
     }
@@ -318,6 +333,13 @@ export default function IncomeStatementPage() {
             <div className="p-12 text-center">
               <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-[#0d4a44] border-r-transparent"></div>
               <p className="text-sm text-gray-600 mt-3">Chargement du compte de résultat...</p>
+            </div>
+          ) : error ? (
+            <div className="p-6 bg-yellow-50 border-l-4 border-yellow-400">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-yellow-600" />
+                <p className="text-sm text-yellow-800">{error}</p>
+              </div>
             </div>
           ) : !incomeStatement ? (
             <div className="p-12 text-center">
