@@ -175,6 +175,51 @@ def ensure_documents_columns():
                 except Exception as e:
                     print(f"⚠️  Erreur colonne category: {e}")
 
+            # Vérifier si la colonne document_date existe
+            result = conn.execute(
+                text(
+                    """
+                    SELECT column_name FROM information_schema.columns
+                    WHERE table_name = 'documents' AND column_name = 'document_date'
+                    """
+                )
+            )
+            if not result.fetchone():
+                print("🔧 Ajout de la colonne document_date à documents...")
+                conn.execute(text("ALTER TABLE documents ADD COLUMN document_date DATE"))
+                conn.commit()
+                print("✅ Colonne document_date ajoutée")
+
+            # Vérifier si la colonne due_date existe
+            result = conn.execute(
+                text(
+                    """
+                    SELECT column_name FROM information_schema.columns
+                    WHERE table_name = 'documents' AND column_name = 'due_date'
+                    """
+                )
+            )
+            if not result.fetchone():
+                print("🔧 Ajout de la colonne due_date à documents...")
+                conn.execute(text("ALTER TABLE documents ADD COLUMN due_date DATE"))
+                conn.commit()
+                print("✅ Colonne due_date ajoutée")
+
+            # Vérifier si la colonne expiry_date existe
+            result = conn.execute(
+                text(
+                    """
+                    SELECT column_name FROM information_schema.columns
+                    WHERE table_name = 'documents' AND column_name = 'expiry_date'
+                    """
+                )
+            )
+            if not result.fetchone():
+                print("🔧 Ajout de la colonne expiry_date à documents...")
+                conn.execute(text("ALTER TABLE documents ADD COLUMN expiry_date DATE"))
+                conn.commit()
+                print("✅ Colonne expiry_date ajoutée")
+
     except Exception as e:
         print(f"⚠️  Erreur lors de l'ajout des colonnes documents: {e}")
 
