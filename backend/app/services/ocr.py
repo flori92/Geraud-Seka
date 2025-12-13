@@ -3,7 +3,21 @@
 Mode: Service principal - utilise le service amélioré en backend
 """
 from typing import Dict, Any, Optional
+from datetime import date, timedelta
+import base64
+import io
+import json
 import os
+
+import httpx
+
+# Tentative d'import de pdf2image, avec gestion d'erreur si poppler n'est pas installé
+try:
+    from pdf2image import convert_from_bytes
+    PDF_SUPPORT = True
+except (ImportError, Exception):
+    PDF_SUPPORT = False
+    print("Attention: pdf2image non disponible ou poppler manquant. Le support PDF OCR sera limité.")
 
 # Import du service amélioré
 try:
@@ -15,6 +29,8 @@ except ImportError:
 
 # Configuration
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_MODEL = "llama-3.2-11b-vision-preview"
 
 
 class GroqOCRService:
@@ -32,6 +48,9 @@ class GroqOCRService:
         Utilise automatiquement le service amélioré si disponible,
         sinon fallback vers le service basique.
         """
+        if not self.api_key:
+            raise RuntimeError("GROQ_API_KEY non configurée: impossible d'utiliser l'OCR serveur.")
+
         # Si le service amélioré est disponible, l'utiliser
         if self.use_enhanced:
             print("🚀 Utilisation du service OCR amélioré (LlamaOCR)")
@@ -46,9 +65,6 @@ class GroqOCRService:
         Traite une facture avec Groq Vision API.
         Convertit les PDF en images si nécessaire.
         """
-        if not self.api_key:
-            return self._mock_extraction(file_path)
-
         # Lecture fichier si nécessaire
         if not file_content:
             if os.path.exists(file_path):
@@ -57,9 +73,9 @@ class GroqOCRService:
                         file_content = f.read()
                 except Exception as e:
                     print(f"Erreur lecture fichier local {file_path}: {e}")
-                    return self._mock_extraction(file_path)
+                    raise
             else:
-                 return self._mock_extraction(file_path)
+                raise FileNotFoundError(f"Fichier introuvable: {file_path}")
 
         # Détection type et conversion si PDF
         file_ext = os.path.splitext(file_path)[1].lower() if file_path else ""
@@ -72,7 +88,7 @@ class GroqOCRService:
             if file_ext == '.pdf' or (file_content and file_content.startswith(b'%PDF')):
                 if not PDF_SUPPORT:
                     print("Erreur: Support PDF non disponible (pdf2image/poppler manquant).")
-                    return self._mock_extraction(file_path)
+                    raise RuntimeError("Support PDF non disponible (pdf2image/poppler manquant).")
                 
                 try:
                     # Convertir la première page seulement pour économiser tokens et temps
@@ -86,7 +102,7 @@ class GroqOCRService:
                         file_ext = ".jpg" # Traité comme image maintenant
                 except Exception as e:
                     print(f"Erreur conversion PDF vers Image: {e}")
-                    return self._mock_extraction(file_path)
+                    raise
             
             else:
                 # C'est déjà une image (normalement)
@@ -156,11 +172,11 @@ class GroqOCRService:
                     return self._format_response(parsed_data)
                 else:
                     print(f"Erreur API Groq {response.status_code}: {response.text}")
-                    return self._mock_extraction(file_path)
+                    raise RuntimeError(f"Erreur API Groq {response.status_code}: {response.text}")
                     
         except Exception as e:
             print(f"Erreur Groq OCR: {e}")
-            return self._mock_extraction(file_path)
+            raise
     
     def _get_json_schema(self):
         return {
@@ -208,26 +224,6 @@ class GroqOCRService:
             "confidence": 0.9, # Simulé car Groq ne donne pas de confidence
             "source": "groq-llama-vision",
             "is_multi_page": False
-        }
-    
-    def _mock_extraction(self, file_path: str) -> Dict[str, Any]:
-        """Extraction mockée pour le développement/fallback."""
-        import random
-        
-        return {
-            "reference_number": f"INV-{random.randint(1000, 9999)}",
-            "date": date.today().isoformat(),
-            "due_date": (date.today() + timedelta(days=30)).isoformat(),
-            "amount_ht": round(random.uniform(5000, 50000), 2),
-            "amount_vat": round(random.uniform(900, 9000), 2),
-            "amount_ttc": round(random.uniform(5900, 59000), 2),
-            "currency": "XOF",
-            "supplier_name": f"Fournisseur Test {random.randint(1, 100)}",
-            "supplier_address": "Adresse test",
-            "customer_name": "Client test",
-            "raw_text": "Document mocké (Fallback Groq)",
-            "confidence": 0.95,
-            "source": "mock"
         }
 
 
