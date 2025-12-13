@@ -23,7 +23,9 @@ settings = get_settings()
 # Clé API Groq (chargée depuis les variables d'environnement)
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_MODEL = "llama-3.2-11b-vision-preview"
+# Modèle amélioré inspiré de LlamaOCR
+GROQ_MODEL = "llama-3.2-90b-vision-preview"  # Meilleur modèle pour OCR
+GROQ_MODEL_FALLBACK = "llama-3.2-11b-vision-preview"  # Fallback si 90b échoue
 
 class GroqOCRService:
     """Service d'extraction de données via Groq Llama Vision."""
@@ -112,7 +114,7 @@ class GroqOCRService:
                             "content": [
                                 {"type": "text", "text": system_prompt},
                                 {
-                                    "type": "image_url", 
+                                    "type": "image_url",
                                     "image_url": {
                                         "url": f"data:image/jpeg;base64,{image_base64}"
                                     }
@@ -120,9 +122,9 @@ class GroqOCRService:
                             ]
                         }
                     ],
-                    "temperature": 0.1,
-                    "max_tokens": 2048,
-                    "response_format": {"type": "json_object"} 
+                    "temperature": 0.0,  # 0 pour plus de cohérence
+                    "max_tokens": 4096,  # Plus de tokens pour grandes factures
+                    "response_format": {"type": "json_object"}
                 }
 
                 response = await client.post(
