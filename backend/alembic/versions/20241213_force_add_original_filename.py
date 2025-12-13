@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '20241213_force_add_original_filename'
-down_revision = '20241211_fix_hr_uuid_types'
+down_revision = '20241211_fix_hr_uuid'
 branch_labels = None
 depends_on = None
 
