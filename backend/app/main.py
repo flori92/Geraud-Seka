@@ -114,13 +114,14 @@ def create_application() -> FastAPI:
 
     # Root endpoint for health check and CORS verification
     @app.get("/")
-    async def root():
+    async def root(request: Request):
         return {
             "status": "ok",
             "message": "SEKA API is running",
             "version": "1.0.0-alpha",
             "environment": settings.environment,
-            "cors_origins": settings.backend_cors_origins
+            "cors_origins": settings.backend_cors_origins,
+            "headers": dict(request.headers)
         }
 
     # Health check endpoint
