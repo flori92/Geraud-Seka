@@ -104,124 +104,87 @@ def ensure_documents_columns():
 
     Ce fallback est utile en production quand Alembic ne peut pas appliquer `upgrade head`
     (ex: plusieurs heads). On évite ainsi des erreurs 500 sur les inserts ORM.
+
+    SOLUTION RADICALE: Ajoute TOUTES les colonnes du modèle Document de manière idempotente.
     """
     try:
         with engine.connect() as conn:
-            # Vérifier si la colonne title existe
-            result = conn.execute(
-                text(
-                    """
-                    SELECT column_name FROM information_schema.columns
-                    WHERE table_name = 'documents' AND column_name = 'title'
-                    """
-                )
-            )
-            if not result.fetchone():
-                print("🔧 Ajout de la colonne title à documents...")
-                conn.execute(text("ALTER TABLE documents ADD COLUMN title VARCHAR(500)"))
+            print("🔧 Vérification complète du schéma documents...")
+
+            # Créer les types enum s'ils n'existent pas
+            try:
+                conn.execute(text("""
+                    DO $$ BEGIN
+                        CREATE TYPE documentcategory AS ENUM (
+                            'accounting', 'legal', 'administrative',
+                            'technical', 'marketing', 'project', 'other'
+                        );
+                    EXCEPTION
+                        WHEN duplicate_object THEN null;
+                    END $$;
+                """))
                 conn.commit()
-                print("✅ Colonne title ajoutée")
+            except Exception:
+                pass
 
-            # Vérifier si la colonne description existe
-            result = conn.execute(
-                text(
-                    """
+            # Définir TOUTES les colonnes attendues
+            columns_to_check = {
+                'original_filename': 'VARCHAR(255)',
+                'file_extension': 'VARCHAR(10)',
+                'title': 'VARCHAR(500)',
+                'description': 'TEXT',
+                'category': 'documentcategory DEFAULT CAST(\'other\' AS documentcategory)',
+                'tags': 'JSON',
+                'custom_fields': 'JSON',
+                'reference_number': 'VARCHAR(100)',
+                'document_date': 'DATE',
+                'due_date': 'DATE',
+                'expiry_date': 'DATE',
+                'amount_ht': 'FLOAT',
+                'amount_vat': 'FLOAT',
+                'amount_ttc': 'FLOAT',
+                'currency': 'VARCHAR(3) DEFAULT \'XOF\'',
+                'version': 'INTEGER DEFAULT 1',
+                'parent_document_id': 'UUID',
+                'is_latest_version': 'BOOLEAN DEFAULT TRUE',
+                'ocr_data': 'JSON',
+                'ocr_confidence': 'FLOAT',
+                'ai_extracted_data': 'JSON',
+                'is_confidential': 'BOOLEAN DEFAULT FALSE',
+                'is_archived': 'BOOLEAN DEFAULT FALSE',
+                'is_locked': 'BOOLEAN DEFAULT FALSE',
+                'requires_validation': 'BOOLEAN DEFAULT FALSE',
+                'validated_by': 'UUID',
+                'validated_at': 'DATE',
+                'folder_id': 'UUID',
+                'lead_id': 'UUID',
+                'opportunity_id': 'UUID',
+                'uploaded_by': 'UUID',
+            }
+
+            # Vérifier et ajouter chaque colonne
+            for column_name, column_type in columns_to_check.items():
+                result = conn.execute(text(f"""
                     SELECT column_name FROM information_schema.columns
-                    WHERE table_name = 'documents' AND column_name = 'description'
-                    """
-                )
-            )
-            if not result.fetchone():
-                print("🔧 Ajout de la colonne description à documents...")
-                conn.execute(text("ALTER TABLE documents ADD COLUMN description TEXT"))
-                conn.commit()
-                print("✅ Colonne description ajoutée")
+                    WHERE table_name = 'documents' AND column_name = '{column_name}'
+                """))
 
-            # Vérifier si la colonne category existe
-            result = conn.execute(
-                text(
-                    """
-                    SELECT column_name FROM information_schema.columns
-                    WHERE table_name = 'documents' AND column_name = 'category'
-                    """
-                )
-            )
-            if not result.fetchone():
-                print("🔧 Ajout de la colonne category à documents...")
-                # Créer le type enum s'il n'existe pas
-                try:
-                    conn.execute(text("""
-                        DO $$ BEGIN
-                            CREATE TYPE documentcategory AS ENUM (
-                                'accounting', 'legal', 'administrative',
-                                'technical', 'marketing', 'project', 'other'
-                            );
-                        EXCEPTION
-                            WHEN duplicate_object THEN null;
-                        END $$;
-                    """))
-                    conn.commit()
-                    print("✅ Type enum documentcategory créé/vérifié")
-                except Exception as e:
-                    print(f"⚠️  Info: Type enum existe peut-être déjà: {e}")
+                if not result.fetchone():
+                    try:
+                        print(f"🔧 Ajout de la colonne {column_name}...")
+                        conn.execute(text(f"ALTER TABLE documents ADD COLUMN {column_name} {column_type}"))
+                        conn.commit()
+                        print(f"✅ Colonne {column_name} ajoutée")
+                    except Exception as e:
+                        print(f"⚠️  Erreur colonne {column_name}: {e}")
+                        conn.rollback()
 
-                # Ajouter la colonne avec cast explicite pour le default
-                try:
-                    conn.execute(text("""
-                        ALTER TABLE documents ADD COLUMN category documentcategory DEFAULT CAST('other' AS documentcategory)
-                    """))
-                    conn.commit()
-                    print("✅ Colonne category ajoutée")
-                except Exception as e:
-                    print(f"⚠️  Erreur colonne category: {e}")
-
-            # Vérifier si la colonne document_date existe
-            result = conn.execute(
-                text(
-                    """
-                    SELECT column_name FROM information_schema.columns
-                    WHERE table_name = 'documents' AND column_name = 'document_date'
-                    """
-                )
-            )
-            if not result.fetchone():
-                print("🔧 Ajout de la colonne document_date à documents...")
-                conn.execute(text("ALTER TABLE documents ADD COLUMN document_date DATE"))
-                conn.commit()
-                print("✅ Colonne document_date ajoutée")
-
-            # Vérifier si la colonne due_date existe
-            result = conn.execute(
-                text(
-                    """
-                    SELECT column_name FROM information_schema.columns
-                    WHERE table_name = 'documents' AND column_name = 'due_date'
-                    """
-                )
-            )
-            if not result.fetchone():
-                print("🔧 Ajout de la colonne due_date à documents...")
-                conn.execute(text("ALTER TABLE documents ADD COLUMN due_date DATE"))
-                conn.commit()
-                print("✅ Colonne due_date ajoutée")
-
-            # Vérifier si la colonne expiry_date existe
-            result = conn.execute(
-                text(
-                    """
-                    SELECT column_name FROM information_schema.columns
-                    WHERE table_name = 'documents' AND column_name = 'expiry_date'
-                    """
-                )
-            )
-            if not result.fetchone():
-                print("🔧 Ajout de la colonne expiry_date à documents...")
-                conn.execute(text("ALTER TABLE documents ADD COLUMN expiry_date DATE"))
-                conn.commit()
-                print("✅ Colonne expiry_date ajoutée")
+            print("✅ Vérification complète du schéma terminée")
 
     except Exception as e:
-        print(f"⚠️  Erreur lors de l'ajout des colonnes documents: {e}")
+        print(f"⚠️  Erreur lors de la vérification du schéma documents: {e}")
+
+
 
 
 def run_migrations():
