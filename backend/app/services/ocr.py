@@ -1,29 +1,21 @@
-"""Service d'OCR utilisant Groq API (Llama Vision) pour l'extraction de données."""
-from typing import Dict, Any, Optional, List
-import httpx
-import base64
-import json
-import io
+"""Service d'OCR utilisant Groq API (Llama Vision) pour l'extraction de données.
+
+Mode: Service principal - utilise le service amélioré en backend
+"""
+from typing import Dict, Any, Optional
 import os
-from datetime import date, timedelta
 
-# Tentative d'import de pdf2image, avec gestion d'erreur si poppler n'est pas installé
+# Import du service amélioré
 try:
-    from pdf2image import convert_from_bytes
-    PDF_SUPPORT = True
-except (ImportError, Exception):
-    PDF_SUPPORT = False
-    print("Attention: pdf2image non disponible ou poppler manquant. Le support PDF OCR sera limité.")
+    from app.services.ocr_enhanced import enhanced_ocr_service
+    USE_ENHANCED = True
+except ImportError:
+    USE_ENHANCED = False
+    print("⚠️  Service OCR amélioré non disponible, fallback vers service basique")
 
-
-from app.core.config import get_settings
-
-settings = get_settings()
-
-# Clé API Groq (chargée depuis les variables d'environnement)
+# Configuration
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
-GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_MODEL = "llama-3.2-11b-vision-preview"
+
 
 class GroqOCRService:
     """Service d'extraction de données via Groq Llama Vision."""
@@ -31,8 +23,25 @@ class GroqOCRService:
     def __init__(self):
         self.api_key = GROQ_API_KEY
         self.supported_formats = ['.pdf', '.jpg', '.jpeg', '.png', '.tiff', '.heic', '.webp']
-        
+        self.use_enhanced = USE_ENHANCED
+
     async def process_invoice(self, file_path: str, file_content: Optional[bytes] = None, extract_all_pages: bool = True) -> Dict[str, Any]:
+        """
+        Traite une facture avec OCR.
+
+        Utilise automatiquement le service amélioré si disponible,
+        sinon fallback vers le service basique.
+        """
+        # Si le service amélioré est disponible, l'utiliser
+        if self.use_enhanced:
+            print("🚀 Utilisation du service OCR amélioré (LlamaOCR)")
+            return await enhanced_ocr_service.process_invoice(file_path, file_content, extract_all_pages)
+
+        # Sinon, continuer avec le service basique
+        print("⚠️  Utilisation du service OCR basique (fallback)")
+        return await self._process_invoice_basic(file_path, file_content, extract_all_pages)
+
+    async def _process_invoice_basic(self, file_path: str, file_content: Optional[bytes] = None, extract_all_pages: bool = True) -> Dict[str, Any]:
         """
         Traite une facture avec Groq Vision API.
         Convertit les PDF en images si nécessaire.
