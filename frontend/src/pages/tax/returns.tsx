@@ -456,13 +456,13 @@ export default function TaxReturnsPage() {
                           Télécharger tout
                         </button>
                         {selectedReturn.status === 'draft' && (
-                          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium flex items-center gap-2">
+                          <button className="px-4 py-2 bg-[#0d4a44] text-white rounded-lg hover:bg-[#0a3d38] text-sm font-medium flex items-center gap-2">
                             <CheckCircle2 className="h-4 w-4" />
                             Marquer en cours
                           </button>
                         )}
                         {selectedReturn.status === 'in_progress' && (
-                          <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-medium flex items-center gap-2">
+                          <button className="px-4 py-2 bg-[#0d4a44] text-white rounded-lg hover:bg-[#0a3d38] text-sm font-medium flex items-center gap-2">
                             <CheckCheck className="h-4 w-4" />
                             Valider
                           </button>

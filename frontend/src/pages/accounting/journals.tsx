@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { PennylaneSidebar } from "@/components/layout/PennylaneSidebar";
-import { Search, Download, Loader2 } from "lucide-react";
+import { Download, Loader2, AlertCircle } from "lucide-react";
+import { useToast } from "@/components/ui/ToastContainer";
 
 type JournalType = "ACH" | "VTE" | "BQ" | "CA" | "OD";
 
@@ -26,9 +26,25 @@ const journalLabels: Record<JournalType, string> = {
 
 export default function Journals() {
   const router = useRouter();
+  const { error: showErrorToast } = useToast();
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedJournal, setSelectedJournal] = useState<JournalType>("ACH");
+  const [error, setError] = useState<string | null>(null);
+  
+  // Lire le type de journal depuis les query params de l'URL
+  const journalTypeFromQuery = router.query.type as JournalType | undefined;
+  const validJournalTypes: JournalType[] = ["ACH", "VTE", "BQ", "CA", "OD"];
+  const initialJournal = router.isReady && journalTypeFromQuery && validJournalTypes.includes(journalTypeFromQuery) 
+    ? journalTypeFromQuery 
+    : "ACH";
+  const [selectedJournal, setSelectedJournal] = useState<JournalType>(initialJournal);
+
+  // Mettre à jour selectedJournal quand l'URL change
+  useEffect(() => {
+    if (router.isReady && journalTypeFromQuery && validJournalTypes.includes(journalTypeFromQuery)) {
+      setSelectedJournal(journalTypeFromQuery);
+    }
+  }, [journalTypeFromQuery, router.isReady]);
 
   useEffect(() => {
     fetchJournalEntries();
@@ -42,18 +58,39 @@ export default function Journals() {
     }
 
     setLoading(true);
+    setError(null);
+    const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/accounting-entries/entries/?journal_type=${selectedJournal}`;
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/accounting-entries/entries/?journal_type=${selectedJournal}`,
+        apiUrl,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       if (response.ok) {
         const data = await response.json();
-        setEntries(data);
+        setEntries(Array.isArray(data) ? data : []);
+        setError(null);
+      } else {
+        let errorMessage = "Impossible de charger les écritures comptables";
+        if (response.status === 404) {
+          errorMessage = "L'endpoint API n'est pas disponible. Veuillez contacter le support.";
+        } else if (response.status === 500) {
+          errorMessage = "Erreur serveur. Veuillez réessayer plus tard.";
+        } else if (response.status === 422) {
+          errorMessage = "Les données envoyées sont invalides.";
+        }
+        setError(errorMessage);
+        setEntries([]);
+        // Ne pas afficher de toast pour les erreurs 404/500 silencieuses
+        if (response.status !== 404 && response.status !== 500) {
+          showErrorToast(errorMessage);
+        }
       }
     } catch (error) {
-      console.error("Error fetching entries:", error);
+      const errorMessage = "Erreur de connexion. Vérifiez votre connexion internet.";
+      setError(errorMessage);
+      setEntries([]);
+      showErrorToast(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -63,10 +100,10 @@ export default function Journals() {
     <>
       <Head><title>Journaux - SEKA</title></Head>
       <div className="min-h-screen bg-gray-50">
-        <main className="p-6">
+        <main className="ml-[220px] p-6">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-semibold text-gray-900">Journaux comptables</h1>
-            <button className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+            <button className="flex items-center gap-2 px-4 py-2 bg-[#0d4a44] text-white rounded-lg text-sm font-medium hover:bg-[#0a3d38] transition-colors">
               <Download className="w-4 h-4" />
               Exporter
             </button>
@@ -77,10 +114,13 @@ export default function Journals() {
               {(Object.keys(journalLabels) as JournalType[]).map((journal) => (
                 <button
                   key={journal}
-                  onClick={() => setSelectedJournal(journal)}
+                  onClick={() => {
+                    setSelectedJournal(journal);
+                    router.push(`/accounting/journals?type=${journal}`, undefined, { shallow: true });
+                  }}
                   className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                     selectedJournal === journal
-                      ? "border-teal-600 text-[#0d4a44]"
+                      ? "border-[#0d4a44] text-[#0d4a44]"
                       : "border-transparent text-gray-500 hover:text-gray-700"
                   }`}
                 >
@@ -90,6 +130,14 @@ export default function Journals() {
             </div>
 
             <div className="overflow-x-auto">
+              {error && (
+                <div className="p-4 bg-yellow-50 border-l-4 border-yellow-400">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-5 h-5 text-yellow-600" />
+                    <p className="text-sm text-yellow-800">{error}</p>
+                  </div>
+                </div>
+              )}
               {loading ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="w-8 h-8 animate-spin text-[#0d4a44]" />
@@ -108,7 +156,7 @@ export default function Journals() {
                     {entries.length === 0 ? (
                       <tr>
                         <td colSpan={4} className="px-4 py-12 text-center text-gray-500">
-                          Aucune écriture dans ce journal
+                          {error ? "Erreur lors du chargement des données" : "Aucune écriture dans ce journal"}
                         </td>
                       </tr>
                     ) : (

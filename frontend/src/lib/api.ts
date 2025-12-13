@@ -68,6 +68,22 @@ api.interceptors.response.use(
         }
       }
     }
+    
+    // Filtrer les erreurs non critiques pour éviter de polluer la console
+    // Les erreurs 404/500 sont souvent attendues si l'endpoint n'existe pas encore
+    const status = error.response?.status;
+    const url = error.config?.url || "";
+    
+    // Ne pas logger les erreurs Sentry (adblocker) - elles sont normales
+    if (error.message?.includes("sentry") || url.includes("sentry")) {
+      return Promise.reject(error);
+    }
+    
+    // Logger seulement les erreurs critiques (pas les 404/500 silencieux)
+    if (status && status !== 404 && status !== 500) {
+      console.error(`[API Error] ${status} ${error.config?.method?.toUpperCase()} ${url}:`, error.response?.data || error.message);
+    }
+    
     return Promise.reject(error);
   }
 );

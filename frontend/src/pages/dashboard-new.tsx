@@ -193,7 +193,7 @@ export default function DashboardNew() {
                     <Plus className="w-4 h-4" />
                     Ajouter
                   </button>
-                  <button className="flex items-center gap-2 bg-teal-600 text-white hover:bg-teal-700 text-sm font-medium rounded-md px-3 py-1.5">
+                  <button className="flex items-center gap-2 bg-[#0d4a44] text-white hover:bg-[#0a3d38] text-sm font-medium rounded-md px-3 py-1.5">
                     <Plus className="w-4 h-4" />
                     Créer
                   </button>

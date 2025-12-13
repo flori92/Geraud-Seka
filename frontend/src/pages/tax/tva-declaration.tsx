@@ -309,7 +309,7 @@ export default function TVADeclarationPage() {
                                                 Exporter PDF
                                             </button>
                                         </div>
-                                        <button className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                                        <button className="flex items-center gap-2 px-6 py-2.5 bg-[#0d4a44] text-white rounded-lg hover:bg-[#0a3d38]">
                                             <Send className="h-4 w-4" />
                                             Soumettre la déclaration
                                         </button>
