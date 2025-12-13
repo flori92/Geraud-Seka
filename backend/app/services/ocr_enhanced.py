@@ -282,8 +282,7 @@ JSON:"""
     ) -> Dict[str, Any]:
         """Traite une facture avec OCR ultra-performant."""
         if not self.api_key:
-            print("⚠️  No API key")
-            return self._mock_extraction(file_path)
+            raise RuntimeError("GROQ_API_KEY non configurée: impossible d'utiliser l'OCR")
         
         # Lecture
         if not file_content:
@@ -292,10 +291,9 @@ JSON:"""
                     with open(file_path, 'rb') as f:
                         file_content = f.read()
                 except Exception as e:
-                    print(f"❌ Read error: {e}")
-                    return self._mock_extraction(file_path)
+                    raise RuntimeError(f"Erreur lecture fichier {file_path}: {e}")
             else:
-                return self._mock_extraction(file_path)
+                raise FileNotFoundError(f"Fichier non trouvé: {file_path}")
         
         file_ext = os.path.splitext(file_path)[1].lower() if file_path else ""
         
@@ -305,7 +303,7 @@ JSON:"""
             # Convert PDF
             if file_ext == '.pdf' or (file_content and file_content.startswith(b'%PDF')):
                 if not PDF_SUPPORT:
-                    return self._mock_extraction(file_path)
+                    raise RuntimeError("Support PDF non disponible (pdf2image/poppler manquant)")
                 
                 print("📑 PDF → Image...")
                 images = convert_from_bytes(file_content, first_page=1, last_page=1, dpi=200)
@@ -347,23 +345,21 @@ JSON:"""
                     stripe_texts = [fallback]
             
             if not stripe_texts:
-                print("❌ Total extraction failure")
-                return self._mock_extraction(file_path)
+                raise RuntimeError("Échec total de l'extraction OCR: aucun texte extrait")
             
             # Consolidate
             print(f"🧠 Consolidating with {PROCESSING_MODEL}...")
             structured = await self.consolidate_and_structure(stripe_texts)
             
             if not structured:
-                print("❌ Structuring failed")
-                return self._mock_extraction(file_path)
+                raise RuntimeError("Échec de la structuration des données OCR")
             
             print("✅ Success!")
             return self._format_response(structured, len(stripes))
         
         except Exception as e:
             print(f"❌ Processing error: {e}")
-            return self._mock_extraction(file_path)
+            raise RuntimeError(f"Erreur lors du traitement OCR: {e}") from e
 
     def _format_response(self, data: Dict, stripe_count: int = 1) -> Dict:
         """Formate la réponse finale."""
@@ -392,35 +388,6 @@ JSON:"""
             "processing_method": "stripe-overlap" if stripe_count > 1 else "single-pass",
             "extraction_quality": "high"
         }
-
-    def _mock_extraction(self, file_path: str) -> Dict:
-        """Mock extraction."""
-        import random
-        return {
-            "reference_number": f"MOCK-{random.randint(1000,9999)}",
-            "date": date.today().isoformat(),
-            "due_date": (date.today() + timedelta(days=30)).isoformat(),
-            "amount_ht": round(random.uniform(10000,100000), 2),
-            "amount_vat": round(random.uniform(1800,18000), 2),
-            "amount_ttc": round(random.uniform(11800,118000), 2),
-            "currency": "XOF",
-            "supplier_name": "Test Company",
-            "supplier_address": "Dakar",
-            "supplier_tax_id": "",
-            "customer_name": "",
-            "customer_address": "",
-            "customer_tax_id": "",
-            "line_items": [],
-            "payment_terms": "",
-            "notes": "",
-            "raw_text": "Mock",
-            "confidence": 0.0,
-            "source": "mock",
-            "page_count": 1,
-            "is_multi_page": False,
-            "extraction_quality": "mock"
-        }
-
 
 # Instance
 enhanced_ocr_service = EnhancedGroqOCRService()
