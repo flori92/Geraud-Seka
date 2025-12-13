@@ -137,6 +137,38 @@ def ensure_documents_columns():
                 conn.commit()
                 print("✅ Colonne description ajoutée")
 
+            # Vérifier si la colonne category existe
+            result = conn.execute(
+                text(
+                    """
+                    SELECT column_name FROM information_schema.columns
+                    WHERE table_name = 'documents' AND column_name = 'category'
+                    """
+                )
+            )
+            if not result.fetchone():
+                print("🔧 Ajout de la colonne category à documents...")
+                # Créer le type enum s'il n'existe pas
+                try:
+                    conn.execute(text("""
+                        DO $$ BEGIN
+                            CREATE TYPE documentcategory AS ENUM (
+                                'accounting', 'legal', 'administrative',
+                                'technical', 'marketing', 'project', 'other'
+                            );
+                        EXCEPTION
+                            WHEN duplicate_object THEN null;
+                        END $$;
+                    """))
+                    conn.commit()
+                except Exception:
+                    pass  # Type might already exist
+
+                # Ajouter la colonne
+                conn.execute(text("ALTER TABLE documents ADD COLUMN category documentcategory DEFAULT 'other'"))
+                conn.commit()
+                print("✅ Colonne category ajoutée")
+
     except Exception as e:
         print(f"⚠️  Erreur lors de l'ajout des colonnes documents: {e}")
 
