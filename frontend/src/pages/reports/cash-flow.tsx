@@ -2,9 +2,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/Button";
-import { Download, Loader2, AlertCircle } from "lucide-react";
+import { Download, Loader2 } from "lucide-react";
 import { getCashFlowReport, type CashFlowLine } from "@/lib/api";
-import { useToast } from "@/components/ui/ToastContainer";
 
 function downloadCsv(filename: string, rows: Record<string, string | number>[]) {
   const headers = Object.keys(rows[0] || {});
@@ -29,7 +28,6 @@ function downloadCsv(filename: string, rows: Record<string, string | number>[]) 
 
 export default function CashFlowPage() {
   const router = useRouter();
-  const { error: showErrorToast } = useToast();
   const [lines, setLines] = useState<CashFlowLine[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,27 +46,17 @@ export default function CashFlowPage() {
         const year = new Date().getFullYear();
         const data = await getCashFlowReport(token, year);
         setLines(data.lines || []);
-        if (data.lines && data.lines.length === 0) {
-          setError("Aucune donnée disponible pour cette année");
-        }
-      } catch (e: any) {
+      } catch (e) {
         console.error("Error fetching cash-flow:", e);
-        let errorMessage = "Erreur lors du chargement du tableau de financement";
-        if (e?.response?.status === 500) {
-          errorMessage = "Erreur serveur. L'endpoint tableau de financement n'est pas disponible pour le moment.";
-        } else if (e?.response?.status === 404) {
-          errorMessage = "L'endpoint tableau de financement n'est pas disponible.";
-        }
-        setError(errorMessage);
+        setError("Erreur lors du chargement du tableau de financement");
         setLines([]);
-        showErrorToast(errorMessage);
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [router, showErrorToast]);
+  }, [router]);
 
   const handleExport = () => {
     downloadCsv(
@@ -100,10 +88,7 @@ export default function CashFlowPage() {
               <Loader2 className="w-6 h-6 animate-spin text-[#0d4a44]" />
             </div>
           ) : error ? (
-            <div className="px-4 py-6 flex items-center gap-2 text-sm text-yellow-800 bg-yellow-50 border-l-4 border-yellow-400">
-              <AlertCircle className="w-5 h-5 text-yellow-600" />
-              <span>{error}</span>
-            </div>
+            <div className="px-4 py-6 text-sm text-red-700">{error}</div>
           ) : lines.length === 0 ? (
             <div className="px-4 py-10 text-center text-sm text-gray-500">Aucune donnée disponible</div>
           ) : (

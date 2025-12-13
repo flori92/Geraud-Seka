@@ -13,8 +13,7 @@ import {
   Settings,
   ChevronDown,
   FileText,
-  Mail,
-  AlertCircle
+  Mail
 } from "lucide-react";
 
 // Types
@@ -44,7 +43,6 @@ export default function BalanceSheetPage() {
   const router = useRouter();
   const [balanceSheet, setBalanceSheet] = useState<BalanceSheetData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['actif', 'passif']));
 
@@ -60,7 +58,6 @@ export default function BalanceSheetPage() {
     }
 
     setLoading(true);
-    setError(null);
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/v1/reports/balance-sheet?year=${selectedYear}`,
@@ -70,21 +67,9 @@ export default function BalanceSheetPage() {
       if (response.ok) {
         const data = await response.json();
         setBalanceSheet(data);
-        setError(null);
-      } else {
-        let errorMessage = "Impossible de charger le bilan comptable";
-        if (response.status === 404) {
-          errorMessage = "L'endpoint bilan comptable n'est pas disponible.";
-        } else if (response.status === 500) {
-          errorMessage = "Erreur serveur. Veuillez réessayer plus tard.";
-        }
-        setError(errorMessage);
-        setBalanceSheet(null);
       }
     } catch (error) {
       console.error("Error fetching balance sheet:", error);
-      setError("Erreur de connexion. Vérifiez votre connexion internet.");
-      setBalanceSheet(null);
     } finally {
       setLoading(false);
     }
@@ -260,13 +245,6 @@ export default function BalanceSheetPage() {
             <div className="p-12 text-center">
               <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-[#0d4a44] border-r-transparent"></div>
               <p className="text-sm text-gray-600 mt-3">Chargement du bilan...</p>
-            </div>
-          ) : error ? (
-            <div className="p-6 bg-yellow-50 border-l-4 border-yellow-400">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="w-5 h-5 text-yellow-600" />
-                <p className="text-sm text-yellow-800">{error}</p>
-              </div>
             </div>
           ) : !balanceSheet ? (
             <div className="p-12 text-center">

@@ -2247,68 +2247,38 @@ export interface DepreciationsResponse {
 }
 
 export async function getSigReport(accessToken: string, year: number = 2024): Promise<SigReport> {
-  try {
-    const response = await api.get<SigReport>(`/accounting/analytics/reports/sig?year=${year}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching SIG report:", error);
-    // Retourner une structure vide en cas d'erreur
-    return { year, lines: [] };
-  }
+  const response = await api.get<SigReport>(`/accounting/analytics/reports/sig?year=${year}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
 }
 
 export async function getCashFlowReport(accessToken: string, year: number = 2024): Promise<CashFlowReport> {
-  try {
-    const response = await api.get<CashFlowReport>(`/accounting/analytics/reports/cash-flow?year=${year}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching cash-flow report:", error);
-    // Retourner une structure vide en cas d'erreur
-    return { year, lines: [] };
-  }
+  const response = await api.get<CashFlowReport>(`/accounting/analytics/reports/cash-flow?year=${year}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
 }
 
 export async function getLiasseFiscale(accessToken: string, year: number = 2024): Promise<LiasseFiscaleResponse> {
-  try {
-    const response = await api.get<LiasseFiscaleResponse>(`/tax/liasse-fiscale?year=${year}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching liasse fiscale:", error);
-    // Retourner une structure vide en cas d'erreur
-    return { year, items: [] };
-  }
+  const response = await api.get<LiasseFiscaleResponse>(`/tax/liasse-fiscale?year=${year}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
 }
 
 export async function getIsIr(accessToken: string, year: number = 2024): Promise<IsIrResponse> {
-  try {
-    const response = await api.get<IsIrResponse>(`/tax/is-ir?year=${year}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching IS/IR:", error);
-    // Retourner une structure vide en cas d'erreur
-    return { year, lines: [] };
-  }
+  const response = await api.get<IsIrResponse>(`/tax/is-ir?year=${year}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
 }
 
 export async function getOtherTaxes(accessToken: string, year: number = 2024): Promise<OtherTaxesResponse> {
-  try {
-    const response = await api.get<OtherTaxesResponse>(`/tax/other-taxes?year=${year}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching other taxes:", error);
-    // Retourner une structure vide en cas d'erreur
-    return { year, lines: [] };
-  }
+  const response = await api.get<OtherTaxesResponse>(`/tax/other-taxes?year=${year}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
 }
 
 export async function getConsistencyChecks(accessToken: string, year: number = 2024): Promise<ConsistencyChecksResponse> {
