@@ -58,6 +58,8 @@ class MonitoringMiddleware(BaseHTTPMiddleware):
         
         # Calculer la durée
         duration_ms = (time.time() - start_time) * 1000
+
+        response.headers["X-Process-Time"] = f"{duration_ms/1000:.6f}"
         
         # Logger la requête
         monitoring_service.log_api_call(

@@ -1,4 +1,5 @@
 from datetime import date
+from enum import Enum
 from typing import Optional, List
 from uuid import UUID
 from decimal import Decimal
@@ -136,3 +137,26 @@ class LettrageRequest(BaseModel):
 class ValidationRequest(BaseModel):
     entry_id: UUID
     comment: Optional[str] = None
+
+
+class EntryExportFormat(str, Enum):
+    CSV = "csv"
+    EXCEL = "excel"
+    FEC = "fec"
+    PDF = "pdf"
+
+
+class EntrySearchCriteria(BaseModel):
+    journal_types: Optional[List[str]] = None
+    statuses: Optional[List[str]] = None
+    date_from: Optional[date] = None
+    date_to: Optional[date] = None
+    reference: Optional[str] = None
+    description: Optional[str] = None
+    account_number: Optional[str] = None
+    partner_id: Optional[UUID] = None
+    analytic_code: Optional[str] = None
+    sort_by: Optional[str] = None
+    sort_order: str = "desc"
+    limit: Optional[int] = None
+    offset: Optional[int] = None

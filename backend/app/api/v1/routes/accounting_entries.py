@@ -1,12 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Response
+from fastapi.responses import StreamingResponse
 from app.services.fec_importer import FECImporterService
 import logging
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, and_, or_
 from typing import List, Optional
 from datetime import date, datetime
 from decimal import Decimal
 import json
+import csv
+import io
+from weasyprint import HTML
 
 from app.db.session import get_db
 from app.core.deps import get_current_user
@@ -21,7 +25,8 @@ from app.schemas.accounting_entries import (
     AccountingEntryHeaderCreate, AccountingEntryHeaderResponse,
     AccountingEntryHeaderUpdate, BankReconciliationCreate,
     BankReconciliationResponse, AccountingRevisionCreate,
-    AccountingRevisionResponse, LettrageRequest, ValidationRequest
+    AccountingRevisionResponse, LettrageRequest, ValidationRequest,
+    EntrySearchCriteria, EntryExportFormat
 )
 
 logger = logging.getLogger(__name__)
@@ -91,7 +96,9 @@ def get_accounting_entries(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    query = db.query(AccountingEntryHeader).filter(
+    query = db.query(AccountingEntryHeader).options(
+        joinedload(AccountingEntryHeader.lines).joinedload(AccountingEntryLine.account)
+    ).filter(
         AccountingEntryHeader.tenant_id == current_user.tenant_id
     )
     
@@ -114,7 +121,9 @@ def get_accounting_entry(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    entry = db.query(AccountingEntryHeader).filter(
+    entry = db.query(AccountingEntryHeader).options(
+        joinedload(AccountingEntryHeader.lines).joinedload(AccountingEntryLine.account)
+    ).filter(
         AccountingEntryHeader.id == entry_id,
         AccountingEntryHeader.tenant_id == current_user.tenant_id
     ).first()
@@ -196,12 +205,450 @@ def validate_entry(
     return {"message": "Écriture validée avec succès", "entry_id": str(entry.id)}
 
 
+@router.post("/entries/search", response_model=List[AccountingEntryHeaderResponse])
+async def search_entries(
+    criteria: EntrySearchCriteria,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Recherche avancée d'écritures comptables avec filtres multiples
+    """
+    query = db.query(AccountingEntryHeader).options(
+        joinedload(AccountingEntryHeader.lines).joinedload(AccountingEntryLine.account)
+    ).filter(
+        AccountingEntryHeader.tenant_id == current_user.tenant_id
+    )
+    
+    # Filtres de base
+    if criteria.journal_types:
+        query = query.filter(AccountingEntryHeader.journal_type.in_(criteria.journal_types))
+    
+    if criteria.statuses:
+        query = query.filter(AccountingEntryHeader.status.in_(criteria.statuses))
+    
+    if criteria.date_from:
+        query = query.filter(AccountingEntryHeader.date >= criteria.date_from)
+    
+    if criteria.date_to:
+        query = query.filter(AccountingEntryHeader.date <= criteria.date_to)
+    
+    if criteria.reference:
+        query = query.filter(AccountingEntryHeader.reference.ilike(f"%{criteria.reference}%"))
+    
+    if criteria.description:
+        query = query.filter(AccountingEntryHeader.description.ilike(f"%{criteria.description}%"))
+    
+    # Filtres sur les lignes d'écriture
+    if any([criteria.account_number, criteria.partner_id, criteria.analytic_code]):
+        query = query.join(AccountingEntryHeader.lines)
+        
+        if criteria.account_number:
+            query = query.join(AccountingEntryLine.account)
+            query = query.filter(LedgerAccount.account_number.ilike(f"{criteria.account_number}%"))
+        
+        if criteria.partner_id:
+            query = query.filter(AccountingEntryLine.partner_id == criteria.partner_id)
+            
+        if criteria.analytic_code:
+            query = query.filter(AccountingEntryLine.analytic_code == criteria.analytic_code)
+    
+    # Tri et pagination
+    if criteria.sort_by:
+        sort_field = getattr(AccountingEntryHeader, criteria.sort_by, None)
+        if sort_field is not None:
+            query = query.order_by(
+                sort_field.asc() if criteria.sort_order == "asc" else sort_field.desc()
+            )
+    else:
+        query = query.order_by(AccountingEntryHeader.date.desc())
+    
+    if criteria.limit:
+        query = query.limit(criteria.limit)
+    
+    if criteria.offset:
+        query = query.offset(criteria.offset)
+    
+    return query.all()
+
+
+@router.get("/entries/export/{format}")
+async def export_entries(
+    format: EntryExportFormat,
+    criteria: EntrySearchCriteria = Depends(),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Export des écritures dans différents formats (CSV, Excel, FEC, PDF)
+    """
+    # Récupère les écritures selon les critères
+    entries = await search_entries(criteria, current_user, db)
+    
+    if format == EntryExportFormat.CSV:
+        return export_entries_to_csv(entries)
+    elif format == EntryExportFormat.EXCEL:
+        return export_entries_to_excel(entries)
+    elif format == EntryExportFormat.PDF:
+        return export_entries_to_pdf(entries)
+    elif format == EntryExportFormat.FEC:
+        return export_entries_to_fec(entries, current_user.tenant_id)
+    else:
+        raise HTTPException(status_code=400, detail="Format d'export non supporté")
+
+
+def export_entries_to_csv(entries: List[AccountingEntryHeader]):
+    """Exporte les écritures au format CSV"""
+    output = io.StringIO()
+    writer = csv.writer(output, delimiter=';')
+    
+    # En-têtes
+    writer.writerow([
+        "Date", "Journal", "Pièce", "Référence", "Compte", "Libellé",
+        "Débit", "Crédit", "Tiers", "Code Analytique"
+    ])
+    
+    # Données
+    for entry in entries:
+        for line in entry.lines:
+            writer.writerow([
+                entry.date.isoformat(),
+                entry.journal_type,
+                entry.entry_number,
+                entry.reference or "",
+                line.account.account_number if line.account else "",
+                line.label or "",
+                str(line.debit) if line.debit else "",
+                str(line.credit) if line.credit else "",
+                line.partner_id or "",
+                line.analytic_code or ""
+            ])
+    
+    output.seek(0)
+    return StreamingResponse(
+        iter(["\ufeff" + output.getvalue()]),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f"attachment; filename=export_ecritures_{date.today().isoformat()}.csv",
+            "Content-Type": "text/csv; charset=utf-8"
+        }
+    )
+
+
+def export_entries_to_pdf(entries: List[AccountingEntryHeader]):
+    """Exporte les écritures au format PDF"""
+    rows = []
+    for entry in entries:
+        for line in entry.lines:
+            rows.append(
+                "<tr>"
+                f"<td>{entry.date.isoformat()}</td>"
+                f"<td>{entry.journal_type}</td>"
+                f"<td>{entry.entry_number}</td>"
+                f"<td>{(entry.reference or '')}</td>"
+                f"<td>{(line.account.account_number if line.account else '')}</td>"
+                f"<td>{(line.label or '')}</td>"
+                f"<td style='text-align:right'>{(line.debit or 0)}</td>"
+                f"<td style='text-align:right'>{(line.credit or 0)}</td>"
+                "</tr>"
+            )
+
+    html = (
+        "<html><head><meta charset='utf-8'>"
+        "<style>"
+        "body{font-family:Arial, sans-serif;font-size:12px;}"
+        "table{width:100%;border-collapse:collapse;}"
+        "th,td{border:1px solid #ddd;padding:6px;}"
+        "th{background:#f2f2f2;text-align:left;}"
+        "</style></head><body>"
+        "<h2>Export écritures comptables</h2>"
+        f"<div>Généré le {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</div>"
+        "<br/>"
+        "<table>"
+        "<thead><tr>"
+        "<th>Date</th><th>Journal</th><th>Pièce</th><th>Référence</th>"
+        "<th>Compte</th><th>Libellé</th><th>Débit</th><th>Crédit</th>"
+        "</tr></thead>"
+        "<tbody>" + "".join(rows) + "</tbody>"
+        "</table>"
+        "</body></html>"
+    )
+
+    pdf_bytes = HTML(string=html).write_pdf()
+    output = io.BytesIO(pdf_bytes)
+    output.seek(0)
+    return StreamingResponse(
+        output,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename=export_ecritures_{date.today().isoformat()}.pdf"
+        }
+    )
+
+
+def export_entries_to_excel(entries: List[AccountingEntryHeader]):
+    """Exporte les écritures au format Excel (XLSX)"""
+    try:
+        import pandas as pd
+        from io import BytesIO
+        
+        # Création d'un DataFrame avec les données
+        data = []
+        for entry in entries:
+            for line in entry.lines:
+                data.append({
+                    "Date": entry.date,
+                    "Journal": entry.journal_type,
+                    "Pièce": entry.entry_number,
+                    "Référence": entry.reference or "",
+                    "Compte": line.account.account_number if line.account else "",
+                    "Libellé": line.label or "",
+                    "Débit": float(line.debit) if line.debit else 0.0,
+                    "Crédit": float(line.credit) if line.credit else 0.0,
+                    "Tiers": line.partner_id or "",
+                    "Code Analytique": line.analytic_code or ""
+                })
+        
+        df = pd.DataFrame(data)
+        
+        # Création du fichier Excel en mémoire
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Écritures')
+        
+        output.seek(0)
+        
+        return StreamingResponse(
+            output,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename=export_ecritures_{date.today().isoformat()}.xlsx"}
+        )
+    except ImportError:
+        raise HTTPException(status_code=500, detail="Le module pandas est requis pour l'export Excel")
+
+
+def export_entries_to_fec(entries: List[AccountingEntryHeader], tenant_id: str):
+    """Exporte les écritures au format FEC (Fichier des Écritures Comptables)"""
+    output = io.StringIO()
+    writer = csv.writer(output, delimiter='|')
+    
+    # En-tête FEC
+    writer.writerow([
+        "JournalCode", "JournalLib", "EcritureNum", "EcritureDate",
+        "CompteNum", "CompteLib", "CompAuxNum", "CompAuxLib",
+        "PieceRef", "PieceDate", "EcritureLib", "Debit", "Credit",
+        "EcritureLet", "DateLet", "ValidDate", "Montantdevise",
+        "Idevise", "DateRglt", "ModeRglt"
+    ])
+    
+    # Données FEC
+    for entry in entries:
+        for line in entry.lines:
+            writer.writerow([
+                entry.journal_type,  # JournalCode
+                str(entry.journal_type),  # JournalLib
+                entry.entry_number,  # EcritureNum
+                entry.date.strftime("%Y%m%d"),  # EcritureDate
+                line.account.account_number if line.account else "",  # CompteNum
+                line.account.name if line.account else "",  # CompteLib
+                line.partner_id or "",  # CompAuxNum
+                "",  # CompAuxLib (à compléter si nécessaire)
+                entry.reference or "",  # PieceRef
+                entry.date.strftime("%Y%m%d"),  # PieceDate
+                line.label or "",  # EcritureLib
+                str(line.debit) if line.debit else "0.00",  # Debit
+                str(line.credit) if line.credit else "0.00",  # Credit
+                "", "", "", "", "", "", ""  # Champs optionnels
+            ])
+    
+    output.seek(0)
+    
+    # Nom du fichier FEC selon la norme
+    siren = tenant_id.replace("-", "")[:9]  # Format SIREN sur 9 chiffres
+    fec_filename = f"FEC_{siren}_{date.today().strftime('%Y%m%d')}.txt"
+    
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/plain",
+        headers={"Content-Disposition": f"attachment; filename={fec_filename}"}
+    )
+
+
+@router.post("/entries/batch/validate")
+async def batch_validate_entries(
+    entry_ids: List[str],
+    comment: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Valide plusieurs écritures en une seule opération"""
+    if not entry_ids:
+        raise HTTPException(status_code=400, detail="Aucune écriture spécifiée")
+    
+    updated_count = 0
+    errors = []
+    
+    for entry_id in entry_ids:
+        try:
+            entry = db.query(AccountingEntryHeader).filter(
+                AccountingEntryHeader.id == entry_id,
+                AccountingEntryHeader.tenant_id == current_user.tenant_id
+            ).first()
+            
+            if not entry:
+                errors.append(f"Écriture {entry_id} non trouvée")
+                continue
+                
+            if entry.status != EntryStatus.DRAFT:
+                errors.append(f"L'écriture {entry_id} n'est pas en statut brouillon")
+                continue
+                
+            # Vérification de l'équilibre
+            total_debit = sum(line.debit for line in entry.lines)
+            total_credit = sum(line.credit for line in entry.lines)
+            
+            if abs(total_debit - total_credit) > Decimal("0.01"):
+                errors.append(f"L'écriture {entry_id} n'est pas équilibrée")
+                continue
+                
+            # Validation de l'écriture
+            entry.status = EntryStatus.VALIDATED
+            entry.validated_by = current_user.id
+            entry.validated_at = datetime.now()
+            
+            # Création d'une révision
+            revision = AccountingRevision(
+                tenant_id=current_user.tenant_id,
+                entry_id=entry.id,
+                revision_type="batch_validation",
+                old_value="draft",
+                new_value="validated",
+                comment=comment or "Validation par lot",
+                revised_by=current_user.id
+            )
+            db.add(revision)
+            
+            updated_count += 1
+            
+        except Exception as e:
+            errors.append(f"Erreur lors de la validation de l'écriture {entry_id}: {str(e)}")
+    
+    db.commit()
+    
+    return {
+        "success": True,
+        "validated_count": updated_count,
+        "error_count": len(errors),
+        "errors": errors
+    }
+
+
+@router.post("/entries/batch/delete")
+async def batch_delete_entries(
+    entry_ids: List[str],
+    comment: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Supprime plusieurs écritures en une seule opération"""
+    if not entry_ids:
+        raise HTTPException(status_code=400, detail="Aucune écriture spécifiée")
+    
+    deleted_count = 0
+    errors = []
+    
+    for entry_id in entry_ids:
+        try:
+            entry = db.query(AccountingEntryHeader).filter(
+                AccountingEntryHeader.id == entry_id,
+                AccountingEntryHeader.tenant_id == current_user.tenant_id
+            ).first()
+            
+            if not entry:
+                errors.append(f"Écriture {entry_id} non trouvée")
+                continue
+                
+            if entry.status == EntryStatus.POSTED:
+                errors.append(f"Impossible de supprimer une écriture comptabilisée ({entry_id})")
+                continue
+                
+            # Création d'une révision avant suppression
+            revision = AccountingRevision(
+                tenant_id=current_user.tenant_id,
+                entry_id=entry.id,
+                revision_type="deletion",
+                old_value=entry.status.value,
+                new_value="deleted",
+                comment=comment,
+                revised_by=current_user.id
+            )
+            db.add(revision)
+            
+            # Suppression des lignes d'écriture
+            db.query(AccountingEntryLine).filter(
+                AccountingEntryLine.entry_id == entry.id,
+                AccountingEntryLine.tenant_id == current_user.tenant_id
+            ).delete()
+            
+            # Suppression de l'entête
+            db.delete(entry)
+            deleted_count += 1
+            
+        except Exception as e:
+            errors.append(f"Erreur lors de la suppression de l'écriture {entry_id}: {str(e)}")
+    
+    db.commit()
+    
+    return {
+        "success": True,
+        "deleted_count": deleted_count,
+        "error_count": len(errors),
+        "errors": errors
+    }
+
+
+@router.post("/entries/batch/export")
+async def batch_export_entries(
+    entry_ids: List[str],
+    format: EntryExportFormat,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Exporte des écritures spécifiques dans le format demandé"""
+    if not entry_ids:
+        raise HTTPException(status_code=400, detail="Aucune écriture spécifiée")
+    
+    # Récupération des écritures demandées
+    entries = db.query(AccountingEntryHeader).options(
+        joinedload(AccountingEntryHeader.lines).joinedload(AccountingEntryLine.account)
+    ).filter(
+        AccountingEntryHeader.id.in_(entry_ids),
+        AccountingEntryHeader.tenant_id == current_user.tenant_id
+    ).all()
+    
+    if not entries:
+        raise HTTPException(status_code=404, detail="Aucune écriture trouvée avec les IDs fournis")
+    
+    # Appel à la fonction d'export appropriée
+    if format == EntryExportFormat.CSV:
+        return export_entries_to_csv(entries)
+    elif format == EntryExportFormat.EXCEL:
+        return export_entries_to_excel(entries)
+    elif format == EntryExportFormat.FEC:
+        return export_entries_to_fec(entries, current_user.tenant_id)
+    else:
+        raise HTTPException(status_code=400, detail="Format d'export non supporté")
+
+
 @router.post("/entries/{entry_id}/post")
-def post_entry(
+async def post_entry(
     entry_id: str,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    """
+    Comptabilise une écriture (passe de l'état 'validated' à 'posted')
+    """
     entry = db.query(AccountingEntryHeader).filter(
         AccountingEntryHeader.id == entry_id,
         AccountingEntryHeader.tenant_id == current_user.tenant_id
@@ -213,29 +660,42 @@ def post_entry(
     if entry.status != EntryStatus.VALIDATED:
         raise HTTPException(status_code=400, detail="Seules les écritures validées peuvent être comptabilisées")
     
+    # Vérifier que l'écriture est équilibrée
+    total_debit = sum(line.debit for line in entry.lines)
+    total_credit = sum(line.credit for line in entry.lines)
+    
+    if abs(total_debit - total_credit) > Decimal("0.01"):
+        raise HTTPException(status_code=400, detail="L'écriture n'est pas équilibrée")
+    
+    # Mettre à jour les soldes des comptes
     for line in entry.lines:
         account = db.query(LedgerAccount).filter(
-            LedgerAccount.id == line.account_id
-        ).first()
+            LedgerAccount.id == line.account_id,
+            LedgerAccount.tenant_id == current_user.tenant_id
+        ).with_for_update().first()
         
         if account:
             account.balance += (line.debit - line.credit)
     
+    # Mettre à jour le statut
     entry.status = EntryStatus.POSTED
     entry.posted_by = current_user.id
-    entry.posted_at = datetime.now().date()
+    entry.posted_at = datetime.now()
     
+    # Créer une révision
     revision = AccountingRevision(
         tenant_id=current_user.tenant_id,
         entry_id=entry.id,
         revision_type="posting",
         old_value="validated",
         new_value="posted",
+        comment="Écriture comptabilisée",
         revised_by=current_user.id
     )
     db.add(revision)
     
     db.commit()
+    db.refresh(entry)
     
     return {"message": "Écriture comptabilisée avec succès", "entry_id": str(entry.id)}
 
