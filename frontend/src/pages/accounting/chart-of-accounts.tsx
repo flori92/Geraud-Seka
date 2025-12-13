@@ -3,6 +3,8 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import { PennylaneSidebar } from "@/components/layout/PennylaneSidebar";
 import { Search, Plus, Download, Loader2 } from "lucide-react";
+import { CreateAccountModal } from "@/components/forms/CreateAccountModal";
+import { getLedgerAccounts } from "@/lib/api";
 
 interface Account {
   id: string;
@@ -18,6 +20,7 @@ export default function ChartOfAccounts() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     fetchAccounts();
@@ -31,15 +34,8 @@ export default function ChartOfAccounts() {
     }
 
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/accounting/ledger/`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setAccounts(data);
-      }
+      const data = await getLedgerAccounts(token);
+      setAccounts(data as unknown as Account[]);
     } catch (error) {
       console.error("Error fetching accounts:", error);
     } finally {
@@ -70,7 +66,9 @@ export default function ChartOfAccounts() {
 
   return (
     <>
-      <Head><title>Plan comptable - SEKA</title></Head>
+      <Head>
+        <title>Plan comptable - SEKA</title>
+      </Head>
       <div className="min-h-screen bg-gray-50">
         <PennylaneSidebar />
         <main className="ml-[220px] p-6">
@@ -81,7 +79,10 @@ export default function ChartOfAccounts() {
                 <Download className="w-4 h-4" />
                 Exporter
               </button>
-              <button className="flex items-center gap-2 px-4 py-2 bg-[#0d4a44] text-white rounded-lg text-sm font-medium hover:bg-[#0a3d38]">
+              <button
+                className="flex items-center gap-2 px-4 py-2 bg-[#0d4a44] text-white rounded-lg text-sm font-medium hover:bg-[#0a3d38]"
+                onClick={() => setIsModalOpen(true)}
+              >
                 <Plus className="w-4 h-4" />
                 Nouveau compte
               </button>
@@ -106,10 +107,18 @@ export default function ChartOfAccounts() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50">
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Code</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Libellé</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Solde</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Code
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Libellé
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Type
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                      Solde
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -141,6 +150,15 @@ export default function ChartOfAccounts() {
               </table>
             </div>
           </div>
+
+          <CreateAccountModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onSuccess={() => {
+              setLoading(true);
+              fetchAccounts();
+            }}
+          />
         </main>
       </div>
     </>

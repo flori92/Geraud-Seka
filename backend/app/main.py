@@ -1,5 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 import os
 import logging
@@ -183,8 +184,6 @@ def create_application() -> FastAPI:
         )
     
     # Global Exception Handler for 500 errors
-    from fastapi import Request
-    from fastapi.responses import JSONResponse
     import traceback
     
     @app.exception_handler(Exception)
