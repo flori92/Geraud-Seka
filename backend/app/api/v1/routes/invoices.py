@@ -140,14 +140,12 @@ async def create_invoice(
     - items: Liste d'au moins 1 item avec product_name, quantity, unit_price
     """
     # Vérifier que le numéro de facture est unique par tenant
-    existing = db.query(SalesInvoice).filter(
+    if existing := db.query(SalesInvoice).filter(
         and_(
             SalesInvoice.tenant_id == current_user.tenant_id,
             SalesInvoice.reference_number == invoice_data.reference_number,
         )
-    ).first()
-    
-    if existing:
+    ).first():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Facture avec le numéro {invoice_data.reference_number} existe déjà",
@@ -215,14 +213,12 @@ async def get_invoice(
     current_user: User = Depends(get_current_user),
 ) -> InvoiceResponse:
     """Récupère une facture spécifique du tenant."""
-    invoice = db.query(SalesInvoice).filter(
+    if not (invoice := db.query(SalesInvoice).filter(
         and_(
             SalesInvoice.id == invoice_id,
             SalesInvoice.tenant_id == current_user.tenant_id,
         )
-    ).first()
-    
-    if not invoice:
+    ).first()):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Facture non trouvée",

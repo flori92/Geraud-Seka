@@ -1,11 +1,8 @@
 /**
- * ⚠️  EXEMPLE UNIQUEMENT — NE PAS UTILISER EN PRODUCTION
+ * Page de gestion des Factures - Utilisant l'API Backend
+ * Démontre l'intégration avec les endpoints /api/v1/invoices-public
  * 
- * Cette page démontre comment refactoriser les pages de liste
- * en utilisant le système de design unifié.
- * 
- * En production, les données doivent provenir d'une API, jamais hardcodées.
- * Voir: backend/app/api/v1/routes/invoices.py
+ * En production, utiliser les endpoints sécurisés /api/v1/sales-invoices avec authentification
  */
 
 import { useMemo, useState } from "react";
@@ -26,48 +23,11 @@ import {
 import { Badge, StatusBadge } from "@/components/ui/Badge";
 import { Container, Grid, PageHeader, Flex } from "@/components/layout/Container";
 import { formatCurrency, formatDate } from "@/lib/utils";
-
-// ========== EXEMPLE DE MOCK DATA UNIQUEMENT — À REMPLACER PAR UNE API ==========
-// NE PAS COMMITTER CES DONNÉES EN PRODUCTION
-
-const mockInvoices = [
-  {
-    id: "INV-001",
-    client: "Example Client 1",
-    amount: 25000,
-    status: "paid" as const,
-    date: "2024-01-15",
-    dueDate: "2024-02-15",
-  },
-  {
-    id: "INV-002",
-    client: "Example Client 2",
-    amount: 15500,
-    status: "pending" as const,
-    date: "2024-01-18",
-    dueDate: "2024-02-18",
-  },
-  {
-    id: "INV-003",
-    client: "Example Client 3",
-    amount: 42000,
-    status: "overdue" as const,
-    date: "2024-01-01",
-    dueDate: "2024-02-01",
-  },
-  {
-    id: "INV-004",
-    client: "Example Client 4",
-    amount: 8900,
-    status: "draft" as const,
-    date: "2024-01-20",
-    dueDate: "2024-02-20",
-  },
-];
+import { useInvoices, useInvoiceStats } from "@/lib/hooks/useInvoices";
+import { InvoiceResponse } from "@/lib/api/invoices.types";
 
 // ========== TYPES ==========
 
-type Invoice = (typeof mockInvoices)[0];
 type InvoiceStatus = "draft" | "pending" | "paid" | "overdue";
 
 // ========== COMPONENTS ==========
@@ -102,7 +62,7 @@ function StatCard({ title, value, change, trend }: StatCardProps) {
 }
 
 interface InvoiceRowProps {
-  invoice: Invoice;
+  invoice: InvoiceResponse;
   onView: (id: string) => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
@@ -128,18 +88,18 @@ function InvoiceRow({ invoice, onView, onEdit, onDelete }: InvoiceRowProps) {
 
   return (
     <TableRow>
-      <TableCell className="font-medium text-primary-600">{invoice.id}</TableCell>
-      <TableCell>{invoice.client}</TableCell>
+      <TableCell className="font-medium text-primary-600">{invoice.reference_number}</TableCell>
+      <TableCell>{invoice.client_id}</TableCell>
       <TableCell align="right" monospace>
-        {formatCurrency(invoice.amount)}
+        {formatCurrency(invoice.total_ttc)}
       </TableCell>
       <TableCell>
-        <Badge variant={statusVariantMap[invoice.status]}>
-          {statusLabelMap[invoice.status]}
+        <Badge variant={statusVariantMap[invoice.status as InvoiceStatus]}>
+          {statusLabelMap[invoice.status as InvoiceStatus]}
         </Badge>
       </TableCell>
-      <TableCell muted>{formatDate(invoice.date)}</TableCell>
-      <TableCell muted>{formatDate(invoice.dueDate)}</TableCell>
+      <TableCell muted>{formatDate(invoice.invoice_date)}</TableCell>
+      <TableCell muted>{formatDate(invoice.due_date)}</TableCell>
       <TableCell align="right">
         <Flex gap="sm" justify="end">
           <button
@@ -175,30 +135,13 @@ export default function InvoicesPage() {
   const router = useRouter();
   const [filterStatus, setFilterStatus] = useState<InvoiceStatus | "all">("all");
 
-  // Calculer les statistiques
-  const stats = useMemo(() => {
-    const total = mockInvoices.reduce((sum, inv) => sum + inv.amount, 0);
-    const paid = mockInvoices
-      .filter((inv) => inv.status === "paid")
-      .reduce((sum, inv) => sum + inv.amount, 0);
-    const pending = mockInvoices
-      .filter((inv) => inv.status === "pending")
-      .reduce((sum, inv) => sum + inv.amount, 0);
-    const draft = mockInvoices
-      .filter((inv) => inv.status === "draft")
-      .reduce((sum, inv) => sum + inv.amount, 0);
-    const overdue = mockInvoices
-      .filter((inv) => inv.status === "overdue")
-      .reduce((sum, inv) => sum + inv.amount, 0);
-
-    return { total, paid, pending, draft, overdue };
-  }, []);
-
-  // Filtrer les factures
-  const filteredInvoices =
-    filterStatus === "all"
-      ? mockInvoices
-      : mockInvoices.filter((inv) => inv.status === filterStatus);
+  // Récupérer les données de l'API
+  const { invoices, total, loading, error } = useInvoices(
+    0,
+    20,
+    filterStatus === "all" ? undefined : (filterStatus as InvoiceStatus)
+  );
+  const { stats: statsData, loading: statsLoading } = useInvoiceStats();
 
   // Handlers
   const handleView = (id: string) => {
@@ -236,25 +179,25 @@ export default function InvoicesPage() {
       <Grid columns={4} gap="md" className="mb-8">
         <StatCard
           title="Total des factures"
-          value={formatCurrency(stats.total)}
+          value={formatCurrency(statsData?.total_amount ?? 0)}
           change="12%"
           trend="up"
         />
         <StatCard
           title="Factures payées"
-          value={formatCurrency(stats.paid)}
+          value={formatCurrency(statsData?.paid_amount ?? 0)}
           change="5%"
           trend="up"
         />
         <StatCard
           title="En attente"
-          value={formatCurrency(stats.pending)}
+          value={formatCurrency(statsData?.pending_amount ?? 0)}
           change="3%"
           trend="down"
         />
         <StatCard
           title="En retard"
-          value={formatCurrency(stats.overdue)}
+          value={formatCurrency(statsData?.overdue_amount ?? 0)}
           change="2"
           trend="down"
         />
@@ -292,10 +235,14 @@ export default function InvoicesPage() {
 
         {/* Table */}
         <CardContent className="pt-0">
-          {filteredInvoices.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-12 text-neutral-600">
+              <p className="mb-2">Chargement des factures...</p>
+            </div>
+          ) : invoices.length === 0 ? (
             <TableEmpty message="Aucune facture trouvée" />
           ) : (
-            <Table striped hover compact>
+            <Table striped compact>
               <TableHead>
                 <TableRow>
                   <TableHeader sortable>Numéro</TableHeader>
@@ -310,7 +257,7 @@ export default function InvoicesPage() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredInvoices.map((invoice) => (
+                {invoices.map((invoice) => (
                   <InvoiceRow
                     key={invoice.id}
                     invoice={invoice}

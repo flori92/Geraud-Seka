@@ -28,6 +28,7 @@ from . import (
     hr,
     import_export,
     integrations,
+    invoices_public,
     notifications,
     payment_schedules,
     payments,

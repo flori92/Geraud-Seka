@@ -4,10 +4,9 @@ Script de migration automatique pour SEKA en production
 Initialise la base de données et applique toutes les migrations
 """
 
-import os
-import sys
-import asyncio
+from contextlib import suppress
 from pathlib import Path
+import sys
 
 try:
     # Import alembic lazily; some environments (local dev / Railway runner) may not
@@ -30,16 +29,9 @@ from app.db.session import engine
 # Import all models so they're registered with Base.metadata
 # IMPORTANT: Import order matters for SQLAlchemy relationships
 # Import Quote and SalesInvoice BEFORE Client to avoid mapper initialization errors
-try:
+with suppress(ImportError):
     from app.models.tenant import Tenant  # noqa
     from app.models.user import User  # noqa
-except ImportError:
-    # If model import fails (e.g. HR models removed), continue and handle later.
-    Tenant = None
-    User = None
-from contextlib import suppress
-
-try:
     # Import models that Client depends on FIRST
     from app.models.quote import Quote, QuoteItem  # noqa
     from app.models.sales_invoice import SalesInvoice, SalesInvoiceItem, Payment  # noqa
@@ -62,8 +54,6 @@ try:
         JournalEntry, JournalEntryLine, CostCenter, Reconciliation,
         BankReconciliation, Budget, BudgetLine, VATDeclaration
     )
-except ImportError:
-    pass  # Some models might not exist yet
 
 def add_column_if_not_exists(conn, table_name: str, column_name: str, column_def: str, message: str, success_msg: str):
     """Ajoute une colonne à une table si elle n'existe pas (helper idempotent)"""
@@ -290,101 +280,118 @@ def create_database_if_not_exists():
         print(f"❌ Erreur de connexion à la base de données: {e}")
         return False
 
+def _create_password_context():
+    """Crée le contexte de hachage des mots de passe"""
+    from passlib.context import CryptContext
+    return CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def _create_default_tenant_data():
+    """Retourne les données par défaut du tenant"""
+    return {
+        "name": "SEKA Demo",
+        "subdomain": "demo", 
+        "country": "CI",
+        "is_active": True,
+        "plan": "premium"
+    }
+
+def _create_admin_user_data(tenant_id: str, hashed_password: str):
+    """Retourne les données par défaut de l'utilisateur admin"""
+    return {
+        "email": "admin@sekagestion.com",
+        "hashed_password": hashed_password,
+        "full_name": "Administrateur SEKA",
+        "role": "admin",
+        "is_active": True,
+        "is_superuser": True,
+        "tenant_id": tenant_id
+    }
+
+def _print_success_message(method: str):
+    """Affiche le message de succès après création des données initiales"""
+    print(f"✅ Données initiales créées ({method})")
+    print("👤 Utilisateur admin: admin@sekagestion.com / admin123")
+
+def _create_initial_data_orm():
+    """Crée les données initiales via ORM (SessionLocal)"""
+    from app.db.session import SessionLocal
+    from app.models.tenant import Tenant
+    from app.models.user import User
+
+    db = SessionLocal()
+
+    if db.query(Tenant).first():
+        print("ℹ️  Des données existent déjà, création ignorée")
+        db.close()
+        return True
+
+    pwd_context = _create_password_context()
+    tenant_data = _create_default_tenant_data()
+    
+    default_tenant = Tenant(**tenant_data)
+    db.add(default_tenant)
+    db.flush()
+
+    admin_data = _create_admin_user_data(default_tenant.id, pwd_context.hash("admin123"))
+    admin_user = User(**{k: v for k, v in admin_data.items() if k != "role"})
+    db.add(admin_user)
+
+    db.commit()
+    db.close()
+
+    _print_success_message("ORM")
+    return True
+
+def _create_initial_data_sql():
+    """Crée les données initiales via SQL (fallback)"""
+    from sqlalchemy import text
+    import uuid
+
+    with engine.connect() as conn:
+        if conn.execute(text("SELECT 1 FROM tenants LIMIT 1")).fetchone():
+            print("ℹ️  Des données existent déjà (SQL), création ignorée")
+            return True
+
+        pwd_context = _create_password_context()
+        tenant_data = _create_default_tenant_data()
+        tenant_id = str(uuid.uuid4())
+        
+        conn.execute(
+            text("INSERT INTO tenants (id, name, subdomain, country, is_active, plan) VALUES (:id, :name, :subdomain, :country, :is_active, :plan)"),
+            {"id": tenant_id, **tenant_data}
+        )
+
+        admin_data = _create_admin_user_data(tenant_id, pwd_context.hash("admin123"))
+        admin_id = str(uuid.uuid4())
+        
+        conn.execute(
+            text("INSERT INTO users (id, email, hashed_password, full_name, role, is_active, is_superuser, tenant_id) VALUES (:id, :email, :hashed_password, :full_name, :role, :is_active, :is_superuser, :tenant_id)"),
+            {"id": admin_id, **admin_data}
+        )
+        conn.commit()
+
+    _print_success_message("SQL")
+    return True
+
 def create_initial_data():
     """Crée les données initiales nécessaires"""
     try:
         print("📋 Création des données initiales...")
 
         # Import all models first to ensure SQLAlchemy relationships are configured
-        # This must be done before creating any SQLAlchemy session
         from app.models.quote import Quote, QuoteItem  # noqa
         from app.models.sales_invoice import SalesInvoice, SalesInvoiceItem, Payment  # noqa
         from app.models.purchase_order import PurchaseOrder, PurchaseOrderItem, DeliveryNote, DeliveryNoteItem  # noqa
         from app.models.supplier import Supplier  # noqa
         from app.models.client import Client  # noqa
-        # HR modules removed: skip HR imports in initial-data path
 
-        # Try to use ORM insertion; if Tenant/Employee mappers are missing (because HR
-        # models were removed), fallback to raw SQL inserts to avoid mapper errors.
+        # Try to use ORM insertion; fallback to raw SQL if needed
         try:
-            from app.db.session import SessionLocal
-            from app.models.tenant import Tenant
-            from app.models.user import User
-            from passlib.context import CryptContext
-
-            db = SessionLocal()
-
-            # Vérifier si des données existent déjà
-            if db.query(Tenant).first():
-                print("ℹ️  Des données existent déjà, création ignorée")
-                db.close()
-                return True
-
-            # Créer le tenant par défaut
-            pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-            default_tenant = Tenant(
-                name="SEKA Demo",
-                subdomain="demo",
-                country="CI",
-                is_active=True,
-                plan="premium"
-            )
-            db.add(default_tenant)
-            db.flush()  # Pour obtenir l'ID
-
-            # Créer l'utilisateur admin
-            admin_user = User(
-                email="admin@sekagestion.com",
-                hashed_password=pwd_context.hash("admin123"),
-                full_name="Administrateur SEKA",
-                is_active=True,
-                is_superuser=True,
-                tenant_id=default_tenant.id
-            )
-            db.add(admin_user)
-
-            db.commit()
-            db.close()
-
-            print("✅ Données initiales créées (ORM)")
-            print("👤 Utilisateur admin: admin@sekagestion.com / admin123")
-
-            return True
+            return _create_initial_data_orm()
         except Exception as orm_exc:
             print(f"⚠️  ORM initial data path failed (falling back to SQL): {orm_exc}")
-
-            # Fallback: raw SQL inserts using engine to avoid SQLAlchemy mapper imports
             try:
-                from sqlalchemy import text
-                import uuid
-
-                with engine.connect() as conn:
-                    # Check if any tenant exists
-                    if conn.execute(text("SELECT 1 FROM tenants LIMIT 1")).fetchone():
-                        print("ℹ️  Des données existent déjà (SQL), création ignorée")
-                        return True
-
-                    tenant_id = str(uuid.uuid4())
-                    conn.execute(
-                        text("INSERT INTO tenants (id, name, subdomain, country, is_active, plan) VALUES (:id, :name, :subdomain, :country, :is_active, :plan)"),
-                        {"id": tenant_id, "name": "SEKA Demo", "subdomain": "demo", "country": "CI", "is_active": True, "plan": "premium"}
-                    )
-
-                    # Create admin user
-                    from passlib.context import CryptContext
-                    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-                    admin_id = str(uuid.uuid4())
-                    hashed = pwd_context.hash("admin123")
-                    conn.execute(
-                        text("INSERT INTO users (id, email, hashed_password, full_name, is_active, is_superuser, tenant_id) VALUES (:id, :email, :hpw, :full_name, :is_active, :is_superuser, :tenant_id)"),
-                        {"id": admin_id, "email": "admin@sekagestion.com", "hpw": hashed, "full_name": "Administrateur SEKA", "is_active": True, "is_superuser": True, "tenant_id": tenant_id}
-                    )
-                    conn.commit()
-
-                print("✅ Données initiales créées (SQL)")
-                print("👤 Utilisateur admin: admin@sekagestion.com / admin123")
-                return True
+                return _create_initial_data_sql()
             except Exception as sql_exc:
                 print(f"❌ Fallback SQL initial data failed: {sql_exc}")
                 return False

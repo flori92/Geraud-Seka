@@ -4,7 +4,7 @@ Calcul automatique des métriques business et génération d'insights IA
 """
 
 import asyncio
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, date, timezone
 from typing import Dict, List, Optional, Any
 from sqlalchemy import func, and_, or_
 from sqlalchemy.orm import Session
@@ -15,7 +15,7 @@ from app.models.client import Client
 from app.models.product import Product
 from app.models.sales_invoice import SalesInvoice
 from app.models.accounting import AccountingEntry
-from app.models.crm import Lead, Opportunity, CRMActivity
+# from app.models.crm import Lead, Opportunity, CRMActivity  # CRM models removed
 from app.db.session import get_db
 from app.services.monitoring import monitoring_service
 
@@ -39,7 +39,7 @@ class AnalyticsService:
         """
         try:
             # Définir les dates selon la période
-            end_date = datetime.utcnow()
+            end_date = datetime.now(timezone.utc)
             start_date = self._get_period_start_date(end_date, period)
             
             # Calcul parallèle des métriques
@@ -57,7 +57,7 @@ class AnalyticsService:
             # Combiner tous les résultats
             all_metrics = {}
             for result in results:
-                all_metrics.update(result)
+                all_metrics |= result
             
             # Sauvegarder les métriques en base
             await self._save_metrics_to_db(tenant_id, all_metrics, period)
@@ -155,26 +155,9 @@ class AnalyticsService:
                 )
             ).scalar()
             
-            # Taux de conversion (si CRM activé)
-            leads_created = await db.query(func.count(Lead.id)).filter(
-                and_(
-                    Lead.tenant_id == tenant_id,
-                    Lead.created_at >= start_date,
-                    Lead.created_at <= end_date
-                )
-            ).scalar()
-            
+            # CRM metrics disabled - models removed
+            leads_created = 0
             conversion_rate = 0
-            if leads_created > 0:
-                converted_leads = await db.query(func.count(Lead.id)).filter(
-                    and_(
-                        Lead.tenant_id == tenant_id,
-                        Lead.status == "converted",
-                        Lead.converted_at >= start_date,
-                        Lead.converted_at <= end_date
-                    )
-                ).scalar()
-                conversion_rate = (converted_leads / leads_created) * 100
             
             return {
                 "sales_count": {
@@ -340,52 +323,24 @@ class AnalyticsService:
             }
     
     async def _calculate_crm_metrics(self, tenant_id: str, start_date: datetime, end_date: datetime) -> Dict:
-        """Calcule les métriques CRM"""
-        async with AsyncSession() as db:
-            # Pipeline de vente
-            pipeline_value = await db.query(func.sum(Opportunity.amount)).filter(
-                and_(
-                    Opportunity.tenant_id == tenant_id,
-                    Opportunity.stage.in_(["qualification", "proposal", "negotiation"])
-                )
-            ).scalar()
-            
-            # Opportunités gagnées
-            won_opportunities = await db.query(func.sum(Opportunity.amount)).filter(
-                and_(
-                    Opportunity.tenant_id == tenant_id,
-                    Opportunity.stage == "won",
-                    Opportunity.actual_close_date >= start_date.date(),
-                    Opportunity.actual_close_date <= end_date.date()
-                )
-            ).scalar()
-            
-            # Activités CRM
-            activities_count = await db.query(func.count(CRMActivity.id)).filter(
-                and_(
-                    CRMActivity.tenant_id == tenant_id,
-                    CRMActivity.created_at >= start_date,
-                    CRMActivity.created_at <= end_date
-                )
-            ).scalar()
-            
-            return {
-                "pipeline_value": {
-                    "value": float(pipeline_value or 0),
-                    "unit": "XOF",
-                    "category": MetricCategory.SALES
-                },
-                "won_opportunities": {
-                    "value": float(won_opportunities or 0),
-                    "unit": "XOF",
-                    "category": MetricCategory.SALES
-                },
-                "crm_activities": {
-                    "value": activities_count or 0,
-                    "unit": "count",
-                    "category": MetricCategory.SALES
-                }
+        """Calcule les métriques CRM - DISABLED (models removed)"""
+        return {
+            "pipeline_value": {
+                "value": 0.0,
+                "unit": "XOF",
+                "category": MetricCategory.SALES
+            },
+            "won_opportunities": {
+                "value": 0.0,
+                "unit": "XOF",
+                "category": MetricCategory.SALES
+            },
+            "crm_activities": {
+                "value": 0,
+                "unit": "count",
+                "category": MetricCategory.SALES
             }
+        }
     
     async def generate_business_insights(self, tenant_id: str) -> List[Dict[str, Any]]:
         """
@@ -547,7 +502,7 @@ class AnalyticsService:
                     unit=data.get("unit", "count"),
                     period=period,
                     tenant_id=tenant_id,
-                    metadata={"calculation_time": datetime.utcnow().isoformat()}
+                    metadata={"calculation_time": datetime.now(timezone.utc).isoformat()}
                 )
                 db.add(metric)
             

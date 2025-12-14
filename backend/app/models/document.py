@@ -167,7 +167,7 @@ class Document(Base, TimestampMixin):
     folder = relationship("DocumentFolder", back_populates="documents")
     client = relationship("Client", backref="documents")
     supplier = relationship("Supplier", back_populates="documents")
-    lead = relationship("Lead")
+    # lead = relationship("Lead")  # Commented out due to HR module removal
     opportunity = relationship("Opportunity")
     parent_document = relationship("Document", remote_side=[id], backref="versions")
     accounting_entries = relationship("AccountingEntry", back_populates="document", cascade="all, delete-orphan")

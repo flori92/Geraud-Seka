@@ -12,20 +12,21 @@ from app.api.v1.routes import (
     products,
     exports,
     analytics,
-    crm,
-    email_tracking,
-    segments,
-    campaigns,
-    automations,
+    # crm,  # CRM module removed
+    # email_tracking,  # CRM module removed
+    # segments,  # CRM module removed
+    # campaigns,  # CRM module removed
+    # automations,  # CRM module removed
     notifications,
     scheduler,
-    import_export,
+    # import_export,  # CRM dependencies removed
     integrations,
     bot,
     chat,
     payments,
     quotes,
     sales_invoices,
+    invoices_public,
     purchase_orders,
     delivery_notes,
     bank_accounts,
@@ -63,14 +64,15 @@ api_router.include_router(activities.router, prefix="/activities", tags=["activi
 api_router.include_router(products.router, prefix="/products", tags=["products"])
 api_router.include_router(exports.router, prefix="/exports", tags=["exports"])
 api_router.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
-api_router.include_router(crm.router, prefix="/crm", tags=["crm"])
-api_router.include_router(email_tracking.router, prefix="/email", tags=["email", "tracking"])
-api_router.include_router(segments.router, prefix="/segments", tags=["crm", "segments"])
-api_router.include_router(campaigns.router, prefix="/campaigns", tags=["crm", "campaigns", "email"])
-api_router.include_router(automations.router, prefix="/automations", tags=["crm", "automations"])
+# CRM routes disabled - models removed
+# api_router.include_router(crm.router, prefix="/crm", tags=["crm"])
+# api_router.include_router(email_tracking.router, prefix="/email", tags=["email", "tracking"])
+# api_router.include_router(segments.router, prefix="/segments", tags=["crm", "segments"])
+# api_router.include_router(campaigns.router, prefix="/campaigns", tags=["crm", "campaigns", "email"])
+# api_router.include_router(automations.router, prefix="/automations", tags=["crm", "automations"])
 api_router.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
 api_router.include_router(scheduler.router, prefix="/scheduler", tags=["scheduler", "tasks"])
-api_router.include_router(import_export.router, prefix="/data", tags=["import", "export"])
+# api_router.include_router(import_export.router, prefix="/data", tags=["import", "export"])  # CRM dependencies
 api_router.include_router(integrations.router, prefix="/integrations", tags=["integrations"])
 api_router.include_router(bot.router, prefix="/bot", tags=["bot"])
 api_router.include_router(chat.router, prefix="/chat", tags=["chat"])
@@ -82,6 +84,8 @@ api_router.include_router(sales.router, prefix="/sales", tags=["sales"])
 # Original routes
 api_router.include_router(quotes.router, prefix="/quotes", tags=["sales", "quotes"])
 api_router.include_router(sales_invoices.router, prefix="/sales-invoices", tags=["sales", "invoices"])
+# Public example endpoints (for frontend development, replace with secured endpoints in production)
+api_router.include_router(invoices_public.router, prefix="/invoices-public", tags=["sales", "invoices", "public"])
 
 # Purchases/Achats Module Routes
 api_router.include_router(supplier_invoices.router, prefix="/supplier-invoices", tags=["purchases", "supplier-invoices"])
