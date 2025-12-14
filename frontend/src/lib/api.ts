@@ -53,19 +53,16 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     // Si le token est invalide ou expiré (401), déconnecter l'utilisateur
-    if (error.response?.status === 401) {
-      // Vérifier si nous sommes dans un navigateur (pas côté serveur)
-      if (typeof window !== "undefined") {
-        // Effacer les données d'authentification
-        localStorage.removeItem("seka_access_token");
-        localStorage.removeItem("seka_refresh_token");
-        localStorage.removeItem("user");
+    if (error.response?.status === 401 && typeof window !== "undefined") {
+      // Effacer les données d'authentification
+      localStorage.removeItem("seka_access_token");
+      localStorage.removeItem("seka_refresh_token");
+      localStorage.removeItem("user");
 
-        // Rediriger vers la page de connexion seulement si on n'y est pas déjà
-        if (window.location.pathname !== "/login" && window.location.pathname !== "/") {
-          console.log("[API] Token invalide - redirection vers login");
-          window.location.href = "/login";
-        }
+      // Rediriger vers la page de connexion seulement si on n'y est pas déjà
+      if (window.location.pathname !== "/login" && window.location.pathname !== "/") {
+        console.log("[API] Token invalide - redirection vers login");
+        window.location.href = "/login";
       }
     }
     

@@ -7,13 +7,14 @@ Initialise la base de données et applique toutes les migrations
 import os
 import sys
 import asyncio
+from contextlib import suppress
 from pathlib import Path
-try:
+with suppress(Exception):
     # Import alembic lazily; some environments (local dev / Railway runner) may not
     # have alembic installed in the PATH. We import inside run_migrations as well.
     from alembic.config import Config  # type: ignore
     from alembic import command  # type: ignore
-except Exception:
+else:
     Config = None
     command = None
 from sqlalchemy import create_engine, text
@@ -29,10 +30,10 @@ from app.db.session import engine
 # Import all models so they're registered with Base.metadata
 # IMPORTANT: Import order matters for SQLAlchemy relationships
 # Import Quote and SalesInvoice BEFORE Client to avoid mapper initialization errors
-try:
+with suppress(Exception):
     from app.models.tenant import Tenant  # noqa
     from app.models.user import User  # noqa
-except Exception:
+else:
     # If model import fails (e.g. HR models removed), continue and handle later.
     Tenant = None
     User = None
@@ -107,7 +108,7 @@ def ensure_documents_columns():
             print("🔧 Vérification complète du schéma documents...")
 
             # Créer les types enum s'ils n'existent pas
-            try:
+            with suppress(Exception):
                 conn.execute(text("""
                     DO $$ BEGIN
                         CREATE TYPE documentcategory AS ENUM (
@@ -119,8 +120,6 @@ def ensure_documents_columns():
                     END $$;
                 """))
                 conn.commit()
-            except Exception:
-                pass
 
             # Définir TOUTES les colonnes attendues
             columns_to_check = {
@@ -209,10 +208,8 @@ def run_migrations():
 
         for t in hr_tables:
             if t in Base.metadata.tables:
-                try:
+                with suppress(Exception):
                     Base.metadata.tables.pop(t)
-                except Exception:
-                    pass
 
         print(f"📊 Tables dans metadata (filtré): {list(Base.metadata.tables.keys())}")
         Base.metadata.create_all(bind=engine)
@@ -231,15 +228,10 @@ def run_migrations():
             print(f"📋 Tables dans la base: {tables}")
 
             # Vérifier si alembic_version existe et a des migrations appliquées
-            current_version = None
             if 'alembic_version' in tables:
-                try:
-                    version_result = conn.execute(text("SELECT version_num FROM alembic_version"))
-                    current_version = version_result.scalar()
-                    if current_version:
+                with suppress(Exception):
+                    if current_version := conn.execute(text("SELECT version_num FROM alembic_version")).scalar():
                         print(f"ℹ️  Migration Alembic actuelle: {current_version}")
-                except Exception:
-                    pass  # Table existe mais vide
 
         # Configuration Alembic (import lazily if available)
         print("🔄 Vérification et application des nouvelles migrations...")
@@ -316,8 +308,7 @@ def create_initial_data():
             db = SessionLocal()
 
             # Vérifier si des données existent déjà
-            existing_tenant = db.query(Tenant).first()
-            if existing_tenant:
+            if db.query(Tenant).first():
                 print("ℹ️  Des données existent déjà, création ignorée")
                 db.close()
                 return True
@@ -363,8 +354,7 @@ def create_initial_data():
 
                 with engine.connect() as conn:
                     # Check if any tenant exists
-                    res = conn.execute(text("SELECT 1 FROM tenants LIMIT 1"))
-                    if res.fetchone():
+                    if conn.execute(text("SELECT 1 FROM tenants LIMIT 1")).fetchone():
                         print("ℹ️  Des données existent déjà (SQL), création ignorée")
                         return True
 
