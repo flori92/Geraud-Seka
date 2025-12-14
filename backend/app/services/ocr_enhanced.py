@@ -161,7 +161,10 @@ Be extremely accurate. Preserve structure."""
                     result = response.json()
                     return result['choices'][0]['message']['content'].strip()
                 else:
-                    print(f"❌ Groq error {stripe_index}: {response.status_code}")
+                    body_preview = response.text
+                    if body_preview and len(body_preview) > 800:
+                        body_preview = body_preview[:800] + "…"
+                    print(f"❌ Groq error {stripe_index}: {response.status_code} - {body_preview}")
                     return None
         
         except Exception as e:

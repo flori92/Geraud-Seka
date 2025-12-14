@@ -51,10 +51,14 @@ class GroqOCRService:
         if not self.api_key:
             raise RuntimeError("GROQ_API_KEY non configurée: impossible d'utiliser l'OCR serveur.")
 
-        # Si le service amélioré est disponible, l'utiliser
+        # Si le service amélioré est disponible, l'utiliser (avec fallback basique)
         if self.use_enhanced:
             print("🚀 Utilisation du service OCR amélioré (LlamaOCR)")
-            return await enhanced_ocr_service.process_invoice(file_path, file_content, extract_all_pages)
+            try:
+                return await enhanced_ocr_service.process_invoice(file_path, file_content, extract_all_pages)
+            except Exception as e:
+                print(f"⚠️  OCR amélioré en échec, fallback basique: {e}")
+                return await self._process_invoice_basic(file_path, file_content, extract_all_pages)
 
         # Sinon, continuer avec le service basique
         print("⚠️  Utilisation du service OCR basique (fallback)")
