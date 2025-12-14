@@ -145,29 +145,9 @@ class EmailService:
             text: Contenu texte (optionnel)
             reply_to: Email de réponse (optionnel)
         """
-        from app.models.crm import EmailTracking
-        
-        # Générer le token de tracking
+        # CRM tracking removed: fallback to sending without DB tracking.
         tracking_token = generate_tracking_token()
-        
-        # Créer l'entrée de tracking
-        tracking = EmailTracking(
-            tracking_token=tracking_token,
-            recipient_email=to,
-            subject=subject,
-            lead_id=lead_id,
-            contact_id=contact_id,
-            campaign_id=campaign_id,
-            template_name=template_name,
-            tenant_id=tenant_id,
-            sent_by=sent_by
-        )
-        
-        db.add(tracking)
-        db.commit()
-        db.refresh(tracking)
-        
-        # Envoyer l'email avec le pixel de tracking
+
         result = await self.send_email(
             to=to,
             subject=subject,
@@ -176,16 +156,11 @@ class EmailService:
             reply_to=reply_to,
             tracking_token=tracking_token
         )
-        
-        # Mettre à jour avec l'ID Resend si disponible
-        if "id" in result and not result.get("error"):
-            tracking.resend_message_id = result["id"]
-            db.commit()
-        
+
         return {
-            **result,
-            "tracking_id": str(tracking.id),
-            "tracking_token": tracking_token
+            **(result if isinstance(result, dict) else {}),
+            "tracking_token": tracking_token,
+            "tracking_saved": False
         }
     
     async def send_welcome_email(self, to: str, name: str, tenant_slug: str):

@@ -13,10 +13,17 @@ from sqlalchemy import func, and_, desc
 from app.models.sales_invoice import SalesInvoice
 from app.models.client import Client
 from app.models.product import Product
-from app.models.crm import Lead, Opportunity
+try:
+    from app.models.crm import Lead, Opportunity
+except Exception:
+    Lead = None
+    Opportunity = None
 from app.models.accounting import AccountingEntry
 from app.services.analytics import analytics_service
-from app.services.crm import crm_service
+try:
+    from app.services.crm import crm_service
+except Exception:
+    crm_service = None
 from app.services.ai.forecasting import forecasting_service
 from app.services.monitoring import monitoring_service
 

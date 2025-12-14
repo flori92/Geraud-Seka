@@ -52,29 +52,13 @@ class AutomationStatus(Enum):
 
 
 # ========== Minimal ORM models ==========
-class Automation(Base, TimestampMixin):
-    __tablename__ = "automations"
+class Automation:
+    """Placeholder pour compatibilité d'import.
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String(255), nullable=False)
-    description = Column(String(1024), nullable=True)
-    trigger_type = Column(String(64), nullable=False, default=AutomationTriggerType.MANUAL.value)
-    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
-    """
-    Modèles CRM - DEPRECATED ET SUPPRIMÉS
-
-    Les modules CRM suivants ont été supprimés en date du 2025-12-14:
-    - Lead
-    - Opportunity
-    - CRMActivity
-    - EmailCampaign
-    - EmailCampaignRecipient
-
-    Code remnant only for migration compatibility.
-    À ne pas utiliser en nouveau code.
+    Ne pas mapper cette classe avec SQLAlchemy. Elle existe uniquement
+    pour éviter des ImportError lorsqu'un import direct est réalisé
+    (p.ex. lors de l'import global `from app.models import *`).
     """
 
-    # This file is kept for import compatibility only during migrations
-    # All CRM models have been permanently removed from SEKA
-    creator = relationship("User", primaryjoin="User.id==Automation.created_by", viewonly=True)
+    def __init__(self, *args, **kwargs):
+        raise RuntimeError("Automation model has been removed from the codebase and is unavailable.")

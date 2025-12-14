@@ -1,26 +1,9 @@
 """
-Routes API pour les campagnes email marketing
-Templates, campagnes, envoi en masse et statistiques
+Campaigns routes removed (CRM feature deprecated).
+This module kept as an empty router to avoid import errors.
 """
 
-import re
-from typing import List, Optional
-from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
-from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_, func, desc
-from pydantic import BaseModel
-
-from app.db.session import get_db
-from app.api.deps import get_current_user, get_current_tenant
-from app.models.user import User
-from app.models.tenant import Tenant
-from app.models.client import Client
-from app.models.crm import (
-    EmailTemplate, EmailCampaign, CampaignRecipient, CampaignStatus,
-    Lead, Contact, Segment, SegmentMembership, EmailTracking
-)
-from app.services.email import EmailService
+from fastapi import APIRouter
 
 router = APIRouter()
 

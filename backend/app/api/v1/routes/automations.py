@@ -1,97 +1,11 @@
 """
-Routes API pour les automatisations CRM
-Workflows déclenchés par des événements
+Automations routes removed (CRM feature deprecated).
+This module provides an empty router kept for compatibility.
 """
 
-from typing import List, Optional
-from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
-from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_, func, desc
-from pydantic import BaseModel
-
-from app.db.session import get_db
-from app.api.deps import get_current_user, get_current_tenant
-from app.models.user import User
-from app.models.tenant import Tenant
-from app.models.crm import (
-    Automation, AutomationAction, AutomationExecution,
-    AutomationTriggerType, AutomationActionType, AutomationStatus
-)
+from fastapi import APIRouter
 
 router = APIRouter()
-
-
-# ==================== SCHEMAS ====================
-
-class ActionConfig(BaseModel):
-    action_type: str
-    config: dict
-    order: int = 0
-
-
-class AutomationCreate(BaseModel):
-    name: str
-    description: Optional[str] = None
-    trigger_type: str
-    trigger_config: Optional[dict] = None
-    conditions: Optional[List[dict]] = None
-    actions: Optional[List[ActionConfig]] = None
-
-
-class AutomationUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    trigger_config: Optional[dict] = None
-    conditions: Optional[List[dict]] = None
-    status: Optional[str] = None
-
-
-class ActionCreate(BaseModel):
-    action_type: str
-    config: dict
-    order: int = 0
-
-
-# ==================== ROUTES AUTOMATISATIONS ====================
-
-@router.get("/")
-async def list_automations(
-    status: Optional[str] = Query(None),
-    trigger_type: Optional[str] = Query(None),
-    current_tenant: Tenant = Depends(get_current_tenant),
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Liste toutes les automatisations"""
-    query = db.query(Automation).filter(
-        Automation.tenant_id == current_tenant.id
-    )
-    
-    if status:
-        query = query.filter(Automation.status == status)
-    if trigger_type:
-        query = query.filter(Automation.trigger_type == trigger_type)
-    
-    automations = query.order_by(Automation.name).all()
-    
-    return [
-        {
-            "id": str(a.id),
-            "name": a.name,
-            "description": a.description,
-            "trigger_type": a.trigger_type,
-            "trigger_config": a.trigger_config,
-            "status": a.status,
-            "action_count": len(a.actions),
-            "execution_count": a.execution_count,
-            "success_count": a.success_count,
-            "error_count": a.error_count,
-            "last_executed_at": a.last_executed_at.isoformat() if a.last_executed_at else None,
-            "created_at": a.created_at.isoformat() if a.created_at else None
-        }
-        for a in automations
-    ]
 
 
 @router.post("/")

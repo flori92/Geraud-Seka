@@ -1,223 +1,35 @@
 """
-Service CRM Intelligent pour SEKA Enterprise
-Pipeline de vente, lead scoring IA et automation
+CRM service removed — lightweight compatibility shim.
+
+This module provides a minimal `CRMService` stub so other modules
+that import `app.services.crm` do not crash after the CRM feature
+was removed. Implementations are intentionally no-ops and return
+safe defaults.
 """
 
-import asyncio
-from datetime import datetime, timedelta, date
-from typing import Dict, List, Optional, Any, Tuple
-from sqlalchemy import func, and_, or_, desc
-from sqlalchemy.orm import Session, selectinload
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.models.crm import (
-    Lead, Opportunity, CRMActivity, Campaign, LeadScoring,
-    LeadStatus, OpportunityStage, ActivityType, Priority, LeadSource
-)
-from app.models.client import Client
-from app.models.sales_invoice import SalesInvoice
-from app.db.session import get_db
-from app.services.monitoring import monitoring_service
-from app.services.email import email_service
+from typing import Dict, Any, List, Optional
 
 
 class CRMService:
-    """Service CRM avec intelligence artificielle"""
-    
+    """Stub CRM service used for compatibility after removal."""
+
     def __init__(self):
-        self.monitoring = monitoring_service
-        self.email_service = email_service
-    
-    async def calculate_lead_score(self, lead: Lead) -> int:
-        """
-        Calcul automatique du score de lead avec IA
-        Score de 0 à 100 basé sur multiples critères
-        """
-        try:
-            score = 0
-            scoring_details = {}
-            
-            # 1. Informations de qualification (max 30 points)
-            qualification_score = 0
-            
-            if lead.company:
-                qualification_score += 8
-                scoring_details["has_company"] = 8
-            
-            if lead.job_title:
-                qualification_score += 5
-                scoring_details["has_job_title"] = 5
-            
-            if lead.phone:
-                qualification_score += 7
-                scoring_details["has_phone"] = 7
-            
-            if lead.industry:
-                qualification_score += 5
-                scoring_details["has_industry"] = 5
-            
-            if lead.company_size:
-                # Plus la société est grande, plus c'est intéressant
-                size_scores = {
-                    "1-10": 2,
-                    "11-50": 5,
-                    "51-200": 8,
-                    "200+": 15
-                }
-                size_score = size_scores.get(lead.company_size, 0)
-                qualification_score += size_score
-                scoring_details["company_size"] = size_score
-            
-            score += min(qualification_score, 30)
-            
-            # 2. Source du lead (max 20 points)
-            source_scores = {
-                LeadSource.REFERRAL: 20,
-                LeadSource.PARTNER: 15,
-                LeadSource.TRADE_SHOW: 12,
-                LeadSource.WEBSITE: 10,
-                LeadSource.SOCIAL_MEDIA: 8,
-                LeadSource.EMAIL_MARKETING: 7,
-                LeadSource.ADVERTISING: 5,
-                LeadSource.COLD_CALLING: 3,
-                LeadSource.DIRECT: 5
-            }
-            source_score = source_scores.get(LeadSource(lead.source), 5)
-            score += source_score
-            scoring_details["source"] = source_score
-            
-            # 3. Engagement comportemental (max 25 points)
-            engagement_score = 0
-            
-            # Engagement email
-            if lead.email_opens > 0:
-                engagement_score += min(lead.email_opens * 2, 10)
-                scoring_details["email_opens"] = min(lead.email_opens * 2, 10)
-            
-            if lead.email_clicks > 0:
-                engagement_score += min(lead.email_clicks * 4, 15)
-                scoring_details["email_clicks"] = min(lead.email_clicks * 4, 15)
-            
-            # Visites site web
-            if lead.website_visits > 0:
-                engagement_score += min(lead.website_visits * 1.5, 8)
-                scoring_details["website_visits"] = min(lead.website_visits * 1.5, 8)
-            
-            score += min(engagement_score, 25)
-            
-            # 4. Timing et récence (max 15 points)
-            timing_score = 0
-            
-            if lead.last_activity_date:
-                days_since_activity = (datetime.utcnow() - lead.last_activity_date).days
-                if days_since_activity <= 1:
-                    timing_score = 15
-                elif days_since_activity <= 3:
-                    timing_score = 12
-                elif days_since_activity <= 7:
-                    timing_score = 8
-                elif days_since_activity <= 14:
-                    timing_score = 4
-                # Plus de 14 jours = 0 point
-                
-                scoring_details["activity_recency"] = timing_score
-            
-            score += timing_score
-            
-            # 5. Budget et timeline (max 10 points)
-            intent_score = 0
-            
-            if lead.budget_range:
-                budget_scores = {
-                    "< 100k": 2,
-                    "100k-500k": 5,
-                    "500k-1M": 7,
-                    "1M+": 10
-                }
-                budget_score = budget_scores.get(lead.budget_range, 3)
-                intent_score += budget_score
-                scoring_details["budget"] = budget_score
-            
-            if lead.timeline:
-                timeline_scores = {
-                    "immediate": 8,
-                    "1-3months": 6,
-                    "3-6months": 4,
-                    "6+months": 2
-                }
-                timeline_score = timeline_scores.get(lead.timeline, 2)
-                intent_score += timeline_score
-                scoring_details["timeline"] = timeline_score
-            
-            score += min(intent_score, 10)
-            
-            # Score final sur 100
-            final_score = min(score, 100)
-            
-            # Déterminer la qualité du lead
-            if final_score >= 80:
-                quality_grade = "A"
-            elif final_score >= 60:
-                quality_grade = "B"
-            elif final_score >= 40:
-                quality_grade = "C"
-            else:
-                quality_grade = "D"
-            
-            # Mettre à jour le lead
-            lead.score = final_score
-            lead.quality_grade = quality_grade
-            
-            # Log du scoring
-            self.monitoring.log_business_event(
-                event_type="lead_scored",
-                description=f"Lead {lead.full_display_name} scoré: {final_score}/100 (Grade {quality_grade})",
-                tenant_id=lead.tenant_id,
-                metadata={
-                    "lead_id": str(lead.id),
-                    "score": final_score,
-                    "grade": quality_grade,
-                    "scoring_details": scoring_details
-                }
-            )
-            
-            return final_score
-            
-        except Exception as e:
-            self.monitoring.log_error(
-                error=e,
-                context="calculate_lead_score",
-                tenant_id=lead.tenant_id,
-                extra_data={"lead_id": str(lead.id)}
-            )
-            return 0
-    
+        pass
+
+    async def calculate_lead_score(self, lead) -> int:
+        return 0
+
     async def get_sales_pipeline(self, tenant_id: str, user_id: Optional[str] = None) -> Dict[str, Any]:
-        """
-        Récupère le pipeline de vente avec métriques
-        """
-        try:
-            async with AsyncSession() as db:
-                # Base query
-                query = db.query(Opportunity).filter(Opportunity.tenant_id == tenant_id)
-                
-                if user_id:
-                    query = query.filter(Opportunity.assigned_to == user_id)
-                
-                opportunities = await query.options(
-                    selectinload(Opportunity.lead),
-                    selectinload(Opportunity.client),
-                    selectinload(Opportunity.assignee)
-                ).all()
-                
-                # Organiser par étape
-                pipeline = {
-                    OpportunityStage.QUALIFICATION: [],
-                    OpportunityStage.NEEDS_ANALYSIS: [],
-                    OpportunityStage.PROPOSAL: [],
-                    OpportunityStage.NEGOTIATION: [],
-                    OpportunityStage.CLOSING: [],
-                    OpportunityStage.WON: [],
+        return {"pipeline": []}
+
+    async def get_opportunity(self, opportunity_id: str):
+        return None
+
+    async def find_hot_leads(self, tenant_id: str) -> List:
+        return []
+
+
+crm_service = CRMService()
                     OpportunityStage.LOST: []
                 }
                 

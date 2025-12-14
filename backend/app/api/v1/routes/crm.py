@@ -1,43 +1,11 @@
 """
-API Routes CRM pour SEKA Enterprise
-Pipeline de vente, leads, opportunités avec IA
+CRM routes removed (CRM feature deprecated).
+This module kept as an empty router to avoid import errors.
 """
 
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any
-from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
-from sqlalchemy.orm import Session, selectinload
-from sqlalchemy import and_, desc, or_
-
-from app.db.session import get_db
-from app.core.deps import get_current_user, get_current_tenant
-from app.core.cache import cached
-from app.models.user import User
-from app.models.tenant import Tenant
-from app.models.crm import (
-    Lead, Opportunity, CRMActivity, Campaign, Contact,
-    LeadStatus, OpportunityStage, ActivityType, Priority, ContactType
-)
-from app.models.client import Client
-from app.models.quote import Quote, QuoteStatus
-from app.schemas import contact as contact_schema
-from app.services.crm import crm_service
+from fastapi import APIRouter
 
 router = APIRouter()
-
-
-@router.get("/pipeline")
-async def get_sales_pipeline(
-    user_filter: Optional[str] = Query(None),
-    current_tenant: Tenant = Depends(get_current_tenant),
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """
-    Récupère le pipeline de vente visuel
-    
-    - **user_filter**: Filtrer par utilisateur assigné (optionnel)
-    """
     try:
         pipeline_data = await crm_service.get_sales_pipeline(
             tenant_id=str(current_tenant.id),

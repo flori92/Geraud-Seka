@@ -1,26 +1,9 @@
 """
-Routes de segmentation CRM pour SEKA
-Gère les segments statiques et dynamiques de leads, contacts et clients
+Segments routes removed (CRM feature deprecated).
+Empty router kept for compatibility.
 """
 
-import json
-from datetime import datetime, timedelta
-from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_, func, desc
-from pydantic import BaseModel
-
-from app.db.session import get_db
-from app.api.deps import get_current_user, get_current_tenant
-from app.models.user import User
-from app.models.tenant import Tenant
-from app.models.client import Client
-from app.models.crm import (
-    Segment, SegmentRule, SegmentMembership,
-    SegmentType, SegmentEntityType, RuleOperator,
-    Lead, Contact
-)
+from fastapi import APIRouter
 
 router = APIRouter()
 

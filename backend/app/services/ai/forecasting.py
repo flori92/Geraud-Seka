@@ -30,7 +30,11 @@ from app.models.sales_invoice import SalesInvoice
 from app.models.accounting import AccountingEntry
 from app.models.client import Client
 from app.models.product import Product
-from app.models.crm import Lead, Opportunity
+try:
+    from app.models.crm import Lead, Opportunity
+except Exception:
+    Lead = None
+    Opportunity = None
 from app.services.monitoring import monitoring_service
 
 

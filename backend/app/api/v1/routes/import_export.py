@@ -23,14 +23,14 @@ from app.models.crm import Lead, Contact, LeadStatus, LeadSource
 router = APIRouter()
 
 
-# ==================== SCHEMAS ====================
+"""
+Import/Export CRM endpoints removed (CRM deprecated).
+Empty router kept for compatibility.
+"""
 
-class ImportConfig(BaseModel):
-    entity_type: str
-    column_mapping: dict
-    skip_first_row: bool = True
-    update_existing: bool = False
+from fastapi import APIRouter
 
+router = APIRouter()
 
 # ==================== ROUTES IMPORT ====================
 

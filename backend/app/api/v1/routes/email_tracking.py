@@ -1,27 +1,9 @@
 """
-Routes de tracking email pour SEKA CRM
-Gère les pixels d'ouverture et les redirections de clics
+Email tracking routes removed (CRM feature deprecated).
+This module kept as an empty router to avoid import errors.
 """
 
-import secrets
-import hashlib
-import re
-from datetime import datetime
-from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, Request, Query, Response
-from fastapi.responses import RedirectResponse
-from sqlalchemy.orm import Session
-from sqlalchemy import and_, func, desc
-from pydantic import BaseModel
-
-from app.db.session import get_db
-from app.api.deps import get_current_user, get_current_tenant
-from app.models.user import User
-from app.models.tenant import Tenant
-from app.models.crm import (
-    EmailTracking, EmailEvent, EmailLink, EmailEventType,
-    Lead, Contact
-)
+from fastapi import APIRouter
 
 router = APIRouter()
 
@@ -132,32 +114,14 @@ async def track_email_open(
             # Mettre à jour le lead ou contact associé
             if tracking.lead_id:
                 lead = db.query(Lead).filter(Lead.id == tracking.lead_id).first()
-                if lead:
-                    lead.email_opens = (lead.email_opens or 0) + 1
-                    lead.last_activity_date = datetime.utcnow()
-            
-            if tracking.contact_id:
-                contact = db.query(Contact).filter(Contact.id == tracking.contact_id).first()
-                if contact:
-                    contact.last_email_opened = datetime.utcnow()
-            
-            db.commit()
-    except Exception as e:
-        # Ne pas faire échouer la requête même en cas d'erreur
-        print(f"Error tracking email open: {e}")
-        db.rollback()
-    
-    # Toujours retourner le pixel (même en cas d'erreur)
-    return Response(
-        content=TRACKING_PIXEL,
-        media_type="image/png",
-        headers={
-            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
-            "Pragma": "no-cache",
-            "Expires": "0"
-        }
-    )
+                """
+                Email tracking routes removed (CRM feature deprecated).
+                Empty router kept for compatibility.
+                """
 
+                from fastapi import APIRouter
+
+                router = APIRouter()
 
 @router.get("/click/{token}")
 async def track_email_click(
