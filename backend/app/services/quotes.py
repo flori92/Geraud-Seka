@@ -3,7 +3,7 @@ Service for Quote (Devis) operations
 """
 from typing import List, Optional
 from uuid import UUID
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import and_, desc
 from datetime import datetime
 
@@ -22,7 +22,14 @@ class QuoteService:
         client_id: Optional[UUID] = None,
     ) -> List[Quote]:
         """Get all quotes for a tenant with optional filters"""
-        query = db.query(Quote).filter(Quote.tenant_id == tenant_id)
+        query = (
+            db.query(Quote)
+            .options(
+                selectinload(Quote.client),
+                selectinload(Quote.items),
+            )
+            .filter(Quote.tenant_id == tenant_id)
+        )
 
         if status:
             query = query.filter(Quote.status == status)

@@ -7,6 +7,7 @@ from typing import Any, List, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, get_current_user
@@ -61,7 +62,7 @@ async def get_quotes_alias(
     total = query.count()
 
     return {
-        "quotes": quotes,
+        "quotes": jsonable_encoder(quotes),
         "total": total,
         "skip": skip,
         "limit": limit
