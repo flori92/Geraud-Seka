@@ -9,6 +9,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import ProgrammingError, OperationalError
 
 from app.api.deps import get_db, get_current_user
 from app.models.user import User
@@ -37,36 +38,54 @@ async def get_quotes_alias(
     Alias endpoint for GET /quotes/
     Frontend calls /api/v1/sales/quotes/ → uses real DB queries
     """
-    client_uuid: Optional[UUID] = None
-    if client_id:
-        try:
-            client_uuid = UUID(client_id)
-        except ValueError:
-            raise HTTPException(status_code=400, detail="client_id invalide")
+    try:
+        # Validate tenant_id exists
+        if not current_user.tenant_id:
+            print("❌ Error: User has no tenant_id")
+            return {"quotes": [], "total": 0, "skip": skip, "limit": limit}
 
-    quotes = quote_service.get_quotes(
-        db=db,
-        tenant_id=current_user.tenant_id,
-        skip=skip,
-        limit=limit,
-        status=status,
-        client_id=client_uuid
-    )
+        client_uuid: Optional[UUID] = None
+        if client_id:
+            try:
+                client_uuid = UUID(client_id)
+            except ValueError:
+                raise HTTPException(status_code=400, detail="client_id invalide")
 
-    # Count total quotes for pagination
-    query = db.query(Quote).filter(Quote.tenant_id == current_user.tenant_id)
-    if status:
-        query = query.filter(Quote.status == status)
-    if client_uuid:
-        query = query.filter(Quote.client_id == client_uuid)
-    total = query.count()
+        quotes = quote_service.get_quotes(
+            db=db,
+            tenant_id=current_user.tenant_id,
+            skip=skip,
+            limit=limit,
+            status=status,
+            client_id=client_uuid
+        )
 
-    return {
-        "quotes": jsonable_encoder(quotes),
-        "total": total,
-        "skip": skip,
-        "limit": limit
-    }
+        # Count total quotes for pagination
+        query = db.query(Quote).filter(Quote.tenant_id == current_user.tenant_id)
+        if status:
+            query = query.filter(Quote.status == status)
+        if client_uuid:
+            query = query.filter(Quote.client_id == client_uuid)
+        total = query.count()
+
+        return {
+            "quotes": jsonable_encoder(quotes),
+            "total": total,
+            "skip": skip,
+            "limit": limit
+        }
+    except (ProgrammingError, OperationalError) as e:
+        # Table doesn't exist yet - rollback and return empty list
+        db.rollback()
+        print(f"Quotes table error: {str(e)}")
+        return {"quotes": [], "total": 0, "skip": skip, "limit": limit}
+    except Exception as e:
+        # Return empty list on error but log full trace
+        db.rollback()
+        import traceback
+        traceback.print_exc()
+        print(f"Quotes error: {str(e)}")
+        return {"quotes": [], "total": 0, "skip": skip, "limit": limit}
 
 
 # ==================== INVOICES ALIASES ====================
