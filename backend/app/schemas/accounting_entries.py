@@ -8,13 +8,21 @@ from pydantic import BaseModel, Field, validator
 
 
 class AccountingEntryLineBase(BaseModel):
-    account_id: UUID
+    account_id: Optional[UUID] = None
+    account_code: Optional[str] = None
     label: str
     debit: Decimal = Field(default=Decimal("0.00"), ge=0)
     credit: Decimal = Field(default=Decimal("0.00"), ge=0)
     analytic_code: Optional[str] = None
     partner_id: Optional[UUID] = None
     partner_type: Optional[str] = None
+
+    @validator('account_id', always=True)
+    def validate_account_identifier(cls, v, values):
+        account_code = values.get('account_code')
+        if v is None and not account_code:
+            raise ValueError("account_id ou account_code est requis")
+        return v
 
     @validator('debit', 'credit')
     def validate_amounts(cls, v):

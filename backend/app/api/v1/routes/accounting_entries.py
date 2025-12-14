@@ -60,18 +60,28 @@ def create_accounting_entry(
     db.flush()
     
     for line_data in entry_data.lines:
-        account = db.query(LedgerAccount).filter(
-            LedgerAccount.id == line_data.account_id,
-            LedgerAccount.tenant_id == current_user.tenant_id
-        ).first()
-        
+        account_id = line_data.account_id
+        if account_id is None and getattr(line_data, "account_code", None):
+            account = db.query(LedgerAccount).filter(
+                LedgerAccount.account_code == line_data.account_code,
+                LedgerAccount.tenant_id == current_user.tenant_id,
+            ).first()
+            if not account:
+                raise HTTPException(status_code=404, detail=f"Compte {line_data.account_code} introuvable")
+            account_id = account.id
+        else:
+            account = db.query(LedgerAccount).filter(
+                LedgerAccount.id == account_id,
+                LedgerAccount.tenant_id == current_user.tenant_id
+            ).first()
+
         if not account:
             raise HTTPException(status_code=404, detail=f"Compte {line_data.account_id} introuvable")
         
         line = AccountingEntryLine(
             tenant_id=current_user.tenant_id,
             entry_id=entry.id,
-            account_id=line_data.account_id,
+            account_id=account_id,
             label=line_data.label,
             debit=line_data.debit,
             credit=line_data.credit,
