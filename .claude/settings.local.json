@@ -51,7 +51,10 @@
       "Bash(while read file)",
       "Bash(.railway-deploy)",
       "Bash(do echo \"$f\")",
-      "Bash(while read f)"
+      "Bash(while read f)",
+      "Bash(echo:*)",
+      "Bash(claude --version)",
+      "Bash(~/.zshrc)"
     ],
     "deny": [],
     "ask": []

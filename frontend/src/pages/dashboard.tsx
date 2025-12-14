@@ -6,21 +6,21 @@ import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { 
-  getDashboardStats, 
+import {
+  getDashboardStats,
   getDashboardStatsExtended,
-  getClients, 
+  getClients,
   getInvoices,
   getQuotes,
-  getOpportunities,
-  getCRMActivities,
+  // getOpportunities,    // CRM module removed
+  // getCRMActivities,    // CRM module removed
   type DashboardStats,
   type DashboardStatsExtended,
   type Client,
   type Invoice,
   type Quote,
-  type Opportunity,
-  type CRMActivity
+  type Opportunity,     // Keep type for existing state variables
+  type CRMActivity      // Keep type for existing state variables
 } from "@/lib/api";
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -260,22 +260,23 @@ export default function DashboardPage() {
       }
 
       // Fetch all data en parallèle (statistiques générales + vues Pennylane-like)
+      // Note: CRM endpoints (opportunities, activities) sont désactivés car module CRM supprimé
       const [
         statsData,
         extendedData,
         clientsData,
         invoicesData,
         quotesData,
-        oppsData,
-        activitiesData
+        // oppsData,        // CRM module removed
+        // activitiesData   // CRM module removed
       ] = await Promise.allSettled([
         getDashboardStats(token),
         getDashboardStatsExtended(token),
         getClients(token),
         getInvoices(token),
         getQuotes(token),
-        getOpportunities(token),
-        getCRMActivities(token)
+        // getOpportunities(token),  // CRM module removed
+        // getCRMActivities(token)   // CRM module removed
       ]);
 
       if (statsData.status === "fulfilled") setStats(statsData.value);
@@ -283,8 +284,8 @@ export default function DashboardPage() {
       if (clientsData.status === "fulfilled") setClients(clientsData.value);
       if (invoicesData.status === "fulfilled") setInvoices(invoicesData.value);
       if (quotesData.status === "fulfilled") setQuotes(quotesData.value);
-      if (oppsData.status === "fulfilled") setOpportunities(oppsData.value);
-      if (activitiesData.status === "fulfilled") setActivities(activitiesData.value);
+      // if (oppsData.status === "fulfilled") setOpportunities(oppsData.value);         // CRM module removed - stays as empty []
+      // if (activitiesData.status === "fulfilled") setActivities(activitiesData.value); // CRM module removed - stays as empty []
 
       // Fetch accounting and treasury data
       try {
@@ -520,14 +521,14 @@ export default function DashboardPage() {
           href="/clients"
         />
         <StatCard
-          title="Pipeline Commercial"
-          value={formatCurrency(calculatedStats.totalPipeline)}
-          subtitle={`${calculatedStats.opportunityCount} opportunités`}
+          title="Devis en Cours"
+          value={calculatedStats.activeQuotes}
+          subtitle="Devis actifs"
           trend={{ value: "+15%", type: "up" }}
-          icon={Target}
-          iconColor="bg-violet-500"
+          icon={FileText}
+          iconColor="bg-blue-500"
           loading={loading}
-          href="/crm/opportunities"
+          href="/ventes/devis"
         />
         <StatCard
           title="Factures Impayées"
@@ -544,14 +545,14 @@ export default function DashboardPage() {
       {/* Modules Principaux */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
         <ModuleCard
-          title="CRM & Ventes"
-          description="Gérez vos clients, leads et opportunités"
-          icon={Briefcase}
-          href="/crm/opportunities"
+          title="Clients"
+          description="Gérez vos clients et vos relations commerciales"
+          icon={Users}
+          href="/clients"
           color="bg-blue-600/50"
           gradient="bg-gradient-to-br from-blue-500 to-blue-700"
           stats={[
-            { label: "Opportunités", value: calculatedStats.opportunityCount },
+            { label: "Clients actifs", value: calculatedStats.clientCount },
             { label: "Devis actifs", value: calculatedStats.activeQuotes }
           ]}
         />
@@ -572,8 +573,8 @@ export default function DashboardPage() {
           description="Cash flow et prévisions financières"
           icon={Wallet}
           href="/treasury"
-          color="bg-orange-600/50"
-          gradient="bg-gradient-to-br from-orange-500 to-orange-700"
+          color="bg-blue-600/50"
+          gradient="bg-gradient-to-br from-blue-500 to-blue-700"
           stats={[
             { label: "Solde", value: formatAmount(stats?.total_revenue || 0) },
             { label: "Prévisions", value: "90j" }
@@ -682,19 +683,26 @@ export default function DashboardPage() {
             <PieChart className="h-5 w-5 text-purple-500" />
             <h3 className="font-semibold text-gray-900">Répartition Charges</h3>
           </div>
-          {typeof window !== "undefined" && (
-            <Chart
-              options={{
-                chart: { type: "donut" },
-                labels: ["Salaires", "Achats", "Services", "Impôts", "Autres"],
-                colors: ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"],
-                legend: { position: "bottom", fontSize: "11px" },
-                dataLabels: { enabled: false }
-              }}
-              series={[45, 25, 15, 10, 5]}
-              type="donut"
-              height={220}
-            />
+          {accountingStats?.expenses && accountingStats.expenses > 0 ? (
+            <div className="text-center py-12">
+              <PieChart className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <p className="text-gray-500 font-medium">Analyse en cours</p>
+              <p className="text-sm text-gray-400 mt-1">
+                La répartition détaillée des charges sera disponible prochainement
+              </p>
+              <div className="mt-4 text-left bg-gray-50 rounded-lg p-4">
+                <p className="text-sm text-gray-600 mb-2">Total des charges :</p>
+                <p className="text-2xl font-bold text-gray-900">{formatCurrency(accountingStats.expenses)}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <PieChart className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <p className="text-gray-500 font-medium">Aucune charge enregistrée</p>
+              <p className="text-sm text-gray-400 mt-1">
+                Les charges apparaîtront ici une fois les écritures comptables saisies
+              </p>
+            </div>
           )}
         </div>
 
@@ -705,33 +713,48 @@ export default function DashboardPage() {
             <h3 className="font-semibold text-gray-900">Structure Bilan</h3>
           </div>
           <div className="space-y-3">
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-gray-600">Actif immobilisé</span>
-                <span className="font-medium">35%</span>
-              </div>
-              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div className="h-full bg-blue-500 rounded-full" style={{ width: "35%" }} />
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-gray-600">Actif circulant</span>
-                <span className="font-medium">45%</span>
-              </div>
-              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div className="h-full bg-blue-500 rounded-full" style={{ width: "45%" }} />
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-gray-600">Trésorerie</span>
-                <span className="font-medium">20%</span>
-              </div>
-              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div className="h-full bg-orange-500 rounded-full" style={{ width: "20%" }} />
-              </div>
-            </div>
+            {(() => {
+              const totalAssets = accountingStats?.total_assets || 0;
+              const fixedAssets = accountingStats?.fixed_assets || 0;
+              const currentAssets = (accountingStats?.inventory || 0) + (accountingStats?.accounts_receivable || 0);
+              const cash = accountingStats?.cash || 0;
+
+              const fixedPct = totalAssets > 0 ? (fixedAssets / totalAssets * 100) : 0;
+              const currentPct = totalAssets > 0 ? (currentAssets / totalAssets * 100) : 0;
+              const cashPct = totalAssets > 0 ? (cash / totalAssets * 100) : 0;
+
+              return (
+                <>
+                  <div>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-gray-600">Actif immobilisé</span>
+                      <span className="font-medium">{fixedPct.toFixed(1)}%</span>
+                    </div>
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-blue-500 rounded-full" style={{ width: `${fixedPct}%` }} />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-gray-600">Actif circulant</span>
+                      <span className="font-medium">{currentPct.toFixed(1)}%</span>
+                    </div>
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-blue-500 rounded-full" style={{ width: `${currentPct}%` }} />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-gray-600">Trésorerie</span>
+                      <span className="font-medium">{cashPct.toFixed(1)}%</span>
+                    </div>
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-orange-500 rounded-full" style={{ width: `${cashPct}%` }} />
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
           </div>
           <div className="mt-4 pt-4 border-t border-gray-100">
             <div className="flex justify-between items-center">
@@ -822,9 +845,6 @@ export default function DashboardPage() {
                 <Activity className="h-5 w-5 text-blue-500" />
                 <h3 className="font-semibold text-gray-900">Activité Récente</h3>
               </div>
-              <Link href="/crm/activities" className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center">
-                Voir tout <ArrowRight className="h-4 w-4 ml-1" />
-              </Link>
             </div>
             <div className="p-6">
               {loading ? (
@@ -847,9 +867,7 @@ export default function DashboardPage() {
                       icon={activity.action?.includes("facture") ? Receipt : 
                             activity.action?.includes("client") ? Users :
                             activity.action?.includes("paiement") ? CreditCard : FileText}
-                      iconBg={activity.action?.includes("facture") ? "bg-blue-500" : 
-                              activity.action?.includes("client") ? "bg-blue-500" :
-                              activity.action?.includes("paiement") ? "bg-violet-500" : "bg-gray-500"}
+                      iconBg="bg-blue-500"
                       title={activity.action}
                       subtitle={activity.client}
                       time={activity.time}
@@ -895,21 +913,21 @@ export default function DashboardPage() {
                 description="Enregistrer un nouveau contact"
                 icon={Users}
                 href="/clients"
-                color="bg-violet-500"
+                color="bg-blue-500"
               />
               <QuickAction
                 label="Trésorerie"
                 description="Voir les flux de trésorerie"
                 icon={TrendingUp}
                 href="/treasury"
-                color="bg-orange-500"
+                color="bg-blue-500"
               />
               <QuickAction
                 label="Rapports"
                 description="Consulter les analyses"
                 icon={BarChart3}
                 href="/reports"
-                color="bg-pink-500"
+                color="bg-blue-500"
               />
             </div>
           </div>
