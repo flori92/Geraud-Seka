@@ -153,8 +153,8 @@ class Document(Base, TimestampMixin):
     folder_id = Column(UUID(as_uuid=True), ForeignKey("document_folders.id", ondelete="SET NULL"))
     client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id", ondelete="SET NULL"))
     supplier_id = Column(UUID(as_uuid=True), ForeignKey("suppliers.id", ondelete="SET NULL"))
-    # lead_id = Column(UUID(as_uuid=True), ForeignKey("leads.id", ondelete="SET NULL"))  # CRM module removed
-    # opportunity_id = Column(UUID(as_uuid=True), ForeignKey("opportunities.id", ondelete="SET NULL"))  # CRM module removed
+    lead_id = Column(UUID(as_uuid=True), nullable=True)  # CRM removed - kept for DB compatibility (no FK constraint)
+    opportunity_id = Column(UUID(as_uuid=True), nullable=True)  # CRM removed - kept for DB compatibility (no FK constraint)
     
     # Relations système
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)

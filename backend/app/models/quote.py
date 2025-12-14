@@ -33,7 +33,7 @@ class Quote(Base):
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
     client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id", ondelete="CASCADE"), nullable=False, index=True)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)  # Commercial assigné
-    # opportunity_id = Column(UUID(as_uuid=True), ForeignKey("opportunities.id", ondelete="SET NULL"), nullable=True)  # CRM module removed
+    opportunity_id = Column(UUID(as_uuid=True), nullable=True)  # CRM removed - kept for DB compatibility (no FK constraint)
 
     # Informations générales
     title = Column(String(255), nullable=False)
