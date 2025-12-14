@@ -151,6 +151,8 @@ class Lead(Base, TimestampMixin):
     assigned_to = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
 
+    assignee = relationship("User", back_populates="assigned_leads", foreign_keys=[assigned_to])
+
 
 class Opportunity(Base, TimestampMixin):
     __tablename__ = "opportunities"
@@ -188,6 +190,8 @@ class Opportunity(Base, TimestampMixin):
 
     assigned_to = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+
+    assignee = relationship("User", back_populates="assigned_opportunities", foreign_keys=[assigned_to])
 
 
 class CRMActivity(Base, TimestampMixin):
