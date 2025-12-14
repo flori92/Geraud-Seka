@@ -40,61 +40,68 @@ def create_accounting_entry(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    count = db.query(func.count(AccountingEntryHeader.id)).filter(
-        AccountingEntryHeader.tenant_id == current_user.tenant_id
-    ).scalar() or 0
-    
-    entry_number = f"{entry_data.journal_type}-{datetime.now().year}-{count + 1:06d}"
-    
-    entry = AccountingEntryHeader(
-        tenant_id=current_user.tenant_id,
-        entry_number=entry_number,
-        journal_type=JournalType(entry_data.journal_type),
-        date=entry_data.date,
-        reference=entry_data.reference,
-        description=entry_data.description,
-        status=EntryStatus.DRAFT
-    )
-    
-    db.add(entry)
-    db.flush()
-    
-    for line_data in entry_data.lines:
-        account_id = line_data.account_id
-        if account_id is None and getattr(line_data, "account_code", None):
-            account = db.query(LedgerAccount).filter(
-                LedgerAccount.account_code == line_data.account_code,
-                LedgerAccount.tenant_id == current_user.tenant_id,
-            ).first()
-            if not account:
-                raise HTTPException(status_code=404, detail=f"Compte {line_data.account_code} introuvable")
-            account_id = account.id
-        else:
-            account = db.query(LedgerAccount).filter(
-                LedgerAccount.id == account_id,
-                LedgerAccount.tenant_id == current_user.tenant_id
-            ).first()
-
-        if not account:
-            raise HTTPException(status_code=404, detail=f"Compte {line_data.account_id} introuvable")
+    try:
+        count = db.query(func.count(AccountingEntryHeader.id)).filter(
+            AccountingEntryHeader.tenant_id == current_user.tenant_id
+        ).scalar() or 0
         
-        line = AccountingEntryLine(
+        entry_number = f"{entry_data.journal_type}-{datetime.now().year}-{count + 1:06d}"
+        
+        entry = AccountingEntryHeader(
             tenant_id=current_user.tenant_id,
-            entry_id=entry.id,
-            account_id=account_id,
-            label=line_data.label,
-            debit=line_data.debit,
-            credit=line_data.credit,
-            analytic_code=line_data.analytic_code,
-            partner_id=line_data.partner_id,
-            partner_type=line_data.partner_type
+            entry_number=entry_number,
+            journal_type=JournalType(entry_data.journal_type),
+            date=entry_data.date,
+            reference=entry_data.reference,
+            description=entry_data.description,
+            status=EntryStatus.DRAFT
         )
-        db.add(line)
-    
-    db.commit()
-    db.refresh(entry)
-    
-    return entry
+        
+        db.add(entry)
+        db.flush()
+        
+        for line_data in entry_data.lines:
+            account_id = line_data.account_id
+            if account_id is None and getattr(line_data, "account_code", None):
+                account = db.query(LedgerAccount).filter(
+                    LedgerAccount.account_code == line_data.account_code,
+                    LedgerAccount.tenant_id == current_user.tenant_id,
+                ).first()
+                if not account:
+                    raise HTTPException(status_code=404, detail=f"Compte {line_data.account_code} introuvable")
+                account_id = account.id
+            else:
+                account = db.query(LedgerAccount).filter(
+                    LedgerAccount.id == account_id,
+                    LedgerAccount.tenant_id == current_user.tenant_id
+                ).first()
+
+            if not account:
+                raise HTTPException(status_code=404, detail=f"Compte {line_data.account_id} introuvable")
+            
+            line = AccountingEntryLine(
+                tenant_id=current_user.tenant_id,
+                entry_id=entry.id,
+                account_id=account_id,
+                label=line_data.label,
+                debit=line_data.debit,
+                credit=line_data.credit,
+                analytic_code=line_data.analytic_code,
+                partner_id=line_data.partner_id,
+                partner_type=line_data.partner_type
+            )
+            db.add(line)
+        
+        db.commit()
+        db.refresh(entry)
+        
+        return entry
+    except ValueError as ve:
+        db.rollback()
+        raise HTTPException(status_code=422, detail=str(ve))
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Erreur lors de la création de l'écriture: {str(e)}")
 
 
 @router.get("/entries/", response_model=List[AccountingEntryHeaderResponse])
