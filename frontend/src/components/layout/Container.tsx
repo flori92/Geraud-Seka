@@ -153,6 +153,7 @@ interface FlexProps extends HTMLAttributes<HTMLDivElement> {
   align?: "start" | "center" | "end";
   justify?: "start" | "center" | "between" | "around" | "end";
   gap?: "sm" | "md" | "lg";
+  wrap?: boolean;
 }
 
 export function Flex({
@@ -161,6 +162,7 @@ export function Flex({
   align = "center",
   justify = "start",
   gap = "md",
+  wrap = false,
   children,
   ...props
 }: FlexProps) {
@@ -191,6 +193,7 @@ export function Flex({
         alignClass[align],
         justifyClass[justify],
         gapClass[gap],
+        wrap && "flex-wrap",
         className
       )}
       {...props}
