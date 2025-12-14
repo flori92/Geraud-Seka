@@ -7,14 +7,14 @@ Initialise la base de données et applique toutes les migrations
 import os
 import sys
 import asyncio
-from contextlib import suppress
 from pathlib import Path
-with suppress(Exception):
+
+try:
     # Import alembic lazily; some environments (local dev / Railway runner) may not
     # have alembic installed in the PATH. We import inside run_migrations as well.
     from alembic.config import Config  # type: ignore
     from alembic import command  # type: ignore
-else:
+except ImportError:
     Config = None
     command = None
 from sqlalchemy import create_engine, text
@@ -30,10 +30,10 @@ from app.db.session import engine
 # Import all models so they're registered with Base.metadata
 # IMPORTANT: Import order matters for SQLAlchemy relationships
 # Import Quote and SalesInvoice BEFORE Client to avoid mapper initialization errors
-with suppress(Exception):
+try:
     from app.models.tenant import Tenant  # noqa
     from app.models.user import User  # noqa
-else:
+except ImportError:
     # If model import fails (e.g. HR models removed), continue and handle later.
     Tenant = None
     User = None
@@ -50,11 +50,9 @@ try:
     # Import other models
     from app.models.document import Document  # noqa
     from app.models.product import Product  # noqa
-    from app.models.activity import Activity  # noqa
     from app.models.accounting import AccountingEntry  # noqa
     # HR modules removed: skipped imports
-    # Import CRM models
-    from app.models.crm import Lead, Opportunity, CRMActivity  # noqa
+    # CRM modules removed: skipped imports (activities and opportunities)
     # Import Accounting models
     from app.models.ledger_account import LedgerAccount  # noqa
     from app.models.accounting_advanced import (  # noqa

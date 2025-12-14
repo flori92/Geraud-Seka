@@ -1,6 +1,11 @@
 /**
- * Exemple de page refactorisée - Liste des Factures
- * Utilise le système de design unifié pour une présentation cohérente et professionnelle
+ * ⚠️  EXEMPLE UNIQUEMENT — NE PAS UTILISER EN PRODUCTION
+ * 
+ * Cette page démontre comment refactoriser les pages de liste
+ * en utilisant le système de design unifié.
+ * 
+ * En production, les données doivent provenir d'une API, jamais hardcodées.
+ * Voir: backend/app/api/v1/routes/invoices.py
  */
 
 import { useMemo, useState } from "react";
@@ -22,12 +27,13 @@ import { Badge, StatusBadge } from "@/components/ui/Badge";
 import { Container, Grid, PageHeader, Flex } from "@/components/layout/Container";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
-// ========== MOCK DATA ==========
+// ========== EXEMPLE DE MOCK DATA UNIQUEMENT — À REMPLACER PAR UNE API ==========
+// NE PAS COMMITTER CES DONNÉES EN PRODUCTION
 
 const mockInvoices = [
   {
     id: "INV-001",
-    client: "Entreprise ABC",
+    client: "Example Client 1",
     amount: 25000,
     status: "paid" as const,
     date: "2024-01-15",
@@ -35,35 +41,11 @@ const mockInvoices = [
   },
   {
     id: "INV-002",
-    client: "Société XYZ",
+    client: "Example Client 2",
     amount: 15500,
     status: "pending" as const,
     date: "2024-01-18",
     dueDate: "2024-02-18",
-  },
-  {
-    id: "INV-003",
-    client: "Corp Internationale",
-    amount: 42000,
-    status: "overdue" as const,
-    date: "2024-01-01",
-    dueDate: "2024-02-01",
-  },
-  {
-    id: "INV-004",
-    client: "Small Business Co",
-    amount: 8900,
-    status: "draft" as const,
-    date: "2024-01-20",
-    dueDate: "2024-02-20",
-  },
-  {
-    id: "INV-005",
-    client: "Tech Solutions",
-    amount: 35000,
-    status: "paid" as const,
-    date: "2024-01-10",
-    dueDate: "2024-02-10",
   },
 ];
 
@@ -129,7 +111,7 @@ function InvoiceRow({ invoice, onView, onEdit, onDelete }: InvoiceRowProps) {
   };
 
   return (
-    <TableRow hover>
+    <TableRow>
       <TableCell className="font-medium text-primary-600">{invoice.id}</TableCell>
       <TableCell>{invoice.client}</TableCell>
       <TableCell align="right" monospace>
