@@ -151,7 +151,8 @@ class Lead(Base, TimestampMixin):
     assigned_to = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
 
-    assignee = relationship("User", foreign_keys=[assigned_to])  # Unidirectional - User.assigned_leads removed
+    # Note: viewonly=True empêche SQLAlchemy de chercher la relation inverse
+    assignee = relationship("User", foreign_keys=[assigned_to], viewonly=True)
 
 
 class Opportunity(Base, TimestampMixin):
@@ -191,9 +192,10 @@ class Opportunity(Base, TimestampMixin):
     assigned_to = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
 
-    assignee = relationship("User", foreign_keys=[assigned_to])  # Unidirectional - User.assigned_opportunities removed
-    client = relationship("Client", foreign_keys=[client_id])  # Unidirectional - Client.opportunities removed
-    quotes = relationship("Quote", foreign_keys="Quote.opportunity_id")  # Unidirectional - Quote.opportunity removed
+    # Note: viewonly=True empêche SQLAlchemy de chercher les relations inverses
+    assignee = relationship("User", foreign_keys=[assigned_to], viewonly=True)
+    client = relationship("Client", foreign_keys=[client_id], viewonly=True)
+    quotes = relationship("Quote", foreign_keys="Quote.opportunity_id", viewonly=True)
 
 
 class CRMActivity(Base, TimestampMixin):
@@ -227,4 +229,5 @@ class CRMActivity(Base, TimestampMixin):
     assigned_to = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
 
-    client = relationship("Client", foreign_keys=[client_id])  # Unidirectional - Client.crm_activities removed
+    # Note: viewonly=True empêche SQLAlchemy de chercher la relation inverse
+    client = relationship("Client", foreign_keys=[client_id], viewonly=True)
