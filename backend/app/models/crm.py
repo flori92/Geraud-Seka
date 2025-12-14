@@ -19,6 +19,10 @@ from sqlalchemy import (
     Integer,
     ForeignKey,
     DateTime,
+    Date,
+    Boolean,
+    Text,
+    Numeric,
     func,
 )
 from sqlalchemy.dialects.postgresql import UUID, JSONB
@@ -96,3 +100,123 @@ class AutomationExecution(Base, TimestampMixin):
     result = Column(JSONB, nullable=True)
 
     automation = relationship("Automation", back_populates="executions")
+
+
+class Lead(Base, TimestampMixin):
+    __tablename__ = "leads"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    first_name = Column(String(100), nullable=False)
+    last_name = Column(String(100), nullable=False)
+    full_name = Column(String(255))
+
+    email = Column(String(255), nullable=False)
+    phone = Column(String(20))
+    mobile = Column(String(20))
+
+    company = Column(String(255))
+    job_title = Column(String(100))
+    industry = Column(String(100))
+    company_size = Column(String(50))
+    annual_revenue = Column(String(50))
+
+    address = Column(Text)
+    city = Column(String(100))
+    country = Column(String(100))
+
+    status = Column(String(20), nullable=False, default="new")
+    source = Column(String(50), nullable=False, default="direct")
+    score = Column(Integer, default=0)
+    quality_grade = Column(String(2))
+
+    email_opens = Column(Integer, default=0)
+    email_clicks = Column(Integer, default=0)
+    website_visits = Column(Integer, default=0)
+
+    last_activity_date = Column(DateTime)
+    budget_range = Column(String(50))
+    timeline = Column(String(50))
+    pain_points = Column(JSONB)
+    last_contact_date = Column(DateTime)
+    next_action_date = Column(DateTime)
+
+    notes = Column(Text)
+    tags = Column(JSONB)
+
+    converted_at = Column(DateTime)
+    converted_to_client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id"))
+    conversion_value = Column(Numeric(15, 2))
+
+    assigned_to = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+
+
+class Opportunity(Base, TimestampMixin):
+    __tablename__ = "opportunities"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    name = Column(String(255), nullable=False)
+    description = Column(Text)
+    reference = Column(String(100), unique=True)
+
+    amount = Column(Numeric(15, 2), nullable=False)
+    currency = Column(String(3), default="XOF")
+    probability = Column(Integer, default=50)
+
+    stage = Column(String(50), nullable=False, default="qualification")
+    stage_changed_at = Column(DateTime, default=func.now())
+    created_date = Column(Date, default=func.current_date())
+
+    expected_close_date = Column(Date)
+    actual_close_date = Column(Date)
+    last_activity_date = Column(DateTime)
+
+    products_interested = Column(JSONB)
+    requirements = Column(Text)
+    budget_confirmed = Column(Boolean, default=False)
+    decision_maker_identified = Column(Boolean, default=False)
+    competitors = Column(JSONB)
+    competitive_advantage = Column(Text)
+    forecast_category = Column(String(20), default="pipeline")
+    next_action = Column(Text)
+    loss_reason = Column(String(255))
+
+    lead_id = Column(UUID(as_uuid=True), ForeignKey("leads.id"))
+    client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id"))
+
+    assigned_to = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+
+
+class CRMActivity(Base, TimestampMixin):
+    __tablename__ = "crm_activities"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    type = Column(String(50), nullable=False, default="note")
+    subject = Column(String(255), nullable=False)
+    description = Column(Text)
+
+    due_date = Column(DateTime)
+    duration_minutes = Column(Integer)
+
+    is_completed = Column(Boolean, default=False)
+    completed_at = Column(DateTime)
+
+    priority = Column(String(20), default="medium")
+    outcome = Column(String(50))
+    next_action_required = Column(Boolean, default=False)
+    next_action_description = Column(Text)
+
+    call_duration = Column(Integer)
+    email_opened = Column(Boolean)
+    meeting_attended = Column(Boolean)
+
+    lead_id = Column(UUID(as_uuid=True), ForeignKey("leads.id"))
+    client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id"))
+    opportunity_id = Column(UUID(as_uuid=True), ForeignKey("opportunities.id"))
+
+    assigned_to = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)

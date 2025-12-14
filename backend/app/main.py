@@ -135,6 +135,7 @@ def create_application() -> FastAPI:
     async def startup_event():
         # Create missing database tables on startup
         try:
+            import app.models
             from app.db.session import engine
             from app.db.base import Base
             from sqlalchemy import inspect
