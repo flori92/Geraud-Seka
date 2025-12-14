@@ -85,7 +85,7 @@ class Quote(Base):
         back_populates="quote",
         foreign_keys="SalesInvoice.quote_id",
     )
-    opportunity = relationship("Opportunity", back_populates="quotes")
+    # opportunity = relationship("Opportunity", back_populates="quotes")  # CRM module removed
 
 
 class QuoteItem(Base):
