@@ -58,7 +58,7 @@ export default function LeadsPage() {
     const conversionRate = total > 0 ? Math.round((qualified / total) * 100) : 0;
 
     return [
-      { label: "Total leads", value: total.toString(), color: "bg-blue-600" },
+      { label: "Total leads", value: total.toString(), color: "bg-primary-600" },
       { label: "Nouveaux (7j)", value: newLeads.toString(), color: "bg-green-600" },
       { label: "Qualifiés", value: qualified.toString(), color: "bg-purple-600" },
       { label: "Taux conversion", value: `${conversionRate}%`, color: "bg-orange-600" },

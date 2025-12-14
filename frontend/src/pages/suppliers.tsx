@@ -62,7 +62,7 @@ export default function SuppliersPage() {
   const totalOrders = suppliers.reduce((sum, s) => sum + s.total_orders, 0);
 
   const stats = [
-    { label: "Total fournisseurs", value: totalSuppliers.toString(), icon: Building2, color: "bg-blue-600" },
+    { label: "Total fournisseurs", value: totalSuppliers.toString(), icon: Building2, color: "bg-primary-600" },
     { label: "Fournisseurs actifs", value: activeSuppliers.toString(), icon: TrendingUp, color: "bg-green-600" },
     { label: "Total commandes", value: totalOrders.toString(), icon: ShoppingBag, color: "bg-purple-600" },
     { label: "Total dépensé", value: formatAmount(totalSpent), icon: TrendingUp, color: "bg-orange-600" },
@@ -188,7 +188,7 @@ export default function SuppliersPage() {
             <div className="flex flex-col h-full">
               {/* Header */}
               <div className="flex items-start gap-4 mb-4">
-                <div className="h-14 w-14 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0">
+                <div className="h-14 w-14 rounded-lg bg-primary-600 flex items-center justify-center flex-shrink-0">
                   <Building2 className="h-7 w-7 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">

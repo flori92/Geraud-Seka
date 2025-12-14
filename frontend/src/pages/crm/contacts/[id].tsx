@@ -79,7 +79,7 @@ const getColorForType = (type: string) => {
     "quote": "bg-purple-500",
     "created": "bg-gray-500",
     "email": "bg-orange-500",
-    "call": "bg-teal-500",
+    "call": "bg-primary-500",
     "meeting": "bg-indigo-500",
   };
   return colorMap[type] || "bg-gray-500";

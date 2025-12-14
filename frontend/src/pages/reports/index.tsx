@@ -11,7 +11,7 @@ const reports = [
     description: "Revenus, dépenses, cash-flow et compte de résultat détaillé",
     icon: FileText,
     href: "/reports/accounting",
-    color: "bg-blue-600",
+    color: "bg-primary-600",
     stats: [
       { label: "Période", value: "Mois en cours" },
       { label: "Données", value: "Temps réel" },
@@ -70,7 +70,7 @@ export default function ReportsDashboardPage() {
       <div className="grid gap-4 md:grid-cols-4 mb-8">
         <Card>
           <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-lg bg-blue-600 flex items-center justify-center">
+            <div className="h-12 w-12 rounded-lg bg-primary-600 flex items-center justify-center">
               <BarChart3 className="h-6 w-6 text-white" />
             </div>
             <div>

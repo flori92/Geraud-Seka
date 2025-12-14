@@ -142,14 +142,14 @@ export default function PricingPage() {
                         <div className="grid grid-cols-2 gap-x-1 rounded-full p-1 text-center text-xs font-semibold leading-5 ring-1 ring-inset ring-gray-200">
                             <button
                                 onClick={() => setPaymentMethod('stripe')}
-                                className={`${paymentMethod === 'stripe' ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:text-gray-700'
+                                className={`${paymentMethod === 'stripe' ? 'bg-primary-600 text-white' : 'text-gray-500 hover:text-gray-700'
                                     } cursor-pointer rounded-full px-2.5 py-1`}
                             >
                                 Carte Bancaire (Stripe)
                             </button>
                             <button
                                 onClick={() => setPaymentMethod('kkiapay')}
-                                className={`${paymentMethod === 'kkiapay' ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:text-gray-700'
+                                className={`${paymentMethod === 'kkiapay' ? 'bg-primary-600 text-white' : 'text-gray-500 hover:text-gray-700'
                                     } cursor-pointer rounded-full px-2.5 py-1`}
                             >
                                 Mobile Money (KKiaPay)
@@ -197,7 +197,7 @@ export default function PricingPage() {
                                     disabled={loading === tier.id}
                                     className={`mt-6 block w-full rounded-md px-3 py-2 text-center text-sm font-semibold leading-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${tier.name === 'Business'
                                             ? 'bg-white text-gray-900 hover:bg-gray-100 focus-visible:outline-white'
-                                            : 'bg-indigo-600 text-white hover:bg-indigo-500 focus-visible:outline-indigo-600'
+                                            : 'bg-primary-600 text-white hover:bg-indigo-500 focus-visible:outline-indigo-600'
                                         } ${loading === tier.id ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 >
                                     {loading === tier.id ? 'Traitement...' : tier.name === 'Enterprise' ? 'Contactez-nous' : 'Choisir ce plan'}

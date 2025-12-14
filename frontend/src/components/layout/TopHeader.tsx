@@ -48,7 +48,7 @@ export default function TopHeader({ onClientChange, onMenuToggle }: TopHeaderPro
                     <input
                         type="text"
                         placeholder="Recherche rapide (Cmd+K)"
-                        className="pl-9 pr-4 py-2 w-64 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-colors"
+                        className="pl-9 pr-4 py-2 w-64 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-blue-500 focus:bg-white transition-colors"
                     />
                     <kbd className="absolute right-3 hidden lg:inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium text-gray-400 bg-gray-100 rounded">
                         <span>Cmd</span>
@@ -81,7 +81,7 @@ export default function TopHeader({ onClientChange, onMenuToggle }: TopHeaderPro
 
                 {/* User Avatar */}
                 <div className="flex items-center gap-2 ml-2 pl-2 border-l border-gray-200">
-                    <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-bold">
+                    <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center text-white text-sm font-bold">
                         {user?.full_name ? user.full_name.charAt(0).toUpperCase() : "U"}
                     </div>
                     <div className="hidden lg:block">

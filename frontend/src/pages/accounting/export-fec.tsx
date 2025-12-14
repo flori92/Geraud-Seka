@@ -109,7 +109,7 @@ export default function ExportFECPage() {
                                             <select
                                                 value={config.fiscal_year}
                                                 onChange={(e) => setConfig({ ...config, fiscal_year: e.target.value })}
-                                                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
                                             >
                                                 <option value="2024">2024</option>
                                                 <option value="2023">2023</option>
@@ -122,7 +122,7 @@ export default function ExportFECPage() {
                                                 type="date"
                                                 value={config.start_date}
                                                 onChange={(e) => setConfig({ ...config, start_date: e.target.value })}
-                                                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
                                             />
                                         </div>
                                         <div>
@@ -131,7 +131,7 @@ export default function ExportFECPage() {
                                                 type="date"
                                                 value={config.end_date}
                                                 onChange={(e) => setConfig({ ...config, end_date: e.target.value })}
-                                                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
                                             />
                                         </div>
                                     </div>

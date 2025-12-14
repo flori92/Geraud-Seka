@@ -50,7 +50,7 @@ export default function ContractsPage() {
   };
 
   const stats = [
-    { label: "Total contrats", value: contracts.length.toString(), color: "bg-blue-600" },
+    { label: "Total contrats", value: contracts.length.toString(), color: "bg-primary-600" },
     { label: "Actifs", value: contracts.filter(c => c.status === "active").length.toString(), color: "bg-green-600" },
     { label: "CDI", value: contracts.filter(c => c.contract_type === "CDI").length.toString(), color: "bg-purple-600" },
     { label: "CDD", value: contracts.filter(c => c.contract_type === "CDD").length.toString(), color: "bg-orange-600" },

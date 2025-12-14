@@ -45,7 +45,7 @@ export default function QuotesPage() {
     {
       label: "Total devis",
       value: quotes.length.toString(),
-      color: "bg-blue-600"
+      color: "bg-primary-600"
     },
     {
       label: "En attente",

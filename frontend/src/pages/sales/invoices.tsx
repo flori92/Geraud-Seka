@@ -51,7 +51,7 @@ export default function InvoicesPage() {
     {
       label: "Total factures",
       value: invoiceList.length.toString(),
-      color: "bg-blue-600"
+      color: "bg-primary-600"
     },
     {
       label: "Impayées",

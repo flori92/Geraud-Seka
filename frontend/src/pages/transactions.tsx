@@ -209,7 +209,7 @@ export default function TransactionsPage() {
                   placeholder="Rechercher une transaction..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
               <div className="hidden lg:flex items-center gap-2">
@@ -218,19 +218,19 @@ export default function TransactionsPage() {
                   type="date"
                   value={dateRange.start || ""}
                   onChange={(e) => setDateRange((prev) => ({ ...prev, start: e.target.value || undefined }))}
-                  className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
                 <span className="text-xs text-gray-500">au</span>
                 <input
                   type="date"
                   value={dateRange.end || ""}
                   onChange={(e) => setDateRange((prev) => ({ ...prev, end: e.target.value || undefined }))}
-                  className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
               {bankAccounts.length > 0 && (
                 <select
-                  className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                   onChange={(e) => setSelectedAccounts(e.target.value ? [e.target.value] : [])}
                 >
                   <option value="">Tous les comptes</option>
@@ -241,7 +241,7 @@ export default function TransactionsPage() {
               )}
               {categoryOptions.length > 0 && (
                 <select
-                  className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
                 >

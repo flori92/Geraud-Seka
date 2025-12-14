@@ -216,7 +216,7 @@ export default function CashFlowForecast() {
                 onClick={() => setSelectedScenario(scenario)}
                 className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all ${
                   selectedScenario === scenario
-                    ? 'border-blue-600 bg-blue-50'
+                    ? 'border-primary-600 bg-blue-50'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
@@ -304,7 +304,7 @@ export default function CashFlowForecast() {
             <button
               onClick={generateForecast}
               disabled={generating}
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+              className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 disabled:bg-gray-400"
             >
               Générer Maintenant
             </button>

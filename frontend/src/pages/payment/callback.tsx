@@ -79,7 +79,7 @@ export default function PaymentCallbackPage() {
                             <p className="text-gray-600 mb-6">{message}</p>
                             <button
                                 onClick={() => router.push('/pricing')}
-                                className="bg-indigo-600 text-white px-6 py-2 rounded-md hover:bg-indigo-700"
+                                className="bg-primary-600 text-white px-6 py-2 rounded-md hover:bg-primary-700"
                             >
                                 Retour aux tarifs
                             </button>

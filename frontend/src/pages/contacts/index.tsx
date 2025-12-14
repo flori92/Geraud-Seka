@@ -178,7 +178,7 @@ export default function ContactsPage() {
                             </div>
                             <button
                                 onClick={() => setShowCreateModal(true)}
-                                className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                                className="flex items-center gap-2 px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm"
                             >
                                 <Plus className="h-4 w-4" />
                                 Nouveau contact
@@ -195,7 +195,7 @@ export default function ContactsPage() {
                                         value={search}
                                         onChange={(e) => setSearch(e.target.value)}
                                         placeholder="Rechercher par nom, email, fonction..."
-                                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-blue-500"
                                     />
                                 </div>
                                 <div className="flex gap-2">
@@ -233,7 +233,7 @@ export default function ContactsPage() {
                                     {!search && (
                                         <button
                                             onClick={() => setShowCreateModal(true)}
-                                            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                                            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
                                         >
                                             <Plus className="h-4 w-4" />
                                             Ajouter un contact
@@ -385,7 +385,7 @@ export default function ContactsPage() {
                                         type="text"
                                         value={newContact.first_name || ""}
                                         onChange={(e) => setNewContact({ ...newContact, first_name: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                                         placeholder="Jean"
                                     />
                                 </div>
@@ -395,7 +395,7 @@ export default function ContactsPage() {
                                         type="text"
                                         value={newContact.last_name || ""}
                                         onChange={(e) => setNewContact({ ...newContact, last_name: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                                         placeholder="Dupont"
                                     />
                                 </div>
@@ -406,7 +406,7 @@ export default function ContactsPage() {
                                     type="email"
                                     value={newContact.email || ""}
                                     onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                                     placeholder="jean.dupont@exemple.com"
                                 />
                             </div>
@@ -417,7 +417,7 @@ export default function ContactsPage() {
                                         type="tel"
                                         value={newContact.phone || ""}
                                         onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                                         placeholder="+229 XX XX XX XX"
                                     />
                                 </div>
@@ -427,7 +427,7 @@ export default function ContactsPage() {
                                         type="tel"
                                         value={newContact.mobile || ""}
                                         onChange={(e) => setNewContact({ ...newContact, mobile: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                                         placeholder="+229 XX XX XX XX"
                                     />
                                 </div>
@@ -439,7 +439,7 @@ export default function ContactsPage() {
                                         type="text"
                                         value={newContact.job_title || ""}
                                         onChange={(e) => setNewContact({ ...newContact, job_title: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                                         placeholder="Directeur Commercial"
                                     />
                                 </div>
@@ -449,7 +449,7 @@ export default function ContactsPage() {
                                         type="text"
                                         value={newContact.department || ""}
                                         onChange={(e) => setNewContact({ ...newContact, department: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                                         placeholder="Commercial"
                                     />
                                 </div>
@@ -459,7 +459,7 @@ export default function ContactsPage() {
                                 <select
                                     value={newContact.client_id || ""}
                                     onChange={(e) => setNewContact({ ...newContact, client_id: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                                 >
                                     <option value="">Sélectionner un client...</option>
                                     {clients.map(client => (
@@ -473,7 +473,7 @@ export default function ContactsPage() {
                                     type="text"
                                     value={newContact.address || ""}
                                     onChange={(e) => setNewContact({ ...newContact, address: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                                     placeholder="123 Avenue..."
                                 />
                             </div>
@@ -484,7 +484,7 @@ export default function ContactsPage() {
                                         type="text"
                                         value={newContact.city || ""}
                                         onChange={(e) => setNewContact({ ...newContact, city: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                                         placeholder="Cotonou"
                                     />
                                 </div>
@@ -494,7 +494,7 @@ export default function ContactsPage() {
                                         type="text"
                                         value={newContact.country || ""}
                                         onChange={(e) => setNewContact({ ...newContact, country: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                                         placeholder="Bénin"
                                     />
                                 </div>
@@ -510,7 +510,7 @@ export default function ContactsPage() {
                             <button
                                 onClick={handleCreateContact}
                                 disabled={saving || !newContact.first_name || !newContact.last_name || !newContact.email}
-                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                                className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
                             >
                                 {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                                 Créer le contact
@@ -548,7 +548,7 @@ export default function ContactsPage() {
                                 </button>
                                 <button
                                     onClick={openExternalMessage}
-                                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                                    className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
                                 >
                                     Ouvrir
                                 </button>

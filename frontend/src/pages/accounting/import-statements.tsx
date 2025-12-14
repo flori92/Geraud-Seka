@@ -141,7 +141,7 @@ export default function BankStatementImportPage() {
                         <div className="flex items-center gap-4 mb-8">
                             {["upload", "preview", "result"].map((s, idx) => (
                                 <div key={s} className="flex items-center gap-2">
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${step === s ? "bg-blue-600 text-white" :
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${step === s ? "bg-primary-600 text-white" :
                                             ["preview", "result"].indexOf(step) > idx ? "bg-green-500 text-white" : "bg-gray-200 text-gray-500"
                                         }`}>
                                         {["preview", "result"].indexOf(step) > idx ? <CheckCircle className="h-4 w-4" /> : idx + 1}
@@ -203,7 +203,7 @@ export default function BankStatementImportPage() {
                                         <select
                                             value={bankAccount}
                                             onChange={e => setBankAccount(e.target.value)}
-                                            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
                                         >
                                             <option value="">Sélectionner un compte...</option>
                                             <option value="main">Compte courant principal</option>
@@ -216,7 +216,7 @@ export default function BankStatementImportPage() {
                                         <select
                                             value={dateFormat}
                                             onChange={e => setDateFormat(e.target.value)}
-                                            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
                                         >
                                             <option value="DD/MM/YYYY">DD/MM/YYYY (ex: 31/12/2024)</option>
                                             <option value="MM/DD/YYYY">MM/DD/YYYY (ex: 12/31/2024)</option>
@@ -327,7 +327,7 @@ export default function BankStatementImportPage() {
                                     <button
                                         onClick={handleImport}
                                         disabled={importing || transactions.filter(t => t.isValid).length === 0}
-                                        className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                                        className="flex items-center gap-2 px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
                                     >
                                         {importing ? (
                                             <>
@@ -377,7 +377,7 @@ export default function BankStatementImportPage() {
                                     <button onClick={resetImport} className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50">
                                         Nouvel import
                                     </button>
-                                    <a href="/accounting/bank-reconciliation" className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                                    <a href="/accounting/bank-reconciliation" className="px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
                                         Voir le rapprochement
                                     </a>
                                 </div>

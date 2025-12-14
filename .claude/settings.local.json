@@ -54,7 +54,8 @@
       "Bash(while read f)",
       "Bash(echo:*)",
       "Bash(claude --version)",
-      "Bash(~/.zshrc)"
+      "Bash(~/.zshrc)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []

@@ -220,7 +220,7 @@ export default function BankAccounts() {
             <p className="text-gray-600 mb-4">Ajoutez votre premier compte bancaire pour commencer</p>
             <button
               onClick={() => setShowModal(true)}
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+              className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700"
             >
               Ajouter un Compte
             </button>
@@ -247,7 +247,7 @@ export default function BankAccounts() {
                         required
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                         placeholder="Ex: Compte Principal"
                       />
                     </div>
@@ -258,7 +258,7 @@ export default function BankAccounts() {
                       <select
                         value={formData.account_type}
                         onChange={(e) => setFormData({ ...formData, account_type: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                       >
                         <option value="checking">Compte Courant</option>
                         <option value="savings">Compte Épargne</option>
@@ -276,7 +276,7 @@ export default function BankAccounts() {
                         required
                         value={formData.bank_name}
                         onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                         placeholder="Ex: Ecobank, BOA, SGBF..."
                       />
                     </div>
@@ -288,7 +288,7 @@ export default function BankAccounts() {
                         type="text"
                         value={formData.branch}
                         onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                         placeholder="Ex: Agence Cotonou Centre"
                       />
                     </div>
@@ -308,7 +308,7 @@ export default function BankAccounts() {
                         maxLength={5}
                         value={formData.bank_code}
                         onChange={(e) => setFormData({ ...formData, bank_code: e.target.value.replace(/\D/g, '').slice(0, 5) })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono"
                         placeholder="00000"
                       />
                     </div>
@@ -321,7 +321,7 @@ export default function BankAccounts() {
                         maxLength={5}
                         value={formData.branch_code}
                         onChange={(e) => setFormData({ ...formData, branch_code: e.target.value.replace(/\D/g, '').slice(0, 5) })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono"
                         placeholder="00000"
                       />
                     </div>
@@ -335,7 +335,7 @@ export default function BankAccounts() {
                         maxLength={20}
                         value={formData.account_number}
                         onChange={(e) => setFormData({ ...formData, account_number: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono"
                         placeholder="000000000000"
                       />
                     </div>
@@ -348,7 +348,7 @@ export default function BankAccounts() {
                         maxLength={2}
                         value={formData.rib_key}
                         onChange={(e) => setFormData({ ...formData, rib_key: e.target.value.replace(/\D/g, '').slice(0, 2) })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono"
                         placeholder="00"
                       />
                     </div>
@@ -371,7 +371,7 @@ export default function BankAccounts() {
                         maxLength={34}
                         value={formData.iban}
                         onChange={(e) => setFormData({ ...formData, iban: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono"
                         placeholder="BJ00 0000 0000 0000 0000 0000 00"
                       />
                     </div>
@@ -384,7 +384,7 @@ export default function BankAccounts() {
                         maxLength={11}
                         value={formData.swift_bic}
                         onChange={(e) => setFormData({ ...formData, swift_bic: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '') })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent font-mono"
                         placeholder="EABORBJJ"
                       />
                     </div>
@@ -403,7 +403,7 @@ export default function BankAccounts() {
                         type="number"
                         value={formData.initial_balance}
                         onChange={(e) => setFormData({ ...formData, initial_balance: parseFloat(e.target.value) || 0 })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                         placeholder="0"
                       />
                     </div>
@@ -432,7 +432,7 @@ export default function BankAccounts() {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
                   >
                     Créer le compte
                   </button>

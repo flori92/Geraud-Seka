@@ -12,18 +12,18 @@ const config: Config = {
         sans: ["var(--font-inter)", "sans-serif"],
       },
       colors: {
-        // SEKA Primary Colors (Teal/Dark Green)
+        // SEKA Primary Colors (Blue - Bleu SEKA)
         primary: {
-          50: '#e6f2f1',
-          100: '#b3d9d6',
-          200: '#80c0ba',
-          300: '#4da79d',
-          400: '#268e81',
-          500: '#0d4a44',  // Primary brand color
-          600: '#0a3d38',  // Primary hover
-          700: '#08302c',
-          800: '#062320',
-          900: '#041614',
+          50: '#eff6ff',
+          100: '#dbeafe',
+          200: '#bfdbfe',
+          300: '#93c5fd',
+          400: '#60a5fa',
+          500: '#3b82f6',  // Primary brand color - Bleu SEKA
+          600: '#2563eb',  // Primary hover
+          700: '#1d4ed8',
+          800: '#1e40af',
+          900: '#1e3a8a',
         },
         // Accent colors for actions and highlights
         accent: {

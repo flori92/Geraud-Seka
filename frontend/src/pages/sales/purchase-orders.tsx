@@ -45,7 +45,7 @@ export default function PurchaseOrdersPage() {
   const orderList = Array.isArray(purchaseOrders) ? purchaseOrders : [];
 
   const stats = [
-    { label: "Total BC", value: orderList.length.toString(), color: "bg-blue-600" },
+    { label: "Total BC", value: orderList.length.toString(), color: "bg-primary-600" },
     { label: "En attente", value: orderList.filter(p => p?.status === "pending").length.toString(), color: "bg-orange-600" },
     { label: "Approuvés", value: orderList.filter(p => p?.status === "approved").length.toString(), color: "bg-green-600" },
     { label: "Montant total", value: Math.round(orderList.reduce((sum, p) => sum + (p?.amount || 0), 0) / 1000) + "K", color: "bg-purple-600" },

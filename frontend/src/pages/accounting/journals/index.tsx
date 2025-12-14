@@ -97,7 +97,7 @@ export default function JournalsPage() {
                                 </button>
                                 <Link
                                     href="/accounting/entries/new"
-                                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                                    className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
                                 >
                                     <Plus className="h-4 w-4" />
                                     Nouvelle écriture
@@ -189,7 +189,7 @@ export default function JournalsPage() {
                                             <p className="text-gray-500 mb-4">Commencez par créer votre première écriture comptable</p>
                                             <Link
                                                 href="/accounting/entries/new"
-                                                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                                                className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
                                             >
                                                 <Plus className="h-4 w-4" />
                                                 Nouvelle écriture

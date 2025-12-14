@@ -55,7 +55,7 @@ export default function SalesReportsPage() {
 
   const stats = [
     { label: "CA du mois", value: formatCurrency(report.total_revenue), icon: DollarSign, color: "bg-green-600" },
-    { label: "Nombre de ventes", value: report.total_sales.toString(), icon: ShoppingCart, color: "bg-blue-600" },
+    { label: "Nombre de ventes", value: report.total_sales.toString(), icon: ShoppingCart, color: "bg-primary-600" },
     { label: "Panier moyen", value: formatCurrency(report.average_order_value), icon: TrendingDown, color: "bg-orange-600" },
     { label: "Taux conversion", value: `${report.conversion_rate}%`, icon: TrendingUp, color: "bg-purple-600" },
   ];

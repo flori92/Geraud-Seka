@@ -169,7 +169,7 @@ export default function BankReconciliationPage() {
                             <input
                                 type="text"
                                 placeholder="Rechercher..."
-                                className="pl-9 pr-4 py-2 border rounded-lg text-sm w-64 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                className="pl-9 pr-4 py-2 border rounded-lg text-sm w-64 focus:ring-2 focus:ring-primary-500 focus:outline-none"
                             />
                         </div>
                     </div>

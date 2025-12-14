@@ -31,7 +31,7 @@ interface MobileMoneyTransaction {
 
 const providerConfig = {
     mtn: { name: "MTN Mobile Money", color: "bg-yellow-500", logo: "/logos/mtn.png" },
-    moov: { name: "Moov Money", color: "bg-blue-600", logo: "/logos/moov.png" },
+    moov: { name: "Moov Money", color: "bg-primary-600", logo: "/logos/moov.png" },
     celtiis: { name: "Celtiis Cash", color: "bg-green-600", logo: "/logos/celtiis.png" }
 };
 
@@ -144,7 +144,7 @@ export default function MobileMoneyPage() {
                             </div>
                             <button
                                 onClick={() => setShowAddModal(true)}
-                                className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                                className="flex items-center gap-2 px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm"
                             >
                                 <Plus className="h-4 w-4" />
                                 Ajouter un compte
@@ -205,7 +205,7 @@ export default function MobileMoneyPage() {
                                     <p className="text-gray-500 mb-4">Connectez vos portefeuilles Mobile Money via KKiaPay</p>
                                     <button
                                         onClick={() => setShowAddModal(true)}
-                                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                                        className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
                                     >
                                         <Plus className="h-4 w-4" />
                                         Ajouter un compte
@@ -392,7 +392,7 @@ export default function MobileMoneyPage() {
                                         value={newAccount.phone_number}
                                         onChange={(e) => setNewAccount({ ...newAccount, phone_number: e.target.value })}
                                         placeholder="+229 XX XX XX XX"
-                                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
                                     />
                                 </div>
                             </div>
@@ -405,7 +405,7 @@ export default function MobileMoneyPage() {
                                         value={newAccount.account_name}
                                         onChange={(e) => setNewAccount({ ...newAccount, account_name: e.target.value })}
                                         placeholder="SEKA SARL"
-                                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
                                     />
                                 </div>
                             </div>
@@ -427,7 +427,7 @@ export default function MobileMoneyPage() {
                             <button
                                 onClick={handleAddAccount}
                                 disabled={verifying || !newAccount.phone_number || !newAccount.account_name}
-                                className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                                className="flex items-center gap-2 px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
                             >
                                 {verifying ? (
                                     <>

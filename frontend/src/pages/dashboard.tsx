@@ -549,7 +549,7 @@ export default function DashboardPage() {
           description="Gérez vos clients et vos relations commerciales"
           icon={Users}
           href="/clients"
-          color="bg-blue-600/50"
+          color="bg-primary-600/50"
           gradient="bg-gradient-to-br from-blue-500 to-blue-700"
           stats={[
             { label: "Clients actifs", value: calculatedStats.clientCount },
@@ -561,7 +561,7 @@ export default function DashboardPage() {
           description="Devis, factures et paiements"
           icon={Receipt}
           href="/ventes/factures-clients"
-          color="bg-blue-600/50"
+          color="bg-primary-600/50"
           gradient="bg-gradient-to-br from-blue-500 to-blue-700"
           stats={[
             { label: "Factures", value: calculatedStats.invoiceCount },
@@ -573,7 +573,7 @@ export default function DashboardPage() {
           description="Cash flow et prévisions financières"
           icon={Wallet}
           href="/treasury"
-          color="bg-blue-600/50"
+          color="bg-primary-600/50"
           gradient="bg-gradient-to-br from-blue-500 to-blue-700"
           stats={[
             { label: "Solde", value: formatAmount(stats?.total_revenue || 0) },

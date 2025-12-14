@@ -38,7 +38,7 @@ export default function InventoryPage() {
   };
 
   const stats = [
-    { label: "Total articles", value: inventory.length.toString(), color: "bg-blue-600" },
+    { label: "Total articles", value: inventory.length.toString(), color: "bg-primary-600" },
     { label: "En stock", value: inventory.filter(i => i.status === "in_stock").length.toString(), color: "bg-green-600" },
     { label: "Stock bas", value: inventory.filter(i => i.status === "low_stock").length.toString(), color: "bg-orange-600" },
     { label: "Rupture", value: inventory.filter(i => i.status === "out_of_stock").length.toString(), color: "bg-red-600" },

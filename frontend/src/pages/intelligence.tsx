@@ -45,7 +45,7 @@ export default function IntelligencePage() {
         return (
             <DashboardLayout>
                 <div className="flex h-96 items-center justify-center">
-                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-600 border-t-transparent"></div>
                 </div>
             </DashboardLayout>
         );

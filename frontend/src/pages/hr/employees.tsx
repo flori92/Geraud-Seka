@@ -53,7 +53,7 @@ export default function EmployeesPage() {
   };
 
   const stats = [
-    { label: "Total employés", value: employees.length.toString(), color: "bg-blue-600" },
+    { label: "Total employés", value: employees.length.toString(), color: "bg-primary-600" },
     { label: "Actifs", value: employees.filter(e => e.status === "active").length.toString(), color: "bg-green-600" },
     { label: "En congé", value: employees.filter(e => e.status === "on_leave").length.toString(), color: "bg-orange-600" },
     { label: "Masse salariale", value: Math.round(employees.reduce((sum, e) => sum + (e.salary || 0), 0) / 1000) + "K", color: "bg-purple-600" },

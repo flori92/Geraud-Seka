@@ -118,7 +118,7 @@ export default function RulesCenter() {
                 Importer
               </button>
               <button
-                className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700"
+                className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700"
                 onClick={() => {
                   if (activeTab === "transactions") router.push("/settings/transaction-rules");
                 }}
@@ -183,7 +183,7 @@ export default function RulesCenter() {
                   </p>
                   <button
                     onClick={() => router.push("/settings/transaction-rules")}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700"
                   >
                     Ouvrir les règles de transactions
                   </button>

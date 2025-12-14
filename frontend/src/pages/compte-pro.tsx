@@ -133,7 +133,7 @@ export default function CompteProPage() {
                 En savoir plus
               </button>
               <button
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
                 onClick={() => router.push("/treasury/accounts")}
               >
                 Activer maintenant
