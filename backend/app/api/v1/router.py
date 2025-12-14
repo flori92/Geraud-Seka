@@ -21,7 +21,6 @@ from app.api.v1.routes import (
     scheduler,
     # import_export,  # CRM dependencies removed
     integrations,
-    bot,
     chat,
     payments,
     quotes,
@@ -74,7 +73,6 @@ api_router.include_router(notifications.router, prefix="/notifications", tags=["
 api_router.include_router(scheduler.router, prefix="/scheduler", tags=["scheduler", "tasks"])
 # api_router.include_router(import_export.router, prefix="/data", tags=["import", "export"])  # CRM dependencies
 api_router.include_router(integrations.router, prefix="/integrations", tags=["integrations"])
-api_router.include_router(bot.router, prefix="/bot", tags=["bot"])
 api_router.include_router(chat.router, prefix="/chat", tags=["chat"])
 api_router.include_router(payments.router, prefix="/payments", tags=["payments"])
 

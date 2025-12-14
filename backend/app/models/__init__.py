@@ -53,9 +53,6 @@ __all__ = [
     "BankAccount",
     "BankTransaction",
     "PaymentSchedule",
-    "Lead",
-    "Opportunity",
-    "CRMActivity",
     "AccountingRule",
     "DocumentClassification",
 ]

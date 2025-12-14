@@ -22,4 +22,3 @@ def upgrade():
 def downgrade():
     # No operation
     return
-            sa.Column('cnss_floor_monthly', sa.Numeric(15, 2)),
