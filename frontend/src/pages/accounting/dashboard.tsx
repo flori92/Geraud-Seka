@@ -103,22 +103,16 @@ export default function AccountingDashboardPage() {
         }
     };
 
-    const expenseBreakdown = [
-        { label: "Achats", value: 35, color: "#3b82f6" },
-        { label: "Salaires", value: 28, color: "#10b981" },
-        { label: "Services", value: 18, color: "#f59e0b" },
-        { label: "Impôts", value: 12, color: "#ef4444" },
-        { label: "Autres", value: 7, color: "#8b5cf6" }
-    ];
+    // Expense breakdown - will be calculated from accounting data
+    // For now showing empty state until backend provides expense breakdown by category
+    const expenseBreakdown: Array<{ label: string; value: number; color: string }> = [];
 
-    const cashFlowForecast = [
-        { label: "Janv", actual: 42, forecast: null },
-        { label: "Févr", actual: 45, forecast: null },
-        { label: "Mars", actual: 48, forecast: null },
-        { label: "Avr", actual: 52, forecast: null },
-        { label: "Mai", actual: null, forecast: 55 },
-        { label: "Juin", actual: null, forecast: 58 },
-    ];
+    // Cash flow forecast - calculated from actual data
+    const cashFlowForecast = forecasts.map(f => ({
+        label: f.month,
+        actual: f.projected_balance > 0 ? f.projected_balance / 1000000 : null,
+        forecast: null
+    }));
 
     return (
         <>
@@ -370,35 +364,25 @@ export default function AccountingDashboardPage() {
                         </h2>
                         {loading ? (
                             <Skeleton className="h-48 w-full" />
-                        ) : (
-                            <div className="flex items-center gap-6">
-                                {typeof window !== "undefined" && (
-                                    <Chart
-                                        options={{
-                                            chart: { type: "donut" },
-                                            labels: expenseBreakdown.map(e => e.label),
-                                            colors: expenseBreakdown.map(e => e.color),
-                                            legend: { show: false },
-                                            dataLabels: { enabled: false },
-                                            plotOptions: { pie: { donut: { size: "70%" } } }
-                                        }}
-                                        series={expenseBreakdown.map(e => e.value)}
-                                        type="donut"
-                                        height={180}
-                                        width={180}
-                                    />
-                                )}
-                                <div className="flex-1 space-y-2">
-                                    {expenseBreakdown.map((item) => (
-                                        <div key={item.label} className="flex items-center gap-3">
-                                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                                            <div className="flex-1 flex justify-between">
-                                                <span className="text-sm text-gray-600">{item.label}</span>
-                                                <span className="text-sm font-semibold text-gray-900">{item.value}%</span>
-                                            </div>
-                                        </div>
-                                    ))}
+                        ) : stats?.expenses && stats.expenses > 0 ? (
+                            <div className="text-center py-8">
+                                <PieChart className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                                <p className="text-gray-500 font-medium">Analyse en cours</p>
+                                <p className="text-sm text-gray-400 mt-1">
+                                    La répartition détaillée des charges sera disponible prochainement
+                                </p>
+                                <div className="mt-4 bg-gray-50 rounded-lg p-4">
+                                    <p className="text-sm text-gray-600 mb-2">Total des charges :</p>
+                                    <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.expenses)}</p>
                                 </div>
+                            </div>
+                        ) : (
+                            <div className="text-center py-8">
+                                <PieChart className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                                <p className="text-gray-500 font-medium">Aucune charge enregistrée</p>
+                                <p className="text-sm text-gray-400 mt-1">
+                                    Les charges apparaîtront ici une fois les écritures saisies
+                                </p>
                             </div>
                         )}
                     </div>
@@ -410,33 +394,64 @@ export default function AccountingDashboardPage() {
                             Indicateurs clés
                         </h2>
                         <div className="space-y-4">
-                            <div className="p-3 bg-gray-50 rounded-lg">
-                                <div className="flex justify-between items-center mb-2">
-                                    <span className="text-sm text-gray-600">Marge nette</span>
-                                    <span className="text-lg font-bold text-green-600">27%</span>
+                            {stats?.revenue && stats.revenue > 0 ? (
+                                <>
+                                    <div className="p-3 bg-gray-50 rounded-lg">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className="text-sm text-gray-600">Marge nette</span>
+                                            <span className="text-lg font-bold text-green-600">
+                                                {((stats.net_income / stats.revenue) * 100).toFixed(1)}%
+                                            </span>
+                                        </div>
+                                        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                            <div
+                                                className="h-full rounded-full bg-green-500"
+                                                style={{ width: `${Math.min(100, (stats.net_income / stats.revenue) * 100)}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="p-3 bg-gray-50 rounded-lg">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className="text-sm text-gray-600">Ratio actif/passif</span>
+                                            <span className="text-lg font-bold text-blue-600">
+                                                {stats.total_liabilities > 0
+                                                    ? (stats.total_assets / stats.total_liabilities).toFixed(2)
+                                                    : '∞'}
+                                            </span>
+                                        </div>
+                                        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                            <div
+                                                className="h-full rounded-full bg-blue-500"
+                                                style={{ width: stats.total_liabilities > 0 ? `${Math.min(100, (stats.total_assets / stats.total_liabilities / 3) * 100)}%` : '100%' }}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="p-3 bg-gray-50 rounded-lg">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className="text-sm text-gray-600">Taux d&apos;endettement</span>
+                                            <span className="text-lg font-bold text-orange-600">
+                                                {stats.total_assets > 0
+                                                    ? ((stats.total_liabilities / stats.total_assets) * 100).toFixed(1)
+                                                    : '0'}%
+                                            </span>
+                                        </div>
+                                        <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                            <div
+                                                className="h-full rounded-full bg-orange-500"
+                                                style={{ width: `${Math.min(100, (stats.total_liabilities / stats.total_assets) * 100)}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="text-center py-8">
+                                    <Target className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                                    <p className="text-gray-500 font-medium">Aucune donnée disponible</p>
+                                    <p className="text-sm text-gray-400 mt-1">
+                                        Les indicateurs apparaîtront une fois les données comptables saisies
+                                    </p>
                                 </div>
-                                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                                    <div className="h-full rounded-full bg-green-500" style={{ width: "27%" }} />
-                                </div>
-                            </div>
-                            <div className="p-3 bg-gray-50 rounded-lg">
-                                <div className="flex justify-between items-center mb-2">
-                                    <span className="text-sm text-gray-600">Ratio de liquidité</span>
-                                    <span className="text-lg font-bold text-blue-600">2.35</span>
-                                </div>
-                                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                                    <div className="h-full rounded-full bg-blue-500" style={{ width: "78%" }} />
-                                </div>
-                            </div>
-                            <div className="p-3 bg-gray-50 rounded-lg">
-                                <div className="flex justify-between items-center mb-2">
-                                    <span className="text-sm text-gray-600">Taux d&apos;endettement</span>
-                                    <span className="text-lg font-bold text-orange-600">38%</span>
-                                </div>
-                                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                                    <div className="h-full rounded-full bg-orange-500" style={{ width: "38%" }} />
-                                </div>
-                            </div>
+                            )}
                         </div>
                     </div>
 

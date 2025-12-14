@@ -159,7 +159,7 @@ export default function TransactionRulesPage() {
                             </div>
                             <button
                                 onClick={() => setShowCreateModal(true)}
-                                className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-sm"
+                                className="flex items-center gap-2 px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm"
                             >
                                 <Plus className="h-4 w-4" />
                                 Nouvelle règle
@@ -343,7 +343,7 @@ export default function TransactionRulesPage() {
                                 <p className="text-gray-500 mb-4">Créez votre première règle de catégorisation</p>
                                 <button
                                     onClick={() => setShowCreateModal(true)}
-                                    className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
                                 >
                                     <Plus className="h-4 w-4" />
                                     Nouvelle règle
@@ -476,7 +476,7 @@ export default function TransactionRulesPage() {
                             <button
                                 onClick={handleCreateRule}
                                 disabled={saving || !newRule.name}
-                                className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                                className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
                             >
                                 {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                                 Créer la règle

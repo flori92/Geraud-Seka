@@ -344,7 +344,7 @@ export default function AccountingDashboardPage() {
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-gray-900">Modules comptables</h3>
           <QuickAction icon={BookOpen} label="Journal" href="/accounting/journal" color="bg-blue-500" />
-          <QuickAction icon={Calculator} label="Grand Livre" href="/accounting/ledger" color="bg-violet-500" />
+          <QuickAction icon={Calculator} label="Grand Livre" href="/accounting/ledger" color="bg-primary-500" />
           <QuickAction icon={PieChart} label="Plan Comptable" href="/accounting/chart" color="bg-blue-500" />
           <QuickAction icon={BarChart3} label="Bilan" href="/accounting/balance" color="bg-orange-500" />
           <QuickAction icon={Download} label="Exports FEC" href="/exports" color="bg-pink-500" />

@@ -101,7 +101,7 @@ export default function AccountingRulesPage() {
               </div>
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
               >
                 <Plus className="h-4 w-4" />
                 Nouvelle règle
@@ -136,7 +136,7 @@ export default function AccountingRulesPage() {
                 </p>
                 <button
                   onClick={() => setShowCreateModal(true)}
-                  className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                  className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
                 >
                   Créer une règle
                 </button>

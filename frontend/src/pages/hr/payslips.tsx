@@ -51,9 +51,9 @@ export default function PayslipsPage() {
 
   const stats = [
     { label: "Total bulletins", value: payslips.length.toString(), color: "bg-primary-600" },
-    { label: "Payés", value: payslips.filter(p => p.status === "paid").length.toString(), color: "bg-green-600" },
+    { label: "Payés", value: payslips.filter(p => p.status === "paid").length.toString(), color: "bg-primary-600" },
     { label: "En attente", value: payslips.filter(p => p.status === "pending").length.toString(), color: "bg-orange-600" },
-    { label: "Coût total", value: Math.round(payslips.reduce((sum, p) => sum + p.net_salary, 0) / 1000) + "K", color: "bg-purple-600" },
+    { label: "Coût total", value: Math.round(payslips.reduce((sum, p) => sum + p.net_salary, 0) / 1000) + "K", color: "bg-primary-600" },
   ];
 
   const getStatusVariant = (status: string) => {

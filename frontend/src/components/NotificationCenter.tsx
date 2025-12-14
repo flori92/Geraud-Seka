@@ -123,7 +123,7 @@ export function NotificationCenter() {
       success: "bg-green-500",
       warning: "bg-yellow-500",
       error: "bg-red-500",
-      lead: "bg-purple-500",
+      lead: "bg-primary-500",
       opportunity: "bg-indigo-500",
       task: "bg-orange-500",
       email: "bg-pink-500"

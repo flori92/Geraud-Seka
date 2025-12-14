@@ -55,8 +55,8 @@ export default function HRReportsPage() {
 
   const stats = [
     { label: "Employés actifs", value: report.total_employees.toString(), icon: Users, color: "bg-primary-600" },
-    { label: "Nouveaux (ce mois)", value: report.new_hires.toString(), icon: TrendingUp, color: "bg-green-600" },
-    { label: "Taux de présence", value: `${report.attendance_rate}%`, icon: Briefcase, color: "bg-purple-600" },
+    { label: "Nouveaux (ce mois)", value: report.new_hires.toString(), icon: TrendingUp, color: "bg-primary-600" },
+    { label: "Taux de présence", value: `${report.attendance_rate}%`, icon: Briefcase, color: "bg-primary-600" },
     { label: "Masse salariale", value: formatAmount(report.total_payroll), icon: Download, color: "bg-orange-600" },
   ];
 

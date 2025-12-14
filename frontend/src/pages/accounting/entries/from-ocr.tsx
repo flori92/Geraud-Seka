@@ -499,7 +499,7 @@ export default function AccountingEntryFromOCR() {
                             e.preventDefault();
                             document.getElementById('file-upload')?.click();
                           }}
-                          className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                          className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
                         >
                           Parcourir
                         </button>
@@ -762,7 +762,7 @@ export default function AccountingEntryFromOCR() {
                       <button
                         onClick={handleSaveEntry}
                         disabled={!isBalanced || saving}
-                        className="flex items-center gap-2 px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex items-center gap-2 px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {saving ? (
                           <>

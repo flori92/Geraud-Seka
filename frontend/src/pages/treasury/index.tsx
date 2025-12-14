@@ -324,7 +324,7 @@ export default function TreasuryDashboard() {
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-gray-900">Actions rapides</h3>
           <QuickAction icon={Building2} label="Comptes bancaires" href="/treasury/accounts" color="bg-blue-500" />
-          <QuickAction icon={CreditCard} label="Transactions" href="/treasury/transactions" color="bg-violet-500" />
+          <QuickAction icon={CreditCard} label="Transactions" href="/treasury/transactions" color="bg-primary-500" />
           <QuickAction icon={Calendar} label="Échéances" href="/treasury/forecast" color="bg-blue-500" />
           <QuickAction icon={BarChart3} label="Prévisions" href="/treasury/forecast" color="bg-orange-500" />
           <QuickAction icon={Landmark} label="Rapprochement" href="/treasury/reconciliation" color="bg-pink-500" />

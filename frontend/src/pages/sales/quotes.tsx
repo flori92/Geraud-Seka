@@ -55,12 +55,12 @@ export default function QuotesPage() {
     {
       label: "Acceptés",
       value: quotes.filter(q => q.status === "Accepté" || q.status === "accepted").length.toString(),
-      color: "bg-green-600"
+      color: "bg-primary-600"
     },
     {
       label: "Montant total",
       value: Math.round(quotes.reduce((sum, q) => sum + q.amount, 0) / 1000) + "K",
-      color: "bg-purple-600"
+      color: "bg-primary-600"
     },
   ];
 

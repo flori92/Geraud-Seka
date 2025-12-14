@@ -96,8 +96,8 @@ export default function ProductsPage() {
   const stats = [
     { label: "Total produits", value: totalProducts.toString(), icon: Package, color: "bg-primary-600" },
     { label: "Stock faible", value: lowStockProducts.toString(), icon: AlertTriangle, color: "bg-orange-600" },
-    { label: "Valeur totale", value: formatAmount(totalValue), icon: TrendingUp, color: "bg-green-600" },
-    { label: "Prix moyen", value: formatAmount(avgPrice), icon: DollarSign, color: "bg-purple-600" },
+    { label: "Valeur totale", value: formatAmount(totalValue), icon: TrendingUp, color: "bg-primary-600" },
+    { label: "Prix moyen", value: formatAmount(avgPrice), icon: DollarSign, color: "bg-primary-600" },
   ];
 
   return (

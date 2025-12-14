@@ -44,7 +44,7 @@ export default function MovementsPage() {
 
   const stats = [
     { label: "Total mouvements", value: movementList.length.toString(), color: "bg-primary-600" },
-    { label: "Entrées", value: movementList.filter(m => m.movement_type === "in").length.toString(), color: "bg-green-600" },
+    { label: "Entrées", value: movementList.filter(m => m.movement_type === "in").length.toString(), color: "bg-primary-600" },
     { label: "Sorties", value: movementList.filter(m => m.movement_type === "out").length.toString(), color: "bg-red-600" },
     { label: "Ajustements", value: movementList.filter(m => m.movement_type === "adjustment").length.toString(), color: "bg-orange-600" },
   ];

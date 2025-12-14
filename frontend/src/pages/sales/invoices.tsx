@@ -66,7 +66,7 @@ export default function InvoicesPage() {
     {
       label: "CA ce mois",
       value: Math.round(invoiceList.reduce((sum, inv) => sum + (inv?.paid || 0), 0) / 1000) + "K",
-      color: "bg-green-600"
+      color: "bg-primary-600"
     },
   ];
 

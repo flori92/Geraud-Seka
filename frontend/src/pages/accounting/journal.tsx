@@ -93,8 +93,8 @@ export default function JournalPage() {
   const stats = [
     { label: "Total écritures", value: entries.length.toString(), color: "bg-primary-600" },
     { label: "Débit total", value: formatAmount(totalDebit), color: "bg-red-600" },
-    { label: "Crédit total", value: formatAmount(totalCredit), color: "bg-green-600" },
-    { label: "Balance", value: Math.round((totalDebit - totalCredit) / 1000) + "K", color: "bg-purple-600" },
+    { label: "Crédit total", value: formatAmount(totalCredit), color: "bg-primary-600" },
+    { label: "Balance", value: Math.round((totalDebit - totalCredit) / 1000) + "K", color: "bg-primary-600" },
   ];
 
   return (

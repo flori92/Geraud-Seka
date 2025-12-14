@@ -265,7 +265,7 @@ export default function HRDashboardPage() {
           value={stats.activeContracts}
           subtitle={stats.expiringContracts > 0 ? `${stats.expiringContracts} expirent bientôt` : "Tous à jour"}
           icon={FileText}
-          color="bg-violet-500"
+          color="bg-primary-500"
           href="/hr/contracts"
           loading={loading}
         />
@@ -357,7 +357,7 @@ export default function HRDashboardPage() {
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-gray-900">Actions rapides</h3>
           <QuickAction icon={UserPlus} label="Nouvel employé" href="/hr/employees" color="bg-blue-500" />
-          <QuickAction icon={FileText} label="Nouveau contrat" href="/hr/contracts" color="bg-violet-500" />
+          <QuickAction icon={FileText} label="Nouveau contrat" href="/hr/contracts" color="bg-primary-500" />
           <QuickAction icon={DollarSign} label="Générer paie" href="/hr/payslips" color="bg-blue-500" />
           <QuickAction icon={Calendar} label="Gérer congés" href="/hr/leaves" color="bg-orange-500" />
           <QuickAction icon={Award} label="Rapport RH" href="/reports/hr" color="bg-pink-500" />

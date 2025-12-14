@@ -9,7 +9,7 @@ import { getJournals, getJournalEntries, type Journal, type JournalEntry } from 
 const journalColors: Record<string, string> = {
     purchases: "bg-blue-500",
     sales: "bg-green-500",
-    bank: "bg-purple-500",
+    bank: "bg-primary-500",
     cash: "bg-orange-500",
     misc: "bg-gray-500",
 };

@@ -55,7 +55,8 @@
       "Bash(echo:*)",
       "Bash(claude --version)",
       "Bash(~/.zshrc)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash({} ;)"
     ],
     "deny": [],
     "ask": []

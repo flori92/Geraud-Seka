@@ -63,8 +63,8 @@ export default function SuppliersPage() {
 
   const stats = [
     { label: "Total fournisseurs", value: totalSuppliers.toString(), icon: Building2, color: "bg-primary-600" },
-    { label: "Fournisseurs actifs", value: activeSuppliers.toString(), icon: TrendingUp, color: "bg-green-600" },
-    { label: "Total commandes", value: totalOrders.toString(), icon: ShoppingBag, color: "bg-purple-600" },
+    { label: "Fournisseurs actifs", value: activeSuppliers.toString(), icon: TrendingUp, color: "bg-primary-600" },
+    { label: "Total commandes", value: totalOrders.toString(), icon: ShoppingBag, color: "bg-primary-600" },
     { label: "Total dépensé", value: formatAmount(totalSpent), icon: TrendingUp, color: "bg-orange-600" },
   ];
 

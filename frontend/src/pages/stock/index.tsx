@@ -261,7 +261,7 @@ export default function StockDashboardPage() {
           value={stats.inMovements + stats.outMovements}
           subtitle={`${stats.inMovements} entrées, ${stats.outMovements} sorties`}
           icon={Truck}
-          color="bg-violet-500"
+          color="bg-primary-500"
           href="/stock/movements"
           loading={loading}
         />
@@ -340,7 +340,7 @@ export default function StockDashboardPage() {
           <QuickAction icon={Plus} label="Nouveau produit" href="/products" color="bg-blue-500" />
           <QuickAction icon={TrendingUp} label="Entrée de stock" href="/stock/movements" color="bg-blue-500" />
           <QuickAction icon={TrendingDown} label="Sortie de stock" href="/stock/movements" color="bg-red-400" />
-          <QuickAction icon={Box} label="Inventaire" href="/stock/inventory" color="bg-violet-500" />
+          <QuickAction icon={Box} label="Inventaire" href="/stock/inventory" color="bg-primary-500" />
           <QuickAction icon={ShoppingCart} label="Bons de commande" href="/achats/bons-commande" color="bg-orange-500" />
         </div>
       </div>

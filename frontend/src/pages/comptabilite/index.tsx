@@ -84,7 +84,7 @@ export default function ComptabilitePage() {
       description: "Consultation par compte",
       icon: Calculator,
       href: "/comptabilite/grand-livre",
-      color: "bg-purple-500"
+      color: "bg-primary-500"
     },
     {
       title: "Balance",

@@ -32,7 +32,7 @@ interface MobileMoneyTransaction {
 const providerConfig = {
     mtn: { name: "MTN Mobile Money", color: "bg-yellow-500", logo: "/logos/mtn.png" },
     moov: { name: "Moov Money", color: "bg-primary-600", logo: "/logos/moov.png" },
-    celtiis: { name: "Celtiis Cash", color: "bg-green-600", logo: "/logos/celtiis.png" }
+    celtiis: { name: "Celtiis Cash", color: "bg-primary-600", logo: "/logos/celtiis.png" }
 };
 
 export default function MobileMoneyPage() {

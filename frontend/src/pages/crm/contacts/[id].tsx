@@ -76,7 +76,7 @@ const getColorForType = (type: string) => {
   const colorMap: Record<string, string> = {
     "activity": "bg-blue-500",
     "opportunity": "bg-green-500",
-    "quote": "bg-purple-500",
+    "quote": "bg-primary-500",
     "created": "bg-gray-500",
     "email": "bg-orange-500",
     "call": "bg-primary-500",

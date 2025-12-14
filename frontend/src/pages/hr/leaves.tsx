@@ -49,8 +49,8 @@ export default function LeavesPage() {
   const stats = [
     { label: "Total demandes", value: leaves.length.toString(), color: "bg-primary-600" },
     { label: "En attente", value: leaves.filter(l => l.status === "pending").length.toString(), color: "bg-orange-600" },
-    { label: "Approuvées", value: leaves.filter(l => l.status === "approved").length.toString(), color: "bg-green-600" },
-    { label: "Jours total", value: leaves.filter(l => l.status === "approved").reduce((sum, l) => sum + l.days_count, 0).toString(), color: "bg-purple-600" },
+    { label: "Approuvées", value: leaves.filter(l => l.status === "approved").length.toString(), color: "bg-primary-600" },
+    { label: "Jours total", value: leaves.filter(l => l.status === "approved").reduce((sum, l) => sum + l.days_count, 0).toString(), color: "bg-primary-600" },
   ];
 
   const getStatusVariant = (status: string) => {

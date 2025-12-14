@@ -23,7 +23,7 @@ const reports = [
     description: "Chiffre d'affaires, produits phares, canaux de vente et conversion",
     icon: ShoppingCart,
     href: "/reports/sales",
-    color: "bg-green-600",
+    color: "bg-primary-600",
     stats: [
       { label: "Période", value: "Mois en cours" },
       { label: "Données", value: "Temps réel" },
@@ -35,7 +35,7 @@ const reports = [
     description: "Effectifs, embauches, taux de présence et masse salariale",
     icon: Users,
     href: "/reports/hr",
-    color: "bg-purple-600",
+    color: "bg-primary-600",
     stats: [
       { label: "Période", value: "Mois en cours" },
       { label: "Données", value: "Temps réel" },

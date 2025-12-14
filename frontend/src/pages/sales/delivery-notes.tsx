@@ -40,9 +40,9 @@ export default function DeliveryNotesPage() {
 
   const stats = [
     { label: "Total BL", value: deliveryNotes.length.toString(), color: "bg-primary-600" },
-    { label: "Livrés", value: deliveryNotes.filter(d => d.status === "delivered").length.toString(), color: "bg-green-600" },
+    { label: "Livrés", value: deliveryNotes.filter(d => d.status === "delivered").length.toString(), color: "bg-primary-600" },
     { label: "En transit", value: deliveryNotes.filter(d => d.status === "in_transit").length.toString(), color: "bg-orange-600" },
-    { label: "En préparation", value: deliveryNotes.filter(d => d.status === "preparing").length.toString(), color: "bg-purple-600" },
+    { label: "En préparation", value: deliveryNotes.filter(d => d.status === "preparing").length.toString(), color: "bg-primary-600" },
   ];
 
   const getStatusVariant = (status: string): "default" | "success" | "warning" | "error" => {

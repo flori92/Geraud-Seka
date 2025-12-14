@@ -77,9 +77,9 @@ export default function ChartOfAccountsPage() {
 
   const stats = [
     { label: "Total comptes", value: accounts.length.toString(), color: "bg-primary-600" },
-    { label: "Actifs", value: accountsByType.asset.length.toString(), color: "bg-green-600" },
+    { label: "Actifs", value: accountsByType.asset.length.toString(), color: "bg-primary-600" },
     { label: "Passifs", value: accountsByType.liability.length.toString(), color: "bg-red-600" },
-    { label: "Produits", value: accountsByType.revenue.length.toString(), color: "bg-purple-600" },
+    { label: "Produits", value: accountsByType.revenue.length.toString(), color: "bg-primary-600" },
   ];
 
   const typeLabels: Record<string, string> = {

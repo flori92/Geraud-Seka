@@ -263,7 +263,7 @@ export default function CRMAnalyticsPage() {
                   new: "bg-blue-500",
                   contacted: "bg-yellow-500",
                   qualified: "bg-green-500",
-                  proposal: "bg-purple-500",
+                  proposal: "bg-primary-500",
                   negotiation: "bg-orange-500",
                   won: "bg-blue-500",
                   lost: "bg-red-500"

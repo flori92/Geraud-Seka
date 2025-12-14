@@ -59,8 +59,8 @@ export default function LeadsPage() {
 
     return [
       { label: "Total leads", value: total.toString(), color: "bg-primary-600" },
-      { label: "Nouveaux (7j)", value: newLeads.toString(), color: "bg-green-600" },
-      { label: "Qualifiés", value: qualified.toString(), color: "bg-purple-600" },
+      { label: "Nouveaux (7j)", value: newLeads.toString(), color: "bg-primary-600" },
+      { label: "Qualifiés", value: qualified.toString(), color: "bg-primary-600" },
       { label: "Taux conversion", value: `${conversionRate}%`, color: "bg-orange-600" },
     ];
   };
