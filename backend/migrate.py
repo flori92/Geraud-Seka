@@ -37,6 +37,8 @@ except ImportError:
     # If model import fails (e.g. HR models removed), continue and handle later.
     Tenant = None
     User = None
+from contextlib import suppress
+
 try:
     # Import models that Client depends on FIRST
     from app.models.quote import Quote, QuoteItem  # noqa
@@ -63,31 +65,38 @@ try:
 except ImportError:
     pass  # Some models might not exist yet
 
+def add_column_if_not_exists(conn, table_name: str, column_name: str, column_def: str, message: str, success_msg: str):
+    """Ajoute une colonne à une table si elle n'existe pas (helper idempotent)"""
+    result = conn.execute(text(
+        f"SELECT column_name FROM information_schema.columns WHERE table_name = '{table_name}' AND column_name = '{column_name}'"
+    ))
+    if not result.fetchone():
+        print(message)
+        conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {column_def}"))
+        conn.commit()
+        print(success_msg)
+
+
 def ensure_tenant_columns():
     """Ajoute les colonnes manquantes à la table tenants si nécessaire"""
     try:
         with engine.connect() as conn:
-            # Vérifier si la colonne stripe_customer_id existe
-            result = conn.execute(text("""
-                SELECT column_name FROM information_schema.columns 
-                WHERE table_name = 'tenants' AND column_name = 'stripe_customer_id'
-            """))
-            if not result.fetchone():
-                print("🔧 Ajout de la colonne stripe_customer_id à tenants...")
-                conn.execute(text("ALTER TABLE tenants ADD COLUMN stripe_customer_id VARCHAR(255)"))
-                conn.commit()
-                print("✅ Colonne stripe_customer_id ajoutée")
-            
-            # Vérifier si la colonne subscription_status existe
-            result = conn.execute(text("""
-                SELECT column_name FROM information_schema.columns 
-                WHERE table_name = 'tenants' AND column_name = 'subscription_status'
-            """))
-            if not result.fetchone():
-                print("🔧 Ajout de la colonne subscription_status à tenants...")
-                conn.execute(text("ALTER TABLE tenants ADD COLUMN subscription_status VARCHAR(50) DEFAULT 'active'"))
-                conn.commit()
-                print("✅ Colonne subscription_status ajoutée")
+            add_column_if_not_exists(
+                conn,
+                'tenants',
+                'stripe_customer_id',
+                'stripe_customer_id VARCHAR(255)',
+                '🔧 Ajout de la colonne stripe_customer_id à tenants...',
+                '✅ Colonne stripe_customer_id ajoutée'
+            )
+            add_column_if_not_exists(
+                conn,
+                'tenants',
+                'subscription_status',
+                "subscription_status VARCHAR(50) DEFAULT 'active'",
+                '🔧 Ajout de la colonne subscription_status à tenants...',
+                '✅ Colonne subscription_status ajoutée'
+            )
                 
     except Exception as e:
         print(f"⚠️  Erreur lors de l'ajout des colonnes tenant: {e}")
@@ -268,7 +277,7 @@ def create_database_if_not_exists():
     try:
         settings = get_settings()
         
-        print(f"🔍 Vérification de la connexion à la base de données...")
+        print("🔍 Vérification de la connexion à la base de données...")
         
         # Test de connexion
         with engine.connect() as conn:

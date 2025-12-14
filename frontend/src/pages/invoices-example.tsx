@@ -47,6 +47,22 @@ const mockInvoices = [
     date: "2024-01-18",
     dueDate: "2024-02-18",
   },
+  {
+    id: "INV-003",
+    client: "Example Client 3",
+    amount: 42000,
+    status: "overdue" as const,
+    date: "2024-01-01",
+    dueDate: "2024-02-01",
+  },
+  {
+    id: "INV-004",
+    client: "Example Client 4",
+    amount: 8900,
+    status: "draft" as const,
+    date: "2024-01-20",
+    dueDate: "2024-02-20",
+  },
 ];
 
 // ========== TYPES ==========
@@ -168,11 +184,14 @@ export default function InvoicesPage() {
     const pending = mockInvoices
       .filter((inv) => inv.status === "pending")
       .reduce((sum, inv) => sum + inv.amount, 0);
+    const draft = mockInvoices
+      .filter((inv) => inv.status === "draft")
+      .reduce((sum, inv) => sum + inv.amount, 0);
     const overdue = mockInvoices
       .filter((inv) => inv.status === "overdue")
       .reduce((sum, inv) => sum + inv.amount, 0);
 
-    return { total, paid, pending, overdue };
+    return { total, paid, pending, draft, overdue };
   }, []);
 
   // Filtrer les factures
