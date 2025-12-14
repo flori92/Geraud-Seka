@@ -148,8 +148,8 @@ def ensure_documents_columns():
                 'validated_by': 'UUID',
                 'validated_at': 'DATE',
                 'folder_id': 'UUID',
-                'client_id': 'UUID',
-                'supplier_id': 'UUID',
+                'client_id': 'UUID NULL',
+                'supplier_id': 'UUID NULL',
                 'lead_id': 'UUID',
                 'opportunity_id': 'UUID',
                 'tenant_id': 'UUID',
@@ -172,6 +172,18 @@ def ensure_documents_columns():
                     except Exception as e:
                         print(f"⚠️  Erreur colonne {column_name}: {e}")
                         conn.rollback()
+
+            # Fix NOT NULL constraints on optional foreign keys
+            try:
+                print("🔧 Correction des contraintes NOT NULL sur les clés étrangères optionnelles...")
+                conn.execute(text("ALTER TABLE documents ALTER COLUMN client_id DROP NOT NULL"))
+                conn.execute(text("ALTER TABLE documents ALTER COLUMN supplier_id DROP NOT NULL"))
+                conn.execute(text("ALTER TABLE documents ALTER COLUMN folder_id DROP NOT NULL"))
+                conn.commit()
+                print("✅ Contraintes NOT NULL supprimées")
+            except Exception as constraint_error:
+                print(f"ℹ️  Contraintes déjà correctes: {constraint_error}")
+                conn.rollback()
 
             print("✅ Vérification complète du schéma terminée")
 

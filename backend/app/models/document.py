@@ -151,8 +151,8 @@ class Document(Base, TimestampMixin):
     
     # Relations flexibles (optionnelles)
     folder_id = Column(UUID(as_uuid=True), ForeignKey("document_folders.id", ondelete="SET NULL"))
-    client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id", ondelete="SET NULL"))
-    supplier_id = Column(UUID(as_uuid=True), ForeignKey("suppliers.id", ondelete="SET NULL"))
+    client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id", ondelete="SET NULL"), nullable=True)
+    supplier_id = Column(UUID(as_uuid=True), ForeignKey("suppliers.id", ondelete="SET NULL"), nullable=True)
     lead_id = Column(UUID(as_uuid=True), nullable=True)  # CRM removed - kept for DB compatibility (no FK constraint)
     opportunity_id = Column(UUID(as_uuid=True), nullable=True)  # CRM removed - kept for DB compatibility (no FK constraint)
     
