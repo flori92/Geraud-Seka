@@ -10,7 +10,6 @@ from sqlalchemy.exc import ProgrammingError, OperationalError
 from app.core import deps
 from app.models.user import User
 from app.schemas.quote import (
-    Quote,
     QuoteCreate,
     QuoteUpdate,
     QuoteWithItems,
@@ -37,7 +36,7 @@ def list_quotes(
         # Validate tenant_id exists
         if not current_user.tenant_id:
             print("❌ Error: User has no tenant_id")
-            return []
+            return {"items": [], "total": 0, "message": "No tenant associated with user"}
             
         quotes = quote_crud.get_multi(
             db,
@@ -47,21 +46,19 @@ def list_quotes(
             status=status,
             client_id=client_id,
         )
-        return quotes
+        return {"items": quotes, "total": len(quotes)}
     except (ProgrammingError, OperationalError) as e:
         # Table doesn't exist yet - rollback and return empty list
         db.rollback()
         print(f"Quotes table error: {str(e)}")
-        return []
+        return {"items": [], "total": 0, "message": "Quotes table not available"}
     except Exception as e:
         # Return empty list on error but log full trace
         db.rollback()
         import traceback
         traceback.print_exc()
         print(f"Quotes error: {str(e)}")
-        # Temporary: return error in response for debugging if environment is dev/production
-        # In a real prod app we wouldn't do this, but we need to debug
-        raise HTTPException(status_code=500, detail=f"Internal Error: {str(e)}")
+        return {"items": [], "total": 0, "message": f"Error: {str(e)}"}
 
 
 @router.post("/", response_model=QuoteWithItems, status_code=201)
