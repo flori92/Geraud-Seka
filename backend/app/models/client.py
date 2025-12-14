@@ -25,6 +25,5 @@ class Client(Base, TimestampMixin):
     # Relations Module CRM (commentées car module CRM supprimé)
     # opportunities = relationship("Opportunity", back_populates="client", cascade="all, delete-orphan")
     # crm_activities = relationship("CRMActivity", back_populates="client", cascade="all, delete-orphan")
-    # contacts = relationship("Contact", back_populates="client", cascade="all, delete-orphan")
 
     __table_args__ = ({"sqlite_autoincrement": True},)
