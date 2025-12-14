@@ -192,6 +192,8 @@ class Opportunity(Base, TimestampMixin):
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
 
     assignee = relationship("User", back_populates="assigned_opportunities", foreign_keys=[assigned_to])
+    client = relationship("Client", back_populates="opportunities", foreign_keys=[client_id])
+    quotes = relationship("Quote", back_populates="opportunity", foreign_keys="Quote.opportunity_id")
 
 
 class CRMActivity(Base, TimestampMixin):
@@ -224,3 +226,5 @@ class CRMActivity(Base, TimestampMixin):
 
     assigned_to = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+
+    client = relationship("Client", back_populates="crm_activities", foreign_keys=[client_id])
