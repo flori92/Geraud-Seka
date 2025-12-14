@@ -6,6 +6,15 @@
   --font-inter: 'Inter', sans-serif;
 }
 
+/* Theme utility aliases used across the app */
+@layer utilities {
+  .bg-background { @apply bg-neutral-50; }
+  .text-foreground { @apply text-neutral-900; }
+  .bg-accents-2 { @apply bg-neutral-100; }
+  .bg-accents-3 { @apply bg-neutral-200; }
+  .border-accents-2 { @apply border-neutral-200; }
+}
+
 body {
   @apply bg-background text-foreground font-sans antialiased;
 }

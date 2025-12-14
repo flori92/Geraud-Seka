@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 
 interface AlertProps extends HTMLAttributes<HTMLDivElement> {
-  variant?: "default" | "success" | "warning" | "danger" | "info";
+  variant?: "default" | "success" | "warning" | "danger" | "error" | "info";
   title?: string;
   closeable?: boolean;
   onClose?: () => void;
@@ -59,6 +59,13 @@ export function Alert({
       iconColor: "text-status-warning",
     },
     danger: {
+      container:
+        "bg-status-danger/10 border-status-danger/20 text-status-danger",
+      icon: <XCircle className="h-5 w-5" />,
+      iconColor: "text-status-danger",
+    },
+    // Alias 'error' for backwards-compatibility with older usages
+    error: {
       container:
         "bg-status-danger/10 border-status-danger/20 text-status-danger",
       icon: <XCircle className="h-5 w-5" />,
@@ -193,3 +200,4 @@ export function InfoAlert({
       {children}
     </Alert>
   );
+}

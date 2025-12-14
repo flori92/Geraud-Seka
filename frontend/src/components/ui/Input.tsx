@@ -56,7 +56,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               "transition-colors duration-200",
               "placeholder:text-neutral-400",
               "focus:outline-none focus:ring-2 focus:ring-offset-0",
-              icon && "pl-10",
+              icon ? "pl-10" : undefined,
               error
                 ? "border-2 border-status-danger focus:ring-status-danger/20"
                 : "border border-neutral-200 focus:ring-primary-500/20 focus:border-primary-500",

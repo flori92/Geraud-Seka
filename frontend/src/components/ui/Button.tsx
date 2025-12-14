@@ -2,7 +2,7 @@ import React, { ButtonHTMLAttributes, forwardRef } from "react";
 import { cn } from "@/lib/utils";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "tertiary" | "danger" | "success" | "outline";
+  variant?: "primary" | "secondary" | "tertiary" | "danger" | "success" | "outline" | "ghost";
   size?: "xs" | "sm" | "md" | "lg";
   fullWidth?: boolean;
   loading?: boolean;
@@ -79,6 +79,12 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         "border-2 border-primary-500",
         "hover:bg-primary-50 focus:ring-primary-500",
         "active:bg-primary-100"
+      ),
+      // Ghost - minimal, low-emphasis button (no background, subtle hover)
+      ghost: cn(
+        "bg-transparent text-neutral-700",
+        "hover:bg-neutral-50 focus:ring-neutral-300",
+        "active:bg-neutral-100"
       ),
     };
 
