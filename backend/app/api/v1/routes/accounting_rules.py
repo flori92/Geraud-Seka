@@ -194,7 +194,17 @@ async def create_entry_from_document(
     db.refresh(doc)
     
     # 2. Traiter avec OCR (support multi-pages)
-    ocr_data = await ocr_service.process_invoice(file_path, file_content=file_content, extract_all_pages=True)
+    try:
+        ocr_data = await ocr_service.process_invoice(file_path, file_content=file_content, extract_all_pages=True)
+    except Exception as e:
+        # En cas d'échec OCR (ex: extraction vide), marquer le document et renvoyer une erreur contrôlée
+        try:
+            doc.status = DocumentStatus.REJECTED
+            doc.ocr_data = {"error": str(e)}
+            db.commit()
+        except Exception:
+            db.rollback()
+        raise HTTPException(status_code=422, detail=f"OCR failed: {str(e)}")
     
     # 3. Appliquer les règles comptables
     engine = AccountingRulesEngine(db, str(current_tenant.id))
