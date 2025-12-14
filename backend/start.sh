@@ -16,15 +16,19 @@ fi
 echo "📡 Port d'écoute: $PORT"
 echo "🗄️  Base de données: ${DATABASE_URL:0:30}..."
 
-# Exécuter les migrations automatiquement au démarrage
-echo "🔄 Exécution des migrations de base de données..."
-python3 migrate.py
-
-if [ $? -eq 0 ]; then
-    echo "✅ Migrations terminées avec succès"
+# Exécuter les migrations automatiquement au démarrage (peut être sautées avec SKIP_MIGRATIONS=1)
+if [ "$SKIP_MIGRATIONS" = "1" ] || [ "$SKIP_MIGRATIONS" = "true" ]; then
+    echo "⚠️  SKIP_MIGRATIONS est défini — on saute l'exécution des migrations"
 else
-    echo "❌ Échec des migrations, arrêt du démarrage"
-    exit 1
+    echo "🔄 Exécution des migrations de base de données..."
+    python3 migrate.py
+
+    if [ $? -eq 0 ]; then
+        echo "✅ Migrations terminées avec succès"
+    else
+        echo "❌ Échec des migrations, arrêt du démarrage"
+        exit 1
+    fi
 fi
 
 # Démarrage de l'API

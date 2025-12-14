@@ -24,12 +24,29 @@ services:
       - ./mongo-data:/data/db
     restart: unless-stopped
 
+  db:
+    image: postgres:15
+    container_name: seka-postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=seka
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
   backend:
     build: ./backend
     container_name: seka-backend
     environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - SECRET_KEY=${SECRET_KEY}
+      DATABASE_URL: "postgresql+psycopg://postgres:postgres@db:5432/seka"
+      SECRET_KEY: "changeme"
     ports:
       - "8000:8000"
     restart: unless-stopped
+    depends_on:
+      - db
+
+

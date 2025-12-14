@@ -113,27 +113,27 @@ class Tenant(Base, TimestampMixin):
         passive_deletes=True,
     )
 
-    # Relations Module RH
-    employees = relationship(
-        "Employee",
-        cascade="all, delete-orphan",
-        passive_deletes=True,
-    )
-    
-    contracts = relationship(
-        "Contract",
-        cascade="all, delete-orphan",
-        passive_deletes=True,
-    )
-    
-    payslips = relationship(
-        "Payslip",
-        cascade="all, delete-orphan",
-        passive_deletes=True,
-    )
-    
-    leave_requests = relationship(
-        "LeaveRequest",
-        cascade="all, delete-orphan",
-        passive_deletes=True,
-    )
+    # Relations Module RH (removed - relationships commented out)
+    # employees = relationship(
+    #     "Employee",
+    #     cascade="all, delete-orphan",
+    #     passive_deletes=True,
+    # )
+    # 
+    # contracts = relationship(
+    #     "Contract",
+    #     cascade="all, delete-orphan",
+    #     passive_deletes=True,
+    # )
+    # 
+    # payslips = relationship(
+    #     "Payslip",
+    #     cascade="all, delete-orphan",
+    #     passive_deletes=True,
+    # )
+    # 
+    # leave_requests = relationship(
+    #     "LeaveRequest",
+    #     cascade="all, delete-orphan",
+    #     passive_deletes=True,
+    # )

@@ -8,8 +8,14 @@ import os
 import sys
 import asyncio
 from pathlib import Path
-from alembic.config import Config
-from alembic import command
+try:
+    # Import alembic lazily; some environments (local dev / Railway runner) may not
+    # have alembic installed in the PATH. We import inside run_migrations as well.
+    from alembic.config import Config  # type: ignore
+    from alembic import command  # type: ignore
+except Exception:
+    Config = None
+    command = None
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import OperationalError
 
@@ -23,8 +29,13 @@ from app.db.session import engine
 # Import all models so they're registered with Base.metadata
 # IMPORTANT: Import order matters for SQLAlchemy relationships
 # Import Quote and SalesInvoice BEFORE Client to avoid mapper initialization errors
-from app.models.tenant import Tenant  # noqa
-from app.models.user import User  # noqa
+try:
+    from app.models.tenant import Tenant  # noqa
+    from app.models.user import User  # noqa
+except Exception:
+    # If model import fails (e.g. HR models removed), continue and handle later.
+    Tenant = None
+    User = None
 try:
     # Import models that Client depends on FIRST
     from app.models.quote import Quote, QuoteItem  # noqa
@@ -40,23 +51,7 @@ try:
     from app.models.product import Product  # noqa
     from app.models.activity import Activity  # noqa
     from app.models.accounting import AccountingEntry  # noqa
-    from app.models.hr import Employee, Contract, Payslip, LeaveRequest  # noqa
-    # Import HR Advanced models
-    from app.models.hr_advanced import (  # noqa
-        WorkSchedule, Shift, ShiftAssignment, Attendance,
-        PerformanceReview, Goal, Feedback360,
-        PayrollParameter, SalaryAdvance, Loan,
-        ExpensePolicy, ExpenseReport, ExpenseLine
-    )
-    # Import HR Recruitment models
-    from app.models.hr_recruitment import (  # noqa
-        JobPosting, Candidate, Application, Interview, JobOffer, RecruitmentPipeline
-    )
-    # Import HR Training models
-    from app.models.hr_training import (  # noqa
-        TrainingCourse, TrainingSession, TrainingEnrollment,
-        Skill, EmployeeSkill, DevelopmentPlan, SuccessionPlan
-    )
+    # HR modules removed: skipped imports
     # Import CRM models
     from app.models.crm import Lead, Opportunity, CRMActivity  # noqa
     # Import Accounting models
@@ -157,8 +152,11 @@ def ensure_documents_columns():
                 'validated_by': 'UUID',
                 'validated_at': 'DATE',
                 'folder_id': 'UUID',
+                'client_id': 'UUID',
+                'supplier_id': 'UUID',
                 'lead_id': 'UUID',
                 'opportunity_id': 'UUID',
+                'tenant_id': 'UUID',
                 'uploaded_by': 'UUID',
             }
 
@@ -194,7 +192,29 @@ def run_migrations():
 
         # Créer d'abord les tables directement (idempotent)
         print("🔧 Création des tables si elles n'existent pas...")
-        print(f"📊 Tables dans metadata: {list(Base.metadata.tables.keys())}")
+
+        # Exclure explicitement les tables liées aux modules RH supprimés
+        # Ceci empêche SQLAlchemy d'essayer de créer des tables RH qui
+        # pourraient entrer en conflit avec l'historique de la base.
+        hr_tables = [
+            'employees', 'contracts', 'payslips', 'leave_requests',
+            'work_schedules', 'shifts', 'shift_assignments', 'attendances',
+            'performance_reviews', 'goals', 'feedbacks_360', 'payroll_parameters',
+            'salary_advances', 'employee_loans', 'expense_policies', 'expense_reports',
+            'expense_lines', 'job_postings', 'candidates', 'applications', 'interviews',
+            'job_offers', 'recruitment_pipelines', 'training_courses', 'training_sessions',
+            'training_enrollments', 'skills', 'employee_skills', 'development_plans',
+            'succession_plans'
+        ]
+
+        for t in hr_tables:
+            if t in Base.metadata.tables:
+                try:
+                    Base.metadata.tables.pop(t)
+                except Exception:
+                    pass
+
+        print(f"📊 Tables dans metadata (filtré): {list(Base.metadata.tables.keys())}")
         Base.metadata.create_all(bind=engine)
         print("✅ Tables vérifiées/créées")
         
@@ -221,19 +241,31 @@ def run_migrations():
                 except Exception:
                     pass  # Table existe mais vide
 
-        # Configuration Alembic
-        alembic_cfg = Config("alembic.ini")
-
-        # Toujours essayer d'appliquer les nouvelles migrations
+        # Configuration Alembic (import lazily if available)
         print("🔄 Vérification et application des nouvelles migrations...")
         try:
-            command.upgrade(alembic_cfg, "head")
-            print("✅ Migrations appliquées avec succès")
-        except Exception as upgrade_error:
-            # Si échec, vérifier si c'est parce qu'il n'y a rien à migrer
-            if "Target database is not up to date" not in str(upgrade_error):
-                print(f"⚠️  Info migration: {upgrade_error}")
-            print("✅ Base de données à jour")
+            if Config is None or command is None:
+                # Attempt lazy import here to give clearer errors
+                try:
+                    from alembic.config import Config as _Config  # type: ignore
+                    from alembic import command as _command  # type: ignore
+                    alembic_cfg = _Config("alembic.ini")
+                    _command.upgrade(alembic_cfg, "head")
+                    print("✅ Migrations appliquées avec succès (import tardif)")
+                except Exception as upgrade_error:
+                    print(f"⚠️  Alembic non disponible ou échec: {upgrade_error}")
+                    print("ℹ️  Ignorer l'application Alembic (environnements sans dépendances).")
+            else:
+                alembic_cfg = Config("alembic.ini")
+                try:
+                    command.upgrade(alembic_cfg, "head")
+                    print("✅ Migrations appliquées avec succès")
+                except Exception as upgrade_error:
+                    if "Target database is not up to date" not in str(upgrade_error):
+                        print(f"⚠️  Info migration: {upgrade_error}")
+                    print("ℹ️  Base de données probablement à jour ou migration ignorée")
+        except Exception as e:
+            print(f"⚠️  Erreur lors de la tentative d'application Alembic: {e}")
 
         return True
 
@@ -271,65 +303,94 @@ def create_initial_data():
         from app.models.purchase_order import PurchaseOrder, PurchaseOrderItem, DeliveryNote, DeliveryNoteItem  # noqa
         from app.models.supplier import Supplier  # noqa
         from app.models.client import Client  # noqa
-        from app.models.hr_advanced import (  # noqa
-            WorkSchedule, Shift, ShiftAssignment, Attendance,
-            PerformanceReview, Goal, Feedback360,
-            PayrollParameter, SalaryAdvance, Loan,
-            ExpensePolicy, ExpenseReport, ExpenseLine
-        )
-        from app.models.hr_recruitment import (  # noqa
-            JobPosting, Candidate, Application, Interview, JobOffer, RecruitmentPipeline
-        )
-        from app.models.hr_training import (  # noqa
-            TrainingCourse, TrainingSession, TrainingEnrollment,
-            Skill, EmployeeSkill, DevelopmentPlan, SuccessionPlan
-        )
+        # HR modules removed: skip HR imports in initial-data path
 
-        from app.db.session import SessionLocal
-        from app.models.tenant import Tenant
-        from app.models.user import User
-        from passlib.context import CryptContext
-        
-        db = SessionLocal()
-        
-        # Vérifier si des données existent déjà
-        existing_tenant = db.query(Tenant).first()
-        if existing_tenant:
-            print("ℹ️  Des données existent déjà, création ignorée")
+        # Try to use ORM insertion; if Tenant/Employee mappers are missing (because HR
+        # models were removed), fallback to raw SQL inserts to avoid mapper errors.
+        try:
+            from app.db.session import SessionLocal
+            from app.models.tenant import Tenant
+            from app.models.user import User
+            from passlib.context import CryptContext
+
+            db = SessionLocal()
+
+            # Vérifier si des données existent déjà
+            existing_tenant = db.query(Tenant).first()
+            if existing_tenant:
+                print("ℹ️  Des données existent déjà, création ignorée")
+                db.close()
+                return True
+
+            # Créer le tenant par défaut
+            pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+            default_tenant = Tenant(
+                name="SEKA Demo",
+                subdomain="demo",
+                country="CI",
+                is_active=True,
+                plan="premium"
+            )
+            db.add(default_tenant)
+            db.flush()  # Pour obtenir l'ID
+
+            # Créer l'utilisateur admin
+            admin_user = User(
+                email="admin@sekagestion.com",
+                hashed_password=pwd_context.hash("admin123"),
+                full_name="Administrateur SEKA",
+                is_active=True,
+                is_superuser=True,
+                tenant_id=default_tenant.id
+            )
+            db.add(admin_user)
+
+            db.commit()
             db.close()
+
+            print("✅ Données initiales créées (ORM)")
+            print("👤 Utilisateur admin: admin@sekagestion.com / admin123")
+
             return True
-        
-        # Créer le tenant par défaut
-        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-        
-        default_tenant = Tenant(
-            name="SEKA Demo",
-            subdomain="demo",
-            country="CI",
-            is_active=True,
-            plan="premium"
-        )
-        db.add(default_tenant)
-        db.flush()  # Pour obtenir l'ID
-        
-        # Créer l'utilisateur admin
-        admin_user = User(
-            email="admin@sekagestion.com",
-            hashed_password=pwd_context.hash("admin123"),
-            full_name="Administrateur SEKA",
-            is_active=True,
-            is_superuser=True,
-            tenant_id=default_tenant.id
-        )
-        db.add(admin_user)
-        
-        db.commit()
-        db.close()
-        
-        print("✅ Données initiales créées")
-        print("👤 Utilisateur admin: admin@sekagestion.com / admin123")
-        
-        return True
+        except Exception as orm_exc:
+            print(f"⚠️  ORM initial data path failed (falling back to SQL): {orm_exc}")
+
+            # Fallback: raw SQL inserts using engine to avoid SQLAlchemy mapper imports
+            try:
+                from sqlalchemy import text
+                import uuid
+
+                with engine.connect() as conn:
+                    # Check if any tenant exists
+                    res = conn.execute(text("SELECT 1 FROM tenants LIMIT 1"))
+                    if res.fetchone():
+                        print("ℹ️  Des données existent déjà (SQL), création ignorée")
+                        return True
+
+                    tenant_id = str(uuid.uuid4())
+                    conn.execute(
+                        text("INSERT INTO tenants (id, name, subdomain, country, is_active, plan) VALUES (:id, :name, :subdomain, :country, :is_active, :plan)"),
+                        {"id": tenant_id, "name": "SEKA Demo", "subdomain": "demo", "country": "CI", "is_active": True, "plan": "premium"}
+                    )
+
+                    # Create admin user
+                    from passlib.context import CryptContext
+                    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+                    admin_id = str(uuid.uuid4())
+                    hashed = pwd_context.hash("admin123")
+                    conn.execute(
+                        text("INSERT INTO users (id, email, hashed_password, full_name, is_active, is_superuser, tenant_id) VALUES (:id, :email, :hpw, :full_name, :is_active, :is_superuser, :tenant_id)"),
+                        {"id": admin_id, "email": "admin@sekagestion.com", "hpw": hashed, "full_name": "Administrateur SEKA", "is_active": True, "is_superuser": True, "tenant_id": tenant_id}
+                    )
+                    conn.commit()
+
+                print("✅ Données initiales créées (SQL)")
+                print("👤 Utilisateur admin: admin@sekagestion.com / admin123")
+                return True
+            except Exception as sql_exc:
+                print(f"❌ Fallback SQL initial data failed: {sql_exc}")
+                return False
         
     except Exception as e:
         print(f"❌ Erreur lors de la création des données initiales: {e}")

@@ -101,6 +101,9 @@ def upgrade():
         'folder_id': 'UUID REFERENCES document_folders(id) ON DELETE SET NULL',
         'lead_id': 'UUID REFERENCES leads(id) ON DELETE SET NULL',
         'opportunity_id': 'UUID REFERENCES opportunities(id) ON DELETE SET NULL',
+        'client_id': 'UUID REFERENCES clients(id) ON DELETE SET NULL',
+        'supplier_id': 'UUID REFERENCES suppliers(id) ON DELETE SET NULL',
+        'tenant_id': 'UUID REFERENCES tenants(id) ON DELETE CASCADE',
         'uploaded_by': 'UUID REFERENCES users(id)',
     }
 

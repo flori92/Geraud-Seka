@@ -23,7 +23,6 @@ from app.api.v1.routes import (
     integrations,
     bot,
     chat,
-    hr,
     payments,
     quotes,
     sales_invoices,
@@ -75,7 +74,6 @@ api_router.include_router(import_export.router, prefix="/data", tags=["import", 
 api_router.include_router(integrations.router, prefix="/integrations", tags=["integrations"])
 api_router.include_router(bot.router, prefix="/bot", tags=["bot"])
 api_router.include_router(chat.router, prefix="/chat", tags=["chat"])
-api_router.include_router(hr.router, prefix="/hr", tags=["hr"])
 api_router.include_router(payments.router, prefix="/payments", tags=["payments"])
 
 # Sales Module Routes

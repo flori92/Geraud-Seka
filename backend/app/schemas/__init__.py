@@ -41,25 +41,7 @@ from .accounting import (
     AccountingEntry,
 )
 
-# HR schemas
-from .hr import (
-    EmployeeBase,
-    EmployeeCreate,
-    EmployeeUpdate,
-    Employee,
-    ContractBase,
-    ContractCreate,
-    ContractUpdate,
-    Contract,
-    PayslipBase,
-    PayslipCreate,
-    PayslipUpdate,
-    Payslip,
-    LeaveRequestBase,
-    LeaveRequestCreate,
-    LeaveRequestUpdate,
-    LeaveRequest,
-)
+# HR schemas (removed)
 
 # Dashboard schemas
 from .dashboard import DashboardStats, FinancialMetrics
@@ -195,23 +177,7 @@ __all__ = [
     "AccountingEntryCreate",
     "AccountingEntryUpdate",
     "AccountingEntry",
-    # HR
-    "EmployeeBase",
-    "EmployeeCreate",
-    "EmployeeUpdate",
-    "Employee",
-    "ContractBase",
-    "ContractCreate",
-    "ContractUpdate",
-    "Contract",
-    "PayslipBase",
-    "PayslipCreate",
-    "PayslipUpdate",
-    "Payslip",
-    "LeaveRequestBase",
-    "LeaveRequestCreate",
-    "LeaveRequestUpdate",
-    "LeaveRequest",
+    # HR (removed)
     # Dashboard
     "DashboardStats",
     "FinancialMetrics",
