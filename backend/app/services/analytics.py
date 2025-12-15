@@ -8,7 +8,6 @@ from datetime import datetime, timedelta, date, timezone
 from typing import Dict, List, Optional, Any
 from sqlalchemy import func, and_, or_
 from sqlalchemy.orm import Session
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.analytics import Metric, Dashboard, Alert, BusinessInsight, KPITarget, MetricCategory, AlertSeverity
 from app.models.client import Client
@@ -16,7 +15,7 @@ from app.models.product import Product
 from app.models.sales_invoice import SalesInvoice
 from app.models.accounting import AccountingEntry
 # from app.models.crm import Lead, Opportunity, CRMActivity  # CRM models removed
-from app.db.session import get_db
+from app.db.session import SessionLocal
 from app.services.monitoring import monitoring_service
 
 
@@ -81,44 +80,42 @@ class AnalyticsService:
     
     async def _calculate_revenue_metrics(self, tenant_id: str, start_date: datetime, end_date: datetime) -> Dict:
         """Calcule les métriques de chiffre d'affaires"""
-        async with AsyncSession() as db:
+        db = SessionLocal()
+        try:
             # CA total
-            revenue_query = db.query(func.sum(SalesInvoice.total_amount)).filter(
+            total_revenue = db.query(func.sum(SalesInvoice.total_amount)).filter(
                 and_(
                     SalesInvoice.tenant_id == tenant_id,
                     SalesInvoice.invoice_date >= start_date.date(),
                     SalesInvoice.invoice_date <= end_date.date()
                 )
-            )
-            total_revenue = await revenue_query.scalar() or 0
-            
+            ).scalar() or 0
+
             # CA période précédente pour comparaison
             previous_start = start_date - (end_date - start_date)
-            previous_revenue_query = db.query(func.sum(SalesInvoice.total_amount)).filter(
+            previous_revenue = db.query(func.sum(SalesInvoice.total_amount)).filter(
                 and_(
                     SalesInvoice.tenant_id == tenant_id,
                     SalesInvoice.invoice_date >= previous_start.date(),
                     SalesInvoice.invoice_date < start_date.date()
                 )
-            )
-            previous_revenue = await previous_revenue_query.scalar() or 0
-            
+            ).scalar() or 0
+
             # Croissance
             growth_rate = 0
             if previous_revenue > 0:
                 growth_rate = ((total_revenue - previous_revenue) / previous_revenue) * 100
-            
+
             # CA moyen par facture
-            invoice_count_query = db.query(func.count(SalesInvoice.id)).filter(
+            invoice_count = db.query(func.count(SalesInvoice.id)).filter(
                 and_(
                     SalesInvoice.tenant_id == tenant_id,
                     SalesInvoice.invoice_date >= start_date.date(),
                     SalesInvoice.invoice_date <= end_date.date()
                 )
-            )
-            invoice_count = await invoice_count_query.scalar() or 0
+            ).scalar() or 0
             avg_invoice_value = total_revenue / invoice_count if invoice_count > 0 else 0
-            
+
             return {
                 "total_revenue": {
                     "value": float(total_revenue),
@@ -142,26 +139,29 @@ class AnalyticsService:
                     "category": MetricCategory.SALES
                 }
             }
+        finally:
+            db.close()
     
     async def _calculate_sales_metrics(self, tenant_id: str, start_date: datetime, end_date: datetime) -> Dict:
         """Calcule les métriques de vente"""
-        async with AsyncSession() as db:
+        db = SessionLocal()
+        try:
             # Nombre de ventes
-            sales_count = await db.query(func.count(SalesInvoice.id)).filter(
+            sales_count = db.query(func.count(SalesInvoice.id)).filter(
                 and_(
                     SalesInvoice.tenant_id == tenant_id,
                     SalesInvoice.invoice_date >= start_date.date(),
                     SalesInvoice.invoice_date <= end_date.date()
                 )
-            ).scalar()
-            
+            ).scalar() or 0
+
             # CRM metrics disabled - models removed
             leads_created = 0
             conversion_rate = 0
-            
+
             return {
                 "sales_count": {
-                    "value": sales_count or 0,
+                    "value": sales_count,
                     "unit": "count",
                     "category": MetricCategory.SALES
                 },
@@ -171,88 +171,92 @@ class AnalyticsService:
                     "category": MetricCategory.SALES
                 },
                 "leads_generated": {
-                    "value": leads_created or 0,
+                    "value": leads_created,
                     "unit": "count",
                     "category": MetricCategory.SALES
                 }
             }
+        finally:
+            db.close()
     
     async def _calculate_customer_metrics(self, tenant_id: str, start_date: datetime, end_date: datetime) -> Dict:
         """Calcule les métriques client"""
-        async with AsyncSession() as db:
+        db = SessionLocal()
+        try:
             # Clients actifs (qui ont acheté dans la période)
-            active_clients = await db.query(func.count(func.distinct(SalesInvoice.client_id))).filter(
+            active_clients = db.query(func.count(func.distinct(SalesInvoice.client_id))).filter(
                 and_(
                     SalesInvoice.tenant_id == tenant_id,
                     SalesInvoice.invoice_date >= start_date.date(),
                     SalesInvoice.invoice_date <= end_date.date()
                 )
-            ).scalar()
-            
+            ).scalar() or 0
+
             # Nouveaux clients
-            new_clients = await db.query(func.count(Client.id)).filter(
+            new_clients = db.query(func.count(Client.id)).filter(
                 and_(
                     Client.tenant_id == tenant_id,
                     Client.created_at >= start_date,
                     Client.created_at <= end_date
                 )
-            ).scalar()
-            
+            ).scalar() or 0
+
             # Total clients
-            total_clients = await db.query(func.count(Client.id)).filter(
+            total_clients = db.query(func.count(Client.id)).filter(
                 Client.tenant_id == tenant_id
-            ).scalar()
-            
+            ).scalar() or 0
+
             return {
                 "active_customers": {
-                    "value": active_clients or 0,
+                    "value": active_clients,
                     "unit": "count",
                     "category": MetricCategory.CUSTOMER
                 },
                 "new_customers": {
-                    "value": new_clients or 0,
+                    "value": new_clients,
                     "unit": "count",
                     "category": MetricCategory.CUSTOMER
                 },
                 "total_customers": {
-                    "value": total_clients or 0,
+                    "value": total_clients,
                     "unit": "count",
                     "category": MetricCategory.CUSTOMER
                 }
             }
+        finally:
+            db.close()
     
     async def _calculate_inventory_metrics(self, tenant_id: str) -> Dict:
         """Calcule les métriques de stock"""
-        async with AsyncSession() as db:
+        db = SessionLocal()
+        try:
             # Valeur totale du stock
-            stock_value_query = db.query(
+            total_stock_value = db.query(
                 func.sum(Product.price * Product.stock_quantity)
-            ).filter(Product.tenant_id == tenant_id)
-            
-            total_stock_value = await stock_value_query.scalar() or 0
-            
+            ).filter(Product.tenant_id == tenant_id).scalar() or 0
+
             # Produits en rupture de stock
-            out_of_stock = await db.query(func.count(Product.id)).filter(
+            out_of_stock = db.query(func.count(Product.id)).filter(
                 and_(
                     Product.tenant_id == tenant_id,
                     Product.stock_quantity <= 0
                 )
-            ).scalar()
-            
+            ).scalar() or 0
+
             # Produits en alerte stock bas
-            low_stock = await db.query(func.count(Product.id)).filter(
+            low_stock = db.query(func.count(Product.id)).filter(
                 and_(
                     Product.tenant_id == tenant_id,
                     Product.stock_quantity <= Product.min_stock_alert,
                     Product.stock_quantity > 0
                 )
-            ).scalar()
-            
+            ).scalar() or 0
+
             # Nombre total de produits
-            total_products = await db.query(func.count(Product.id)).filter(
+            total_products = db.query(func.count(Product.id)).filter(
                 Product.tenant_id == tenant_id
-            ).scalar()
-            
+            ).scalar() or 0
+
             return {
                 "total_stock_value": {
                     "value": float(total_stock_value),
@@ -260,50 +264,51 @@ class AnalyticsService:
                     "category": MetricCategory.INVENTORY
                 },
                 "out_of_stock_products": {
-                    "value": out_of_stock or 0,
+                    "value": out_of_stock,
                     "unit": "count",
                     "category": MetricCategory.INVENTORY
                 },
                 "low_stock_products": {
-                    "value": low_stock or 0,
+                    "value": low_stock,
                     "unit": "count",
                     "category": MetricCategory.INVENTORY
                 },
                 "total_products": {
-                    "value": total_products or 0,
+                    "value": total_products,
                     "unit": "count",
                     "category": MetricCategory.INVENTORY
                 }
             }
+        finally:
+            db.close()
     
     async def _calculate_cash_flow_metrics(self, tenant_id: str, start_date: datetime, end_date: datetime) -> Dict:
         """Calcule les métriques de trésorerie"""
-        async with AsyncSession() as db:
+        db = SessionLocal()
+        try:
             # Entrées de trésorerie
-            cash_in_query = db.query(func.sum(AccountingEntry.credit)).filter(
+            cash_in = db.query(func.sum(AccountingEntry.credit)).filter(
                 and_(
                     AccountingEntry.tenant_id == tenant_id,
                     AccountingEntry.date >= start_date.date(),
                     AccountingEntry.date <= end_date.date(),
                     AccountingEntry.account_number.like('5%')  # Comptes de trésorerie
                 )
-            )
-            cash_in = await cash_in_query.scalar() or 0
-            
+            ).scalar() or 0
+
             # Sorties de trésorerie
-            cash_out_query = db.query(func.sum(AccountingEntry.debit)).filter(
+            cash_out = db.query(func.sum(AccountingEntry.debit)).filter(
                 and_(
                     AccountingEntry.tenant_id == tenant_id,
                     AccountingEntry.date >= start_date.date(),
                     AccountingEntry.date <= end_date.date(),
                     AccountingEntry.account_number.like('5%')  # Comptes de trésorerie
                 )
-            )
-            cash_out = await cash_out_query.scalar() or 0
-            
+            ).scalar() or 0
+
             # Flux de trésorerie net
             net_cash_flow = cash_in - cash_out
-            
+
             return {
                 "cash_inflow": {
                     "value": float(cash_in),
@@ -321,6 +326,8 @@ class AnalyticsService:
                     "category": MetricCategory.FINANCE
                 }
             }
+        finally:
+            db.close()
     
     async def _calculate_crm_metrics(self, tenant_id: str, start_date: datetime, end_date: datetime) -> Dict:
         """Calcule les métriques CRM - DISABLED (models removed)"""
@@ -491,7 +498,8 @@ class AnalyticsService:
     
     async def _save_metrics_to_db(self, tenant_id: str, metrics: Dict, period: str):
         """Sauvegarde les métriques en base de données"""
-        async with AsyncSession() as db:
+        db = SessionLocal()
+        try:
             for name, data in metrics.items():
                 metric = Metric(
                     name=name,
@@ -505,12 +513,18 @@ class AnalyticsService:
                     metadata={"calculation_time": datetime.now(timezone.utc).isoformat()}
                 )
                 db.add(metric)
-            
-            await db.commit()
+
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            print(f"Error saving metrics: {e}")
+        finally:
+            db.close()
     
     async def _save_insights_to_db(self, tenant_id: str, insights: List[Dict]):
         """Sauvegarde les insights en base de données"""
-        async with AsyncSession() as db:
+        db = SessionLocal()
+        try:
             for insight_data in insights:
                 insight = BusinessInsight(
                     title=insight_data["title"],
@@ -522,19 +536,30 @@ class AnalyticsService:
                     tenant_id=tenant_id
                 )
                 db.add(insight)
-            
-            await db.commit()
+
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            print(f"Error saving insights: {e}")
+        finally:
+            db.close()
     
     async def _create_alert(self, **kwargs) -> Alert:
         """Crée une alerte"""
         alert = Alert(**kwargs)
-        
-        async with AsyncSession() as db:
+
+        db = SessionLocal()
+        try:
             db.add(alert)
-            await db.commit()
-            await db.refresh(alert)
-        
-        return alert
+            db.commit()
+            db.refresh(alert)
+            return alert
+        except Exception as e:
+            db.rollback()
+            print(f"Error creating alert: {e}")
+            raise
+        finally:
+            db.close()
 
 
 # Instance singleton

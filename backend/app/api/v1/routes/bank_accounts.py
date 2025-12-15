@@ -30,15 +30,24 @@ def list_bank_accounts(
     """
     Retrieve bank accounts for the current tenant.
     """
-    accounts = ba_crud.get_multi(
-        db,
-        tenant_id=current_user.tenant_id,
-        skip=skip,
-        limit=limit,
-        is_active=is_active,
-        account_type=account_type,
-    )
-    return accounts
+    try:
+        accounts = ba_crud.get_multi(
+            db,
+            tenant_id=current_user.tenant_id,
+            skip=skip,
+            limit=limit,
+            is_active=is_active,
+            account_type=account_type,
+        )
+        return accounts
+    except AttributeError as e:
+        print(f"Bank accounts CRUD error: {str(e)}")
+        return []
+    except Exception as e:
+        print(f"Error listing bank accounts: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return []
 
 
 @router.post("/", response_model=BankAccount, status_code=201)

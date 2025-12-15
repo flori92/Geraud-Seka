@@ -79,12 +79,29 @@ async def upload_document(
         
         # 4. Process with OCR (Mindee) - Non-blocking
         try:
+            print(f"🔍 Starting OCR processing for document: {file.filename}")
             ocr_data = await ocr_service.process_invoice(file_path)
+            print(f"✅ OCR completed. Extracted data: {ocr_data}")
 
-            # Update document with OCR data
+            # Update document with OCR data with proper type conversion
             db_obj.reference_number = ocr_data.get("reference_number")
-            db_obj.document_date = ocr_data.get("date")  # Use document_date field
-            db_obj.due_date = ocr_data.get("due_date")
+
+            # Convert date strings to date objects
+            from datetime import datetime
+            if ocr_data.get("date"):
+                try:
+                    db_obj.document_date = datetime.fromisoformat(str(ocr_data.get("date"))).date()
+                except (ValueError, TypeError) as e:
+                    print(f"⚠️  Date parsing error for 'date': {e}")
+                    db_obj.document_date = None
+
+            if ocr_data.get("due_date"):
+                try:
+                    db_obj.due_date = datetime.fromisoformat(str(ocr_data.get("due_date"))).date()
+                except (ValueError, TypeError) as e:
+                    print(f"⚠️  Date parsing error for 'due_date': {e}")
+                    db_obj.due_date = None
+
             db_obj.amount_ht = ocr_data.get("amount_ht")
             db_obj.amount_vat = ocr_data.get("amount_vat")
             db_obj.amount_ttc = ocr_data.get("amount_ttc")
@@ -93,15 +110,20 @@ async def upload_document(
             db_obj.ocr_confidence = ocr_data.get("confidence", 0.0)
             db_obj.status = DocumentStatus.OCR_COMPLETED
 
+            print(f"💾 Saving OCR data to database for document {db_obj.id}")
             db.commit()
             db.refresh(db_obj)
+            print(f"✅ OCR data saved successfully. Status: {db_obj.status}")
 
         except Exception as ocr_error:
-            print(f"OCR Error: {ocr_error}")
+            print(f"❌ OCR Error: {ocr_error}")
+            import traceback
+            traceback.print_exc()
             # Set status to UPLOADED if OCR fails
             db_obj.status = DocumentStatus.UPLOADED
             db.commit()
             db.refresh(db_obj)
+            print(f"⚠️  Document saved with UPLOADED status (OCR failed)")
             # Continue without failing the upload
 
         return db_obj

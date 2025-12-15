@@ -2,7 +2,7 @@
 from typing import List, Dict, Any, Optional
 from datetime import date, timedelta
 from sqlalchemy.orm import Session
-from sqlalchemy import func, case, and_
+from sqlalchemy import func, case, and_, or_
 
 from app.models.accounting import AccountingEntry
 
@@ -32,7 +32,7 @@ class AccountingAnalyticsService:
         # Charges externes: 61/62*
         external_charges = self.db.query(func.sum(AccountingEntry.debit - AccountingEntry.credit)).filter(
             AccountingEntry.tenant_id == self.tenant_id,
-            AccountingEntry.account_number.like("61%") | AccountingEntry.account_number.like("62%"),
+            or_(AccountingEntry.account_number.like("61%"), AccountingEntry.account_number.like("62%")),
             AccountingEntry.date.between(start_date, end_date)
         ).scalar() or 0.0
 
@@ -376,7 +376,7 @@ class AccountingAnalyticsService:
             # Services extérieurs (61/62)
             services = self.db.query(func.sum(AccountingEntry.debit - AccountingEntry.credit)).filter(
                 AccountingEntry.tenant_id == self.tenant_id,
-                (AccountingEntry.account_number.like("61%") | AccountingEntry.account_number.like("62%")),
+                or_(AccountingEntry.account_number.like("61%"), AccountingEntry.account_number.like("62%")),
                 AccountingEntry.date.between(start_date, end_date)
             ).scalar() or 0.0
 

@@ -283,10 +283,10 @@ async def delete_supplier(
         Supplier.id == supplier_id,
         Supplier.client_id == current_user.tenant_id
     ).first()
-    
+
     if not supplier:
         raise HTTPException(status_code=404, detail="Fournisseur non trouvé")
-    
+
     try:
         db.delete(supplier)
         db.commit()
@@ -294,3 +294,142 @@ async def delete_supplier(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=f"Erreur lors de la suppression: {str(e)}")
+
+
+# New balance endpoints
+class SupplierBalance(BaseModel):
+    supplier_id: str
+    supplier_name: str
+    balance: float
+    payables: float
+    overdue: float
+
+
+class SupplierBalanceStats(BaseModel):
+    total_suppliers: int
+    total_payables: float
+    total_overdue: float
+    average_balance: float
+
+
+@router.get("/balance", response_model=List[SupplierBalance])
+async def get_suppliers_balance(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+    sort_by: Optional[str] = Query("balance", regex="^(balance|supplier_name|payables|overdue)$"),
+    sort_order: Optional[str] = Query("desc", regex="^(asc|desc)$"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get supplier balances calculated from accounting entries (account 401).
+    """
+    try:
+        from app.models.accounting import AccountingEntry
+        from datetime import date
+
+        # Get all suppliers for tenant
+        suppliers = db.query(Supplier).filter(
+            Supplier.client_id == current_user.tenant_id
+        ).all()
+
+        balances = []
+        for supplier in suppliers:
+            # Calculate balance from account 401 (supplier payables)
+            # Credit - Debit = amount we owe (payables are credits)
+            entries = db.query(
+                func.coalesce(func.sum(AccountingEntry.credit), 0).label('total_credit'),
+                func.coalesce(func.sum(AccountingEntry.debit), 0).label('total_debit')
+            ).filter(
+                AccountingEntry.tenant_id == current_user.tenant_id,
+                AccountingEntry.account_number.like('401%'),
+                AccountingEntry.supplier_id == supplier.id
+            ).first()
+
+            total_credit = float(entries.total_credit) if entries else 0
+            total_debit = float(entries.total_debit) if entries else 0
+            balance = total_credit - total_debit  # Positive = we owe money
+            payables = balance if balance > 0 else 0
+
+            # Calculate overdue (simplified - entries older than 30 days)
+            overdue_date = date.today()
+            overdue_entries = db.query(
+                func.coalesce(func.sum(AccountingEntry.credit - AccountingEntry.debit), 0)
+            ).filter(
+                AccountingEntry.tenant_id == current_user.tenant_id,
+                AccountingEntry.account_number.like('401%'),
+                AccountingEntry.supplier_id == supplier.id,
+                AccountingEntry.date < overdue_date
+            ).scalar()
+            overdue = float(overdue_entries) if overdue_entries and overdue_entries > 0 else 0
+
+            balances.append({
+                "supplier_id": str(supplier.id),
+                "supplier_name": supplier.name,
+                "balance": balance,
+                "payables": payables,
+                "overdue": overdue
+            })
+
+        # Sort
+        reverse = (sort_order == "desc")
+        balances.sort(key=lambda x: x[sort_by], reverse=reverse)
+
+        # Paginate
+        return balances[skip:skip+limit]
+
+    except Exception as e:
+        print(f"Error getting supplier balances: {e}")
+        import traceback
+        traceback.print_exc()
+        return []
+
+
+@router.get("/balance/stats", response_model=SupplierBalanceStats)
+async def get_suppliers_balance_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get aggregate statistics for supplier balances.
+    """
+    try:
+        from app.models.accounting import AccountingEntry
+
+        # Get total suppliers
+        total_suppliers = db.query(func.count(Supplier.id)).filter(
+            Supplier.client_id == current_user.tenant_id
+        ).scalar() or 0
+
+        # Calculate total payables from account 401
+        entries = db.query(
+            func.coalesce(func.sum(AccountingEntry.credit), 0).label('total_credit'),
+            func.coalesce(func.sum(AccountingEntry.debit), 0).label('total_debit')
+        ).filter(
+            AccountingEntry.tenant_id == current_user.tenant_id,
+            AccountingEntry.account_number.like('401%')
+        ).first()
+
+        total_credit = float(entries.total_credit) if entries else 0
+        total_debit = float(entries.total_debit) if entries else 0
+        total_payables = max(0, total_credit - total_debit)
+
+        average_balance = total_payables / total_suppliers if total_suppliers > 0 else 0
+
+        return {
+            "total_suppliers": total_suppliers,
+            "total_payables": total_payables,
+            "total_overdue": 0,  # Simplified for now
+            "average_balance": average_balance
+        }
+
+    except Exception as e:
+        print(f"Error getting supplier balance stats: {e}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "total_suppliers": 0,
+            "total_payables": 0,
+            "total_overdue": 0,
+            "average_balance": 0
+        }
