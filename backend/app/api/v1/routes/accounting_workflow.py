@@ -10,6 +10,7 @@ from typing import Any, Dict, List
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+from sqlalchemy.exc import OperationalError, ProgrammingError
 
 from app.api.deps import get_current_tenant, get_current_user
 from app.db.session import get_db
@@ -31,18 +32,23 @@ async def get_consistency_checks(
     start = date(year, 1, 1)
     end = date(year, 12, 31)
 
-    total_debit = (
-        db.query(func.coalesce(func.sum(AccountingEntry.debit), 0.0))
-        .filter(AccountingEntry.tenant_id == current_tenant.id, AccountingEntry.date.between(start, end))
-        .scalar()
-        or 0.0
-    )
-    total_credit = (
-        db.query(func.coalesce(func.sum(AccountingEntry.credit), 0.0))
-        .filter(AccountingEntry.tenant_id == current_tenant.id, AccountingEntry.date.between(start, end))
-        .scalar()
-        or 0.0
-    )
+    try:
+        total_debit = (
+            db.query(func.coalesce(func.sum(AccountingEntry.debit), 0.0))
+            .filter(AccountingEntry.tenant_id == current_tenant.id, AccountingEntry.date.between(start, end))
+            .scalar()
+            or 0.0
+        )
+        total_credit = (
+            db.query(func.coalesce(func.sum(AccountingEntry.credit), 0.0))
+            .filter(AccountingEntry.tenant_id == current_tenant.id, AccountingEntry.date.between(start, end))
+            .scalar()
+            or 0.0
+        )
+    except (ProgrammingError, OperationalError):
+        db.rollback()
+        total_debit = 0.0
+        total_credit = 0.0
 
     is_balanced = abs(float(total_debit) - float(total_credit)) < 0.01
 
@@ -69,8 +75,12 @@ async def get_lettering_summary(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
-    service = AccountingAnalyticsService(db, current_tenant.id)
-    rec_pay = service.get_receivables_payables()
+    try:
+        service = AccountingAnalyticsService(db, current_tenant.id)
+        rec_pay = service.get_receivables_payables()
+    except (ProgrammingError, OperationalError):
+        db.rollback()
+        rec_pay = {"receivables": 0.0, "payables": 0.0}
 
     return {
         "year": year,
