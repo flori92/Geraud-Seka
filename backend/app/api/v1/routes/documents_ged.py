@@ -6,6 +6,8 @@ from typing import List, Optional
 from uuid import UUID
 from datetime import datetime, date
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, BackgroundTasks
+from fastapi.responses import FileResponse
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import and_, or_, desc, func
 
@@ -250,8 +252,9 @@ async def get_documents(
     # Formater la réponse
     result = []
     for doc in documents:
+        base = jsonable_encoder(doc)
         result.append({
-            **doc.__dict__,
+            **base,
             "folder_name": doc.folder.name if doc.folder else None,
             "client_name": doc.client.name if doc.client else None,
             "supplier_name": doc.supplier.name if doc.supplier else None,
@@ -368,9 +371,10 @@ async def get_document(
     
     if not document:
         raise HTTPException(status_code=404, detail="Document non trouvé")
-    
+
+    base = jsonable_encoder(document)
     return {
-        **document.__dict__,
+        **base,
         "folder_name": document.folder.name if document.folder else None,
         "client_name": document.client.name if document.client else None,
         "supplier_name": document.supplier.name if document.supplier else None,
@@ -530,8 +534,9 @@ async def search_documents(
     # Formater la réponse
     result = []
     for doc in documents:
+        base = jsonable_encoder(doc)
         result.append({
-            **doc.__dict__,
+            **base,
             "folder_name": doc.folder.name if doc.folder else None,
             "client_name": doc.client.name if doc.client else None,
             "supplier_name": doc.supplier.name if doc.supplier else None,
