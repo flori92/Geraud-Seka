@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 
 interface ClientContextType {
   selectedClientId: string | null;
@@ -9,6 +9,23 @@ const ClientContext = createContext<ClientContextType | undefined>(undefined);
 
 export function ClientProvider({ children }: { children: ReactNode }) {
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const savedClientId = localStorage.getItem('seka_selected_client');
+    if (savedClientId) {
+      setSelectedClientId(savedClientId);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (selectedClientId) {
+      localStorage.setItem('seka_selected_client', selectedClientId);
+    } else {
+      localStorage.removeItem('seka_selected_client');
+    }
+  }, [selectedClientId]);
 
   return (
     <ClientContext.Provider value={{ selectedClientId, setSelectedClientId }}>

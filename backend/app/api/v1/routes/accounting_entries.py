@@ -5,6 +5,7 @@ import logging
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, and_, or_
 from typing import List, Optional
+from uuid import UUID
 from datetime import date, datetime
 from decimal import Decimal
 import json
@@ -13,8 +14,9 @@ import io
 from weasyprint import HTML
 
 from app.db.session import get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, get_current_client_id_optional
 from app.models.user import User
+from app.models.document import Document
 from app.models.accounting_entries import (
     AccountingEntryHeader, AccountingEntryLine, 
     AccountingRevision, EntryStatus, JournalType
@@ -54,7 +56,8 @@ def create_accounting_entry(
             date=entry_data.date,
             reference=entry_data.reference,
             description=entry_data.description,
-            status=EntryStatus.DRAFT
+            status=EntryStatus.DRAFT,
+            document_id=entry_data.document_id,
         )
         
         db.add(entry)
@@ -111,13 +114,17 @@ def get_accounting_entries(
     date_from: Optional[date] = None,
     date_to: Optional[date] = None,
     current_user: User = Depends(get_current_user),
+    client_id: Optional[UUID] = Depends(get_current_client_id_optional),
     db: Session = Depends(get_db)
 ):
-    query = db.query(AccountingEntryHeader).options(
-        joinedload(AccountingEntryHeader.lines).joinedload(AccountingEntryLine.account)
-    ).filter(
-        AccountingEntryHeader.tenant_id == current_user.tenant_id
+    query = (
+        db.query(AccountingEntryHeader)
+        .options(joinedload(AccountingEntryHeader.lines).joinedload(AccountingEntryLine.account))
+        .filter(AccountingEntryHeader.tenant_id == current_user.tenant_id)
     )
+
+    if client_id:
+        query = query.join(Document, AccountingEntryHeader.document_id == Document.id).filter(Document.client_id == client_id)
     
     if status:
         query = query.filter(AccountingEntryHeader.status == status)

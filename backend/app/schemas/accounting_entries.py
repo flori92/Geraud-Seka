@@ -50,6 +50,7 @@ class AccountingEntryHeaderBase(BaseModel):
     date: date
     reference: Optional[str] = None
     description: str
+    document_id: Optional[UUID] = None
 
 
 class AccountingEntryHeaderCreate(AccountingEntryHeaderBase):

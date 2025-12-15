@@ -1,7 +1,7 @@
 from typing import Generator, Optional
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Header, status
 from fastapi.security import OAuth2PasswordBearer, HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
@@ -81,6 +81,17 @@ def get_current_user_optional(
             return None
 
         return user
+    except Exception:
+        return None
+
+
+def get_current_client_id_optional(
+    x_client_id: Optional[str] = Header(default=None, alias="X-Client-Id"),
+) -> Optional[UUID]:
+    if not x_client_id:
+        return None
+    try:
+        return UUID(x_client_id)
     except Exception:
         return None
 

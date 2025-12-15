@@ -39,6 +39,24 @@ const api = axios.create({
   },
 });
 
+api.interceptors.request.use((config) => {
+  if (typeof window === "undefined") return config;
+
+  const token = localStorage.getItem("seka_access_token");
+  if (token) {
+    config.headers = config.headers ?? {};
+    (config.headers as any).Authorization = `Bearer ${token}`;
+  }
+
+  const selectedClientId = localStorage.getItem("seka_selected_client");
+  if (selectedClientId) {
+    config.headers = config.headers ?? {};
+    (config.headers as any)["X-Client-Id"] = selectedClientId;
+  }
+
+  return config;
+});
+
 export function getApiErrorMessage(error: unknown): string | null {
   if (!axios.isAxiosError(error)) return null;
   const data = error.response?.data as any;
