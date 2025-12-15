@@ -1,5 +1,6 @@
 import type { AppProps } from "next/app";
 import { Inter } from "next/font/google";
+import { useEffect, useState } from "react";
 import "@/styles/globals.css";
 import "@/styles/sidebar-fixes.css";
 import { ToastProvider } from "@/components/ui/ToastContainer";
@@ -17,6 +18,11 @@ const noSidebarPages = ['/login', '/register', '/landing', '/pricing', '/about',
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
   const showSidebar = !noSidebarPages.includes(router.pathname);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   function HeaderWithClientSync() {
     const { setSelectedClientId } = useClient();
@@ -32,7 +38,7 @@ export default function App({ Component, pageProps }: AppProps) {
       <ClientProvider>
         <div className={`${inter.variable} font-sans min-h-screen bg-gray-50`}>
           {showSidebar && <PennylaneSidebar />}
-          {showSidebar && <HeaderWithClientSync />}
+          {showSidebar && isMounted && <HeaderWithClientSync />}
           <main className={showSidebar ? "ml-[220px] transition-all duration-300 pt-14" : ""}>
             <Component {...pageProps} />
           </main>
