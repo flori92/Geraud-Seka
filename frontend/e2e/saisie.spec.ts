@@ -65,13 +65,15 @@ test.describe("Saisie (E2E)", () => {
 
     const sidebar = page.locator(".sidebar");
     const menuSaisie = sidebar.getByRole("button", { name: /^Saisie$/ }).first();
+    const saisieSubmenuContainer = menuSaisie.locator("xpath=following-sibling::div[1]");
     await menuSaisie.click({ force: true });
 
     const itemOcr = sidebar.getByRole("button", { name: /^Saisie avec OCR/ }).first();
     await expect(itemOcr).toBeVisible();
+    await expect(saisieSubmenuContainer).toHaveClass(/max-h-\[600px\]/);
 
     await menuSaisie.click({ force: true });
-    await expect(itemOcr).toBeHidden();
+    await expect(saisieSubmenuContainer).toHaveClass(/max-h-0/);
 
     await menuSaisie.click({ force: true });
     await itemOcr.click({ force: true });
