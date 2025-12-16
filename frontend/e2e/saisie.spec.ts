@@ -19,6 +19,7 @@ async function loginIfNeeded(page: Page, request: APIRequestContext) {
       ({ at, rt }) => {
         localStorage.setItem("seka_access_token", at);
         if (rt) localStorage.setItem("seka_refresh_token", rt);
+        localStorage.setItem("seka_view_mode", "accounting");
       },
       { at: accessToken, rt: refreshToken ?? "" }
     );
@@ -51,6 +52,7 @@ async function loginIfNeeded(page: Page, request: APIRequestContext) {
     ({ at, rt }) => {
       localStorage.setItem("seka_access_token", at);
       if (rt) localStorage.setItem("seka_refresh_token", rt);
+      localStorage.setItem("seka_view_mode", "accounting");
     },
     { at: tokens.access_token, rt: tokens.refresh_token ?? "" }
   );
@@ -61,14 +63,11 @@ test.describe("Saisie (E2E)", () => {
     await loginIfNeeded(page, request);
     await page.goto("/accounting/dashboard");
 
-    // PennylaneSidebar toggle
     const sidebar = page.locator(".sidebar");
-    await sidebar.getByRole("button", { name: "Comptabilité" }).first().click();
-
-    const menuSaisie = page.getByRole("button", { name: "Saisie" });
+    const menuSaisie = sidebar.getByRole("button", { name: "Saisie" });
     await menuSaisie.click();
 
-    const itemOcr = page.getByRole("button", { name: "Saisie avec OCR" });
+    const itemOcr = sidebar.getByRole("button", { name: "Saisie avec OCR" });
     await expect(itemOcr).toBeVisible();
 
     await menuSaisie.click();
@@ -78,13 +77,13 @@ test.describe("Saisie (E2E)", () => {
     await itemOcr.click();
     await expect(page).toHaveURL(/\/accounting\/entries\/from-ocr/);
 
-    await page.getByRole("button", { name: "Nouvelle saisie" }).click();
+    await sidebar.getByRole("button", { name: "Nouvelle saisie" }).click();
     await expect(page).toHaveURL(/\/accounting\/entries\/new/);
 
-    await page.getByRole("button", { name: "Saisie rapide" }).click();
+    await sidebar.getByRole("button", { name: "Saisie rapide" }).click();
     await expect(page).toHaveURL(/\/accounting\/entries\/quick-entry/);
 
-    await page.getByRole("button", { name: "Factures fournisseurs" }).click();
+    await sidebar.getByRole("button", { name: "Factures fournisseurs" }).click();
     await expect(page).toHaveURL(/\/achats\/factures/);
   });
 
