@@ -1,16 +1,34 @@
 import { expect, test, type Page } from "@playwright/test";
 
 async function loginIfNeeded(page: Page) {
+  const accessToken = process.env.SEKA_E2E_ACCESS_TOKEN;
+  const refreshToken = process.env.SEKA_E2E_REFRESH_TOKEN;
   const email = process.env.SEKA_E2E_EMAIL;
   const password = process.env.SEKA_E2E_PASSWORD;
 
-  if (!email || !password) {
-    test.skip(true, "SEKA_E2E_EMAIL/SEKA_E2E_PASSWORD non définis");
+  if (!accessToken && (!email || !password)) {
+    throw new Error(
+      "Pré-requis E2E manquant: définis soit SEKA_E2E_ACCESS_TOKEN (optionnellement SEKA_E2E_REFRESH_TOKEN), soit SEKA_E2E_EMAIL + SEKA_E2E_PASSWORD"
+    );
+  }
+
+  if (accessToken) {
+    await page.goto("/");
+    await page.evaluate(
+      ({ at, rt }) => {
+        localStorage.setItem("seka_access_token", at);
+        if (rt) localStorage.setItem("seka_refresh_token", rt);
+      },
+      { at: accessToken, rt: refreshToken ?? "" }
+    );
     return;
   }
 
   await page.goto("/dashboard");
   if (page.url().includes("/login")) {
+    if (!email || !password) {
+      throw new Error("SEKA_E2E_EMAIL/SEKA_E2E_PASSWORD manquants");
+    }
     await page.fill("#email", email);
     await page.fill("#password", password);
     await page.getByRole("button", { name: "Se connecter" }).click();

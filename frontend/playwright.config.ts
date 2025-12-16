@@ -1,15 +1,13 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const baseURL = process.env.SEKA_E2E_BASE_URL ?? "http://localhost:3000";
-
 export default defineConfig({
   testDir: "./e2e",
   timeout: 90_000,
   expect: { timeout: 15_000 },
   retries: process.env.CI ? 2 : 0,
-  reporter: process.env.CI ? "github" : "list",
+  reporter: process.env.CI ? "github" : [["list"], ["html", { open: "never" }]],
   use: {
-    baseURL,
+    baseURL: "http://localhost:3000",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
