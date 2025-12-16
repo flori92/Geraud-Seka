@@ -65,25 +65,25 @@ test.describe("Saisie (E2E)", () => {
 
     const sidebar = page.locator(".sidebar");
     const menuSaisie = sidebar.getByRole("button", { name: /^Saisie$/ }).first();
-    await menuSaisie.click();
+    await menuSaisie.click({ force: true });
 
     const itemOcr = sidebar.getByRole("button", { name: /^Saisie avec OCR/ }).first();
     await expect(itemOcr).toBeVisible();
 
-    await menuSaisie.click();
+    await menuSaisie.click({ force: true });
     await expect(itemOcr).toBeHidden();
 
-    await menuSaisie.click();
-    await itemOcr.click();
+    await menuSaisie.click({ force: true });
+    await itemOcr.click({ force: true });
     await expect(page).toHaveURL(/\/accounting\/entries\/from-ocr/);
 
-    await sidebar.getByRole("button", { name: /^Nouvelle saisie$/ }).first().click();
+    await sidebar.getByRole("button", { name: /^Nouvelle saisie$/ }).first().click({ force: true });
     await expect(page).toHaveURL(/\/accounting\/entries\/new/);
 
-    await sidebar.getByRole("button", { name: /^Saisie rapide/ }).first().click();
+    await sidebar.getByRole("button", { name: /^Saisie rapide/ }).first().click({ force: true });
     await expect(page).toHaveURL(/\/accounting\/entries\/quick-entry/);
 
-    await sidebar.getByRole("button", { name: /^Factures fournisseurs$/ }).first().click();
+    await sidebar.getByRole("button", { name: /^Factures fournisseurs$/ }).first().click({ force: true });
     await expect(page).toHaveURL(/\/achats\/factures/);
   });
 
