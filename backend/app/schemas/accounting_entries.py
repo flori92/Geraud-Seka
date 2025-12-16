@@ -17,7 +17,7 @@ class AccountingEntryLineBase(BaseModel):
     partner_id: Optional[UUID] = None
     partner_type: Optional[str] = None
 
-    @root_validator
+    @root_validator(skip_on_failure=True)
     def validate_account_identifier(cls, values):
         account_id = values.get('account_id')
         account_code = values.get('account_code')
