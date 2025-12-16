@@ -1,7 +1,10 @@
 from typing import List, Optional, Any
 from uuid import UUID
 from datetime import date
+from decimal import Decimal
+
 from pydantic import BaseModel
+from pydantic import model_validator
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
@@ -218,20 +221,52 @@ def update_document(
 
 
 from app.models.accounting import AccountingEntry, EntryType
+from app.models.client import Client
 from app.models.supplier import Supplier
-from decimal import Decimal
 from datetime import date
 from pydantic import BaseModel
 
 class ValidationData(BaseModel):
+    reference_number: Optional[str] = None
     date: date
-    supplier_name: str
-    total_amount: Decimal
-    tax_amount: Decimal
+    due_date: Optional[date] = None
+    supplier_name: Optional[str] = None
+
+    # Montants (compat payload front)
+    amount_ht: Optional[Decimal] = None
+    amount_vat: Optional[Decimal] = None
+    amount_ttc: Optional[Decimal] = None
+
+    # Montants (compat payload legacy)
+    total_amount: Optional[Decimal] = None
+    tax_amount: Optional[Decimal] = None
+
     description: str
     # Accounting overrides
     account_number: Optional[str] = None
     journal_code: Optional[str] = "ACH"
+
+    @model_validator(mode="after")
+    def compute_amounts(self):
+        # Harmoniser les noms entre front et backend
+        if self.total_amount is None:
+            if self.amount_ttc is not None:
+                self.total_amount = self.amount_ttc
+            elif self.amount_ht is not None and self.amount_vat is not None:
+                self.total_amount = self.amount_ht + self.amount_vat
+
+        if self.tax_amount is None and self.amount_vat is not None:
+            self.tax_amount = self.amount_vat
+
+        # Backfill amounts
+        if self.amount_ttc is None and self.total_amount is not None:
+            self.amount_ttc = self.total_amount
+        if self.amount_vat is None and self.tax_amount is not None:
+            self.amount_vat = self.tax_amount
+        if self.amount_ht is None and self.total_amount is not None and self.tax_amount is not None:
+            self.amount_ht = self.total_amount - self.tax_amount
+
+        return self
 
 @router.post("/{document_id}/validate", response_model=DocumentSchema)
 def validate_document(
@@ -250,16 +285,33 @@ def validate_document(
 
     # 1. Update Document Metadata
     document.status = DocumentStatus.VALIDATED
-    document.total_amount = validation_data.total_amount
-    document.tax_amount = validation_data.tax_amount
+    document.reference_number = validation_data.reference_number or document.reference_number
+    document.document_date = validation_data.date
+    document.due_date = validation_data.due_date
+    document.amount_ht = float(validation_data.amount_ht) if validation_data.amount_ht is not None else document.amount_ht
+    document.amount_vat = float(validation_data.amount_vat) if validation_data.amount_vat is not None else document.amount_vat
+    document.amount_ttc = float(validation_data.amount_ttc) if validation_data.amount_ttc is not None else document.amount_ttc
+    document.description = validation_data.description
     # document.extracted_data = validation_data.model_dump(mode='json') # Optional: update extracted data
     
     # 2. Manage Supplier & Rules
-    supplier = db.query(Supplier).filter(Supplier.name == validation_data.supplier_name, Supplier.tenant_id == current_user.tenant_id).first()
+    supplier_name = (validation_data.supplier_name or "").strip()
+    if not supplier_name:
+        raise HTTPException(status_code=422, detail="supplier_name est requis")
+
+    if document.client_id is None:
+        client = db.query(Client).filter(Client.tenant_id == current_user.tenant_id).first()
+        if not client:
+            raise HTTPException(status_code=422, detail="Aucun client n'est configuré pour ce tenant")
+        document.client_id = client.id
+
+    supplier = db.query(Supplier).filter(Supplier.name == supplier_name, Supplier.client_id == document.client_id).first()
     if not supplier:
-        supplier = Supplier(name=validation_data.supplier_name, tenant_id=current_user.tenant_id)
+        supplier = Supplier(name=supplier_name, client_id=document.client_id)
         db.add(supplier)
         db.flush() # Get ID
+
+    document.supplier_id = supplier.id
     
     # Update rules if provided
     if validation_data.account_number:
@@ -269,6 +321,9 @@ def validate_document(
     
     # 3. Generate Accounting Entries (Simple Schema: Expense + VAT = Payable)
     # Expense Line (Debit)
+    if validation_data.total_amount is None or validation_data.tax_amount is None:
+        raise HTTPException(status_code=422, detail="Montants invalides (total_amount/tax_amount) - vérifiez HT/TVA/TTC")
+
     expense_account = validation_data.account_number or supplier.default_account or "601000"
     ht_amount = validation_data.total_amount - validation_data.tax_amount
     
@@ -280,6 +335,7 @@ def validate_document(
         debit=ht_amount,
         credit=0,
         date=validation_data.date,
+        client_id=document.client_id,
         journal_code=validation_data.journal_code or "ACH",
         tenant_id=current_user.tenant_id
     )
@@ -295,6 +351,7 @@ def validate_document(
             debit=validation_data.tax_amount,
             credit=0,
             date=validation_data.date,
+            client_id=document.client_id,
             journal_code=validation_data.journal_code or "ACH",
             tenant_id=current_user.tenant_id
         )
@@ -305,10 +362,11 @@ def validate_document(
         document_id=document.id,
         entry_type=EntryType.CREDIT,
         account_number="401100", # Fournisseurs
-        label=f"Facture {validation_data.supplier_name}",
+        label=f"Facture {supplier_name}",
         debit=0,
         credit=validation_data.total_amount,
         date=validation_data.date,
+        client_id=document.client_id,
         journal_code=validation_data.journal_code or "ACH",
         tenant_id=current_user.tenant_id
     )

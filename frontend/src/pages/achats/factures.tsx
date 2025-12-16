@@ -323,7 +323,11 @@ export default function FacturesFournisseurs() {
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {filteredInvoices.map((inv) => (
-                      <tr key={inv.id} className="hover:bg-gray-50 cursor-pointer">
+                      <tr
+                        key={inv.id}
+                        className="hover:bg-gray-50 cursor-pointer"
+                        onClick={() => router.push(`/documents/${inv.id}/validate`)}
+                      >
                         <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                           <input
                             type="checkbox"
