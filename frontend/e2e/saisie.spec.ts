@@ -64,18 +64,29 @@ test.describe("Saisie (E2E)", () => {
     await page.goto("/accounting/dashboard");
 
     const sidebar = page.locator(".sidebar");
-    const menuSaisie = sidebar.getByRole("button", { name: /^Saisie$/ }).first();
-    const saisieSubmenuContainer = menuSaisie.locator("xpath=following-sibling::div[1]");
-    await menuSaisie.click({ force: true });
-
     const itemOcr = sidebar.getByRole("button", { name: /^Saisie avec OCR/ }).first();
-    await expect(itemOcr).toBeVisible();
-    await expect(saisieSubmenuContainer).toHaveClass(/max-h-\[600px\]/);
 
+    // Remonter au conteneur de sous-menu réellement associé (celui qui porte max-h-0 / max-h-[600px])
+    const saisieSubmenuContainer = itemOcr.locator(
+      'xpath=ancestor::div[contains(@class,"overflow-hidden") and contains(@class,"max-h")][1]'
+    );
+    const menuSaisie = saisieSubmenuContainer.locator('xpath=preceding-sibling::button[1]');
+
+    // Assurer l'ouverture du menu
+    const initialClass = (await saisieSubmenuContainer.getAttribute("class")) ?? "";
+    if (initialClass.includes("max-h-0")) {
+      await menuSaisie.click({ force: true });
+    }
+    await expect(saisieSubmenuContainer).toHaveClass(/max-h-\[600px\]/);
+    await expect(itemOcr).toBeVisible();
+
+    // Tester repli
     await menuSaisie.click({ force: true });
     await expect(saisieSubmenuContainer).toHaveClass(/max-h-0/);
 
+    // Ré-ouvrir et naviguer
     await menuSaisie.click({ force: true });
+    await expect(saisieSubmenuContainer).toHaveClass(/max-h-\[600px\]/);
     await itemOcr.click({ force: true });
     await expect(page).toHaveURL(/\/accounting\/entries\/from-ocr/);
 
