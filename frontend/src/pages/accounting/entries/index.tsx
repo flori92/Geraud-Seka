@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { PennylaneSidebar } from "@/components/layout/PennylaneSidebar";
 import { 
   Search, Plus, Download, Check, Edit2, Trash2, Eye, CheckCircle, Loader2
 } from "lucide-react";
@@ -62,11 +61,9 @@ export default function AccountingEntries() {
   const [journalFilter, setJournalFilter] = useState<JournalType | "all">("all");
   const [dateRange, setDateRange] = useState<{ start?: string; end?: string }>({});
 
-  useEffect(() => {
-    fetchEntries();
-  }, [statusFilter, journalFilter]);
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL;
 
-  const fetchEntries = async () => {
+  const fetchEntries = useCallback(async () => {
     const token = localStorage.getItem("seka_access_token");
     if (!token) {
       router.push("/login");
@@ -75,7 +72,12 @@ export default function AccountingEntries() {
 
     setLoading(true);
     try {
-      let url = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/accounting-entries/entries/`;
+      if (!apiBaseUrl) {
+        console.error("[API] NEXT_PUBLIC_API_BASE_URL manquant");
+        return;
+      }
+
+      let url = `${apiBaseUrl}/api/v1/accounting-entries/entries/`;
       const params = new URLSearchParams();
       
       if (statusFilter !== "all") params.append("status", statusFilter);
@@ -96,13 +98,22 @@ export default function AccountingEntries() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiBaseUrl, journalFilter, router, statusFilter]);
+
+  useEffect(() => {
+    fetchEntries();
+  }, [fetchEntries]);
 
   const validateEntry = async (entryId: string) => {
     const token = localStorage.getItem("seka_access_token");
     try {
+      if (!apiBaseUrl) {
+        console.error("[API] NEXT_PUBLIC_API_BASE_URL manquant");
+        return;
+      }
+
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/accounting-entries/entries/${entryId}/validate`,
+        `${apiBaseUrl}/api/v1/accounting-entries/entries/${entryId}/validate`,
         {
           method: "POST",
           headers: {
@@ -124,8 +135,13 @@ export default function AccountingEntries() {
   const postEntry = async (entryId: string) => {
     const token = localStorage.getItem("seka_access_token");
     try {
+      if (!apiBaseUrl) {
+        console.error("[API] NEXT_PUBLIC_API_BASE_URL manquant");
+        return;
+      }
+
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/accounting-entries/entries/${entryId}/post`,
+        `${apiBaseUrl}/api/v1/accounting-entries/entries/${entryId}/post`,
         {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` }
@@ -145,8 +161,13 @@ export default function AccountingEntries() {
 
     const token = localStorage.getItem("seka_access_token");
     try {
+      if (!apiBaseUrl) {
+        console.error("[API] NEXT_PUBLIC_API_BASE_URL manquant");
+        return;
+      }
+
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/accounting-entries/entries/${entryId}`,
+        `${apiBaseUrl}/api/v1/accounting-entries/entries/${entryId}`,
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` }
