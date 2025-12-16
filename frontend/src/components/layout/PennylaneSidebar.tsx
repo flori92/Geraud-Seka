@@ -14,10 +14,8 @@ import {
   Settings,
   LogOut,
   ChevronDown,
-  ChevronRight,
   Building2,
   Calculator,
-  Files,
   Wallet,
   Users,
   Search,
@@ -26,42 +24,13 @@ import {
   FolderOpen,
   BookOpen,
   Scale,
-  FileCheck,
-  Import,
   Download,
-  Landmark,
   ArrowLeftRight,
-  ClipboardList,
-  FileSpreadsheet,
-  PiggyBank,
-  Banknote,
-  UserCheck,
-  MessageSquare,
-  Bell,
   Eye,
   Package,
-  Truck,
-  Briefcase,
-  Calendar,
-  DollarSign,
-  TrendingUp,
-  FileBarChart,
-  Shield,
   Zap,
-  RefreshCw,
-  Target,
-  Mail,
-  Phone,
-  Globe,
-  Database,
   Lock,
-  Key,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  Layers,
-  GitBranch,
-  Activity
+  type LucideIcon
 } from "lucide-react";
 
 interface SubMenuItem {
@@ -74,7 +43,7 @@ interface SubMenuItem {
 interface MenuItem {
   id: string;
   label: string;
-  icon: any;
+  icon: LucideIcon;
   href?: string;
   submenu?: SubMenuItem[];
   badge?: string;
@@ -91,18 +60,7 @@ const managementMenu: MenuSection[] = [
   {
     items: [
       { id: "accueil", label: "Accueil", icon: LayoutDashboard, href: "/dashboard" },
-      {
-        id: "contacts",
-        label: "Contacts",
-        icon: Users,
-        submenu: [
-          { label: "Tous les contacts", href: "/contacts" },
-          { label: "Clients", href: "/crm/contacts" },
-          { label: "Fournisseurs", href: "/suppliers" },
-          { label: "Prospects", href: "/crm/leads" },
-          { label: "Importer des contacts", href: "/contacts/import" },
-        ]
-      },
+      { id: "contacts", label: "Contacts", icon: Users, href: "/contacts" },
       {
         id: "transactions",
         label: "Transactions",
@@ -147,7 +105,6 @@ const managementMenu: MenuSection[] = [
           { label: "Devis", href: "/ventes/nouveau-devis" },
           { label: "Bons de livraison", href: "/ventes/bons-livraison" },
           { label: "Avoirs", href: "/ventes/avoirs" },
-          { label: "Clients", href: "/crm/contacts" },
         ]
       },
       {
@@ -299,19 +256,6 @@ const accountingMenu: MenuSection[] = [
           { label: "Validation période", href: "/accounting/period-validation" },
         ]
       },
-      {
-        id: "dossier-client",
-        label: "Dossier client",
-        icon: FolderOpen,
-        submenu: [
-          { label: "Contacts", href: "/contacts" },
-          { label: "Documents", href: "/documents" },
-          { label: "Plan comptable", href: "/accounting/chart-of-accounts" },
-          { label: "Règles comptables", href: "/settings/accounting-rules", badge: "IA", badgeVariant: "new" },
-          { label: "Modèles d'écritures", href: "/accounting/entry-templates" },
-          { label: "Paramètres dossier", href: "/settings" },
-        ]
-      },
     ]
   },
   {
@@ -354,13 +298,14 @@ const accountingMenu: MenuSection[] = [
       },
       { id: "aide", label: "Aide", icon: HelpCircle, href: "/aide" },
     ]
-  }
+  },
 ];
 
-const badgeStyles = {
+const badgeStyles: Record<string, string> = {
   new: "bg-blue-100 text-blue-700 text-[10px] px-1.5 py-0.5 rounded font-medium",
   beta: "bg-blue-100 text-blue-700 text-[10px] px-1.5 py-0.5 rounded font-medium",
-  count: "bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium min-w-[18px] text-center",
+  count:
+    "bg-orange-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium min-w-[18px] text-center",
   included: "bg-blue-500 text-white text-[10px] px-1.5 py-0.5 rounded font-medium",
 };
 
@@ -404,14 +349,21 @@ export function PennylaneSidebar() {
   // Ouvrir automatiquement le menu parent si on est sur une route enfant
   useEffect(() => {
     const allMenuItems = currentMenu.flatMap(section => section.items);
-    for (const item of allMenuItems) {
-      if (item.submenu) {
-        const isChildActive = item.submenu.some(sub => pathname === sub.href || pathname.startsWith(sub.href + "/"));
-        if (isChildActive && !openMenus.includes(item.id)) {
-          setOpenMenus(prev => [...prev, item.id]);
+    setOpenMenus((prev) => {
+      let next = prev;
+      for (const item of allMenuItems) {
+        if (!item.submenu) continue;
+
+        const isChildActive = item.submenu.some(
+          (sub) => pathname === sub.href || pathname.startsWith(sub.href + "/")
+        );
+
+        if (isChildActive && !next.includes(item.id)) {
+          next = [...next, item.id];
         }
       }
-    }
+      return next;
+    });
   }, [pathname, currentMenu]);
 
   const handleModeChange = (mode: "management" | "accounting") => {
