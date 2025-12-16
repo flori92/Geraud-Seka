@@ -4,7 +4,7 @@ from typing import Optional, List
 from uuid import UUID
 from decimal import Decimal
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, root_validator, validator
 
 
 class AccountingEntryLineBase(BaseModel):
@@ -17,12 +17,13 @@ class AccountingEntryLineBase(BaseModel):
     partner_id: Optional[UUID] = None
     partner_type: Optional[str] = None
 
-    @validator('account_id', always=True)
-    def validate_account_identifier(cls, v, values):
+    @root_validator
+    def validate_account_identifier(cls, values):
+        account_id = values.get('account_id')
         account_code = values.get('account_code')
-        if v is None and not account_code:
+        if account_id is None and not account_code:
             raise ValueError("account_id ou account_code est requis")
-        return v
+        return values
 
     @validator('debit', 'credit')
     def validate_amounts(cls, v):
