@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { PennylaneSidebar } from "@/components/layout/PennylaneSidebar";
@@ -26,20 +26,21 @@ export default function NewAccountingEntry() {
   const [reference, setReference] = useState("");
   const [description, setDescription] = useState("");
   const [accountSearch, setAccountSearch] = useState("");
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL;
   const [lines, setLines] = useState<EntryLine[]>([
     { account_id: "", label: "", debit: "0", credit: "0" },
     { account_id: "", label: "", debit: "0", credit: "0" }
   ]);
 
-  useEffect(() => {
-    fetchAccounts();
-  }, []);
-
-  const fetchAccounts = async () => {
+  const fetchAccounts = useCallback(async () => {
     const token = localStorage.getItem("seka_access_token");
     try {
+      if (!apiBaseUrl) {
+        console.error("[API] NEXT_PUBLIC_API_BASE_URL manquant");
+        return;
+      }
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/accounting/ledger/`,
+        `${apiBaseUrl}/api/v1/accounting/ledger/`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (response.ok) {
@@ -49,7 +50,11 @@ export default function NewAccountingEntry() {
     } catch (error) {
       console.error("Error fetching accounts:", error);
     }
-  };
+  }, [apiBaseUrl]);
+
+  useEffect(() => {
+    fetchAccounts();
+  }, [fetchAccounts]);
 
   const addLine = () => {
     setLines([...lines, { account_id: "", label: "", debit: "0", credit: "0" }]);
@@ -89,8 +94,12 @@ export default function NewAccountingEntry() {
 
     const token = localStorage.getItem("seka_access_token");
     try {
+      if (!apiBaseUrl) {
+        console.error("[API] NEXT_PUBLIC_API_BASE_URL manquant");
+        return;
+      }
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/accounting-entries/entries/`,
+        `${apiBaseUrl}/api/v1/accounting-entries/entries/`,
         {
           method: "POST",
           headers: {
@@ -240,7 +249,7 @@ export default function NewAccountingEntry() {
             <div className="mb-4">
               <div className="flex flex-col gap-3 mb-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex items-center gap-3">
-                  <h3 className="text-sm font-medium text-gray-700">Lignes d'écriture</h3>
+                  <h3 className="text-sm font-medium text-gray-700">Lignes d&apos;écriture</h3>
                   <div className="flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-lg text-xs text-gray-600">
                     <Search className="w-4 h-4 text-gray-400" />
                     <input
@@ -363,7 +372,7 @@ export default function NewAccountingEntry() {
               {!isBalanced() && (
                 <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
                   <p className="text-sm text-red-700">
-                    L'écriture n'est pas équilibrée. Différence: {Math.abs(getTotalDebit() - getTotalCredit()).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} FCFA
+                    L&apos;écriture n&apos;est pas équilibrée. Différence: {Math.abs(getTotalDebit() - getTotalCredit()).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} FCFA
                   </p>
                 </div>
               )}
@@ -371,7 +380,7 @@ export default function NewAccountingEntry() {
               {isBalanced() && getTotalDebit() > 0 && (
                 <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
                   <p className="text-sm text-green-700">
-                    L'écriture est équilibrée
+                    L&apos;écriture est équilibrée
                   </p>
                 </div>
               )}

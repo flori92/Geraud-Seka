@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { PennylaneSidebar } from "@/components/layout/PennylaneSidebar";
-import { Plus, Trash2, Save, X, Sparkles, Wand2, Search, ArrowRight } from "lucide-react";
+import { Plus, Trash2, Save, X, Sparkles, ArrowRight } from "lucide-react";
 import { format } from "date-fns";
 
 interface Account {
@@ -34,7 +34,7 @@ export default function QuickAccountingEntry() {
     const [dateStr, setDateStr] = useState(new Date().toISOString().split("T")[0]);
     const [reference, setReference] = useState("");
     const [description, setDescription] = useState("");
-    const [accountSearch, setAccountSearch] = useState("");
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL;
 
     // État pour les lignes de l'écriture en cours
     const [lines, setLines] = useState<EntryLine[]>([
@@ -46,15 +46,15 @@ export default function QuickAccountingEntry() {
     const [recentEntries, setRecentEntries] = useState<SavedEntry[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    useEffect(() => {
-        fetchAccounts();
-    }, []);
-
-    const fetchAccounts = async () => {
+    const fetchAccounts = useCallback(async () => {
         const token = localStorage.getItem("seka_access_token");
         try {
+            if (!apiBaseUrl) {
+                console.error("[API] NEXT_PUBLIC_API_BASE_URL manquant");
+                return;
+            }
             const response = await fetch(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/v1/accounting/ledger/`,
+                `${apiBaseUrl}/api/v1/accounting/ledger/`,
                 { headers: { Authorization: `Bearer ${token}` } }
             );
             if (response.ok) {
@@ -64,7 +64,11 @@ export default function QuickAccountingEntry() {
         } catch (error) {
             console.error("Error fetching accounts:", error);
         }
-    };
+    }, [apiBaseUrl]);
+
+    useEffect(() => {
+        fetchAccounts();
+    }, [fetchAccounts]);
 
     const addLine = () => {
         setLines([...lines, { account_id: "", label: description || "", debit: "0", credit: "0" }]);
@@ -109,8 +113,12 @@ export default function QuickAccountingEntry() {
         setIsSubmitting(true);
         const token = localStorage.getItem("seka_access_token");
         try {
+            if (!apiBaseUrl) {
+                console.error("[API] NEXT_PUBLIC_API_BASE_URL manquant");
+                return;
+            }
             const response = await fetch(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/v1/accounting-entries/entries/`,
+                `${apiBaseUrl}/api/v1/accounting-entries/entries/`,
                 {
                     method: "POST",
                     headers: {
@@ -171,11 +179,7 @@ export default function QuickAccountingEntry() {
         }
     };
 
-    const filteredAccounts = accounts.filter(
-        (a) =>
-            a.account_code.toLowerCase().includes(accountSearch.toLowerCase()) ||
-            a.account_name.toLowerCase().includes(accountSearch.toLowerCase())
-    );
+    const filteredAccounts = accounts;
 
     return (
         <>
