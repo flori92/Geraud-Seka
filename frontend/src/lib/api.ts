@@ -1,8 +1,22 @@
 import axios from "axios";
 
+type ApiErrorPayload = {
+  detail?: unknown;
+  message?: unknown;
+};
+
+type UnknownRecord = Record<string, unknown>;
+
 // Force HTTPS in production, never fall back to HTTP
 const getApiBaseUrl = () => {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL;
+
+  // En développement:
+  // - si une base URL est fournie (ex: http://localhost:8000), on l'utilise.
+  // - sinon, on passe en same-origin (/api/v1) et Next.js proxy via rewrites (évite le CORS).
+  if (process.env.NODE_ENV !== "production") {
+    if (!baseUrl) return "";
+  }
 
   // If no env var, use production API with HTTPS
   if (!baseUrl) {
@@ -31,7 +45,7 @@ if (process.env.NODE_ENV === "development") {
 }
 
 const api = axios.create({
-  baseURL: `${API_BASE_URL}/api/v1`,
+  baseURL: API_BASE_URL ? `${API_BASE_URL}/api/v1` : "/api/v1",
   timeout: 30000, // Augmenté pour les connexions lentes
   headers: {
     "Content-Type": "application/json",
@@ -45,13 +59,13 @@ api.interceptors.request.use((config) => {
   const token = localStorage.getItem("seka_access_token");
   if (token) {
     config.headers = config.headers ?? {};
-    (config.headers as any).Authorization = `Bearer ${token}`;
+    config.headers.Authorization = `Bearer ${token}`;
   }
 
   const selectedClientId = localStorage.getItem("seka_selected_client");
   if (selectedClientId) {
     config.headers = config.headers ?? {};
-    (config.headers as any)["X-Client-Id"] = selectedClientId;
+    config.headers["X-Client-Id"] = selectedClientId;
   }
 
   return config;
@@ -59,7 +73,7 @@ api.interceptors.request.use((config) => {
 
 export function getApiErrorMessage(error: unknown): string | null {
   if (!axios.isAxiosError(error)) return null;
-  const data = error.response?.data as any;
+  const data = error.response?.data as ApiErrorPayload | undefined;
   if (typeof data?.detail === "string" && data.detail.trim().length > 0) return data.detail;
   if (typeof data?.message === "string" && data.message.trim().length > 0) return data.message;
   if (typeof error.message === "string" && error.message.trim().length > 0) return error.message;
@@ -70,14 +84,43 @@ export function getApiErrorMessage(error: unknown): string | null {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Si le token est invalide ou expiré (401), déconnecter l'utilisateur
-    if (error.response?.status === 401 && typeof window !== "undefined") {
-      // Effacer les données d'authentification
+    const status = error.response?.status;
+    const url = error.config?.url || "";
+    const data = error.response?.data as ApiErrorPayload | undefined;
+
+    // Cas particulier: token invalide (souvent après switch prod -> local).
+    // On purge et on renvoie vers /login une seule fois pour éviter un spam infini de 401.
+    if (status === 401 && typeof window !== "undefined") {
+      const detail = typeof data?.detail === "string" ? data.detail : "";
+      const message = typeof data?.message === "string" ? data.message : "";
+      const looksInvalid = detail.includes("Invalid token") || message.includes("Invalid token");
+
+      if (looksInvalid) {
+        const alreadyHandled = sessionStorage.getItem("seka_invalid_token_handled") === "1";
+        if (!alreadyHandled) {
+          sessionStorage.setItem("seka_invalid_token_handled", "1");
+          localStorage.removeItem("seka_access_token");
+          localStorage.removeItem("seka_refresh_token");
+          localStorage.removeItem("user");
+
+          if (window.location.pathname !== "/login") {
+            window.location.href = "/login";
+          }
+        }
+      }
+    }
+
+    // En production uniquement: si le token est invalide/expiré (401), déconnecter l'utilisateur
+    // En dev local, on évite la redirection auto pour ne pas bloquer les tests (proxy/rewrite)
+    if (
+      process.env.NODE_ENV === "production" &&
+      error.response?.status === 401 &&
+      typeof window !== "undefined"
+    ) {
       localStorage.removeItem("seka_access_token");
       localStorage.removeItem("seka_refresh_token");
       localStorage.removeItem("user");
 
-      // Rediriger vers la page de connexion seulement si on n'y est pas déjà
       if (window.location.pathname !== "/login" && window.location.pathname !== "/") {
         console.log("[API] Token invalide - redirection vers login");
         window.location.href = "/login";
@@ -86,9 +129,6 @@ api.interceptors.response.use(
     
     // Filtrer les erreurs non critiques pour éviter de polluer la console
     // Les erreurs 404/500 sont souvent attendues si l'endpoint n'existe pas encore
-    const status = error.response?.status;
-    const url = error.config?.url || "";
-    
     // Ne pas logger les erreurs Sentry (adblocker) - elles sont normales
     if (error.message?.includes("sentry") || url.includes("sentry")) {
       return Promise.reject(error);
@@ -190,11 +230,11 @@ export async function getDashboardStats(accessToken: string): Promise<DashboardS
   return response.data;
 }
 
-export async function uploadDocument(file: File, clientId: string, accessToken: string): Promise<any> {
+export async function uploadDocument(file: File, clientId: string, accessToken: string): Promise<UnknownRecord> {
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await api.post(`/documents/?client_id=${clientId}`, formData, {
+  const response = await api.post<UnknownRecord>(`/documents/upload?client_id=${clientId}`, formData, {
     headers: {
       "Content-Type": "multipart/form-data",
       Authorization: `Bearer ${accessToken}`,
@@ -238,6 +278,13 @@ export async function getDocuments(accessToken: string, clientId?: string): Prom
 
 export async function getDocument(documentId: string, accessToken: string): Promise<Document> {
   const response = await api.get<Document>(`/documents/${documentId}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function deleteDocument(documentId: string, accessToken: string): Promise<UnknownRecord> {
+  const response = await api.delete<UnknownRecord>(`/ged/${documentId}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
@@ -288,8 +335,12 @@ export interface ValidationData {
   journal_code?: string;
 }
 
-export async function validateDocument(documentId: string, data: ValidationData, accessToken: string): Promise<any> {
-  const response = await api.post(`/documents/${documentId}/validate`, data, {
+export async function validateDocument(
+  documentId: string,
+  data: ValidationData,
+  accessToken: string
+): Promise<UnknownRecord> {
+  const response = await api.post<UnknownRecord>(`/documents/${documentId}/validate`, data, {
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
@@ -417,7 +468,7 @@ export const getAnomalies = async () => {
 export interface StripeCustomerCreate {
   email: string;
   name: string;
-  metadata?: Record<string, any>;
+  metadata?: UnknownRecord;
 }
 
 export interface StripeSubscriptionCreate {
@@ -432,35 +483,47 @@ export interface KKiaPayLinkCreate {
   callback_url: string;
 }
 
-export async function createStripeCustomer(data: StripeCustomerCreate, accessToken: string): Promise<any> {
-  const response = await api.post("/payments/stripe/customer", data, {
+export async function createStripeCustomer(data: StripeCustomerCreate, accessToken: string): Promise<UnknownRecord> {
+  const response = await api.post<UnknownRecord>("/payments/stripe/customer", data, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
 }
 
-export async function createStripeSubscription(data: StripeSubscriptionCreate, accessToken: string): Promise<any> {
-  const response = await api.post("/payments/stripe/subscribe", data, {
+export async function createStripeSubscription(
+  data: StripeSubscriptionCreate,
+  accessToken: string
+): Promise<UnknownRecord> {
+  const response = await api.post<UnknownRecord>("/payments/stripe/subscribe", data, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
 }
 
-export async function createKKiaPayLink(data: KKiaPayLinkCreate, accessToken: string): Promise<any> {
-  const response = await api.post("/payments/kkiapay/link", data, {
+export async function createKKiaPayLink(data: KKiaPayLinkCreate, accessToken: string): Promise<UnknownRecord> {
+  const response = await api.post<UnknownRecord>("/payments/kkiapay/link", data, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
 }
 
-export async function verifyKKiaPayTransaction(transactionId: string, accessToken: string): Promise<any> {
-  const response = await api.post("/payments/kkiapay/verify", { transaction_id: transactionId }, {
+export async function verifyKKiaPayTransaction(
+  transactionId: string,
+  accessToken: string
+): Promise<UnknownRecord> {
+  const response = await api.post<UnknownRecord>(
+    "/payments/kkiapay/verify",
+    { transaction_id: transactionId },
+    {
     headers: { Authorization: `Bearer ${accessToken}` },
-  });
+    }
+  );
   return response.data;
 }
 
 // ========== CRM APIs ==========
+
+const CRM_DISABLED_ERROR = "CRM supprimé";
 
 // Opportunities
 export interface Opportunity {
@@ -488,31 +551,15 @@ export interface OpportunityCreate {
   description?: string;
 }
 
-interface OpportunitiesResponse {
-  opportunities: Opportunity[];
-  total_count?: number;
+export async function getOpportunities(_accessToken: string): Promise<Opportunity[]> {
+  void _accessToken;
+  return [];
 }
 
-export async function getOpportunities(accessToken: string): Promise<Opportunity[]> {
-  try {
-    const response = await api.get<OpportunitiesResponse | Opportunity[]>("/crm/opportunities/", {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (Array.isArray(response.data)) {
-      return response.data;
-    }
-    return response.data.opportunities || [];
-  } catch (error) {
-    console.error("Error fetching opportunities:", error);
-    return [];
-  }
-}
-
-export async function createOpportunity(data: OpportunityCreate, accessToken: string): Promise<Opportunity> {
-  const response = await api.post<Opportunity>("/crm/opportunities/", data, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  return response.data;
+export async function createOpportunity(_data: OpportunityCreate, _accessToken: string): Promise<Opportunity> {
+  void _data;
+  void _accessToken;
+  throw new Error(CRM_DISABLED_ERROR);
 }
 
 // Leads
@@ -538,31 +585,15 @@ export interface LeadCreate {
   source: string;
 }
 
-interface LeadsResponse {
-  leads: Lead[];
-  total_count?: number;
+export async function getLeads(_accessToken: string): Promise<Lead[]> {
+  void _accessToken;
+  return [];
 }
 
-export async function getLeads(accessToken: string): Promise<Lead[]> {
-  try {
-    const response = await api.get<LeadsResponse | Lead[]>("/crm/leads/", {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (Array.isArray(response.data)) {
-      return response.data;
-    }
-    return response.data.leads || [];
-  } catch (error) {
-    console.error("Error fetching leads:", error);
-    return [];
-  }
-}
-
-export async function createLead(data: LeadCreate, accessToken: string): Promise<Lead> {
-  const response = await api.post<Lead>("/crm/leads/", data, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  return response.data;
+export async function createLead(_data: LeadCreate, _accessToken: string): Promise<Lead> {
+  void _data;
+  void _accessToken;
+  throw new Error(CRM_DISABLED_ERROR);
 }
 
 // CRM Activities
@@ -591,31 +622,15 @@ export interface CRMActivityCreate {
   assigned_to?: string; // Optional - backend will use authenticated user from JWT if not provided
 }
 
-interface ActivitiesResponse {
-  activities: CRMActivity[];
-  total_count?: number;
+export async function getCRMActivities(_accessToken: string): Promise<CRMActivity[]> {
+  void _accessToken;
+  return [];
 }
 
-export async function getCRMActivities(accessToken: string): Promise<CRMActivity[]> {
-  try {
-    const response = await api.get<ActivitiesResponse | CRMActivity[]>("/crm/activities/", {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (Array.isArray(response.data)) {
-      return response.data;
-    }
-    return response.data.activities || [];
-  } catch (error) {
-    console.error("Error fetching CRM activities:", error);
-    return [];
-  }
-}
-
-export async function createCRMActivity(data: CRMActivityCreate, accessToken: string): Promise<CRMActivity> {
-  const response = await api.post<CRMActivity>("/crm/activities/", data, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  return response.data;
+export async function createCRMActivity(_data: CRMActivityCreate, _accessToken: string): Promise<CRMActivity> {
+  void _data;
+  void _accessToken;
+  throw new Error(CRM_DISABLED_ERROR);
 }
 
 // ========== SALES APIs ==========
@@ -931,6 +946,46 @@ export interface JournalEntryCreate {
   reference?: string;
 }
 
+export interface AccountingEntryListItem {
+  id: string;
+  entry_number?: string;
+  date: string;
+  description?: string;
+  journal_type?: string;
+  account_code?: string;
+  debit?: number;
+  credit?: number;
+  amount?: number;
+  status?: string;
+  reference?: string;
+}
+
+export interface GetAccountingEntriesParams {
+  journal_type?: string;
+  status?: string;
+  start_date?: string;
+  end_date?: string;
+  search?: string;
+  skip?: number;
+  limit?: number;
+}
+
+export async function getAccountingEntries(
+  accessToken: string,
+  params: GetAccountingEntriesParams = {}
+): Promise<AccountingEntryListItem[]> {
+  try {
+    const response = await api.get<AccountingEntryListItem[]>("/accounting-entries/entries/", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      params,
+    });
+    return Array.isArray(response.data) ? response.data : [];
+  } catch (error) {
+    console.error("Error fetching accounting entries:", error);
+    return [];
+  }
+}
+
 export async function getJournalEntries(accessToken: string): Promise<JournalEntry[]> {
   try {
     const response = await api.get<JournalEntry[]>("/accounting/journal/", {
@@ -1053,11 +1108,11 @@ export async function createLedgerAccount(data: LedgerAccountCreate, accessToken
 export interface TreasuryDashboardData {
   total_balance: number;
   total_balance_by_currency: Record<string, number>;
-  accounts_summary: any[];
-  recent_transactions: any[];
-  upcoming_payments: any[];
+  accounts_summary: unknown[];
+  recent_transactions: unknown[];
+  upcoming_payments: unknown[];
   cash_runway_days: number;
-  alerts: any[];
+  alerts: unknown[];
   cash_flow_summary: {
     period_start: string;
     period_end: string;
@@ -1945,7 +2000,7 @@ export async function submitAIFeedback(
   accessToken: string,
   modelId: string,
   isCorrect: boolean,
-  corrections?: Record<string, any>
+  corrections?: UnknownRecord
 ): Promise<void> {
   await api.post(
     "/analytics/ai-feedback",
@@ -2012,32 +2067,24 @@ export interface CRMContactCreate {
 }
 
 export async function getCRMContacts(accessToken: string, search?: string): Promise<CRMContact[]> {
-  try {
-    const params = search ? `?search=${encodeURIComponent(search)}` : '';
-    const response = await api.get<CRMContact[]>(`/crm/contacts/${params}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    return Array.isArray(response.data) ? response.data : [];
-  } catch (error) {
-    console.error("Error fetching CRM contacts:", error);
-    return [];
-  }
+  const params = search ? { search } : undefined;
+  const response = await api.get("/contacts/", {
+    params,
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  return response.data;
 }
 
 export async function getCRMContact(accessToken: string, contactId: string): Promise<CRMContact | null> {
-  try {
-    const response = await api.get<CRMContact>(`/crm/contacts/${contactId}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching CRM contact:", error);
-    return null;
-  }
+  const response = await api.get(`/contacts/${contactId}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
 }
 
 export async function createCRMContact(accessToken: string, data: CRMContactCreate): Promise<CRMContact> {
-  const response = await api.post<CRMContact>("/crm/contacts/", data, {
+  const response = await api.post("/contacts/", data, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
@@ -2048,14 +2095,14 @@ export async function updateCRMContact(
   contactId: string,
   data: Partial<CRMContactCreate>
 ): Promise<CRMContact> {
-  const response = await api.put<CRMContact>(`/crm/contacts/${contactId}`, data, {
+  const response = await api.put(`/contacts/${contactId}`, data, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
 }
 
 export async function deleteCRMContact(accessToken: string, contactId: string): Promise<void> {
-  await api.delete(`/crm/contacts/${contactId}`, {
+  await api.delete(`/contacts/${contactId}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
 }
@@ -2063,29 +2110,15 @@ export async function deleteCRMContact(accessToken: string, contactId: string): 
 // ========== EXTENDED CRM APIs ==========
 
 export async function getCRMLeads(accessToken: string, status?: string): Promise<Lead[]> {
-  try {
-    const params = status ? `?status=${status}` : '';
-    const response = await api.get<Lead[]>(`/crm/leads/${params}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    return Array.isArray(response.data) ? response.data : [];
-  } catch (error) {
-    console.error("Error fetching CRM leads:", error);
-    return [];
-  }
+  void accessToken;
+  void status;
+  return [];
 }
 
 export async function getCRMOpportunities(accessToken: string, stage?: string): Promise<Opportunity[]> {
-  try {
-    const params = stage ? `?stage=${stage}` : '';
-    const response = await api.get<Opportunity[]>(`/crm/opportunities/${params}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    return Array.isArray(response.data) ? response.data : [];
-  } catch (error) {
-    console.error("Error fetching CRM opportunities:", error);
-    return [];
-  }
+  void accessToken;
+  void stage;
+  return [];
 }
 
 export async function getOpportunitiesPipeline(accessToken: string): Promise<{
@@ -2093,15 +2126,8 @@ export async function getOpportunitiesPipeline(accessToken: string): Promise<{
   total_value: number;
   total_weighted: number;
 }> {
-  try {
-    const response = await api.get("/crm/opportunities/pipeline", {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching opportunities pipeline:", error);
-    return { stages: [], total_value: 0, total_weighted: 0 };
-  }
+  void accessToken;
+  return { stages: [], total_value: 0, total_weighted: 0 };
 }
 
 // ========== ACCOUNTING ANALYTICS APIs ==========
@@ -2359,14 +2385,14 @@ export async function getAccountingMonthlyTrends(accessToken: string, year: numb
   return response.data;
 }
 
-export async function getIncomeStatementReport(accessToken: string, year: number = 2024): Promise<any> {
-  const response = await api.get<any>(`/accounting/analytics/reports/income-statement?year=${year}`, {
+export async function getIncomeStatementReport(accessToken: string, year: number = 2024): Promise<UnknownRecord> {
+  const response = await api.get<UnknownRecord>(`/accounting/analytics/reports/income-statement?year=${year}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
 }
 
-export async function uploadFECFile(file: File, accessToken: string): Promise<any> {
+export async function uploadFECFile(file: File, accessToken: string): Promise<UnknownRecord> {
   const formData = new FormData();
   formData.append("file", file);
 

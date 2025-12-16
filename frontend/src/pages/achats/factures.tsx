@@ -7,7 +7,7 @@ import {
   ChevronDown,
   Loader2
 } from "lucide-react";
-import { getDocuments, type Document } from "@/lib/api";
+import { deleteDocument, getDocuments, type Document } from "@/lib/api";
 
 type InvoiceStatus = "aucune" | "autoliquid" | "extracom" | "validee" | "20%" | "10%" | "carb_80%";
 
@@ -29,10 +29,12 @@ export default function FacturesFournisseurs() {
   const router = useRouter();
   const [invoices, setInvoices] = useState<DisplayInvoice[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedExercice, setSelectedExercice] = useState("2024");
+  const [selectedExercice] = useState("2024");
   const [searchQuery, setSearchQuery] = useState("");
   const [tvaFilter, setTvaFilter] = useState<InvoiceStatus | "all">("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "validee" | "import">("all");
+  const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("seka_access_token");
@@ -69,6 +71,47 @@ export default function FacturesFournisseurs() {
 
     fetchInvoices();
   }, [router]);
+
+  const handleToggleSelectAll = (checked: boolean, ids: string[]) => {
+    if (checked) {
+      setSelectedInvoices(ids);
+    } else {
+      setSelectedInvoices([]);
+    }
+  };
+
+  const handleToggleSelectOne = (id: string, checked: boolean) => {
+    if (checked) {
+      setSelectedInvoices((prev) => (prev.includes(id) ? prev : [...prev, id]));
+    } else {
+      setSelectedInvoices((prev) => prev.filter((x) => x !== id));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    const token = localStorage.getItem("seka_access_token");
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    if (selectedInvoices.length === 0) return;
+
+    const confirmed = window.confirm(`Supprimer ${selectedInvoices.length} document(s) ?`);
+    if (!confirmed) return;
+
+    setIsDeleting(true);
+    try {
+      await Promise.all(selectedInvoices.map((id) => deleteDocument(id, token)));
+      setInvoices((prev) => prev.filter((inv) => !selectedInvoices.includes(inv.id)));
+      setSelectedInvoices([]);
+    } catch (error) {
+      console.error("Error deleting documents:", error);
+      alert("Erreur lors de la suppression");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // Helper to determine TVA rate from amounts
   const determineTVARate = (vat?: number, ht?: number): InvoiceStatus => {
@@ -135,7 +178,7 @@ export default function FacturesFournisseurs() {
               </button>
             </div>
             <div className="flex items-center gap-3">
-              <button className="text-sm text-[#0d4a44] hover:text-[#0a3d38]">Clôturer l'exercice</button>
+              <button className="text-sm text-[#0d4a44] hover:text-[#0a3d38]">Clôturer l&apos;exercice</button>
               <button className="flex items-center gap-2 px-4 py-2 bg-[#0d4a44] text-white rounded-lg text-sm font-medium hover:bg-[#0a3d38]">
                 Importer des factures
               </button>
@@ -145,6 +188,29 @@ export default function FacturesFournisseurs() {
           <div className="p-6">
             {/* Filters Row */}
             <div className="bg-white rounded-xl border border-gray-200 mb-6">
+              {selectedInvoices.length > 0 && (
+                <div className="px-4 py-3 bg-blue-50 border-b border-blue-200 flex items-center justify-between">
+                  <span className="text-sm text-blue-900">
+                    {selectedInvoices.length} document(s) sélectionné(s)
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setSelectedInvoices([])}
+                      className="px-3 py-1.5 text-sm text-blue-700 hover:text-blue-900"
+                      disabled={isDeleting}
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      onClick={handleBulkDelete}
+                      className="px-3 py-1.5 text-sm bg-white border border-blue-300 text-blue-700 rounded hover:bg-blue-50 disabled:opacity-50"
+                      disabled={isDeleting}
+                    >
+                      {isDeleting ? "Suppression..." : "Supprimer"}
+                    </button>
+                  </div>
+                </div>
+              )}
               <div className="p-4 border-b border-gray-200 space-y-3">
                 {/* Ligne recherche + filtres principaux */}
                 <div className="flex flex-wrap items-center gap-3">
@@ -235,7 +301,14 @@ export default function FacturesFournisseurs() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-gray-200 bg-gray-50">
-                      <th className="w-10 px-4 py-3"><input type="checkbox" className="rounded border-gray-300" /></th>
+                      <th className="w-10 px-4 py-3">
+                        <input
+                          type="checkbox"
+                          className="rounded border-gray-300"
+                          checked={filteredInvoices.length > 0 && selectedInvoices.length === filteredInvoices.length}
+                          onChange={(e) => handleToggleSelectAll(e.target.checked, filteredInvoices.map((i) => i.id))}
+                        />
+                      </th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Émission</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tiers</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">N° de facture</th>
@@ -251,7 +324,14 @@ export default function FacturesFournisseurs() {
                   <tbody className="divide-y divide-gray-200">
                     {filteredInvoices.map((inv) => (
                       <tr key={inv.id} className="hover:bg-gray-50 cursor-pointer">
-                        <td className="px-4 py-3"><input type="checkbox" className="rounded border-gray-300" /></td>
+                        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            className="rounded border-gray-300"
+                            checked={selectedInvoices.includes(inv.id)}
+                            onChange={(e) => handleToggleSelectOne(inv.id, e.target.checked)}
+                          />
+                        </td>
                         <td className="px-4 py-3 text-sm text-gray-900">{inv.emission}</td>
                         <td className="px-4 py-3 text-sm text-gray-900">{inv.tiers || "-"}</td>
                         <td className="px-4 py-3 text-sm text-gray-600">{inv.numeroFacture}</td>
