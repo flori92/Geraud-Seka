@@ -54,6 +54,18 @@ export default function AccountingEntryFromOCR() {
   const [classificationValidated, setClassificationValidated] = useState(false);
   const PdfViewer = dynamic(() => import('@/components/DocumentPdfViewer'), { ssr: false });
 
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "";
+  const apiPrefix = API_BASE_URL ? `${API_BASE_URL}/api/v1` : "/api/v1";
+
+  type AccountApiLike = Record<string, unknown>;
+
+  type OcrServerResponse = {
+    ocr_data: OcrData;
+    suggestions: Suggestion;
+    proposed_entry: { lines: EntryLine[] };
+    file_info?: { url?: string; key?: string; page_count?: number; is_multi_page?: boolean; document_id?: string };
+  };
+
   // Configure PDF.js worker
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -66,18 +78,44 @@ export default function AccountingEntryFromOCR() {
     const fetchAccounts = async () => {
       try {
         const token = localStorage.getItem("seka_access_token");
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/accounting/advanced/accounts`, {
+        const response = await fetch(`${apiPrefix}/accounting/advanced/accounts`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (response.ok) {
           const data = await response.json();
           const accountList = Array.isArray(data) ? data : data.accounts || [];
-          setAccounts(accountList.map((acc: any) => ({
-            code: acc.account_number || acc.code || acc.account_code,
-            name: acc.name || acc.label || acc.account_name,
-            type: acc.account_type || acc.type,
-            class: acc.account_class || acc.class,
-          })));
+          setAccounts(
+            (accountList as AccountApiLike[]).map((acc) => {
+              const code =
+                (typeof acc.account_number === "string" && acc.account_number) ||
+                (typeof acc.code === "string" && acc.code) ||
+                (typeof acc.account_code === "string" && acc.account_code) ||
+                "";
+
+              const name =
+                (typeof acc.name === "string" && acc.name) ||
+                (typeof acc.label === "string" && acc.label) ||
+                (typeof acc.account_name === "string" && acc.account_name) ||
+                "";
+
+              const type =
+                (typeof acc.account_type === "string" && acc.account_type) ||
+                (typeof acc.type === "string" && acc.type) ||
+                undefined;
+
+              const klass =
+                (typeof acc.account_class === "string" && acc.account_class) ||
+                (typeof acc.class === "string" && acc.class) ||
+                undefined;
+
+              return {
+                code,
+                name,
+                type,
+                class: klass,
+              };
+            })
+          );
         }
       } catch (error) {
         console.error("Failed to fetch accounts:", error);
@@ -99,7 +137,7 @@ export default function AccountingEntryFromOCR() {
       }
     };
     fetchAccounts();
-  }, []);
+  }, [apiPrefix]);
 
   // Convert PDF to images for OCR processing
   const convertPdfToImages = async (file: File, maxPages?: number): Promise<string[]> => {
@@ -207,7 +245,8 @@ export default function AccountingEntryFromOCR() {
               }
             }
           }
-        } catch (e) { }
+        } catch {
+        }
       }
 
       // Find Amounts
@@ -288,7 +327,7 @@ export default function AccountingEntryFromOCR() {
         is_multi_page: isMultiPage
       });
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Local OCR failed:", err);
       // alert("L'analyse locale du document a également échoué: " + (err.message || err));
     }
@@ -305,7 +344,7 @@ export default function AccountingEntryFromOCR() {
         const formData = new FormData();
         formData.append('file', f);
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/v1/accounting-rules/entries/from-document`,
+          `${apiPrefix}/accounting-rules/entries/from-document`,
           {
             method: 'POST',
             headers: { Authorization: `Bearer ${token}` },
@@ -315,12 +354,15 @@ export default function AccountingEntryFromOCR() {
 
         if (!response.ok) {
           const detail = await response.text().catch(() => '');
+          if (response.status === 422 && detail.includes("GROQ_API_KEY")) {
+            throw new Error("OCR_SERVER_NOT_CONFIGURED");
+          }
           throw new Error(`Server OCR failed with status ${response.status}${detail ? `: ${detail}` : ''}`);
         }
         return response.json();
       };
 
-      let result: any;
+      let result: OcrServerResponse;
       try {
         result = await tryServer(file);
       } catch (e) {
@@ -342,8 +384,12 @@ export default function AccountingEntryFromOCR() {
       setEntryLines(result.proposed_entry.lines);
       setFileInfo(result.file_info || {});
     } catch (error) {
-      console.error("Network or parsing error:", error);
-      console.warn("Network error, trying local fallback...");
+      if (error instanceof Error && error.message === "OCR_SERVER_NOT_CONFIGURED") {
+        console.warn("OCR serveur indisponible en local (GROQ_API_KEY manquante) : fallback OCR local.");
+      } else {
+        console.error("Network or parsing error:", error);
+        console.warn("Network error, trying local fallback...");
+      }
       await processWithLocalOCR(file);
     } finally {
       setUploading(false);
@@ -360,7 +406,7 @@ export default function AccountingEntryFromOCR() {
       const creditLine = entryLines.find(l => l.credit > 0);
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/accounting-rules/entries/validate-classification?document_id=${fileInfo.document_id}&debit_account=${debitLine?.account_code || ''}&credit_account=${creditLine?.account_code || ''}&label=${encodeURIComponent(suggestions.suggested_label || '')}`,
+        `${apiPrefix}/accounting-rules/entries/validate-classification?document_id=${fileInfo.document_id}&debit_account=${debitLine?.account_code || ''}&credit_account=${creditLine?.account_code || ''}&label=${encodeURIComponent(suggestions.suggested_label || '')}`,
         {
           method: 'POST',
           headers: {
@@ -390,8 +436,32 @@ export default function AccountingEntryFromOCR() {
     const token = localStorage.getItem("seka_access_token");
 
     try {
+      if (!token) {
+        alert("Vous devez être connecté");
+        return;
+      }
+
+      if (!entryLines || entryLines.length < 2) {
+        alert("Une écriture doit avoir au moins 2 lignes");
+        return;
+      }
+
+      if (entryLines.some((l) => !l.account_code || String(l.account_code).trim().length === 0)) {
+        alert("Veuillez renseigner un compte pour chaque ligne");
+        return;
+      }
+
+      const totalDebit = entryLines.reduce((s, l) => s + (Number(l.debit) || 0), 0);
+      const totalCredit = entryLines.reduce((s, l) => s + (Number(l.credit) || 0), 0);
+      if (Math.abs(totalDebit - totalCredit) > 0.01) {
+        alert(`L'écriture n'est pas équilibrée: Débit=${totalDebit.toFixed(2)}, Crédit=${totalCredit.toFixed(2)}`);
+        return;
+      }
+
+      const entryDate = ocrData?.date ? String(ocrData.date) : new Date().toISOString().slice(0, 10);
+
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/accounting-entries/entries/`,
+        `${apiPrefix}/accounting-entries/entries/`,
         {
           method: 'POST',
           headers: {
@@ -400,14 +470,15 @@ export default function AccountingEntryFromOCR() {
           },
           body: JSON.stringify({
             journal_type: 'ACH',
-            date: ocrData?.date,
+            date: entryDate,
             reference: ocrData?.reference_number,
             description: suggestions?.suggested_label || ocrData?.supplier_name,
+            document_id: fileInfo.document_id,
             lines: entryLines.map(line => ({
-              account_id: line.account_code,
+              account_code: line.account_code,
               label: line.label,
-              debit: line.debit,
-              credit: line.credit
+              debit: Number(line.debit) || 0,
+              credit: Number(line.credit) || 0
             }))
           })
         }
@@ -417,7 +488,8 @@ export default function AccountingEntryFromOCR() {
         alert("Écriture enregistrée avec succès");
         router.push("/accounting/entries");
       } else {
-        alert("Erreur lors de l'enregistrement");
+        const detailText = await response.text().catch(() => "");
+        alert(detailText || "Erreur lors de l'enregistrement");
       }
     } catch (error) {
       console.error("Error:", error);
@@ -445,7 +517,7 @@ export default function AccountingEntryFromOCR() {
 
   const updateLine = (index: number, field: keyof EntryLine, value: string | number) => {
     const newLines = [...entryLines];
-    (newLines[index] as any)[field] = value;
+    newLines[index] = { ...newLines[index], [field]: value } as EntryLine;
     setEntryLines(recalcTVA(newLines));
   };
 
