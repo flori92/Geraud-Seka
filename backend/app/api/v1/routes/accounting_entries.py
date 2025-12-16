@@ -99,11 +99,15 @@ def create_accounting_entry(
         db.refresh(entry)
         
         return entry
+    except HTTPException:
+        db.rollback()
+        raise
     except ValueError as ve:
         db.rollback()
         raise HTTPException(status_code=422, detail=str(ve))
     except Exception as e:
         db.rollback()
+        logger.exception("Erreur inattendue lors de la création de l'écriture")
         raise HTTPException(status_code=500, detail=f"Erreur lors de la création de l'écriture: {str(e)}")
 
 
