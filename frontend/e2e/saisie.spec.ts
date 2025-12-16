@@ -62,7 +62,8 @@ test.describe("Saisie (E2E)", () => {
     await page.goto("/accounting/dashboard");
 
     // PennylaneSidebar toggle
-    await page.getByRole("button", { name: "Comptabilité" }).click();
+    const sidebar = page.locator(".sidebar");
+    await sidebar.getByRole("button", { name: "Comptabilité" }).first().click();
 
     const menuSaisie = page.getByRole("button", { name: "Saisie" });
     await menuSaisie.click();
