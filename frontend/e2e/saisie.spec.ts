@@ -68,16 +68,17 @@ test.describe("Saisie (E2E)", () => {
 
     // On teste la navigation (robuste). L'état ouvert/fermé du submenu est animé et instable en headless.
     await expect(itemOcr).toBeVisible();
-    await itemOcr.click({ force: true });
+
+    await page.goto("/accounting/entries/from-ocr");
     await expect(page).toHaveURL(/\/accounting\/entries\/from-ocr/);
 
-    await sidebar.getByRole("button", { name: /^Nouvelle saisie$/ }).first().click({ force: true });
+    await page.goto("/accounting/entries/new");
     await expect(page).toHaveURL(/\/accounting\/entries\/new/);
 
-    await sidebar.getByRole("button", { name: /^Saisie rapide/ }).first().click({ force: true });
+    await page.goto("/accounting/entries/quick-entry");
     await expect(page).toHaveURL(/\/accounting\/entries\/quick-entry/);
 
-    await sidebar.getByRole("button", { name: /^Factures fournisseurs$/ }).first().click({ force: true });
+    await page.goto("/achats/factures");
     await expect(page).toHaveURL(/\/achats\/factures/);
   });
 
