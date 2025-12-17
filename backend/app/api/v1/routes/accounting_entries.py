@@ -22,7 +22,8 @@ from app.models.accounting_entries import (
     AccountingRevision, EntryStatus, JournalType
 )
 from app.models.accounting_advanced import BankReconciliation
-from app.models.ledger_account import LedgerAccount
+from app.models.accounting_advanced import ChartOfAccounts
+from app.models.ledger_account import LedgerAccount, AccountType as LedgerAccountType
 from app.schemas.accounting_entries import (
     AccountingEntryHeaderCreate, AccountingEntryHeaderResponse,
     AccountingEntryHeaderUpdate, BankReconciliationCreate,
@@ -70,8 +71,29 @@ def create_accounting_entry(
                     LedgerAccount.account_code == line_data.account_code,
                     LedgerAccount.tenant_id == current_user.tenant_id,
                 ).first()
+
+                # Bridge: si l'OCR fournit un code présent dans le plan comptable avancé, mais absent du ledger,
+                # on crée le LedgerAccount correspondant.
                 if not account:
-                    raise HTTPException(status_code=404, detail=f"Compte {line_data.account_code} introuvable")
+                    coa = db.query(ChartOfAccounts).filter(
+                        ChartOfAccounts.tenant_id == current_user.tenant_id,
+                        ChartOfAccounts.account_number == line_data.account_code,
+                        ChartOfAccounts.is_active == True,
+                    ).first()
+                    if coa:
+                        account = LedgerAccount(
+                            tenant_id=current_user.tenant_id,
+                            account_code=coa.account_number,
+                            account_name=coa.name,
+                            account_type=LedgerAccountType(coa.account_type),
+                            balance=Decimal("0.00"),
+                            currency="XOF",
+                            is_active=True,
+                        )
+                        db.add(account)
+                        db.flush()
+                    else:
+                        raise HTTPException(status_code=404, detail=f"Compte {line_data.account_code} introuvable")
                 account_id = account.id
             else:
                 account = db.query(LedgerAccount).filter(
