@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -125,10 +125,27 @@ def create_application() -> FastAPI:
             "headers": dict(request.headers)
         }
 
+    @app.head("/")
+    async def root_head():
+        return Response(status_code=200)
+
     # Health check endpoint
     @app.get("/health")
     async def health():
         return {"status": "healthy"}
+
+    @app.head("/health")
+    async def health_head():
+        return Response(status_code=200)
+
+    # /api/v1 endpoint for load balancers / monitoring (avoid 404/405 on prefix root)
+    @app.get(settings.api_v1_prefix)
+    async def api_v1_root():
+        return {"status": "ok"}
+
+    @app.head(settings.api_v1_prefix)
+    async def api_v1_root_head():
+        return Response(status_code=200)
 
     # Event handlers
     @app.on_event("startup")
