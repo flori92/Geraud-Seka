@@ -1,24 +1,19 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
+import Link from "next/link";
 import { getBankAccounts, getBankTransactions, getDocuments } from "@/lib/api";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import {
     CheckCircle,
-    XCircle,
     Search,
-    Filter,
     RefreshCw,
     ArrowRight,
-    AlertCircle,
     FileText,
     CreditCard,
     Plus,
-    Loader2,
-    Calendar,
-    DollarSign
+    Loader2
 } from "lucide-react";
-import { Card } from "@/components/ui/Card";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -41,6 +36,33 @@ interface Document {
     status: 'pending' | 'matched';
 }
 
+interface BankAccountLite {
+    id: string;
+    name: string;
+    bank_name?: string;
+    currency?: string;
+    account_type?: string;
+}
+
+interface ApiDocument {
+    id: string;
+    created_at?: string;
+    client?: { name?: string };
+    total_amount?: number;
+    number?: string;
+}
+
+interface ApiBankTransaction {
+    id: string;
+    date?: string;
+    transaction_date?: string;
+    description?: string;
+    label?: string;
+    amount: number;
+    currency?: string;
+    is_reconciled?: boolean;
+}
+
 export default function BankReconciliationPage() {
     const [bankTransactions, setBankTransactions] = useState<BankTransaction[]>([]);
     const [documents, setDocuments] = useState<Document[]>([]);
@@ -48,21 +70,21 @@ export default function BankReconciliationPage() {
     const [loading, setLoading] = useState(false);
     const [reconciling, setReconciling] = useState(false);
 
-    const [bankAccounts, setBankAccounts] = useState<any[]>([]);
+    const [bankAccounts, setBankAccounts] = useState<BankAccountLite[]>([]);
     const [selectedAccountId, setSelectedAccountId] = useState<string>("");
-    const router = useRouter(); // Need to add useRouter import
+    const router = useRouter();
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         const token = localStorage.getItem("seka_access_token");
         if (!token) {
-            // router.push("/login"); // router needed
+            router.push("/login");
             return;
         }
 
         setLoading(true);
         try {
             // 1. Fetch Bank Accounts
-            const accounts = await getBankAccounts(token);
+            const accounts = (await getBankAccounts(token)) as BankAccountLite[];
             setBankAccounts(accounts);
 
             if (accounts.length > 0 && !selectedAccountId) {
@@ -71,14 +93,14 @@ export default function BankReconciliationPage() {
 
             // 2. Fetch Documents (e.g. Invoices to reconcile)
             // Using getDocuments for now, ideally fetching supplier invoices specifically
-            const docsData = await getDocuments(token);
-            const formattedDocs = docsData.map((d: any) => ({
+            const docsData = (await getDocuments(token)) as ApiDocument[];
+            const formattedDocs: Document[] = docsData.map((d) => ({
                 id: d.id,
                 date: d.created_at || new Date().toISOString(),
                 supplier: d.client?.name || "Tier Tiers",
                 amount_ttc: d.total_amount || 0,
                 reference: d.number || "REF",
-                status: 'pending' as 'pending'
+                status: 'pending'
             }));
             setDocuments(formattedDocs);
 
@@ -87,11 +109,11 @@ export default function BankReconciliationPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [router, selectedAccountId]);
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [fetchData]);
 
     useEffect(() => {
         const fetchTransactions = async () => {
@@ -100,15 +122,17 @@ export default function BankReconciliationPage() {
             if (!token) return;
 
             try {
-                const txs = await getBankTransactions(token, { bank_account_id: selectedAccountId });
+                const txs = (await getBankTransactions(token, { bank_account_id: selectedAccountId })) as ApiBankTransaction[];
                 // Filter unreconciled client side or ensure API filtering
-                const unreconciledTxs = txs.filter((t: any) => !t.is_reconciled).map((t: any) => ({
+                const unreconciledTxs: BankTransaction[] = txs
+                    .filter((t) => !t.is_reconciled)
+                    .map((t) => ({
                     id: t.id,
-                    date: t.date,
-                    label: t.description || t.label, // backend uses description sometimes
+                    date: t.transaction_date || t.date || new Date().toISOString(),
+                    label: t.description || t.label || "Transaction",
                     amount: t.amount,
-                    status: 'pending' as 'pending',
-                    currency: t.currency || 'EUR'
+                    status: 'pending',
+                    currency: t.currency || 'XOF'
                 }));
                 setBankTransactions(unreconciledTxs);
             } catch (err) {
@@ -134,7 +158,11 @@ export default function BankReconciliationPage() {
     };
 
     return (
-        <DashboardLayout title="Rapprochement Bancaire">
+        <>
+            <Head>
+                <title>Rapprochement Bancaire - SEKA</title>
+            </Head>
+            <DashboardLayout title="Rapprochement Bancaire">
             <div className="flex flex-col h-[calc(100vh-140px)]">
 
                 {/* Header Actions */}
@@ -151,13 +179,16 @@ export default function BankReconciliationPage() {
                                     {bankAccounts.length === 0 && <option value="">Aucun compte trouvé</option>}
                                     {bankAccounts.map(acc => (
                                         <option key={acc.id} value={acc.id}>
-                                            {acc.name.toLowerCase().includes('orange') || acc.name.toLowerCase().includes('mtn') || acc.name.toLowerCase().includes('moov') || acc.name.toLowerCase().includes('wave') || acc.bank_name?.toLowerCase().includes('mobile') ? '📱 ' : '🏦 '}
-                                            {acc.name} ({acc.currency})
+                                            {acc.account_type === 'mobile_money' ? '📱 ' : '🏦 '}
+                                            {acc.name} ({acc.currency || 'XOF'})
                                         </option>
                                     ))}
                                 </select>
                             </div>
                         </div>
+                        <Link href="/treasury/mobile-money" className="text-sm text-blue-600 hover:text-blue-700 hover:underline">
+                            Ajouter un compte Mobile Money
+                        </Link>
                         <button onClick={() => fetchData()} className="text-blue-600 text-sm hover:underline flex items-center gap-1">
                             <RefreshCw className="w-3 h-3" /> Actualiser
                         </button>
@@ -319,6 +350,7 @@ export default function BankReconciliationPage() {
                     </div>
                 )}
             </div>
-        </DashboardLayout>
+            </DashboardLayout>
+        </>
     );
 }

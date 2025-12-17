@@ -34,7 +34,8 @@ export default function QuickAccountingEntry() {
     const [dateStr, setDateStr] = useState(new Date().toISOString().split("T")[0]);
     const [reference, setReference] = useState("");
     const [description, setDescription] = useState("");
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL;
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "";
+    const apiPrefix = API_BASE_URL ? `${API_BASE_URL}/api/v1` : "/api/v1";
 
     // État pour les lignes de l'écriture en cours
     const [lines, setLines] = useState<EntryLine[]>([
@@ -49,12 +50,8 @@ export default function QuickAccountingEntry() {
     const fetchAccounts = useCallback(async () => {
         const token = localStorage.getItem("seka_access_token");
         try {
-            if (!apiBaseUrl) {
-                console.error("[API] NEXT_PUBLIC_API_BASE_URL manquant");
-                return;
-            }
             const response = await fetch(
-                `${apiBaseUrl}/api/v1/accounting/ledger/`,
+                `${apiPrefix}/accounting/ledger/`,
                 { headers: { Authorization: `Bearer ${token}` } }
             );
             if (response.ok) {
@@ -64,7 +61,7 @@ export default function QuickAccountingEntry() {
         } catch (error) {
             console.error("Error fetching accounts:", error);
         }
-    }, [apiBaseUrl]);
+    }, [apiPrefix]);
 
     useEffect(() => {
         fetchAccounts();
@@ -113,12 +110,8 @@ export default function QuickAccountingEntry() {
         setIsSubmitting(true);
         const token = localStorage.getItem("seka_access_token");
         try {
-            if (!apiBaseUrl) {
-                console.error("[API] NEXT_PUBLIC_API_BASE_URL manquant");
-                return;
-            }
             const response = await fetch(
-                `${apiBaseUrl}/api/v1/accounting-entries/entries/`,
+                `${apiPrefix}/accounting-entries/entries/`,
                 {
                     method: "POST",
                     headers: {

@@ -15,6 +15,7 @@ from app.models.purchase_order import PurchaseOrder
 from app.core.deps import get_current_user
 from app.models.user import User
 from pydantic import BaseModel
+from datetime import date, timedelta
 
 
 router = APIRouter()
@@ -297,86 +298,149 @@ async def delete_supplier(
 
 
 # New balance endpoints
-class SupplierBalance(BaseModel):
-    supplier_id: str
+class SupplierBalanceRow(BaseModel):
+    id: str
     supplier_name: str
+    supplier_code: str
     balance: float
-    payables: float
-    overdue: float
+    overdue_amount: float
+    upcoming_30d_amount: float
+    last_invoice_date: str
+    last_invoice_number: str
+    payment_terms: str
+    contact_email: Optional[str] = None
+    contact_phone: Optional[str] = None
+    invoices_count: int
+    oldest_overdue_date: Optional[str] = None
 
 
-class SupplierBalanceStats(BaseModel):
-    total_suppliers: int
-    total_payables: float
-    total_overdue: float
-    average_balance: float
+class SupplierBalanceStatsResponse(BaseModel):
+    total_du: float
+    en_retard: float
+    a_payer_30j: float
+    fournisseurs_actifs: int
 
 
-@router.get("/balance", response_model=List[SupplierBalance])
+@router.get("/balance", response_model=List[SupplierBalanceRow])
 async def get_suppliers_balance(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
-    sort_by: Optional[str] = Query("balance", regex="^(balance|supplier_name|payables|overdue)$"),
-    sort_order: Optional[str] = Query("desc", regex="^(asc|desc)$"),
+    search: Optional[str] = Query(None),
+    sort_by: Optional[str] = Query("balance"),
+    sort_order: Optional[str] = Query("desc"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """
-    Get supplier balances calculated from accounting entries (account 401).
+    Get supplier balances for the current tenant.
+
+    Implémentation locale (MVP): calculs basés sur les bons de commande (purchase_orders).
+    On considère que la somme des PO (total_ttc) représente un "montant dû".
     """
     try:
-        from app.models.accounting import AccountingEntry
-        from datetime import date
+        today = date.today()
+        horizon = today + timedelta(days=30)
+
+        requested_sort = (sort_by or "balance").strip()
+        sort_key = requested_sort
+        if requested_sort == "name":
+            sort_key = "supplier_name"
+        elif requested_sort == "overdue":
+            sort_key = "overdue_amount"
+
+        allowed_sort_keys = {
+            "balance",
+            "supplier_name",
+            "overdue_amount",
+            "upcoming_30d_amount",
+        }
+        if sort_key not in allowed_sort_keys:
+            sort_key = "balance"
+
+        order = (sort_order or "desc").strip().lower()
+        reverse = order != "asc"
 
         # Get all suppliers for tenant
         suppliers = db.query(Supplier).filter(
             Supplier.client_id == current_user.tenant_id
         ).all()
 
-        balances = []
+        rows: list[dict] = []
         for supplier in suppliers:
-            # Calculate balance from account 401 (supplier payables)
-            # Credit - Debit = amount we owe (payables are credits)
-            entries = db.query(
-                func.coalesce(func.sum(AccountingEntry.credit), 0).label('total_credit'),
-                func.coalesce(func.sum(AccountingEntry.debit), 0).label('total_debit')
-            ).filter(
-                AccountingEntry.tenant_id == current_user.tenant_id,
-                AccountingEntry.account_number.like('401%'),
-                AccountingEntry.supplier_id == supplier.id
-            ).first()
+            if search and search.strip():
+                q = search.strip().lower()
+                if q not in (supplier.name or "").lower():
+                    continue
 
-            total_credit = float(entries.total_credit) if entries else 0
-            total_debit = float(entries.total_debit) if entries else 0
-            balance = total_credit - total_debit  # Positive = we owe money
-            payables = balance if balance > 0 else 0
+            po_query = db.query(PurchaseOrder).filter(
+                PurchaseOrder.tenant_id == current_user.tenant_id,
+                PurchaseOrder.supplier_id == supplier.id,
+            )
 
-            # Calculate overdue (simplified - entries older than 30 days)
-            overdue_date = date.today()
-            overdue_entries = db.query(
-                func.coalesce(func.sum(AccountingEntry.credit - AccountingEntry.debit), 0)
-            ).filter(
-                AccountingEntry.tenant_id == current_user.tenant_id,
-                AccountingEntry.account_number.like('401%'),
-                AccountingEntry.supplier_id == supplier.id,
-                AccountingEntry.date < overdue_date
-            ).scalar()
-            overdue = float(overdue_entries) if overdue_entries and overdue_entries > 0 else 0
+            invoices_count = po_query.count()
+            total_due = float(po_query.with_entities(func.coalesce(func.sum(PurchaseOrder.total_ttc), 0)).scalar() or 0)
 
-            balances.append({
-                "supplier_id": str(supplier.id),
-                "supplier_name": supplier.name,
-                "balance": balance,
-                "payables": payables,
-                "overdue": overdue
-            })
+            overdue_amount = float(
+                po_query.filter(
+                    PurchaseOrder.expected_delivery_date.isnot(None),
+                    PurchaseOrder.expected_delivery_date < today,
+                ).with_entities(func.coalesce(func.sum(PurchaseOrder.total_ttc), 0)).scalar() or 0
+            )
 
-        # Sort
-        reverse = (sort_order == "desc")
-        balances.sort(key=lambda x: x[sort_by], reverse=reverse)
+            upcoming_30d_amount = float(
+                po_query.filter(
+                    PurchaseOrder.expected_delivery_date.isnot(None),
+                    PurchaseOrder.expected_delivery_date >= today,
+                    PurchaseOrder.expected_delivery_date <= horizon,
+                ).with_entities(func.coalesce(func.sum(PurchaseOrder.total_ttc), 0)).scalar() or 0
+            )
 
-        # Paginate
-        return balances[skip:skip+limit]
+            oldest_overdue = (
+                po_query.filter(
+                    PurchaseOrder.expected_delivery_date.isnot(None),
+                    PurchaseOrder.expected_delivery_date < today,
+                )
+                .order_by(PurchaseOrder.expected_delivery_date.asc())
+                .with_entities(PurchaseOrder.expected_delivery_date)
+                .first()
+            )
+
+            last_po = (
+                po_query.order_by(PurchaseOrder.order_date.desc())
+                .with_entities(
+                    PurchaseOrder.order_date,
+                    PurchaseOrder.po_number,
+                    PurchaseOrder.payment_terms,
+                )
+                .first()
+            )
+
+            last_invoice_date = last_po.order_date.isoformat() if last_po and last_po.order_date else ""
+            last_invoice_number = last_po.po_number if last_po and last_po.po_number else ""
+            payment_terms = last_po.payment_terms if last_po and last_po.payment_terms else ""
+
+            supplier_code = str(supplier.id)[:8]
+
+            rows.append(
+                {
+                    "id": str(supplier.id),
+                    "supplier_name": supplier.name,
+                    "supplier_code": supplier_code,
+                    "balance": total_due,
+                    "overdue_amount": overdue_amount,
+                    "upcoming_30d_amount": upcoming_30d_amount,
+                    "last_invoice_date": last_invoice_date,
+                    "last_invoice_number": last_invoice_number,
+                    "payment_terms": payment_terms,
+                    "contact_email": getattr(supplier, "email", None),
+                    "contact_phone": getattr(supplier, "phone", None),
+                    "invoices_count": invoices_count,
+                    "oldest_overdue_date": oldest_overdue.expected_delivery_date.isoformat() if oldest_overdue and oldest_overdue.expected_delivery_date else None,
+                }
+            )
+
+        rows.sort(key=lambda x: x.get(sort_key) or 0, reverse=reverse)
+        return rows[skip : skip + limit]
 
     except Exception as e:
         print(f"Error getting supplier balances: {e}")
@@ -385,7 +449,7 @@ async def get_suppliers_balance(
         return []
 
 
-@router.get("/balance/stats", response_model=SupplierBalanceStats)
+@router.get("/balance/stats", response_model=SupplierBalanceStatsResponse)
 async def get_suppliers_balance_stats(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -394,33 +458,65 @@ async def get_suppliers_balance_stats(
     Get aggregate statistics for supplier balances.
     """
     try:
-        from app.models.accounting import AccountingEntry
+        today = date.today()
+        horizon = today + timedelta(days=30)
 
-        # Get total suppliers
-        total_suppliers = db.query(func.count(Supplier.id)).filter(
-            Supplier.client_id == current_user.tenant_id
-        ).scalar() or 0
+        supplier_ids = [
+            s[0]
+            for s in db.query(Supplier.id).filter(Supplier.client_id == current_user.tenant_id).all()
+        ]
 
-        # Calculate total payables from account 401
-        entries = db.query(
-            func.coalesce(func.sum(AccountingEntry.credit), 0).label('total_credit'),
-            func.coalesce(func.sum(AccountingEntry.debit), 0).label('total_debit')
-        ).filter(
-            AccountingEntry.tenant_id == current_user.tenant_id,
-            AccountingEntry.account_number.like('401%')
-        ).first()
+        if not supplier_ids:
+            return {
+                "total_du": 0,
+                "en_retard": 0,
+                "a_payer_30j": 0,
+                "fournisseurs_actifs": 0,
+            }
 
-        total_credit = float(entries.total_credit) if entries else 0
-        total_debit = float(entries.total_debit) if entries else 0
-        total_payables = max(0, total_credit - total_debit)
+        po_base = db.query(PurchaseOrder).filter(
+            PurchaseOrder.tenant_id == current_user.tenant_id,
+            PurchaseOrder.supplier_id.in_(supplier_ids),
+        )
 
-        average_balance = total_payables / total_suppliers if total_suppliers > 0 else 0
+        total_du = float(po_base.with_entities(func.coalesce(func.sum(PurchaseOrder.total_ttc), 0)).scalar() or 0)
+
+        en_retard = float(
+            po_base.filter(
+                PurchaseOrder.expected_delivery_date.isnot(None),
+                PurchaseOrder.expected_delivery_date < today,
+            )
+            .with_entities(func.coalesce(func.sum(PurchaseOrder.total_ttc), 0))
+            .scalar()
+            or 0
+        )
+
+        a_payer_30j = float(
+            po_base.filter(
+                PurchaseOrder.expected_delivery_date.isnot(None),
+                PurchaseOrder.expected_delivery_date >= today,
+                PurchaseOrder.expected_delivery_date <= horizon,
+            )
+            .with_entities(func.coalesce(func.sum(PurchaseOrder.total_ttc), 0))
+            .scalar()
+            or 0
+        )
+
+        fournisseurs_actifs = (
+            db.query(PurchaseOrder.supplier_id)
+            .filter(
+                PurchaseOrder.tenant_id == current_user.tenant_id,
+                PurchaseOrder.total_ttc > 0,
+            )
+            .distinct()
+            .count()
+        )
 
         return {
-            "total_suppliers": total_suppliers,
-            "total_payables": total_payables,
-            "total_overdue": 0,  # Simplified for now
-            "average_balance": average_balance
+            "total_du": total_du,
+            "en_retard": en_retard,
+            "a_payer_30j": a_payer_30j,
+            "fournisseurs_actifs": fournisseurs_actifs,
         }
 
     except Exception as e:
@@ -428,8 +524,8 @@ async def get_suppliers_balance_stats(
         import traceback
         traceback.print_exc()
         return {
-            "total_suppliers": 0,
-            "total_payables": 0,
-            "total_overdue": 0,
-            "average_balance": 0
+            "total_du": 0,
+            "en_retard": 0,
+            "a_payer_30j": 0,
+            "fournisseurs_actifs": 0,
         }

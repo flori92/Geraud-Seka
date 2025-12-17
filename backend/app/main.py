@@ -154,6 +154,60 @@ def create_application() -> FastAPI:
                 logger.info(f"✅ Created tables: {', '.join(sorted(missing))}")
             else:
                 logger.info("✅ All database tables exist")
+
+            # Treasury compatibility (bank_accounts / bank_transactions)
+            existing_tables = set(inspector.get_table_names())
+            from sqlalchemy import text
+
+            if "bank_accounts" in existing_tables:
+                bank_account_cols = {col["name"]: col for col in inspector.get_columns("bank_accounts")}
+                if "metadata" not in bank_account_cols:
+                    logger.info("🔧 Adding missing bank_accounts.metadata column...")
+                    with engine.begin() as conn:
+                        conn.execute(text("ALTER TABLE bank_accounts ADD COLUMN IF NOT EXISTS metadata JSONB"))
+                    logger.info("✅ Added bank_accounts.metadata")
+
+            if "bank_transactions" in existing_tables:
+                bank_tx_cols = {col["name"]: col for col in inspector.get_columns("bank_transactions")}
+
+                if "is_reconciled" not in bank_tx_cols:
+                    logger.info("🔧 Adding missing bank_transactions.is_reconciled column...")
+                    with engine.begin() as conn:
+                        conn.execute(text("ALTER TABLE bank_transactions ADD COLUMN IF NOT EXISTS is_reconciled BOOLEAN DEFAULT FALSE"))
+                        if "reconciled" in bank_tx_cols:
+                            conn.execute(text("UPDATE bank_transactions SET is_reconciled = COALESCE(reconciled, false)"))
+                    logger.info("✅ Added bank_transactions.is_reconciled")
+
+                if "reconciliation_date" not in bank_tx_cols:
+                    logger.info("🔧 Adding missing bank_transactions.reconciliation_date column...")
+                    with engine.begin() as conn:
+                        conn.execute(text("ALTER TABLE bank_transactions ADD COLUMN IF NOT EXISTS reconciliation_date DATE"))
+                    logger.info("✅ Added bank_transactions.reconciliation_date")
+
+                if "bank_statement_line" not in bank_tx_cols:
+                    logger.info("🔧 Adding missing bank_transactions.bank_statement_line column...")
+                    with engine.begin() as conn:
+                        conn.execute(text("ALTER TABLE bank_transactions ADD COLUMN IF NOT EXISTS bank_statement_line VARCHAR(255)"))
+                    logger.info("✅ Added bank_transactions.bank_statement_line")
+
+            # Postgres enum value for BankAccountType (only if enum type exists)
+            try:
+                with engine.begin() as conn:
+                    conn.execute(text(
+                        """
+                        DO $$ BEGIN
+                          IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'bankaccounttype') THEN
+                            BEGIN
+                              ALTER TYPE bankaccounttype ADD VALUE IF NOT EXISTS 'mobile_money';
+                            EXCEPTION WHEN duplicate_object THEN
+                              NULL;
+                            END;
+                          END IF;
+                        END $$;
+                        """
+                    ))
+            except Exception as e:
+                logger.info(f"ℹ️  Enum bankaccounttype not updated: {e}")
             
             # Fix ledger_accounts.is_active type mismatch (VARCHAR -> BOOLEAN)
             if 'ledger_accounts' in existing_tables:

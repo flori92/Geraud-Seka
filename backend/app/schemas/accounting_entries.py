@@ -36,11 +36,21 @@ class AccountingEntryLineCreate(AccountingEntryLineBase):
     pass
 
 
+class LedgerAccountMini(BaseModel):
+    id: UUID
+    account_code: str
+    account_name: str
+
+    class Config:
+        from_attributes = True
+
+
 class AccountingEntryLineResponse(AccountingEntryLineBase):
     id: UUID
     entry_id: UUID
     reconciled: bool
     reconciliation_ref: Optional[str]
+    account: Optional[LedgerAccountMini] = None
     
     class Config:
         from_attributes = True

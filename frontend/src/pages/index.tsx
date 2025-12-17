@@ -13,7 +13,7 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>SEKA - ERP/CRM pour l'Afrique</title>
+        <title>SEKA - ERP pour l&apos;Afrique</title>
       </Head>
       <main className="flex min-h-screen items-center justify-center bg-accents-1">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-accents-2 border-t-foreground"></div>

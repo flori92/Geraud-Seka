@@ -27,6 +27,10 @@ export default function JournalsPage() {
     const [recentEntries, setRecentEntries] = useState<JournalEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
+    const [exportingFec, setExportingFec] = useState(false);
+
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "";
+    const apiPrefix = API_BASE_URL ? `${API_BASE_URL}/api/v1` : "/api/v1";
 
     useEffect(() => {
         fetchData();
@@ -70,6 +74,40 @@ export default function JournalsPage() {
             entry.description?.toLowerCase().includes(search.toLowerCase())
     );
 
+    const downloadFec = async () => {
+        const token = localStorage.getItem("seka_access_token");
+        if (!token) return;
+
+        setExportingFec(true);
+        try {
+            const response = await fetch(`${apiPrefix}/accounting-entries/entries/export/fec`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                const detailText = await response.text().catch(() => "");
+                alert(detailText || "Impossible d'exporter le FEC");
+                return;
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `FEC_${new Date().toISOString().slice(0, 10)}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+        } catch {
+            alert("Impossible d'exporter le FEC");
+        } finally {
+            setExportingFec(false);
+        }
+    };
+
     return (
         <>
             <Head>
@@ -91,9 +129,13 @@ export default function JournalsPage() {
                                 </div>
                             </div>
                             <div className="flex gap-2">
-                                <button className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 text-sm">
+                                <button
+                                    className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 text-sm disabled:opacity-50"
+                                    onClick={downloadFec}
+                                    disabled={exportingFec}
+                                >
                                     <Download className="h-4 w-4" />
-                                    Exporter FEC
+                                    {exportingFec ? "Export..." : "Exporter FEC"}
                                 </button>
                                 <Link
                                     href="/accounting/entries/new"

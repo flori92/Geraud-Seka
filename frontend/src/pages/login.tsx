@@ -22,6 +22,7 @@ export default function LoginPage() {
       if (typeof window !== "undefined") {
         localStorage.setItem("seka_access_token", tokens.access_token);
         localStorage.setItem("seka_refresh_token", tokens.refresh_token);
+        sessionStorage.removeItem("seka_invalid_token_handled");
       }
 
       await getCurrentUser(tokens.access_token);

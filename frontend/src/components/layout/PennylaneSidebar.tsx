@@ -191,6 +191,8 @@ const accountingMenu: MenuSection[] = [
           { label: "Factures clients", href: "/ventes/factures" },
           { label: "Transactions bancaires", href: "/transactions" },
           { label: "Rapprochement bancaire", href: "/accounting/bank-reconciliation", badge: "IA", badgeVariant: "new" },
+          { label: "Comptes bancaires", href: "/treasury/accounts" },
+          { label: "Mobile Money", href: "/treasury/mobile-money", badge: "NOUVEAU", badgeVariant: "new" },
           { label: "Import relevés", href: "/accounting/import-statements" },
         ]
       },

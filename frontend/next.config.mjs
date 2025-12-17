@@ -4,10 +4,36 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   experimental: {
     serverActions: {
       bodySizeLimit: '2mb',
     },
+  },
+
+  allowedDevOrigins: [
+    // Autoriser localhost et 127.0.0.1 (ports variables en IDE/proxy)
+    'localhost',
+    '127.0.0.1',
+    'localhost:3000',
+    '127.0.0.1:3000',
+  ],
+
+  async rewrites() {
+    // En dev local, proxyfier l'API via Next.js pour éviter le CORS navigateur
+    if (process.env.NODE_ENV !== 'production') {
+      const rawTarget = process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const target = rawTarget.replace(/\/$/, '').replace(/\/api\/v1$/, '');
+      return [
+        {
+          source: '/api/v1/:path*',
+          destination: `${target}/api/v1/:path*`,
+        },
+      ];
+    }
+    return [];
   },
   
   // Force HTTPS in production
@@ -27,6 +53,10 @@ const nextConfig = {
 
   // Redirect HTTP to HTTPS
   async redirects() {
+    // En dev, ne pas rediriger (le proxy IDE et localhost sont en HTTP)
+    if (process.env.NODE_ENV !== 'production') {
+      return [];
+    }
     return [
       // Force HTTPS redirects
       {

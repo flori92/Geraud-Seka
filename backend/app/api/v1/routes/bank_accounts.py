@@ -12,10 +12,58 @@ from app.schemas.treasury import (
     BankAccount,
     BankAccountCreate,
     BankAccountUpdate,
+    MobileMoneyConnectRequest,
 )
 from app.crud import bank_account as ba_crud
 
 router = APIRouter()
+
+
+@router.post("/mobile-money/connect", response_model=BankAccount, status_code=201)
+def connect_mobile_money_account(
+    *,
+    db: Session = Depends(deps.get_db_session),
+    data: MobileMoneyConnectRequest,
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    phone = data.phone_number.strip()
+    normalized = "".join(ch for ch in phone if ch.isdigit())
+    account_number = normalized or phone
+
+    existing = ba_crud.get_by_account_number(db, account_number=account_number, tenant_id=current_user.tenant_id)
+    if existing:
+        return existing
+
+    account_in = BankAccountCreate(
+        name=data.account_name,
+        bank_name=data.provider,
+        branch=None,
+        account_type="mobile_money",
+        bank_code=None,
+        branch_code=None,
+        account_number=account_number,
+        rib_key=None,
+        iban=None,
+        swift_bic=None,
+        currency=data.currency,
+        is_active=True,
+        is_default=False,
+        overdraft_limit=None,
+        interest_rate=None,
+        contact_person=None,
+        contact_phone=data.phone_number,
+        contact_email=None,
+        description=None,
+        notes=None,
+        extra_metadata={
+            "provider": data.provider,
+            "phone_number": data.phone_number,
+            "integration": "kkiapay",
+        },
+        initial_balance=Decimal("0.00"),
+    )
+
+    return ba_crud.create(db, obj_in=account_in, tenant_id=current_user.tenant_id)
 
 
 @router.get("/", response_model=List[BankAccount])

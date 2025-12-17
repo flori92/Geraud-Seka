@@ -16,6 +16,7 @@ class BankAccountType(str, Enum):
     SAVINGS = "savings"  # Compte épargne
     LOAN = "loan"  # Compte de prêt
     CREDIT_CARD = "credit_card"  # Carte de crédit
+    MOBILE_MONEY = "mobile_money"  # Portefeuille Mobile Money
     OTHER = "other"  # Autre
 
 

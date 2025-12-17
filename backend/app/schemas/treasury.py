@@ -1,7 +1,7 @@
 """Pydantic schemas for Treasury module."""
 from datetime import date
 from decimal import Decimal
-from typing import Optional, List
+from typing import Optional, List, Dict
 from uuid import UUID
 
 from pydantic import BaseModel, Field, ConfigDict
@@ -38,6 +38,7 @@ class BankAccountBase(BaseModel):
     contact_email: Optional[str] = Field(None, max_length=255)
     description: Optional[str] = None
     notes: Optional[str] = None
+    extra_metadata: Optional[Dict] = None
 
 
 class BankAccountCreate(BankAccountBase):
@@ -69,6 +70,7 @@ class BankAccountUpdate(BaseModel):
     contact_email: Optional[str] = Field(None, max_length=255)
     description: Optional[str] = None
     notes: Optional[str] = None
+    extra_metadata: Optional[Dict] = None
 
 
 class BankAccount(BankAccountBase):
@@ -93,6 +95,26 @@ class BankAccount(BankAccountBase):
         return " ".join(parts)
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# ========== Mobile Money (KKiaPay) Schemas ==========
+
+class MobileMoneyConnectRequest(BaseModel):
+    provider: str
+    phone_number: str
+    account_name: str
+    currency: str = Field(default="XOF", max_length=3)
+
+
+class MobileMoneySyncRequest(BaseModel):
+    bank_account_id: UUID
+
+
+class MobileMoneySyncResult(BaseModel):
+    total: int
+    created: int
+    duplicates: int
+    errors: int
 
 
 # ========== Bank Transaction Schemas ==========

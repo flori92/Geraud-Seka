@@ -56,7 +56,7 @@ export default function PointVueClientPage() {
             <p className="text-sm text-gray-600">Échangez directement avec votre cabinet comptable sur vos documents et questions.</p>
             <button
               className="mt-4 w-full py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
-              onClick={() => router.push("/crm/contacts")}
+              onClick={() => router.push("/dashboard")}
             >
               Voir les conversations
             </button>
@@ -70,7 +70,7 @@ export default function PointVueClientPage() {
             <p className="text-sm text-gray-600">Consultez les rapports et analyses préparés par votre expert-comptable.</p>
             <button
               className="mt-4 w-full py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
-              onClick={() => router.push("/crm/reports")}
+              onClick={() => router.push("/dashboard")}
             >
               Accéder aux rapports
             </button>

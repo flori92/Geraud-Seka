@@ -1,56 +1,85 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { Download, Loader2, AlertCircle } from "lucide-react";
+import { Download } from "lucide-react";
+import { DashboardLayout } from "@/components/DashboardLayout";
+import { PageHeader } from "@/components/layout/Container";
+import { FilterBar, type FilterConfig } from "@/components/accounting-ui/FilterBar";
+import { DataTable, type Column } from "@/components/accounting-ui/DataTable";
+import { EmptyState } from "@/components/accounting-ui/EmptyState";
+import { Badge } from "@/components/ui/Badge";
 import { useToast } from "@/components/ui/ToastContainer";
+import { getAccountingEntries, type AccountingEntryListItem } from "@/lib/api";
 
 type JournalType = "ACH" | "VTE" | "BQ" | "CA" | "OD";
-
-interface JournalEntry {
-  id: string;
-  entry_number: string;
-  date: string;
-  description: string;
-  debit_account: string;
-  credit_account: string;
-  amount: number;
-}
 
 const journalLabels: Record<JournalType, string> = {
   ACH: "Journal des achats",
   VTE: "Journal des ventes",
   BQ: "Journal de banque",
   CA: "Journal de caisse",
-  OD: "Opérations diverses"
+  OD: "Opérations diverses",
 };
 
-export default function Journals() {
+type JournalRow = {
+  id: string;
+  date: string;
+  piece: string;
+  journal: string;
+  compte: string;
+  libelle: string;
+  debit: number;
+  credit: number;
+  status: string;
+};
+
+function normalizeEntry(e: AccountingEntryListItem): JournalRow {
+  const amount = typeof e.amount === "number" ? e.amount : 0;
+  const debit = typeof e.debit === "number" ? e.debit : amount;
+  const credit = typeof e.credit === "number" ? e.credit : 0;
+
+  return {
+    id: e.id,
+    date: e.date,
+    piece: e.entry_number || e.reference || "-",
+    journal: e.journal_type || "-",
+    compte: e.account_code || "-",
+    libelle: e.description || "-",
+    debit,
+    credit,
+    status: e.status || "-",
+  };
+}
+
+export default function JournalsPage() {
   const router = useRouter();
   const { error: showErrorToast } = useToast();
-  const [entries, setEntries] = useState<JournalEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  // Lire le type de journal depuis les query params de l'URL
+
   const journalTypeFromQuery = router.query.type as JournalType | undefined;
   const validJournalTypes: JournalType[] = ["ACH", "VTE", "BQ", "CA", "OD"];
-  const initialJournal = router.isReady && journalTypeFromQuery && validJournalTypes.includes(journalTypeFromQuery) 
-    ? journalTypeFromQuery 
-    : "ACH";
-  const [selectedJournal, setSelectedJournal] = useState<JournalType>(initialJournal);
+  const initialJournal: JournalType =
+    router.isReady && journalTypeFromQuery && validJournalTypes.includes(journalTypeFromQuery)
+      ? journalTypeFromQuery
+      : "ACH";
 
-  // Mettre à jour selectedJournal quand l'URL change
+  const [selectedJournal, setSelectedJournal] = useState<JournalType>(initialJournal);
+  const [rows, setRows] = useState<JournalRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
+
+  const [filters, setFilters] = useState<Record<string, any>>({
+    status: "",
+    date: "",
+    search: "",
+  });
+
   useEffect(() => {
     if (router.isReady && journalTypeFromQuery && validJournalTypes.includes(journalTypeFromQuery)) {
       setSelectedJournal(journalTypeFromQuery);
     }
   }, [journalTypeFromQuery, router.isReady]);
 
-  useEffect(() => {
-    fetchJournalEntries();
-  }, [selectedJournal]);
-
-  const fetchJournalEntries = async () => {
+  const fetchData = async () => {
     const token = localStorage.getItem("seka_access_token");
     if (!token) {
       router.push("/login");
@@ -58,132 +87,254 @@ export default function Journals() {
     }
 
     setLoading(true);
-    setError(null);
-    const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/accounting-entries/entries/?journal_type=${selectedJournal}`;
     try {
-      const response = await fetch(
-        apiUrl,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setEntries(Array.isArray(data) ? data : []);
-        setError(null);
-      } else {
-        let errorMessage = "Impossible de charger les écritures comptables";
-        if (response.status === 404) {
-          errorMessage = "L'endpoint API n'est pas disponible. Veuillez contacter le support.";
-        } else if (response.status === 500) {
-          errorMessage = "Erreur serveur. Veuillez réessayer plus tard.";
-        } else if (response.status === 422) {
-          errorMessage = "Les données envoyées sont invalides.";
-        }
-        setError(errorMessage);
-        setEntries([]);
-        // Ne pas afficher de toast pour les erreurs 404/500 silencieuses
-        if (response.status !== 404 && response.status !== 500) {
-          showErrorToast(errorMessage);
-        }
-      }
-    } catch (error) {
-      const errorMessage = "Erreur de connexion. Vérifiez votre connexion internet.";
-      setError(errorMessage);
-      setEntries([]);
-      showErrorToast(errorMessage);
+      const data = await getAccountingEntries(token, {
+        journal_type: selectedJournal,
+        status: filters.status || undefined,
+        start_date: filters.date || undefined,
+        end_date: filters.date || undefined,
+        search: filters.search || undefined,
+        skip: 0,
+        limit: 200,
+      });
+      setRows(data.map(normalizeEntry));
+    } catch (e: any) {
+      const msg = "Impossible de charger les écritures comptables";
+      showErrorToast(msg);
+      setRows([]);
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    if (!router.isReady) return;
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router.isReady, selectedJournal, filters.status, filters.date, filters.search]);
+
+  const filterConfig: FilterConfig[] = [
+    {
+      id: "status",
+      label: "Statut",
+      type: "select",
+      placeholder: "Tous les statuts",
+      options: [
+        { value: "", label: "Tous les statuts" },
+        { value: "draft", label: "Brouillon" },
+        { value: "pending", label: "En attente" },
+        { value: "validated", label: "Validé" },
+      ],
+    },
+    {
+      id: "date",
+      label: "Date",
+      type: "date",
+      placeholder: "Date",
+    },
+    {
+      id: "search",
+      label: "Recherche",
+      type: "search",
+      placeholder: "Rechercher...",
+    },
+  ];
+
+  const columns: Column<JournalRow>[] = useMemo(
+    () => [
+      {
+        id: "date",
+        header: "Date",
+        accessor: (row) => new Date(row.date).toLocaleDateString("fr-FR"),
+        sortable: true,
+      },
+      {
+        id: "piece",
+        header: "Pièce",
+        accessor: (row) => <span className="font-mono text-primary-700">{row.piece}</span>,
+        sortable: true,
+      },
+      {
+        id: "journal",
+        header: "Journal",
+        accessor: (row) => <Badge variant="neutral">{row.journal}</Badge>,
+      },
+      {
+        id: "compte",
+        header: "Compte",
+        accessor: (row) => <span className="font-mono">{row.compte}</span>,
+        sortable: true,
+      },
+      {
+        id: "libelle",
+        header: "Libellé",
+        accessor: "libelle",
+      },
+      {
+        id: "debit",
+        header: "Débit",
+        accessor: (row) => (row.debit > 0 ? `${row.debit.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} FCFA` : "-"),
+        className: "text-right font-mono",
+      },
+      {
+        id: "credit",
+        header: "Crédit",
+        accessor: (row) => (row.credit > 0 ? `${row.credit.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} FCFA` : "-"),
+        className: "text-right font-mono",
+      },
+      {
+        id: "status",
+        header: "Statut",
+        accessor: (row) => <Badge variant="neutral">{row.status}</Badge>,
+      },
+    ],
+    []
+  );
+
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
+
+  const downloadExport = async () => {
+    const token = localStorage.getItem("seka_access_token");
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    setExporting(true);
+    try {
+      const params = new URLSearchParams();
+      params.append("journal_types", selectedJournal);
+      if (filters.status) params.append("statuses", filters.status);
+      if (filters.date) {
+        params.append("date_from", filters.date);
+        params.append("date_to", filters.date);
+      }
+      if (filters.search) params.append("description", filters.search);
+
+      const response = await fetch(`/api/v1/accounting-entries/entries/export/csv?${params.toString()}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const detailText = await response.text().catch(() => "");
+        showErrorToast(detailText || "Impossible d'exporter les écritures");
+        return;
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `export_journal_${selectedJournal}_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      showErrorToast("Impossible d'exporter les écritures");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const sortedRows = useMemo(() => {
+    if (!sortConfig) return rows;
+    const { key, direction } = sortConfig;
+    const copy = [...rows];
+    copy.sort((a: any, b: any) => {
+      const av = a[key];
+      const bv = b[key];
+      if (av == null && bv == null) return 0;
+      if (av == null) return direction === "asc" ? -1 : 1;
+      if (bv == null) return direction === "asc" ? 1 : -1;
+      if (typeof av === "number" && typeof bv === "number") return direction === "asc" ? av - bv : bv - av;
+      return direction === "asc"
+        ? String(av).localeCompare(String(bv))
+        : String(bv).localeCompare(String(av));
+    });
+    return copy;
+  }, [rows, sortConfig]);
+
+  const handleSort = (key: string) => {
+    setSortConfig((prev) => {
+      if (prev?.key === key) {
+        return { key, direction: prev.direction === "asc" ? "desc" : "asc" };
+      }
+      return { key, direction: "asc" };
+    });
+  };
+
   return (
     <>
-      <Head><title>Journaux - SEKA</title></Head>
-      <div className="min-h-screen bg-gray-50">
-        <main className="ml-[220px] p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-semibold text-gray-900">Journaux comptables</h1>
-            <button className="flex items-center gap-2 px-4 py-2 bg-[#0d4a44] text-white rounded-lg text-sm font-medium hover:bg-[#0a3d38] transition-colors">
+      <Head>
+        <title>Journaux - SEKA</title>
+      </Head>
+
+      <DashboardLayout title="Journaux comptables">
+        <PageHeader
+          title="Journaux comptables"
+          description="Consultez et gérez les écritures par journal"
+          action={
+            <button
+              className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm font-medium hover:bg-primary-600 transition-colors"
+              onClick={downloadExport}
+              disabled={exporting}
+            >
               <Download className="w-4 h-4" />
-              Exporter
+              {exporting ? "Export..." : "Exporter"}
             </button>
+          }
+        />
+
+        <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
+          <div className="flex items-center border-b border-neutral-200 px-4">
+            {(Object.keys(journalLabels) as JournalType[]).map((journal) => (
+              <button
+                key={journal}
+                onClick={() => {
+                  setSelectedJournal(journal);
+                  router.push(`/accounting/journals?type=${journal}`, undefined, { shallow: true });
+                }}
+                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  selectedJournal === journal
+                    ? "border-primary-500 text-primary-700"
+                    : "border-transparent text-neutral-500 hover:text-neutral-800"
+                }`}
+              >
+                {journalLabels[journal]}
+              </button>
+            ))}
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200">
-            <div className="flex items-center border-b border-gray-200 px-4">
-              {(Object.keys(journalLabels) as JournalType[]).map((journal) => (
-                <button
-                  key={journal}
-                  onClick={() => {
-                    setSelectedJournal(journal);
-                    router.push(`/accounting/journals?type=${journal}`, undefined, { shallow: true });
-                  }}
-                  className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                    selectedJournal === journal
-                      ? "border-[#0d4a44] text-[#0d4a44]"
-                      : "border-transparent text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  {journalLabels[journal]}
-                </button>
-              ))}
-            </div>
-
-            <div className="overflow-x-auto">
-              {error && (
-                <div className="p-4 bg-yellow-50 border-l-4 border-yellow-400">
-                  <div className="flex items-center gap-2">
-                    <AlertCircle className="w-5 h-5 text-yellow-600" />
-                    <p className="text-sm text-yellow-800">{error}</p>
-                  </div>
-                </div>
-              )}
-              {loading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-8 h-8 animate-spin text-[#0d4a44]" />
-                </div>
-              ) : (
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-200 bg-gray-50">
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">N° Écriture</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Montant</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {entries.length === 0 ? (
-                      <tr>
-                        <td colSpan={4} className="px-4 py-12 text-center text-gray-500">
-                          {error ? "Erreur lors du chargement des données" : "Aucune écriture dans ce journal"}
-                        </td>
-                      </tr>
-                    ) : (
-                      entries.map((entry) => (
-                        <tr key={entry.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                            {entry.entry_number}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-600">
-                            {new Date(entry.date).toLocaleDateString("fr-FR")}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-900">
-                            {entry.description}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-right text-gray-900">
-                            {entry.amount.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} FCFA
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              )}
-            </div>
+          <div className="px-4">
+            <FilterBar
+              filters={filterConfig}
+              values={filters}
+              onChange={(id, value) => setFilters((prev) => ({ ...prev, [id]: value }))}
+              onReset={() => setFilters({ status: "", date: "", search: "" })}
+            />
           </div>
-        </main>
-      </div>
+
+          <div className="p-4">
+            <DataTable
+              columns={columns}
+              data={sortedRows}
+              getRowId={(r) => r.id}
+              isLoading={loading}
+              sortConfig={sortConfig}
+              onSort={handleSort}
+              emptyState={
+                <EmptyState
+                  title="Aucune écriture"
+                  description="Aucune écriture n'est disponible pour ce journal."
+                />
+              }
+            />
+          </div>
+        </div>
+      </DashboardLayout>
     </>
   );
 }

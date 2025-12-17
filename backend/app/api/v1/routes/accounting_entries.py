@@ -67,8 +67,11 @@ def create_accounting_entry(
         for line_data in entry_data.lines:
             account_id = line_data.account_id
             if account_id is None and getattr(line_data, "account_code", None):
+                raw_code = str(line_data.account_code)
+                account_code = raw_code.strip().replace(" ", "").replace(".", "")
+
                 account = db.query(LedgerAccount).filter(
-                    LedgerAccount.account_code == line_data.account_code,
+                    LedgerAccount.account_code == account_code,
                     LedgerAccount.tenant_id == current_user.tenant_id,
                 ).first()
 
@@ -77,7 +80,7 @@ def create_accounting_entry(
                 if not account:
                     coa = db.query(ChartOfAccounts).filter(
                         ChartOfAccounts.tenant_id == current_user.tenant_id,
-                        ChartOfAccounts.account_number == line_data.account_code,
+                        ChartOfAccounts.account_number == account_code,
                         ChartOfAccounts.is_active == True,
                     ).first()
                     if coa:
@@ -93,7 +96,28 @@ def create_accounting_entry(
                         db.add(account)
                         db.flush()
                     else:
-                        raise HTTPException(status_code=404, detail=f"Compte {line_data.account_code} introuvable")
+                        # Fallback: créer un compte minimal pour ne pas bloquer l'enregistrement.
+                        # Heuristique SYSCOHADA: 6 = charges, 7 = produits.
+                        first_digit = account_code[:1]
+                        if first_digit == "7":
+                            inferred_type = LedgerAccountType.REVENUE
+                        elif first_digit == "6":
+                            inferred_type = LedgerAccountType.EXPENSE
+                        else:
+                            inferred_type = LedgerAccountType.ASSET
+
+                        account = LedgerAccount(
+                            tenant_id=current_user.tenant_id,
+                            account_code=account_code,
+                            account_name=f"Compte {account_code}",
+                            account_type=inferred_type,
+                            balance=Decimal("0.00"),
+                            currency="XOF",
+                            is_active=True,
+                            description="Auto-créé lors de la création d'écriture (OCR)",
+                        )
+                        db.add(account)
+                        db.flush()
                 account_id = account.id
             else:
                 account = db.query(LedgerAccount).filter(
@@ -295,7 +319,7 @@ async def search_entries(
         
         if criteria.account_number:
             query = query.join(AccountingEntryLine.account)
-            query = query.filter(LedgerAccount.account_number.ilike(f"{criteria.account_number}%"))
+            query = query.filter(LedgerAccount.account_code.ilike(f"{criteria.account_number}%"))
         
         if criteria.partner_id:
             query = query.filter(AccountingEntryLine.partner_id == criteria.partner_id)
@@ -366,7 +390,7 @@ def export_entries_to_csv(entries: List[AccountingEntryHeader]):
                 entry.journal_type,
                 entry.entry_number,
                 entry.reference or "",
-                line.account.account_number if line.account else "",
+                line.account.account_code if line.account else "",
                 line.label or "",
                 str(line.debit) if line.debit else "",
                 str(line.credit) if line.credit else "",
@@ -396,7 +420,7 @@ def export_entries_to_pdf(entries: List[AccountingEntryHeader]):
                 f"<td>{entry.journal_type}</td>"
                 f"<td>{entry.entry_number}</td>"
                 f"<td>{(entry.reference or '')}</td>"
-                f"<td>{(line.account.account_number if line.account else '')}</td>"
+                f"<td>{(line.account.account_code if line.account else '')}</td>"
                 f"<td>{(line.label or '')}</td>"
                 f"<td style='text-align:right'>{(line.debit or 0)}</td>"
                 f"<td style='text-align:right'>{(line.credit or 0)}</td>"
@@ -451,7 +475,7 @@ def export_entries_to_excel(entries: List[AccountingEntryHeader]):
                     "Journal": entry.journal_type,
                     "Pièce": entry.entry_number,
                     "Référence": entry.reference or "",
-                    "Compte": line.account.account_number if line.account else "",
+                    "Compte": line.account.account_code if line.account else "",
                     "Libellé": line.label or "",
                     "Débit": float(line.debit) if line.debit else 0.0,
                     "Crédit": float(line.credit) if line.credit else 0.0,
@@ -499,8 +523,8 @@ def export_entries_to_fec(entries: List[AccountingEntryHeader], tenant_id: str):
                 str(entry.journal_type),  # JournalLib
                 entry.entry_number,  # EcritureNum
                 entry.date.strftime("%Y%m%d"),  # EcritureDate
-                line.account.account_number if line.account else "",  # CompteNum
-                line.account.name if line.account else "",  # CompteLib
+                line.account.account_code if line.account else "",  # CompteNum
+                line.account.account_name if line.account else "",  # CompteLib
                 line.partner_id or "",  # CompAuxNum
                 "",  # CompAuxLib (à compléter si nécessaire)
                 entry.reference or "",  # PieceRef

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { PennylaneSidebar } from "@/components/layout/PennylaneSidebar";
@@ -13,7 +13,6 @@ import {
   Settings,
   ChevronDown,
   FileText,
-  Mail
 } from "lucide-react";
 
 // Types
@@ -46,11 +45,10 @@ export default function BalanceSheetPage() {
   const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['actif', 'passif']));
 
-  useEffect(() => {
-    fetchBalanceSheetData();
-  }, [selectedYear]);
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "";
+  const apiPrefix = API_BASE_URL ? `${API_BASE_URL}/api/v1` : "/api/v1";
 
-  const fetchBalanceSheetData = async () => {
+  const fetchBalanceSheetData = useCallback(async () => {
     const token = localStorage.getItem("seka_access_token");
     if (!token) {
       router.push("/login");
@@ -60,7 +58,7 @@ export default function BalanceSheetPage() {
     setLoading(true);
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/reports/balance-sheet?year=${selectedYear}`,
+        `${apiPrefix}/reports/balance-sheet?year=${selectedYear}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -73,7 +71,11 @@ export default function BalanceSheetPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiPrefix, router, selectedYear]);
+
+  useEffect(() => {
+    fetchBalanceSheetData();
+  }, [fetchBalanceSheetData]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('fr-FR', {
@@ -120,7 +122,7 @@ export default function BalanceSheetPage() {
     return { value: year.toString(), label: year.toString() };
   });
 
-  const renderBalanceSheetSection = (lines: BalanceSheetLine[], title: string, sectionKey: string) => {
+  const renderBalanceSheetSection = (lines: BalanceSheetLine[] | undefined, title: string, sectionKey: string) => {
     const isExpanded = expandedSections.has(sectionKey);
 
     return (
@@ -135,7 +137,7 @@ export default function BalanceSheetPage() {
 
         {isExpanded && (
           <div className="space-y-0">
-            {lines.map((line, index) => (
+            {(lines ?? []).map((line, index) => (
               <div
                 key={`${line.code}-${index}`}
                 className={`flex items-center justify-between px-6 py-3 hover:bg-gray-50 ${
@@ -236,7 +238,7 @@ export default function BalanceSheetPage() {
               </div>
               <button className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 flex items-center gap-2">
                 <Settings className="h-4 w-4" />
-                Paramètres d'affichage
+                Paramètres d&apos;affichage
               </button>
             </div>
           </div>
@@ -384,7 +386,7 @@ export default function BalanceSheetPage() {
                   <div>
                     <p className="text-sm font-medium text-blue-900">Équilibre du bilan</p>
                     <p className="text-sm text-blue-700 mt-1">
-                      Le total de l'actif est {balanceSheet.total_actif_n === balanceSheet.total_passif_n ? 'égal' : 'différent'} au total du passif.
+                      Le total de l&apos;actif est {balanceSheet.total_actif_n === balanceSheet.total_passif_n ? 'égal' : 'différent'} au total du passif.
                       {balanceSheet.total_actif_n === balanceSheet.total_passif_n ? ' Votre bilan est équilibré.' : ' Veuillez vérifier vos écritures.'}
                     </p>
                   </div>

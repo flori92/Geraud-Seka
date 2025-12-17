@@ -17,6 +17,7 @@ from app.api.v1.routes import (
     # segments,  # CRM module removed
     # campaigns,  # CRM module removed
     # automations,  # CRM module removed
+    contacts,
     notifications,
     scheduler,
     # import_export,  # CRM dependencies removed
@@ -63,6 +64,8 @@ api_router.include_router(activities.router, prefix="/activities", tags=["activi
 api_router.include_router(products.router, prefix="/products", tags=["products"])
 api_router.include_router(exports.router, prefix="/exports", tags=["exports"])
 api_router.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
+# Contacts conservé (hors CRM)
+api_router.include_router(contacts.router, prefix="/contacts", tags=["contacts"])
 # CRM routes disabled - models removed
 # api_router.include_router(crm.router, prefix="/crm", tags=["crm"])
 # api_router.include_router(email_tracking.router, prefix="/email", tags=["email", "tracking"])
@@ -94,6 +97,10 @@ api_router.include_router(delivery_notes.router, prefix="/delivery-notes", tags=
 api_router.include_router(treasury.router, prefix="/treasury", tags=["treasury"])
 api_router.include_router(bank_accounts.router, prefix="/treasury/accounts", tags=["treasury", "accounts"])
 api_router.include_router(bank_transactions.router, prefix="/treasury/transactions", tags=["treasury", "transactions"])
+
+# Alias routes for frontend compatibility (some pages still call /bank-accounts and /bank-transactions)
+api_router.include_router(bank_accounts.router, prefix="/bank-accounts", tags=["treasury", "accounts"])
+api_router.include_router(bank_transactions.router, prefix="/bank-transactions", tags=["treasury", "transactions"])
 api_router.include_router(payment_schedules.router, prefix="/treasury/payment-schedules", tags=["treasury", "schedules"])
 api_router.include_router(treasury_forecast.router, prefix="/treasury/forecast", tags=["treasury", "forecast"])
 api_router.include_router(treasury_dashboard.router, prefix="/treasury/dashboard", tags=["treasury", "dashboard"])

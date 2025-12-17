@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { PennylaneSidebar } from "@/components/layout/PennylaneSidebar";
 import { Search, Download, Loader2 } from "lucide-react";
 
 interface JournalEntry {
@@ -20,11 +19,10 @@ export default function GeneralLedger() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
-  useEffect(() => {
-    fetchEntries();
-  }, []);
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "";
+  const apiPrefix = API_BASE_URL ? `${API_BASE_URL}/api/v1` : "/api/v1";
 
-  const fetchEntries = async () => {
+  const fetchEntries = useCallback(async () => {
     const token = localStorage.getItem("seka_access_token");
     if (!token) {
       router.push("/login");
@@ -33,7 +31,7 @@ export default function GeneralLedger() {
 
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/accounting/journal/`,
+        `${apiPrefix}/accounting/journal/`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -46,7 +44,11 @@ export default function GeneralLedger() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiPrefix, router]);
+
+  useEffect(() => {
+    fetchEntries();
+  }, [fetchEntries]);
 
   const filteredEntries = entries.filter(
     (entry) =>

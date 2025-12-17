@@ -39,6 +39,29 @@ interface EntryLine {
   credit: number;
 }
 
+function toNumberAmount(v: unknown): number {
+  if (typeof v === "number") return Number.isFinite(v) ? v : 0;
+  if (typeof v === "string") {
+    const normalized = v.replace(/\s/g, "").replace(",", ".");
+    const n = parseFloat(normalized);
+    return Number.isFinite(n) ? n : 0;
+  }
+  return 0;
+}
+
+function normalizeEntryLines(lines: unknown): EntryLine[] {
+  if (!Array.isArray(lines)) return [];
+  return lines.map((l) => {
+    const obj = l as Record<string, unknown>;
+    return {
+      account_code: String(obj.account_code ?? ""),
+      label: String(obj.label ?? ""),
+      debit: toNumberAmount(obj.debit),
+      credit: toNumberAmount(obj.credit),
+    };
+  });
+}
+
 export default function AccountingEntryFromOCR() {
   const router = useRouter();
   const [uploading, setUploading] = useState(false);
@@ -310,26 +333,26 @@ export default function AccountingEntryFromOCR() {
         suggested_debit_account: "601100",
         suggested_credit_account: "401100",
         suggested_label: `Achat ${reference}`,
-        auto_apply: false
+        auto_apply: false,
       };
 
       // Update State
       setOcrData(fallbackOcrData);
       setSuggestions(fallbackSuggestions);
-      setEntryLines([
-        { account_code: "601100", label: `Achat ${reference}`, debit: amountHT, credit: 0 },
-        { account_code: "445200", label: "TVA Récupérable", debit: amountVAT, credit: 0 },
-        { account_code: "401100", label: supplierName, debit: 0, credit: amountTTC }
-      ]);
+      setEntryLines(
+        normalizeEntryLines([
+          { account_code: "601100", label: `Achat ${reference}`, debit: amountHT, credit: 0 },
+          { account_code: "445200", label: "TVA Récupérable", debit: amountVAT, credit: 0 },
+          { account_code: "401100", label: supplierName, debit: 0, credit: amountTTC },
+        ])
+      );
       setFileInfo({
         url: URL.createObjectURL(file),
         page_count: pageCount,
-        is_multi_page: isMultiPage
+        is_multi_page: isMultiPage,
       });
-
     } catch (err: unknown) {
       console.error("Local OCR failed:", err);
-      // alert("L'analyse locale du document a également échoué: " + (err.message || err));
     }
   };
 
@@ -348,7 +371,7 @@ export default function AccountingEntryFromOCR() {
           {
             method: 'POST',
             headers: { Authorization: `Bearer ${token}` },
-            body: formData
+            body: formData,
           }
         );
 
@@ -381,7 +404,7 @@ export default function AccountingEntryFromOCR() {
 
       setOcrData(result.ocr_data);
       setSuggestions(result.suggestions);
-      setEntryLines(result.proposed_entry.lines);
+      setEntryLines(normalizeEntryLines(result.proposed_entry.lines));
       setFileInfo(result.file_info || {});
     } catch (error) {
       if (error instanceof Error && error.message === "OCR_SERVER_NOT_CONFIGURED") {
@@ -451,8 +474,8 @@ export default function AccountingEntryFromOCR() {
         return;
       }
 
-      const totalDebit = entryLines.reduce((s, l) => s + (Number(l.debit) || 0), 0);
-      const totalCredit = entryLines.reduce((s, l) => s + (Number(l.credit) || 0), 0);
+      const totalDebit = entryLines.reduce((s, l) => s + (toNumberAmount(l.debit) || 0), 0);
+      const totalCredit = entryLines.reduce((s, l) => s + (toNumberAmount(l.credit) || 0), 0);
       if (Math.abs(totalDebit - totalCredit) > 0.01) {
         alert(`L'écriture n'est pas équilibrée: Débit=${totalDebit.toFixed(2)}, Crédit=${totalCredit.toFixed(2)}`);
         return;
@@ -477,8 +500,8 @@ export default function AccountingEntryFromOCR() {
             lines: entryLines.map(line => ({
               account_code: line.account_code,
               label: line.label,
-              debit: Number(line.debit) || 0,
-              credit: Number(line.credit) || 0
+              debit: toNumberAmount(line.debit) || 0,
+              credit: toNumberAmount(line.credit) || 0
             }))
           })
         }
@@ -500,13 +523,15 @@ export default function AccountingEntryFromOCR() {
   };
 
   const recalcTVA = (lines: EntryLine[]) => {
-    const totalDebit = lines.reduce((s, l) => s + (l.debit || 0), 0);
-    const totalCredit = lines.reduce((s, l) => s + (l.credit || 0), 0);
+    const totalDebit = lines.reduce((s, l) => s + (toNumberAmount(l.debit) || 0), 0);
+    const totalCredit = lines.reduce((s, l) => s + (toNumberAmount(l.credit) || 0), 0);
     if (Math.abs(totalDebit - totalCredit) < 0.01) return lines;
     const tvaIndex = lines.findIndex(l => l.label?.toLowerCase().includes('tva'));
     if (tvaIndex >= 0 && ocrData) {
-      const ht = lines.filter((_, i) => i !== tvaIndex).reduce((s, l) => s + (l.debit || 0), 0);
-      const ttc = lines.reduce((s, l) => s + (l.credit || 0), 0);
+      const ht = lines
+        .filter((_, i) => i !== tvaIndex)
+        .reduce((s, l) => s + (toNumberAmount(l.debit) || 0), 0);
+      const ttc = lines.reduce((s, l) => s + (toNumberAmount(l.credit) || 0), 0);
       const newTVA = Math.max(0, ttc - ht);
       const clone = [...lines];
       clone[tvaIndex] = { ...clone[tvaIndex], debit: parseFloat(newTVA.toFixed(2)) };
@@ -521,8 +546,8 @@ export default function AccountingEntryFromOCR() {
     setEntryLines(recalcTVA(newLines));
   };
 
-  const getTotalDebit = () => entryLines.reduce((sum, line) => sum + (line.debit || 0), 0);
-  const getTotalCredit = () => entryLines.reduce((sum, line) => sum + (line.credit || 0), 0);
+  const getTotalDebit = () => entryLines.reduce((sum, line) => sum + (toNumberAmount(line.debit) || 0), 0);
+  const getTotalCredit = () => entryLines.reduce((sum, line) => sum + (toNumberAmount(line.credit) || 0), 0);
   const isBalanced = Math.abs(getTotalDebit() - getTotalCredit()) < 0.01;
 
   const getFieldConfidence = (fieldName: string): number | undefined => {

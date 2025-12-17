@@ -56,12 +56,14 @@ export default function AccountingEntries() {
   const router = useRouter();
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<EntryStatus | "all">("all");
   const [journalFilter, setJournalFilter] = useState<JournalType | "all">("all");
   const [dateRange, setDateRange] = useState<{ start?: string; end?: string }>({});
 
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL;
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "";
+  const apiPrefix = API_BASE_URL ? `${API_BASE_URL}/api/v1` : "/api/v1";
 
   const fetchEntries = useCallback(async () => {
     const token = localStorage.getItem("seka_access_token");
@@ -72,12 +74,7 @@ export default function AccountingEntries() {
 
     setLoading(true);
     try {
-      if (!apiBaseUrl) {
-        console.error("[API] NEXT_PUBLIC_API_BASE_URL manquant");
-        return;
-      }
-
-      let url = `${apiBaseUrl}/api/v1/accounting-entries/entries/`;
+      let url = `${apiPrefix}/accounting-entries/entries/`;
       const params = new URLSearchParams();
       
       if (statusFilter !== "all") params.append("status", statusFilter);
@@ -98,7 +95,7 @@ export default function AccountingEntries() {
     } finally {
       setLoading(false);
     }
-  }, [apiBaseUrl, journalFilter, router, statusFilter]);
+  }, [apiPrefix, journalFilter, router, statusFilter]);
 
   useEffect(() => {
     fetchEntries();
@@ -107,13 +104,8 @@ export default function AccountingEntries() {
   const validateEntry = async (entryId: string) => {
     const token = localStorage.getItem("seka_access_token");
     try {
-      if (!apiBaseUrl) {
-        console.error("[API] NEXT_PUBLIC_API_BASE_URL manquant");
-        return;
-      }
-
       const response = await fetch(
-        `${apiBaseUrl}/api/v1/accounting-entries/entries/${entryId}/validate`,
+        `${apiPrefix}/accounting-entries/entries/${entryId}/validate`,
         {
           method: "POST",
           headers: {
@@ -132,16 +124,55 @@ export default function AccountingEntries() {
     }
   };
 
-  const postEntry = async (entryId: string) => {
+  const downloadExport = async () => {
     const token = localStorage.getItem("seka_access_token");
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    setExporting(true);
     try {
-      if (!apiBaseUrl) {
-        console.error("[API] NEXT_PUBLIC_API_BASE_URL manquant");
+      const params = new URLSearchParams();
+      if (journalFilter !== "all") params.append("journal_types", journalFilter);
+      if (statusFilter !== "all") params.append("statuses", statusFilter);
+      if (dateRange.start) params.append("date_from", dateRange.start);
+      if (dateRange.end) params.append("date_to", dateRange.end);
+      if (searchQuery) params.append("description", searchQuery);
+
+      const response = await fetch(`/api/v1/accounting-entries/entries/export/csv?${params.toString()}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const detailText = await response.text().catch(() => "");
+        alert(detailText || "Impossible d'exporter les écritures");
         return;
       }
 
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `export_ecritures_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      alert("Impossible d'exporter les écritures");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const postEntry = async (entryId: string) => {
+    const token = localStorage.getItem("seka_access_token");
+    try {
       const response = await fetch(
-        `${apiBaseUrl}/api/v1/accounting-entries/entries/${entryId}/post`,
+        `${apiPrefix}/accounting-entries/entries/${entryId}/post`,
         {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` }
@@ -161,13 +192,8 @@ export default function AccountingEntries() {
 
     const token = localStorage.getItem("seka_access_token");
     try {
-      if (!apiBaseUrl) {
-        console.error("[API] NEXT_PUBLIC_API_BASE_URL manquant");
-        return;
-      }
-
       const response = await fetch(
-        `${apiBaseUrl}/api/v1/accounting-entries/entries/${entryId}`,
+        `${apiPrefix}/accounting-entries/entries/${entryId}`,
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` }
@@ -228,9 +254,13 @@ export default function AccountingEntries() {
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-semibold text-gray-900">Écritures comptables</h1>
             <div className="flex items-center gap-3">
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+              <button
+                className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                onClick={downloadExport}
+                disabled={exporting}
+              >
                 <Download className="w-4 h-4" />
-                Exporter
+                {exporting ? "Export..." : "Exporter"}
               </button>
               <button 
                 onClick={() => router.push("/accounting/entries/new")}

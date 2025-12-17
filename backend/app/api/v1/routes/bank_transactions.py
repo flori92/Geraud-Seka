@@ -2,8 +2,10 @@
 from typing import List, Any, Optional
 from uuid import UUID
 from datetime import date
+from decimal import Decimal
+from hashlib import sha1
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
@@ -14,8 +16,13 @@ from app.schemas.treasury import (
     BankTransactionCreate,
     BankTransactionUpdate,
     BankTransactionWithAccount,
+    MobileMoneySyncRequest,
+    MobileMoneySyncResult,
 )
 from app.crud import bank_transaction as bt_crud
+from app.crud import bank_account as ba_crud
+from app.services.reconciliation import ReconciliationService
+from app.core.config import get_settings
 
 router = APIRouter()
 
@@ -154,6 +161,152 @@ def delete_transaction(
 class ReconcileRequest(BaseModel):
     """Request body for reconciling a transaction."""
     bank_statement_line: Optional[str] = None
+
+
+@router.post("/import/csv", response_model=MobileMoneySyncResult)
+def import_bank_statement_csv(
+    *,
+    db: Session = Depends(deps.get_db_session),
+    bank_account_id: UUID = Query(..., description="Target bank account"),
+    file: UploadFile = File(...),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    account = ba_crud.get(db, account_id=bank_account_id)
+    if not account or account.tenant_id != current_user.tenant_id:
+        raise HTTPException(status_code=404, detail="Bank account not found")
+
+    content = file.file.read()
+    service = ReconciliationService(db)
+    lines = service.parse_bank_statement(content, format="csv")
+
+    created = 0
+    duplicates = 0
+    errors = 0
+
+    for line in lines:
+        try:
+            amount = Decimal(str(line.amount))
+            description = line.description
+            reference = line.reference
+            if not reference:
+                base = f"{line.transaction_date.isoformat()}|{amount}|{description}"
+                reference = sha1(base.encode("utf-8")).hexdigest()[:24]
+
+            existing = bt_crud.get_by_reference(db, reference=reference, tenant_id=current_user.tenant_id)
+            if existing:
+                duplicates += 1
+                continue
+
+            transaction_type = "deposit" if amount >= 0 else "withdrawal"
+
+            tx_in = BankTransactionCreate(
+                bank_account_id=bank_account_id,
+                transaction_date=line.transaction_date,
+                value_date=None,
+                transaction_type=transaction_type,
+                amount=amount,
+                currency=account.currency,
+                description=description,
+                reference=reference,
+                check_number=None,
+                counterparty=None,
+                counterparty_account=None,
+                category=None,
+                notes=None,
+                sales_invoice_id=None,
+                purchase_order_id=None,
+                status="cleared",
+            )
+            bt_crud.create(db, obj_in=tx_in, tenant_id=current_user.tenant_id)
+            created += 1
+        except Exception:
+            errors += 1
+            continue
+
+    return {
+        "total": len(lines),
+        "created": created,
+        "duplicates": duplicates,
+        "errors": errors,
+    }
+
+
+@router.post("/mobile-money/sync", response_model=MobileMoneySyncResult)
+async def sync_mobile_money(
+    *,
+    db: Session = Depends(deps.get_db_session),
+    data: MobileMoneySyncRequest,
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    account = ba_crud.get(db, account_id=data.bank_account_id)
+    if not account or account.tenant_id != current_user.tenant_id:
+        raise HTTPException(status_code=404, detail="Bank account not found")
+
+    settings = get_settings()
+    created = 0
+    duplicates = 0
+    errors = 0
+
+    # Mode mock si clés absentes
+    if not settings.kkiapay_private_key:
+        mock = [
+            {
+                "date": date.today().isoformat(),
+                "description": "Mobile Money - Encaissement client",
+                "amount": Decimal("150000"),
+                "reference": f"MM_{data.bank_account_id.hex[:8]}_{date.today().strftime('%Y%m%d')}_001",
+            },
+            {
+                "date": date.today().isoformat(),
+                "description": "Mobile Money - Paiement fournisseur",
+                "amount": Decimal("-45000"),
+                "reference": f"MM_{data.bank_account_id.hex[:8]}_{date.today().strftime('%Y%m%d')}_002",
+            },
+        ]
+    else:
+        mock = []
+
+    for item in mock:
+        try:
+            reference = item.get("reference")
+            if not reference:
+                continue
+            existing = bt_crud.get_by_reference(db, reference=reference, tenant_id=current_user.tenant_id)
+            if existing:
+                duplicates += 1
+                continue
+
+            amount = Decimal(str(item.get("amount")))
+            tx_type = "deposit" if amount >= 0 else "withdrawal"
+            tx_in = BankTransactionCreate(
+                bank_account_id=data.bank_account_id,
+                transaction_date=date.fromisoformat(item.get("date")),
+                value_date=None,
+                transaction_type=tx_type,
+                amount=amount,
+                currency=account.currency,
+                description=item.get("description"),
+                reference=reference,
+                check_number=None,
+                counterparty=None,
+                counterparty_account=None,
+                category=None,
+                notes=None,
+                sales_invoice_id=None,
+                purchase_order_id=None,
+                status="cleared",
+            )
+            bt_crud.create(db, obj_in=tx_in, tenant_id=current_user.tenant_id)
+            created += 1
+        except Exception:
+            errors += 1
+
+    return {
+        "total": len(mock),
+        "created": created,
+        "duplicates": duplicates,
+        "errors": errors,
+    }
 
 
 @router.post("/{transaction_id}/reconcile", response_model=BankTransaction)

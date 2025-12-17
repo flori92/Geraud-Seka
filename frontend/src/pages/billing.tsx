@@ -38,7 +38,7 @@ export default function BillingPage() {
                 setError(null);
             } catch (err: any) {
                 console.error("Failed to fetch billing data", err);
-                if (err.response?.status === 401) {
+                if (process.env.NODE_ENV === "production" && err.response?.status === 401) {
                     localStorage.removeItem("seka_access_token");
                     router.push("/login");
                     return;

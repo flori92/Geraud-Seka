@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Head from "next/head";
 import {
-    Receipt, Calculator, FileText, Download, CheckCircle, AlertCircle,
-    Loader2, Calendar, TrendingUp, TrendingDown, Eye, Send, Clock,
+    Receipt, Calculator, Download,
+    Loader2, TrendingUp, TrendingDown, Eye, Send, Clock,
     ChevronDown, ChevronRight, HelpCircle, Printer, RefreshCw
 } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
@@ -32,25 +32,24 @@ export default function TVADeclarationPage() {
     const [selectedPeriod, setSelectedPeriod] = useState("2024-12");
     const [expandedSections, setExpandedSections] = useState<string[]>(["collectee", "deductible"]);
 
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "";
+    const apiPrefix = API_BASE_URL ? `${API_BASE_URL}/api/v1` : "/api/v1";
+
     const [declaration, setDeclaration] = useState<TVADeclaration | null>(null);
     const [history, setHistory] = useState<TVADeclaration[]>([]);
 
     const [collecteeLines, setCollecteeLines] = useState<TVALine[]>([]);
     const [deductibleLines, setDeductibleLines] = useState<TVALine[]>([]);
 
-    useEffect(() => {
-        fetchData();
-    }, [selectedPeriod]);
-
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         setLoading(true);
         try {
             // Parse year and month from selectedPeriod (format: "YYYY-MM")
             const [year, month] = selectedPeriod.split("-").map(Number);
 
-            const response = await fetch(`/api/v1/tax/tva-declaration?year=${year}&month=${month}`, {
+            const response = await fetch(`${apiPrefix}/tax/tva-declaration?year=${year}&month=${month}`, {
                 headers: {
-                    "Authorization": `Bearer ${localStorage.getItem("token")}`,
+                    "Authorization": `Bearer ${localStorage.getItem("seka_access_token")}`,
                 },
             });
 
@@ -88,7 +87,11 @@ export default function TVADeclarationPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [apiPrefix, selectedPeriod]);
+
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
 
     const handleRecalculate = async () => {
         setCalculating(true);

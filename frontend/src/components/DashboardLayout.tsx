@@ -83,7 +83,7 @@ function NotificationsPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () 
   const fetchNotifications = async () => {
     setIsLoading(true);
     try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
       const token = localStorage.getItem('seka_access_token');
       const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
 
@@ -101,7 +101,7 @@ function NotificationsPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () 
 
   const handleMarkAllAsRead = async () => {
     try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
       const token = localStorage.getItem('seka_access_token');
       const headers: HeadersInit = token ? { 
         Authorization: `Bearer ${token}`,
@@ -126,7 +126,7 @@ function NotificationsPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () 
     // Marquer comme lue
     if (!notification.is_read) {
       try {
-        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
         const token = localStorage.getItem('seka_access_token');
         const headers: HeadersInit = token ? { 
           Authorization: `Bearer ${token}`,
@@ -276,18 +276,18 @@ export function DashboardLayout({ title, children }: DashboardLayoutProps) {
         {/* Main Content */}
         <main className="flex-1 pl-[72px] transition-all duration-300">
           <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-accents-2 bg-background/80 px-8 backdrop-blur-md">
-            <h1 className="text-2xl font-bold tracking-tight">{title || "Tableau de bord"}</h1>
+            <div />
             <div className="flex items-center gap-2">
               <button 
                 onClick={() => setShowHelp(true)}
-                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accents-2 hover:text-foreground"
               >
                 <HelpCircle className="h-4 w-4" />
                 <span>Aide</span>
               </button>
               <button 
                 onClick={() => setShowNotifications(true)}
-                className="relative flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                className="relative flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accents-2 hover:text-foreground"
               >
                 <Bell className="h-4 w-4" />
                 <span>Notifications</span>

@@ -48,19 +48,40 @@ export default function FacturesFournisseurs() {
       try {
         const documents = await getDocuments(token);
         // Transform documents to display format
-        const displayInvoices: DisplayInvoice[] = documents.map((doc: Document) => ({
-          id: doc.id,
-          emission: doc.date ? new Date(doc.date).toLocaleDateString("fr-FR") : "-",
-          tiers: doc.supplier_name || "",
-          numeroFacture: doc.reference_number || doc.filename,
-          numeroCompte: "6288", // Default account
-          tauxTVA: determineTVARate(doc.amount_vat, doc.amount_ht),
-          ajout: new Date(doc.created_at).toLocaleDateString("fr-FR"),
-          statutDirigeant: doc.status === "validated" ? "Validée" : "Import comp...",
-          source: "",
-          codesAnalytiques: "",
-          categories: ""
-        }));
+        const displayInvoices: DisplayInvoice[] = documents.map((doc: Document) => {
+          const ocr = (doc.ocr_data ?? {}) as Record<string, unknown>;
+          const ocrStr = (key: string) => (typeof ocr[key] === "string" ? (ocr[key] as string) : "");
+          const ocrNum = (key: string) => {
+            const v = ocr[key];
+            if (typeof v === "number") return v;
+            if (typeof v === "string") {
+              const normalized = v.replace(/\s/g, "").replace(",", ".");
+              const n = parseFloat(normalized);
+              return Number.isFinite(n) ? n : undefined;
+            }
+            return undefined;
+          };
+
+          const date = doc.date || ocrStr("date");
+          const supplierName = doc.supplier_name || ocrStr("supplier_name");
+          const referenceNumber = doc.reference_number || ocrStr("reference_number") || doc.filename;
+          const amountHT = doc.amount_ht ?? ocrNum("amount_ht");
+          const amountVAT = doc.amount_vat ?? ocrNum("amount_vat");
+
+          return {
+            id: doc.id,
+            emission: date ? new Date(date).toLocaleDateString("fr-FR") : "-",
+            tiers: supplierName || "",
+            numeroFacture: referenceNumber,
+            numeroCompte: "6288", // Default account
+            tauxTVA: determineTVARate(amountVAT, amountHT),
+            ajout: new Date(doc.created_at).toLocaleDateString("fr-FR"),
+            statutDirigeant: doc.status === "validated" ? "Validée" : "Import comp...",
+            source: "",
+            codesAnalytiques: "",
+            categories: "",
+          };
+        });
         setInvoices(displayInvoices);
       } catch (error) {
         console.error("Error fetching invoices:", error);

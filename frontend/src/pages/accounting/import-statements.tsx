@@ -1,10 +1,18 @@
-import { useState, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Head from "next/head";
 import {
     Upload, FileText, Download, CheckCircle, AlertCircle, Loader2,
-    FileSpreadsheet, X, Eye, Calendar, Building2, Trash2, RefreshCw
+    FileSpreadsheet, Trash2, RefreshCw
 } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
+
+type BankAccount = {
+    id: string;
+    name: string;
+    bank_name: string;
+    account_type: string;
+    currency: string;
+};
 
 interface ParsedTransaction {
     id: string;
@@ -34,8 +42,32 @@ export default function BankStatementImportPage() {
     const [result, setResult] = useState<ImportResult | null>(null);
     const [step, setStep] = useState<"upload" | "preview" | "result">("upload");
     const [bankAccount, setBankAccount] = useState("");
+    const [accounts, setAccounts] = useState<BankAccount[]>([]);
     const [dateFormat, setDateFormat] = useState("DD/MM/YYYY");
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "";
+    const apiPrefix = API_BASE_URL ? `${API_BASE_URL}/api/v1` : "/api/v1";
+
+    const fetchAccounts = useCallback(async () => {
+        try {
+            const token = localStorage.getItem("seka_access_token");
+            if (!token) return;
+            const response = await fetch(`${apiPrefix}/treasury/accounts?limit=200`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (response.ok) {
+                const data = (await response.json()) as BankAccount[];
+                setAccounts(data);
+            }
+        } catch (error) {
+            console.error("Failed to fetch accounts:", error);
+        }
+    }, [apiPrefix]);
+
+    useEffect(() => {
+        fetchAccounts();
+    }, [fetchAccounts]);
 
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0];
@@ -49,7 +81,8 @@ export default function BankStatementImportPage() {
         await parseFile(selectedFile);
     };
 
-    const parseFile = async (file: File) => {
+    const parseFile = async (_file: File) => {
+        void _file;
         setParsing(true);
 
         // Simulate parsing
@@ -72,20 +105,49 @@ export default function BankStatementImportPage() {
     };
 
     const handleImport = async () => {
+        if (!file) {
+            alert("Veuillez sélectionner un fichier");
+            return;
+        }
+        if (!bankAccount) {
+            alert("Veuillez sélectionner un compte");
+            return;
+        }
+
+        const token = localStorage.getItem("seka_access_token");
+        if (!token) return;
+
         setImporting(true);
+        try {
+            const form = new FormData();
+            form.append("file", file);
 
-        // Simulate import
-        await new Promise(resolve => setTimeout(resolve, 2000));
+            const response = await fetch(`${apiPrefix}/treasury/transactions/import/csv?bank_account_id=${bankAccount}`, {
+                method: "POST",
+                headers: { Authorization: `Bearer ${token}` },
+                body: form,
+            });
 
-        const validCount = transactions.filter(t => t.isValid).length;
-        setResult({
-            total: transactions.length,
-            valid: validCount,
-            errors: transactions.filter(t => !t.isValid).length,
-            duplicates: 0
-        });
-        setStep("result");
-        setImporting(false);
+            if (!response.ok) {
+                const detail = await response.text().catch(() => "");
+                alert(detail || "Erreur lors de l'import");
+                return;
+            }
+
+            const data = await response.json();
+            setResult({
+                total: data.total ?? transactions.length,
+                valid: data.created ?? 0,
+                errors: data.errors ?? 0,
+                duplicates: data.duplicates ?? 0,
+            });
+            setStep("result");
+        } catch (error) {
+            console.error("Import failed:", error);
+            alert("Erreur lors de l'import");
+        } finally {
+            setImporting(false);
+        }
     };
 
     const handleDrop = (e: React.DragEvent) => {
@@ -206,9 +268,11 @@ export default function BankStatementImportPage() {
                                             className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
                                         >
                                             <option value="">Sélectionner un compte...</option>
-                                            <option value="main">Compte courant principal</option>
-                                            <option value="savings">Compte épargne</option>
-                                            <option value="usd">Compte USD</option>
+                                            {accounts.map((acc) => (
+                                                <option key={acc.id} value={acc.id}>
+                                                    {acc.account_type === "mobile_money" ? "📱" : "🏦"} {acc.name} ({acc.currency})
+                                                </option>
+                                            ))}
                                         </select>
                                     </div>
                                     <div>

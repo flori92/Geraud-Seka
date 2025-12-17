@@ -1,11 +1,37 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Head from "next/head";
+import Link from "next/link";
 import {
-    Smartphone, Plus, Check, X, Loader2, RefreshCw, Wallet, ArrowLeftRight,
-    AlertCircle, CheckCircle, Clock, Link2, Unlink, Eye, Settings, Trash2,
-    Phone, User, Building2, Sparkles, Shield, Zap
+    Smartphone, Plus, Loader2, RefreshCw, Wallet,
+    CheckCircle, Clock, Link2, Settings, Trash2,
+    Phone, User, Shield, Zap
 } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
+
+type BankAccount = {
+    id: string;
+    name: string;
+    bank_name: string;
+    account_type: string;
+    account_number: string;
+    balance: number;
+    currency: string;
+    contact_phone?: string | null;
+    created_at?: string;
+    updated_at?: string;
+    extra_metadata?: Record<string, unknown> | null;
+};
+
+type BankTransaction = {
+    id: string;
+    transaction_date: string;
+    description: string;
+    amount: number;
+    currency: string;
+    reference?: string | null;
+    status?: string;
+    is_reconciled?: boolean;
+};
 
 interface MobileMoneyAccount {
     id: string;
@@ -42,6 +68,7 @@ export default function MobileMoneyPage() {
     const [syncing, setSyncing] = useState(false);
     const [showAddModal, setShowAddModal] = useState(false);
     const [verifying, setVerifying] = useState(false);
+    const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
 
     const [newAccount, setNewAccount] = useState({
         provider: "mtn" as "mtn" | "moov" | "celtiis",
@@ -49,34 +76,76 @@ export default function MobileMoneyPage() {
         account_name: ""
     });
 
-    useEffect(() => {
-        fetchData();
-    }, []);
-
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         setLoading(true);
         try {
-            // Mock data
-            const mockAccounts: MobileMoneyAccount[] = [
-                { id: "1", provider: "mtn", phone_number: "+229 97 12 34 56", account_name: "SEKA SARL", status: "verified", balance: 2500000, last_sync: "2024-12-12T10:30:00", created_at: "2024-01-15" },
-                { id: "2", provider: "moov", phone_number: "+229 96 78 90 12", account_name: "SEKA SARL", status: "verified", balance: 1250000, last_sync: "2024-12-12T09:45:00", created_at: "2024-03-20" },
-            ];
+            const token = localStorage.getItem("seka_access_token");
+            if (!token) {
+                setAccounts([]);
+                setTransactions([]);
+                return;
+            }
 
-            const mockTransactions: MobileMoneyTransaction[] = [
-                { id: "1", date: "2024-12-12", description: "Paiement client - Mme Adjo", amount: 150000, type: "credit", provider: "mtn", reference: "TXN2024121200001", status: "pending" },
-                { id: "2", date: "2024-12-11", description: "Achat fournitures", amount: 45000, type: "debit", provider: "mtn", reference: "TXN2024121100002", status: "matched" },
-                { id: "3", date: "2024-12-11", description: "Transfert reçu - M. Kouassi", amount: 200000, type: "credit", provider: "moov", reference: "TXN2024121100003", status: "pending" },
-                { id: "4", date: "2024-12-10", description: "Paiement facture eau", amount: 35000, type: "debit", provider: "moov", reference: "TXN2024121000004", status: "matched" },
-            ];
+            const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "";
+            const apiPrefix = API_BASE_URL ? `${API_BASE_URL}/api/v1` : "/api/v1";
 
-            setAccounts(mockAccounts);
-            setTransactions(mockTransactions);
+            const accountsResponse = await fetch(`${apiPrefix}/treasury/accounts?account_type=mobile_money`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            const rawAccounts: BankAccount[] = accountsResponse.ok ? await accountsResponse.json() : [];
+            const mappedAccounts: MobileMoneyAccount[] = rawAccounts.map((acc) => {
+                const provider = (acc.extra_metadata?.provider || acc.bank_name || "mtn") as MobileMoneyAccount["provider"];
+                const phone = String(acc.extra_metadata?.phone_number || acc.contact_phone || acc.account_number || "");
+                const lastSyncValue = acc.extra_metadata?.last_sync;
+                const lastSync = typeof lastSyncValue === "string" ? lastSyncValue : undefined;
+                return {
+                    id: acc.id,
+                    provider,
+                    phone_number: phone,
+                    account_name: acc.name,
+                    status: "verified",
+                    balance: acc.balance,
+                    last_sync: lastSync,
+                    created_at: acc.created_at || new Date().toISOString(),
+                };
+            });
+            setAccounts(mappedAccounts);
+
+            const nextSelected = selectedAccountId || mappedAccounts[0]?.id || null;
+            setSelectedAccountId(nextSelected);
+            if (nextSelected) {
+                const txResponse = await fetch(
+                    `${apiPrefix}/treasury/transactions?bank_account_id=${nextSelected}&limit=200`,
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+
+                const rawTx: BankTransaction[] = txResponse.ok ? await txResponse.json() : [];
+                const provider = mappedAccounts.find((a) => a.id === nextSelected)?.provider || "mtn";
+                const mappedTx: MobileMoneyTransaction[] = rawTx.map((t) => ({
+                    id: t.id,
+                    date: t.transaction_date,
+                    description: t.description,
+                    amount: Math.abs(t.amount),
+                    type: t.amount >= 0 ? "credit" : "debit",
+                    provider,
+                    reference: t.reference || "",
+                    status: t.is_reconciled ? "matched" : "pending",
+                }));
+                setTransactions(mappedTx);
+            } else {
+                setTransactions([]);
+            }
         } catch (error) {
             console.error("Failed to fetch data:", error);
         } finally {
             setLoading(false);
         }
-    };
+    }, [selectedAccountId]);
+
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
 
     const handleAddAccount = async () => {
         if (!newAccount.phone_number || !newAccount.account_name) {
@@ -84,39 +153,103 @@ export default function MobileMoneyPage() {
             return;
         }
 
+        const token = localStorage.getItem("seka_access_token");
+        if (!token) return;
+
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "";
+        const apiPrefix = API_BASE_URL ? `${API_BASE_URL}/api/v1` : "/api/v1";
+
         setVerifying(true);
+        try {
+            const response = await fetch(`${apiPrefix}/treasury/accounts/mobile-money/connect`, {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    provider: newAccount.provider,
+                    phone_number: newAccount.phone_number,
+                    account_name: newAccount.account_name,
+                    currency: "XOF",
+                }),
+            });
 
-        // Simulate KKiaPay verification
-        await new Promise(resolve => setTimeout(resolve, 3000));
+            if (!response.ok) {
+                const detail = await response.text().catch(() => "");
+                alert(detail || "Impossible d'ajouter le compte");
+                return;
+            }
 
-        const newAcc: MobileMoneyAccount = {
-            id: Date.now().toString(),
-            provider: newAccount.provider,
-            phone_number: newAccount.phone_number,
-            account_name: newAccount.account_name,
-            status: "verified",
-            balance: 0,
-            created_at: new Date().toISOString()
-        };
-
-        setAccounts(prev => [...prev, newAcc]);
-        setShowAddModal(false);
-        setNewAccount({ provider: "mtn", phone_number: "", account_name: "" });
-        setVerifying(false);
+            setShowAddModal(false);
+            setNewAccount({ provider: "mtn", phone_number: "", account_name: "" });
+            await fetchData();
+        } catch {
+            alert("Impossible d'ajouter le compte");
+        } finally {
+            setVerifying(false);
+        }
     };
 
     const syncAccount = async (accountId: string) => {
-        setSyncing(true);
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        const token = localStorage.getItem("seka_access_token");
+        if (!token) return;
 
-        setAccounts(prev => prev.map(acc =>
-            acc.id === accountId ? { ...acc, last_sync: new Date().toISOString() } : acc
-        ));
-        setSyncing(false);
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "";
+        const apiPrefix = API_BASE_URL ? `${API_BASE_URL}/api/v1` : "/api/v1";
+
+        setSyncing(true);
+        try {
+            const response = await fetch(`${apiPrefix}/treasury/transactions/mobile-money/sync`, {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ bank_account_id: accountId }),
+            });
+
+            if (!response.ok) {
+                const detail = await response.text().catch(() => "");
+                alert(detail || "Impossible de synchroniser");
+                return;
+            }
+
+            setSelectedAccountId(accountId);
+            await fetchData();
+        } catch {
+            alert("Impossible de synchroniser");
+        } finally {
+            setSyncing(false);
+        }
     };
 
     const removeAccount = (accountId: string) => {
-        setAccounts(prev => prev.filter(acc => acc.id !== accountId));
+        void (async () => {
+            const token = localStorage.getItem("seka_access_token");
+            if (!token) return;
+
+            const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "";
+            const apiPrefix = API_BASE_URL ? `${API_BASE_URL}/api/v1` : "/api/v1";
+
+            try {
+                const response = await fetch(`${apiPrefix}/treasury/accounts/${accountId}`, {
+                    method: "DELETE",
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+
+                if (!response.ok) {
+                    const detail = await response.text().catch(() => "");
+                    alert(detail || "Impossible de supprimer le compte");
+                    return;
+                }
+
+                if (selectedAccountId === accountId) setSelectedAccountId(null);
+                await fetchData();
+            } catch {
+                alert("Impossible de supprimer le compte");
+            }
+        })();
     };
 
     const totalBalance = accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
@@ -275,9 +408,9 @@ export default function MobileMoneyPage() {
                         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                             <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
                                 <h2 className="font-semibold text-gray-900">Transactions récentes</h2>
-                                <a href="/accounting/bank-reconciliation" className="text-sm text-blue-600 hover:text-blue-700">
+                                <Link href="/accounting/bank-reconciliation" className="text-sm text-blue-600 hover:text-blue-700">
                                     Voir le rapprochement
-                                </a>
+                                </Link>
                             </div>
                             {transactions.length === 0 ? (
                                 <div className="text-center py-12 text-gray-500">

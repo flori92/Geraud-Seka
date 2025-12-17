@@ -263,6 +263,8 @@ export interface Document {
   description?: string;
   total_amount?: number;
   tax_amount?: number;
+  ocr_data?: Record<string, unknown> | null;
+  ocr_confidence?: number | null;
   created_at: string;
   updated_at?: string;
   client_id: string;
@@ -471,6 +473,10 @@ export interface StripeCustomerCreate {
   metadata?: UnknownRecord;
 }
 
+export interface StripeCustomer {
+  id: string;
+}
+
 export interface StripeSubscriptionCreate {
   customer_id: string;
   price_id: string;
@@ -483,8 +489,12 @@ export interface KKiaPayLinkCreate {
   callback_url: string;
 }
 
-export async function createStripeCustomer(data: StripeCustomerCreate, accessToken: string): Promise<UnknownRecord> {
-  const response = await api.post<UnknownRecord>("/payments/stripe/customer", data, {
+export interface KKiaPayLink {
+  url?: string;
+}
+
+export async function createStripeCustomer(data: StripeCustomerCreate, accessToken: string): Promise<StripeCustomer> {
+  const response = await api.post<StripeCustomer>("/payments/stripe/customer", data, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
@@ -500,8 +510,8 @@ export async function createStripeSubscription(
   return response.data;
 }
 
-export async function createKKiaPayLink(data: KKiaPayLinkCreate, accessToken: string): Promise<UnknownRecord> {
-  const response = await api.post<UnknownRecord>("/payments/kkiapay/link", data, {
+export async function createKKiaPayLink(data: KKiaPayLinkCreate, accessToken: string): Promise<KKiaPayLink> {
+  const response = await api.post<KKiaPayLink>("/payments/kkiapay/link", data, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
@@ -1105,14 +1115,33 @@ export async function createLedgerAccount(data: LedgerAccountCreate, accessToken
 }
 
 // Treasury Dashboard
+export interface TreasuryAlert {
+  severity?: "critical" | "warning" | "info" | string;
+  title?: string;
+  message?: string;
+}
+
+export interface TreasuryRecentTransaction {
+  amount: number;
+  description: string;
+  transaction_date: string;
+}
+
+export interface TreasuryUpcomingPayment {
+  description: string;
+  due_date: string;
+  is_income: boolean;
+  remaining_amount: number;
+}
+
 export interface TreasuryDashboardData {
   total_balance: number;
   total_balance_by_currency: Record<string, number>;
   accounts_summary: unknown[];
-  recent_transactions: unknown[];
-  upcoming_payments: unknown[];
+  recent_transactions: TreasuryRecentTransaction[];
+  upcoming_payments: TreasuryUpcomingPayment[];
   cash_runway_days: number;
-  alerts: unknown[];
+  alerts: TreasuryAlert[];
   cash_flow_summary: {
     period_start: string;
     period_end: string;

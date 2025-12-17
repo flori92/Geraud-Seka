@@ -2,12 +2,22 @@
  * Bank Transactions Page
  * View and manage bank transactions
  */
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { API_BASE_URL } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { Plus, ArrowLeft, Building2 } from 'lucide-react';
+
+interface BankAccount {
+  id: string;
+  name: string;
+  account_number: string;
+  bank_name: string;
+  account_type: string;
+  balance: number;
+  currency: string;
+}
 
 interface BankTransaction {
   id: string;
@@ -24,18 +34,40 @@ interface BankTransaction {
 
 export default function BankTransactions() {
   const [transactions, setTransactions] = useState<BankTransaction[]>([]);
+  const [accounts, setAccounts] = useState<BankAccount[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [filters, setFilters] = useState({
     status: '',
     transaction_type: '',
     is_reconciled: '',
   });
 
-  useEffect(() => {
-    fetchTransactions();
-  }, [filters]);
+  const [createForm, setCreateForm] = useState({
+    bank_account_id: '',
+    transaction_date: new Date().toISOString().split('T')[0],
+    description: '',
+    transaction_type: 'deposit',
+    amount: '',
+    status: 'cleared',
+  });
 
-  const fetchTransactions = async () => {
+  const fetchAccounts = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('seka_access_token');
+      const response = await fetch(`${API_BASE_URL}/api/v1/treasury/accounts?limit=200`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      if (response.ok) {
+        setAccounts(await response.json());
+      }
+    } catch (err) {
+      console.error('Error fetching accounts:', err);
+    }
+  }, []);
+
+  const fetchTransactions = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
@@ -54,6 +86,98 @@ export default function BankTransactions() {
       console.error('Error fetching transactions:', err);
     } finally {
       setLoading(false);
+    }
+  }, [filters]);
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
+
+  useEffect(() => {
+    fetchAccounts();
+  }, [fetchAccounts]);
+
+  const resetCreateForm = () => {
+    setCreateForm({
+      bank_account_id: '',
+      transaction_date: new Date().toISOString().split('T')[0],
+      description: '',
+      transaction_type: 'deposit',
+      amount: '',
+      status: 'cleared',
+    });
+  };
+
+  const handleCreateTransaction = async () => {
+    if (!createForm.bank_account_id) {
+      alert('Veuillez sélectionner un compte');
+      return;
+    }
+    if (!createForm.transaction_date) {
+      alert('Veuillez sélectionner une date');
+      return;
+    }
+    if (!createForm.description.trim()) {
+      alert('Veuillez saisir un libellé');
+      return;
+    }
+    if (!createForm.amount || Number.isNaN(Number(createForm.amount))) {
+      alert('Veuillez saisir un montant');
+      return;
+    }
+
+    const token = localStorage.getItem('seka_access_token');
+    if (!token) return;
+
+    const account = accounts.find((a) => a.id === createForm.bank_account_id);
+    const absAmount = Math.abs(Number(createForm.amount));
+    const signedAmount =
+      createForm.transaction_type === 'withdrawal' || createForm.transaction_type === 'fee'
+        ? -absAmount
+        : absAmount;
+
+    setCreating(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/v1/treasury/transactions/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          bank_account_id: createForm.bank_account_id,
+          transaction_date: createForm.transaction_date,
+          value_date: null,
+          transaction_type: createForm.transaction_type,
+          amount: signedAmount,
+          currency: account?.currency || 'XOF',
+          description: createForm.description,
+          reference: null,
+          check_number: null,
+          counterparty: null,
+          counterparty_account: null,
+          category: null,
+          notes: null,
+          sales_invoice_id: null,
+          purchase_order_id: null,
+          status: createForm.status,
+        })
+      });
+
+      if (!response.ok) {
+        const detail = await response.text().catch(() => '');
+        alert(detail || 'Erreur lors de la création');
+        return;
+      }
+
+      setShowCreateModal(false);
+      resetCreateForm();
+      fetchTransactions();
+    } catch (err) {
+      console.error('Error creating transaction:', err);
+      alert('Erreur lors de la création');
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -119,12 +243,133 @@ export default function BankTransactions() {
               Trésorerie
             </Button>
           </Link>
-          <Button variant="primary" size="sm">
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => {
+              setShowCreateModal(true);
+              if (accounts.length === 0) fetchAccounts();
+            }}
+          >
             <Plus className="h-4 w-4 mr-2" />
             Nouvelle Transaction
           </Button>
         </div>
       </div>
+
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl w-full max-w-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Nouvelle transaction</h2>
+              <button
+                onClick={() => {
+                  setShowCreateModal(false);
+                  resetCreateForm();
+                }}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Compte</label>
+                <select
+                  value={createForm.bank_account_id}
+                  onChange={(e) => setCreateForm({ ...createForm, bank_account_id: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="">Sélectionner...</option>
+                  {accounts.map((acc) => (
+                    <option key={acc.id} value={acc.id}>
+                      {acc.account_type === 'mobile_money' ? '📱' : '🏦'} {acc.name} ({acc.currency})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                  <input
+                    type="date"
+                    value={createForm.transaction_date}
+                    onChange={(e) => setCreateForm({ ...createForm, transaction_date: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Statut</label>
+                  <select
+                    value={createForm.status}
+                    onChange={(e) => setCreateForm({ ...createForm, status: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="cleared">Compensé</option>
+                    <option value="pending">En attente</option>
+                    <option value="cancelled">Annulé</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Libellé</label>
+                <input
+                  type="text"
+                  value={createForm.description}
+                  onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                  <select
+                    value={createForm.transaction_type}
+                    onChange={(e) => setCreateForm({ ...createForm, transaction_type: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="deposit">Dépôt</option>
+                    <option value="withdrawal">Retrait</option>
+                    <option value="transfer">Virement</option>
+                    <option value="fee">Frais</option>
+                    <option value="other">Autre</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Montant</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={createForm.amount}
+                    onChange={(e) => setCreateForm({ ...createForm, amount: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 mt-6">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setShowCreateModal(false);
+                  resetCreateForm();
+                }}
+              >
+                Annuler
+              </Button>
+              <Button variant="primary" size="sm" onClick={handleCreateTransaction} disabled={creating}>
+                {creating ? 'Création...' : 'Créer'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="animate-pulse">

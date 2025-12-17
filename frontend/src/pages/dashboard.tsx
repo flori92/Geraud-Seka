@@ -249,7 +249,7 @@ export default function DashboardPage() {
   const [accountingStats, setAccountingStats] = useState<any>(null);
   const [treasuryData, setTreasuryData] = useState<any>(null);
 
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
   const fetchAllData = async () => {
     try {
@@ -302,7 +302,7 @@ export default function DashboardPage() {
       setError(null);
     } catch (err: any) {
       console.error("Failed to fetch dashboard data", err);
-      if (err.response?.status === 401) {
+      if (process.env.NODE_ENV === "production" && err.response?.status === 401) {
         localStorage.removeItem("seka_access_token");
         router.push("/login");
         return;

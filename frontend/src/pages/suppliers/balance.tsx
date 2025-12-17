@@ -65,6 +65,9 @@ export default function SupplierBalancePage() {
   const [perPage, setPerPage] = useState(50);
   const [currentPage, setCurrentPage] = useState(1);
 
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+  const apiPrefix = API_BASE_URL ? `${API_BASE_URL}/api/v1` : "/api/v1";
+
   useEffect(() => {
     fetchSupplierBalanceData();
   }, [filters, sortBy, sortOrder]);
@@ -88,7 +91,7 @@ export default function SupplierBalancePage() {
 
       // Fetch supplier balances
       const suppliersResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/suppliers/balance?${params.toString()}`,
+        `${apiPrefix}/suppliers/balance?${params.toString()}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -99,7 +102,7 @@ export default function SupplierBalancePage() {
 
       // Fetch stats
       const statsResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/suppliers/balance/stats`,
+        `${apiPrefix}/suppliers/balance/stats`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 

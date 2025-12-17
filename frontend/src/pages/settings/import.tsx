@@ -1,7 +1,7 @@
 import { useRouter } from "next/router";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card } from "@/components/ui/Card";
-import { ChevronRight, FileUp, Landmark, Users } from "lucide-react";
+import { ChevronRight, FileUp, Landmark } from "lucide-react";
 
 export default function ImportSettingsPage() {
   const router = useRouter();
@@ -12,12 +12,6 @@ export default function ImportSettingsPage() {
       description: "Importer des relevés pour alimenter les transactions et faciliter le rapprochement.",
       href: "/accounting/import-statements",
       icon: Landmark,
-    },
-    {
-      title: "Contacts",
-      description: "Importer vos clients, prospects et fournisseurs.",
-      href: "/contacts/import",
-      icon: Users,
     },
   ];
 

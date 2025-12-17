@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { PennylaneSidebar } from "@/components/layout/PennylaneSidebar";
@@ -16,7 +16,6 @@ import {
   RefreshCw,
   Building2,
   Calendar,
-  Settings,
   Sparkles,
   ArrowRight
 } from "lucide-react";
@@ -65,11 +64,10 @@ export default function ReconciliationPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [autoMatchRunning, setAutoMatchRunning] = useState(false);
 
-  useEffect(() => {
-    fetchReconciliationData();
-  }, [filters, selectedBankAccount]);
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "";
+  const apiPrefix = API_BASE_URL ? `${API_BASE_URL}/api/v1` : "/api/v1";
 
-  const fetchReconciliationData = async () => {
+  const fetchReconciliationData = useCallback(async () => {
     const token = localStorage.getItem("seka_access_token");
     if (!token) {
       router.push("/login");
@@ -89,7 +87,7 @@ export default function ReconciliationPage() {
 
       // Fetch transactions
       const transactionsResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/accounting/reconciliation/transactions?${params.toString()}`,
+        `${apiPrefix}/accounting/reconciliation/transactions?${params.toString()}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -100,7 +98,7 @@ export default function ReconciliationPage() {
 
       // Fetch stats
       const statsResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/accounting/reconciliation/stats`,
+        `${apiPrefix}/accounting/reconciliation/stats`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -113,14 +111,18 @@ export default function ReconciliationPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [apiPrefix, filters, router, searchQuery, selectedBankAccount]);
+
+  useEffect(() => {
+    fetchReconciliationData();
+  }, [fetchReconciliationData]);
 
   const runAutoMatching = async () => {
     const token = localStorage.getItem("seka_access_token");
     setAutoMatchRunning(true);
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/accounting/reconciliation/auto-match`,
+        `${apiPrefix}/accounting/reconciliation/auto-match`,
         {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` }
@@ -191,7 +193,7 @@ export default function ReconciliationPage() {
     const token = localStorage.getItem("seka_access_token");
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/accounting/reconciliation/${transactionId}/reconcile`,
+        `${apiPrefix}/accounting/reconciliation/${transactionId}/reconcile`,
         {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` }

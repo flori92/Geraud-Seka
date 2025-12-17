@@ -2,9 +2,10 @@
 API Routes pour les règles comptables automatiques
 """
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from uuid import UUID
 
 from app.db.session import get_db
 from app.api.deps import get_current_user, get_current_tenant
@@ -242,8 +243,37 @@ async def create_entry_from_document(
     
     # 3bis. Enregistrer le score de confiance et données OCR sur le Document
     try:
+        from datetime import datetime
+
+        def to_float(value, default=0.0):
+            try:
+                if value is None:
+                    return default
+                return float(value)
+            except (TypeError, ValueError):
+                return default
+
+        doc.reference_number = ocr_data.get("reference_number") or doc.reference_number
+
+        if ocr_data.get("date"):
+            try:
+                doc.document_date = datetime.fromisoformat(str(ocr_data.get("date"))).date()
+            except (TypeError, ValueError):
+                pass
+
+        if ocr_data.get("due_date"):
+            try:
+                doc.due_date = datetime.fromisoformat(str(ocr_data.get("due_date"))).date()
+            except (TypeError, ValueError):
+                pass
+
+        doc.amount_ht = to_float(ocr_data.get("amount_ht"), None)
+        doc.amount_vat = to_float(ocr_data.get("amount_vat"), None)
+        doc.amount_ttc = to_float(ocr_data.get("amount_ttc"), None)
+        doc.currency = (ocr_data.get("currency") or doc.currency or "XOF")
+
         doc.ocr_data = ocr_data
-        doc.ocr_confidence = float(ocr_data.get("confidence", 0.0))
+        doc.ocr_confidence = float(ocr_data.get("confidence", 0.0) or 0.0)
         doc.status = DocumentStatus.OCR_COMPLETED
         db.commit()
     except Exception:
@@ -257,7 +287,7 @@ async def create_entry_from_document(
             "reference": ocr_data.get("reference_number"),
             "description": suggestions.get("suggested_label", ""),
             "lines": lines,
-            "is_balanced": abs(sum(l["debit"] for l in lines) - sum(l["credit"] for l in lines)) < 0.01
+            "is_balanced": abs(sum(l["debit"] for l in lines) - sum(l["credit"] for l in lines)) < 0.01,
         },
         "file_info": {
             "filename": file.filename,
@@ -266,44 +296,62 @@ async def create_entry_from_document(
             "is_multi_page": ocr_data.get("is_multi_page", False),
             "key": upload_result.get("key"),
             "url": storage_service.get_file_url(upload_result.get("key")) if upload_result.get("key") else upload_result.get("url"),
-            "document_id": str(doc.id)
-        }
+            "document_id": str(doc.id),
+        },
     }
 
 
 @router.post("/entries/validate-classification")
 async def validate_classification(
-    document_id: str,
-    debit_account: str,
-    credit_account: str,
-    label: str,
+    document_id: UUID = Query(...),
+    debit_account: str = Query(...),
+    credit_account: str = Query(...),
+    label: str = Query(""),
     current_tenant: Tenant = Depends(get_current_tenant),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    """
-    Valide une classification et enregistre le feedback utilisateur
-    Améliore les suggestions futures
-    """
-    classification = db.query(DocumentClassification).filter(
-        DocumentClassification.document_id == document_id,
-        DocumentClassification.tenant_id == current_tenant.id
-    ).first()
-    
+    """Valide une classification (feedback utilisateur) (MVP)."""
+
+    doc = (
+        db.query(Document)
+        .filter(
+            Document.id == document_id,
+            Document.tenant_id == current_tenant.id,
+        )
+        .first()
+    )
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document introuvable")
+
+    classification = (
+        db.query(DocumentClassification)
+        .filter(
+            DocumentClassification.document_id == document_id,
+            DocumentClassification.tenant_id == current_tenant.id,
+        )
+        .first()
+    )
+
     if not classification:
-        raise HTTPException(status_code=404, detail="Classification non trouvée")
-    
-    # Enregistrer les corrections utilisateur
-    classification.validated = True
-    classification.validated_by = current_user.id
+        classification = DocumentClassification(
+            tenant_id=current_tenant.id,
+            document_id=document_id,
+            source="manual",
+        )
+        db.add(classification)
+
     classification.user_corrections = {
-        "original_debit": classification.suggested_debit_account,
-        "original_credit": classification.suggested_credit_account,
         "corrected_debit": debit_account,
         "corrected_credit": credit_account,
-        "corrected_label": label
+        "corrected_label": label,
     }
-    
+    classification.suggested_debit_account = debit_account
+    classification.suggested_credit_account = credit_account
+    classification.suggested_label = label
+    classification.validated = True
+    classification.validated_by = current_user.id
+
     db.commit()
-    
+
     return {"message": "Classification validée", "feedback_recorded": True}

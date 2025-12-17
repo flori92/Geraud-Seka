@@ -161,7 +161,7 @@ export default function ClientSelector({ onChange }: ClientSelectorProps) {
                     {/* Add new client */}
                     <div className="border-t border-gray-100 p-2">
                         <a
-                            href="/contacts/new"
+                            href="/clients"
                             className="flex items-center gap-2 px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                         >
                             <Plus className="h-4 w-4" />

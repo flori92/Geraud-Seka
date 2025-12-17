@@ -26,7 +26,8 @@ export default function NewAccountingEntry() {
   const [reference, setReference] = useState("");
   const [description, setDescription] = useState("");
   const [accountSearch, setAccountSearch] = useState("");
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL;
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "";
+  const apiPrefix = API_BASE_URL ? `${API_BASE_URL}/api/v1` : "/api/v1";
   const [lines, setLines] = useState<EntryLine[]>([
     { account_id: "", label: "", debit: "0", credit: "0" },
     { account_id: "", label: "", debit: "0", credit: "0" }
@@ -35,12 +36,8 @@ export default function NewAccountingEntry() {
   const fetchAccounts = useCallback(async () => {
     const token = localStorage.getItem("seka_access_token");
     try {
-      if (!apiBaseUrl) {
-        console.error("[API] NEXT_PUBLIC_API_BASE_URL manquant");
-        return;
-      }
       const response = await fetch(
-        `${apiBaseUrl}/api/v1/accounting/ledger/`,
+        `${apiPrefix}/accounting/ledger/`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (response.ok) {
@@ -50,7 +47,7 @@ export default function NewAccountingEntry() {
     } catch (error) {
       console.error("Error fetching accounts:", error);
     }
-  }, [apiBaseUrl]);
+  }, [apiPrefix]);
 
   useEffect(() => {
     fetchAccounts();
@@ -94,12 +91,8 @@ export default function NewAccountingEntry() {
 
     const token = localStorage.getItem("seka_access_token");
     try {
-      if (!apiBaseUrl) {
-        console.error("[API] NEXT_PUBLIC_API_BASE_URL manquant");
-        return;
-      }
       const response = await fetch(
-        `${apiBaseUrl}/api/v1/accounting-entries/entries/`,
+        `${apiPrefix}/accounting-entries/entries/`,
         {
           method: "POST",
           headers: {

@@ -42,14 +42,30 @@ export default function ValidateDocumentPage() {
                 const data = await getDocument(id as string, token);
                 setDocument(data);
 
+                const ocr = (data.ocr_data ?? {}) as Record<string, unknown>;
+                const ocrStr = (key: string) => {
+                    const v = ocr[key];
+                    return typeof v === "string" ? v : "";
+                };
+                const ocrNum = (key: string) => {
+                    const v = ocr[key];
+                    if (typeof v === "number") return v;
+                    if (typeof v === "string") {
+                        const normalized = v.replace(/\s/g, "").replace(",", ".");
+                        const n = parseFloat(normalized);
+                        return Number.isFinite(n) ? n : undefined;
+                    }
+                    return undefined;
+                };
+
                 // Pre-fill form with OCR extracted data
-                setReferenceNumber(data.reference_number || "");
-                setDate(data.date || "");
-                setDueDate(data.due_date || "");
-                setSupplier(data.supplier_name || "");
-                setAmountHT(data.amount_ht?.toString() || "");
-                setAmountVAT(data.amount_vat?.toString() || "");
-                setAmountTTC(data.amount_ttc?.toString() || "");
+                setReferenceNumber(data.reference_number || ocrStr("reference_number") || "");
+                setDate(data.date || ocrStr("date") || "");
+                setDueDate(data.due_date || ocrStr("due_date") || "");
+                setSupplier(data.supplier_name || ocrStr("supplier_name") || "");
+                setAmountHT((data.amount_ht ?? ocrNum("amount_ht"))?.toString() || "");
+                setAmountVAT((data.amount_vat ?? ocrNum("amount_vat"))?.toString() || "");
+                setAmountTTC((data.amount_ttc ?? ocrNum("amount_ttc"))?.toString() || "");
                 setDescription(data.description || `Document ${data.filename}`);
 
                 setError(null);
