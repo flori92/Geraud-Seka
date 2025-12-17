@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 import os
 import logging
@@ -112,6 +112,21 @@ def create_application() -> FastAPI:
     
     # Routes API
     app.include_router(api_router, prefix=settings.api_v1_prefix)
+
+    # Host-based redirections (avoid serving API JSON on root domain)
+    @app.middleware("http")
+    async def host_redirect_middleware(request: Request, call_next):
+        host = (request.headers.get("x-forwarded-host") or request.headers.get("host") or "").split(":")[0]
+        path = request.url.path or "/"
+
+        # If someone hits the API service using the root domain, redirect to the correct host.
+        if host == "sekagestion.com":
+            if path.startswith(settings.api_v1_prefix):
+                return RedirectResponse(url=f"https://api.sekagestion.com{path}", status_code=308)
+            if path == "/" or path.startswith("/docs") or path.startswith("/redoc"):
+                return RedirectResponse(url="https://www.sekagestion.com", status_code=308)
+
+        return await call_next(request)
 
     # Root endpoint for health check and CORS verification
     @app.get("/")
