@@ -251,8 +251,21 @@ def run_migrations():
                     from alembic.config import Config as _Config  # type: ignore
                     from alembic import command as _command  # type: ignore
                     alembic_cfg = _Config("alembic.ini")
-                    _command.upgrade(alembic_cfg, "head")
-                    print("✅ Migrations appliquées avec succès (import tardif)")
+                    try:
+                        _command.upgrade(alembic_cfg, "head")
+                        print("✅ Migrations appliquées avec succès (import tardif)")
+                    except Exception as upgrade_error:
+                        # Multiple Alembic heads: stamp all heads (database already created idempotently)
+                        # then retry upgrade to converge to a single head (merge migrations).
+                        if "Multiple head revisions" in str(upgrade_error) or "multiple heads" in str(upgrade_error).lower():
+                            print(f"⚠️  Info migration: {upgrade_error}")
+                            print("🔧 Détection multi-head Alembic: tentative de 'stamp heads' puis upgrade...")
+                            with suppress(Exception):
+                                _command.stamp(alembic_cfg, "heads")
+                            _command.upgrade(alembic_cfg, "head")
+                            print("✅ Migrations appliquées avec succès après merge heads")
+                        else:
+                            raise
                 except Exception as upgrade_error:
                     print(f"⚠️  Alembic non disponible ou échec: {upgrade_error}")
                     print("ℹ️  Ignorer l'application Alembic (environnements sans dépendances).")
@@ -262,9 +275,17 @@ def run_migrations():
                     command.upgrade(alembic_cfg, "head")
                     print("✅ Migrations appliquées avec succès")
                 except Exception as upgrade_error:
-                    if "Target database is not up to date" not in str(upgrade_error):
+                    if "Multiple head revisions" in str(upgrade_error) or "multiple heads" in str(upgrade_error).lower():
                         print(f"⚠️  Info migration: {upgrade_error}")
-                    print("ℹ️  Base de données probablement à jour ou migration ignorée")
+                        print("🔧 Détection multi-head Alembic: tentative de 'stamp heads' puis upgrade...")
+                        with suppress(Exception):
+                            command.stamp(alembic_cfg, "heads")
+                        command.upgrade(alembic_cfg, "head")
+                        print("✅ Migrations appliquées avec succès après merge heads")
+                    else:
+                        if "Target database is not up to date" not in str(upgrade_error):
+                            print(f"⚠️  Info migration: {upgrade_error}")
+                        print("ℹ️  Base de données probablement à jour ou migration ignorée")
         except Exception as e:
             print(f"⚠️  Erreur lors de la tentative d'application Alembic: {e}")
 
