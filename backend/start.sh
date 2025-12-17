@@ -16,6 +16,26 @@ fi
 echo "📡 Port d'écoute: $PORT"
 echo "🗄️  Base de données: ${DATABASE_URL:0:30}..."
 
+if [ "$SEKA_RUN_WORKER" = "1" ] || [ "$SEKA_RUN_WORKER" = "true" ]; then
+    echo "⚙️  Mode worker (Celery) activé"
+    if [ "$SKIP_MIGRATIONS" = "1" ] || [ "$SKIP_MIGRATIONS" = "true" ]; then
+        echo "⚠️  SKIP_MIGRATIONS est défini — on saute l'exécution des migrations"
+    else
+        echo "🔄 Exécution des migrations de base de données..."
+        python3 migrate.py
+
+        if [ $? -eq 0 ]; then
+            echo "✅ Migrations terminées avec succès"
+        else
+            echo "❌ Échec des migrations, arrêt du démarrage"
+            exit 1
+        fi
+    fi
+
+    echo "🌟 Lancement du worker Celery..."
+    exec celery -A app.worker.celery_app.celery_app worker --loglevel=info
+fi
+
 # Exécuter les migrations automatiquement au démarrage (peut être sautées avec SKIP_MIGRATIONS=1)
 if [ "$SKIP_MIGRATIONS" = "1" ] || [ "$SKIP_MIGRATIONS" = "true" ]; then
     echo "⚠️  SKIP_MIGRATIONS est défini — on saute l'exécution des migrations"
