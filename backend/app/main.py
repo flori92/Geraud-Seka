@@ -147,6 +147,14 @@ def create_application() -> FastAPI:
     async def api_v1_root_head():
         return Response(status_code=200)
 
+    @app.get(f"{settings.api_v1_prefix}/")
+    async def api_v1_root_slash():
+        return {"status": "ok"}
+
+    @app.head(f"{settings.api_v1_prefix}/")
+    async def api_v1_root_slash_head():
+        return Response(status_code=200)
+
     # Event handlers
     @app.on_event("startup")
     async def startup_event():
