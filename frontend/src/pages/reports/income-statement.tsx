@@ -79,9 +79,12 @@ export default function IncomeStatementPage() {
       if (response.ok) {
         const data = await response.json();
         setIncomeStatement(data);
+      } else {
+        setIncomeStatement(null);
       }
     } catch (error) {
       console.error("Error fetching income statement:", error);
+      setIncomeStatement(null);
     } finally {
       setLoading(false);
     }
@@ -465,12 +468,12 @@ export default function IncomeStatementPage() {
 
                 {/* PRODUITS Section */}
                 <div className="py-4">
-                  {renderIncomeStatementSection(incomeStatement.produits, 'PRODUITS', 'produits', true)}
+                  {renderIncomeStatementSection(incomeStatement.produits ?? [], 'PRODUITS', 'produits', true)}
                 </div>
 
                 {/* CHARGES Section */}
                 <div className="py-4 border-t-4 border-gray-300">
-                  {renderIncomeStatementSection(incomeStatement.charges, 'CHARGES', 'charges', false)}
+                  {renderIncomeStatementSection(incomeStatement.charges ?? [], 'CHARGES', 'charges', false)}
                 </div>
 
                 {/* Result Footer */}

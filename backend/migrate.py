@@ -191,6 +191,88 @@ def ensure_documents_columns():
         print(f"⚠️  Erreur lors de la vérification du schéma documents: {e}")
 
 
+def ensure_accounting_entries_columns():
+    """Assure la compatibilité du schéma `accounting_entries` en production.
+
+    Certaines bases (legacy / créées hors Alembic) peuvent avoir la table sans `tenant_id`,
+    alors que le code filtre systématiquement sur `AccountingEntry.tenant_id`.
+    Ce fallback évite les 500 (UndefinedColumn) et tente un backfill minimal.
+    """
+    try:
+        with engine.connect() as conn:
+            table_exists = conn.execute(text(
+                "SELECT 1 FROM information_schema.tables WHERE table_name = 'accounting_entries'"
+            )).fetchone()
+            if not table_exists:
+                return
+
+            add_column_if_not_exists(
+                conn,
+                'accounting_entries',
+                'tenant_id',
+                'tenant_id UUID',
+                '🔧 Ajout de la colonne tenant_id à accounting_entries...',
+                '✅ Colonne tenant_id ajoutée à accounting_entries'
+            )
+
+            # Backfill best-effort depuis documents si possible
+            with suppress(Exception):
+                conn.execute(text(
+                    """
+                    UPDATE accounting_entries ae
+                    SET tenant_id = d.tenant_id
+                    FROM documents d
+                    WHERE ae.tenant_id IS NULL
+                      AND ae.document_id IS NOT NULL
+                      AND d.id = ae.document_id
+                      AND d.tenant_id IS NOT NULL
+                    """
+                ))
+                conn.commit()
+
+            # Si toujours NULL et qu'il existe au moins un tenant, utiliser le 1er tenant
+            with suppress(Exception):
+                conn.execute(text(
+                    """
+                    UPDATE accounting_entries
+                    SET tenant_id = (SELECT id FROM tenants LIMIT 1)
+                    WHERE tenant_id IS NULL
+                    """
+                ))
+                conn.commit()
+
+            # Index pour perf
+            with suppress(Exception):
+                conn.execute(text(
+                    "CREATE INDEX IF NOT EXISTS ix_accounting_entries_tenant_id ON accounting_entries (tenant_id)"
+                ))
+                conn.commit()
+
+            # FK best-effort (peut échouer si données incohérentes)
+            with suppress(Exception):
+                conn.execute(text(
+                    """
+                    DO $$ BEGIN
+                        IF NOT EXISTS (
+                            SELECT 1
+                            FROM pg_constraint
+                            WHERE conname = 'fk_accounting_entries_tenant_id'
+                        ) THEN
+                            ALTER TABLE accounting_entries
+                            ADD CONSTRAINT fk_accounting_entries_tenant_id
+                            FOREIGN KEY (tenant_id)
+                            REFERENCES tenants(id)
+                            ON DELETE CASCADE;
+                        END IF;
+                    END $$;
+                    """
+                ))
+                conn.commit()
+
+    except Exception as e:
+        print(f"⚠️  Erreur lors de la vérification du schéma accounting_entries: {e}")
+
+
 
 
 def run_migrations():
@@ -226,6 +308,9 @@ def run_migrations():
         
         # Assurer que les colonnes tenant existent
         ensure_tenant_columns()
+
+        # Assurer la compatibilité de accounting_entries (fallback prod si colonne manquante)
+        ensure_accounting_entries_columns()
 
         # Assurer que les colonnes documents existent (fallback prod si Alembic est bloqué)
         ensure_documents_columns()
