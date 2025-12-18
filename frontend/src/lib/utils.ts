@@ -80,15 +80,19 @@ export function deepMerge(target: Record<string, unknown>, source: Record<string
   
   if (isObject(target) && isObject(source)) {
     Object.keys(source).forEach((key) => {
-      if (isObject(source[key])) {
-        if (!(key in target)) {
-          output[key] = source[key];
+      const sourceValue = source[key];
+      const targetValue = target[key];
+
+      if (isObject(sourceValue)) {
+        if (!isObject(targetValue)) {
+          output[key] = deepMerge({}, sourceValue);
         } else {
-          output[key] = deepMerge(target[key], source[key]);
+          output[key] = deepMerge(targetValue, sourceValue);
         }
-      } else {
-        output[key] = source[key];
+        return;
       }
+
+      output[key] = sourceValue;
     });
   }
   
@@ -96,7 +100,7 @@ export function deepMerge(target: Record<string, unknown>, source: Record<string
 }
 
 function isObject(item: unknown): item is Record<string, unknown> {
-  return item && typeof item === 'object' && !Array.isArray(item);
+  return item !== null && typeof item === 'object' && !Array.isArray(item);
 }
 
 /**
