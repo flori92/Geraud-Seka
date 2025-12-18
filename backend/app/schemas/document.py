@@ -1,8 +1,9 @@
 from datetime import date, datetime
-from typing import Optional
+import json
+from typing import Any, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from app.models.document import DocumentStatus, DocumentType, DocumentCategory
 
@@ -58,6 +59,22 @@ class Document(DocumentBase):
     supplier_id: Optional[UUID] = None
     tenant_id: Optional[UUID] = None
     uploaded_by: Optional[UUID] = None
+
+    @field_validator("ocr_data", mode="before")
+    @classmethod
+    def parse_ocr_data(cls, v: Any):
+        if v is None:
+            return None
+        if isinstance(v, dict):
+            return v
+        if isinstance(v, str):
+            try:
+                parsed = json.loads(v)
+                if isinstance(parsed, dict):
+                    return parsed
+            except Exception:
+                return None
+        return None
 
     class Config:
         from_attributes = True
