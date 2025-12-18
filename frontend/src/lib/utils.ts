@@ -62,7 +62,7 @@ export function truncate(text: string, length: number = 50): string {
 /**
  * Check if value is empty
  */
-export function isEmpty(value: any): boolean {
+export function isEmpty(value: unknown): boolean {
   return (
     value === null ||
     value === undefined ||
@@ -75,7 +75,7 @@ export function isEmpty(value: any): boolean {
 /**
  * Deep merge objects
  */
-export function deepMerge(target: any, source: any): any {
+export function deepMerge(target: Record<string, unknown>, source: Record<string, unknown>): Record<string, unknown> {
   const output = { ...target };
   
   if (isObject(target) && isObject(source)) {
@@ -95,7 +95,7 @@ export function deepMerge(target: any, source: any): any {
   return output;
 }
 
-function isObject(item: any): boolean {
+function isObject(item: unknown): item is Record<string, unknown> {
   return item && typeof item === 'object' && !Array.isArray(item);
 }
 
@@ -109,7 +109,7 @@ export function sleep(ms: number): Promise<void> {
 /**
  * Debounce function
  */
-export function debounce<T extends (...args: any[]) => any>(
+export function debounce<T extends (...args: never[]) => unknown>(
   func: T,
   wait: number
 ): (...args: Parameters<T>) => void {
@@ -129,7 +129,7 @@ export function debounce<T extends (...args: any[]) => any>(
 /**
  * Throttle function
  */
-export function throttle<T extends (...args: any[]) => any>(
+export function throttle<T extends (...args: never[]) => unknown>(
   func: T,
   limit: number
 ): (...args: Parameters<T>) => void {

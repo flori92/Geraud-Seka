@@ -5,9 +5,9 @@
  * En production, utiliser les endpoints sécurisés /api/v1/sales-invoices avec authentification
  */
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/router";
-import { Trash2, Eye, Edit, Plus, Filter, Download } from "lucide-react";
+import { Trash2, Eye, Edit, Plus, Download } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -20,7 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/Table";
-import { Badge, StatusBadge } from "@/components/ui/Badge";
+import { Badge } from "@/components/ui/Badge";
 import { Container, Grid, PageHeader, Flex } from "@/components/layout/Container";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useInvoices, useInvoiceStats } from "@/lib/hooks/useInvoices";
@@ -136,12 +136,12 @@ export default function InvoicesPage() {
   const [filterStatus, setFilterStatus] = useState<InvoiceStatus | "all">("all");
 
   // Récupérer les données de l'API
-  const { invoices, total, loading, error } = useInvoices(
+  const { invoices, loading } = useInvoices(
     0,
     20,
     filterStatus === "all" ? undefined : (filterStatus as InvoiceStatus)
   );
-  const { stats: statsData, loading: statsLoading } = useInvoiceStats();
+  const { stats: statsData } = useInvoiceStats();
 
   // Handlers
   const handleView = (id: string) => {
@@ -220,7 +220,7 @@ export default function InvoicesPage() {
             ).map((filter) => (
               <button
                 key={filter.value}
-                onClick={() => setFilterStatus(filter.value as any)}
+                onClick={() => setFilterStatus(filter.value as InvoiceStatus | "all")}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   filterStatus === filter.value
                     ? "bg-primary-500 text-white"
