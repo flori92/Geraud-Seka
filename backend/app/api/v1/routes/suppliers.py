@@ -54,6 +54,30 @@ class SupplierResponse(SupplierBase):
         from_attributes = True
 
 
+# Balance DTOs
+class SupplierBalanceRow(BaseModel):
+    id: str
+    supplier_name: str
+    supplier_code: str
+    balance: float
+    overdue_amount: float
+    upcoming_30d_amount: float
+    last_invoice_date: str
+    last_invoice_number: str
+    payment_terms: str
+    contact_email: Optional[str] = None
+    contact_phone: Optional[str] = None
+    invoices_count: int
+    oldest_overdue_date: Optional[str] = None
+
+
+class SupplierBalanceStatsResponse(BaseModel):
+    total_du: float
+    en_retard: float
+    a_payer_30j: float
+    fournisseurs_actifs: int
+
+
 @router.get("/", response_model=List[SupplierResponse])
 async def list_suppliers(
     skip: int = Query(0, ge=0),
