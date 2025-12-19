@@ -216,7 +216,7 @@ export default function BalanceGeneralePage() {
             ) : filters.compactBy !== 'none' ? (
               /* Vue groupée */
               <div className="space-y-2">
-                {groupedAccounts.map((group) => (
+                {groupedAccounts.map((group: AccountGroup) => (
                   <GroupedAccountsSection
                     key={group.id}
                     group={group}
@@ -244,7 +244,7 @@ export default function BalanceGeneralePage() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {accounts.map((account) => (
+                  {accounts.map((account: Account) => (
                     <AccountRow
                       key={account.id}
                       account={account}
@@ -386,7 +386,7 @@ function GroupedAccountsSection({
       {/* Comptes du groupe */}
       {group.expanded && (
         <div className="divide-y">
-          {group.accounts.map((account) => (
+          {group.accounts.map((account: Account) => (
             <div
               key={account.id}
               onClick={() => onSelectAccount(account.id)}
