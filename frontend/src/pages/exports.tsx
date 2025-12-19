@@ -1,10 +1,9 @@
 import { useState } from "react";
-import { DashboardLayout } from "@/components/DashboardLayout";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
-import { Input } from "@/components/ui/Input";
+import Head from "next/head";
+import { PennylaneSidebar } from "@/components/layout/PennylaneSidebar";
 import { useToast } from "@/components/ui/ToastContainer";
 import { API_BASE_URL } from "@/lib/api";
+import { Download, FileSpreadsheet, FileText, Code, Loader2, Info } from "lucide-react";
 
 export default function ExportsPage() {
     const { success, error: showError } = useToast();
@@ -22,20 +21,12 @@ export default function ExportsPage() {
             if (startDate) params.append("start_date", startDate);
             if (endDate) params.append("end_date", endDate);
 
-            const response = await fetch(
-                `${API_BASE_URL}/api/v1/exports/sage?${params}`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
+            const response = await fetch(`${API_BASE_URL}/api/v1/exports/sage?${params}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
 
-            if (!response.ok) {
-                throw new Error("Export failed");
-            }
+            if (!response.ok) throw new Error("Export failed");
 
-            // Download the file
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement("a");
@@ -47,100 +38,104 @@ export default function ExportsPage() {
             document.body.removeChild(a);
 
             success("Export téléchargé avec succès !");
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(error);
-            showError(error.message || "Erreur lors de l'export");
+            showError("Erreur lors de l'export");
         } finally {
             setExporting(false);
         }
     };
 
     return (
-        <DashboardLayout title="Exports">
-            <div className="space-y-6">
-                <div>
-                    <h1 className="text-2xl font-bold text-foreground">Exports</h1>
-                    <p className="text-sm text-accents-5">Téléchargez vos écritures comptables au format Sage/SAARI.</p>
-                </div>
-
-                <div className="grid gap-6 md:grid-cols-2">
-                    <Card>
-                        <div className="mb-6">
-                            <h2 className="text-lg font-semibold text-foreground">Export Sage/SAARI</h2>
-                            <p className="mt-1 text-sm text-accents-5">
-                                Générer un fichier CSV compatible avec Sage et SAARI.
-                            </p>
-                        </div>
-
-                        <div className="space-y-4">
-                            <Input
-                                label="Date de début (optionnel)"
-                                type="date"
-                                value={startDate}
-                                onChange={(e) => setStartDate(e.target.value)}
-                            />
-
-                            <Input
-                                label="Date de fin (optionnel)"
-                                type="date"
-                                value={endDate}
-                                onChange={(e) => setEndDate(e.target.value)}
-                            />
-
-                            <Button
-                                className="w-full"
-                                onClick={handleExportSage}
-                                loading={exporting}
-                            >
-                                Télécharger Export CSV
-                            </Button>
-                        </div>
-
-                        <div className="mt-6 rounded-lg bg-accents-1 p-4">
-                            <h3 className="mb-2 text-sm font-medium text-foreground">Format du fichier</h3>
-                            <ul className="space-y-1 text-xs text-accents-5">
-                                <li>• Séparateur : point-virgule (;)</li>
-                                <li>• Colonnes : DatePiece, Journal, Compte, Libelle, Debit, Credit, Ref_piece, DateEcheance</li>
-                                <li>• Encodage : UTF-8</li>
-                            </ul>
-                        </div>
-                    </Card>
-
-                    <Card>
-                        <div className="mb-6">
-                            <h2 className="text-lg font-semibold text-foreground">Autres formats</h2>
-                            <p className="mt-1 text-sm text-accents-5">
-                                Prochainement disponibles
-                            </p>
-                        </div>
-
-                        <div className="space-y-3">
-                            <Button variant="ghost" className="w-full justify-start" disabled>
-                                <span className="opacity-50">Export Excel (.xlsx)</span>
-                            </Button>
-                            <Button variant="ghost" className="w-full justify-start" disabled>
-                                <span className="opacity-50">Export PDF</span>
-                            </Button>
-                            <Button variant="ghost" className="w-full justify-start" disabled>
-                                <span className="opacity-50">API REST</span>
-                            </Button>
-                        </div>
-                    </Card>
-                </div>
-
-                <Card className="border-l-4 border-l-success bg-success-lighter">
-                    <div className="flex gap-3">
-                        <div className="text-2xl font-bold text-success">i</div>
-                        <div>
-                            <h3 className="font-medium text-foreground">Astuce</h3>
-                            <p className="mt-1 text-sm text-accents-5">
-                                Laissez les dates vides pour exporter toutes les écritures comptables.
-                                Vous pouvez ensuite filtrer dans votre logiciel comptable.
-                            </p>
+        <>
+            <Head>
+                <title>Exports - SEKA</title>
+            </Head>
+            <div className="min-h-screen bg-gray-50">
+                <PennylaneSidebar />
+                <main className="ml-[220px]">
+                    <div className="bg-white border-b border-gray-200 px-6 py-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-gray-100">
+                                <Download className="h-5 w-5 text-gray-600" />
+                            </div>
+                            <div>
+                                <h1 className="text-xl font-semibold text-gray-900">Exports</h1>
+                                <p className="text-sm text-gray-600 mt-0.5">Téléchargez vos écritures comptables au format Sage/SAARI</p>
+                            </div>
                         </div>
                     </div>
-                </Card>
+
+                    <div className="px-6 py-6 space-y-6">
+                        <div className="grid gap-6 md:grid-cols-2">
+                            {/* Export Sage */}
+                            <div className="bg-white rounded-lg border border-gray-200 p-6">
+                                <h2 className="text-lg font-semibold text-gray-900 mb-1">Export Sage/SAARI</h2>
+                                <p className="text-sm text-gray-600 mb-6">Générer un fichier CSV compatible avec Sage et SAARI.</p>
+
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Date de début (optionnel)</label>
+                                        <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
+                                            className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Date de fin (optionnel)</label>
+                                        <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
+                                            className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]" />
+                                    </div>
+                                    <button onClick={handleExportSage} disabled={exporting}
+                                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#1e3a5f] text-white text-sm font-medium rounded-lg hover:bg-[#172e4d] disabled:opacity-50">
+                                        {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                                        Télécharger Export CSV
+                                    </button>
+                                </div>
+
+                                <div className="mt-6 rounded-lg bg-gray-50 p-4">
+                                    <h3 className="mb-2 text-sm font-medium text-gray-900">Format du fichier</h3>
+                                    <ul className="space-y-1 text-xs text-gray-600">
+                                        <li>• Séparateur : point-virgule (;)</li>
+                                        <li>• Colonnes : DatePiece, Journal, Compte, Libelle, Debit, Credit, Ref_piece, DateEcheance</li>
+                                        <li>• Encodage : UTF-8</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            {/* Autres formats */}
+                            <div className="bg-white rounded-lg border border-gray-200 p-6">
+                                <h2 className="text-lg font-semibold text-gray-900 mb-1">Autres formats</h2>
+                                <p className="text-sm text-gray-600 mb-6">Prochainement disponibles</p>
+
+                                <div className="space-y-3">
+                                    <button disabled className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-400 border border-gray-100 rounded-lg cursor-not-allowed">
+                                        <FileSpreadsheet className="h-5 w-5" /> <span>Export Excel (.xlsx)</span>
+                                    </button>
+                                    <button disabled className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-400 border border-gray-100 rounded-lg cursor-not-allowed">
+                                        <FileText className="h-5 w-5" /> <span>Export PDF</span>
+                                    </button>
+                                    <button disabled className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-400 border border-gray-100 rounded-lg cursor-not-allowed">
+                                        <Code className="h-5 w-5" /> <span>API REST</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Astuce */}
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div className="flex gap-3">
+                                <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                                <div>
+                                    <h3 className="font-medium text-gray-900">Astuce</h3>
+                                    <p className="mt-1 text-sm text-gray-600">
+                                        Laissez les dates vides pour exporter toutes les écritures comptables.
+                                        Vous pouvez ensuite filtrer dans votre logiciel comptable.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
             </div>
-        </DashboardLayout>
+        </>
     );
 }
