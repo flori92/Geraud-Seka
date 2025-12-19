@@ -4,6 +4,19 @@
 
 :root {
   --font-inter: 'Inter', sans-serif;
+  
+  /* Pennylane Design Tokens */
+  --pennylane-primary: #0066FF;
+  --pennylane-primary-hover: #0052CC;
+  --pennylane-success: #00A651;
+  --pennylane-danger: #FF3B30;
+  --pennylane-warning: #FF9500;
+  --pennylane-bg: #F8F9FC;
+  --pennylane-border: #E1E4E8;
+  --pennylane-text: #1A1D21;
+  --pennylane-text-secondary: #6B7280;
+  --pennylane-radius: 6px;
+  --pennylane-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 /* Theme utility aliases used across the app */
