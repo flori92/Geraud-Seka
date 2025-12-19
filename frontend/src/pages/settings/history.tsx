@@ -8,7 +8,7 @@ import { useRouter } from "next/router";
 import { 
   ArrowLeft, Download, Upload, Search, 
   CheckCircle, XCircle, Clock, FileText, RefreshCw,
-  ChevronDown, Eye, Trash2
+  ChevronDown, Eye, Trash2, Loader2
 } from "lucide-react";
 import Link from "next/link";
 
@@ -26,37 +26,61 @@ interface HistoryItem {
   details?: string;
 }
 
-// Données de démonstration
-const demoImports: HistoryItem[] = [
-  { id: "1", date: "2024-12-19 14:32", type: "FEC", fileName: "FEC_2024.txt", fileSize: "2.4 Mo", status: "success", records: 1250, user: "Admin", details: "Import FEC exercice 2024" },
-  { id: "2", date: "2024-12-18 09:15", type: "CSV Clients", fileName: "clients_dec.csv", fileSize: "156 Ko", status: "success", records: 45, user: "Admin" },
-  { id: "3", date: "2024-12-17 16:45", type: "Relevé bancaire", fileName: "releve_dec.ofx", fileSize: "89 Ko", status: "success", records: 127, user: "Comptable" },
-  { id: "4", date: "2024-12-15 11:20", type: "Factures", fileName: "factures_batch.zip", fileSize: "12.3 Mo", status: "error", records: 0, user: "Admin", details: "Erreur de format" },
-  { id: "5", date: "2024-12-10 08:00", type: "Plan comptable", fileName: "pcg_custom.csv", fileSize: "45 Ko", status: "success", records: 890, user: "Admin" },
-];
-
-const demoExports: HistoryItem[] = [
-  { id: "1", date: "2024-12-19 15:00", type: "FEC", fileName: "FEC_SEKA_2024.txt", fileSize: "2.1 Mo", status: "success", records: 1250, user: "Admin" },
-  { id: "2", date: "2024-12-18 17:30", type: "Balance", fileName: "balance_generale_dec.xlsx", fileSize: "234 Ko", status: "success", records: 156, user: "Comptable" },
-  { id: "3", date: "2024-12-17 10:00", type: "Grand livre", fileName: "grand_livre_2024.pdf", fileSize: "1.8 Mo", status: "success", records: 890, user: "Admin" },
-  { id: "4", date: "2024-12-15 14:45", type: "Clients", fileName: "export_clients.csv", fileSize: "67 Ko", status: "success", records: 45, user: "Admin" },
-  { id: "5", date: "2024-12-12 09:30", type: "Bilan", fileName: "bilan_2024.pdf", fileSize: "456 Ko", status: "pending", records: 0, user: "Admin", details: "En cours de génération" },
-];
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export default function HistoryPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>("imports");
   const [searchQuery, setSearchQuery] = useState("");
-  const [imports, setImports] = useState<HistoryItem[]>(demoImports);
-  const [exports, setExports] = useState<HistoryItem[]>(demoExports);
+  const [imports, setImports] = useState<HistoryItem[]>([]);
+  const [exports, setExports] = useState<HistoryItem[]>([]);
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  // Charger les données depuis l'API
+  const fetchHistory = async () => {
     const token = localStorage.getItem("seka_access_token");
     if (!token) {
       router.push("/login");
+      return;
     }
-  }, [router]);
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Récupérer l'historique des imports
+      const importsRes = await fetch(`${API_BASE_URL}/api/v1/history/imports`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      // Récupérer l'historique des exports
+      const exportsRes = await fetch(`${API_BASE_URL}/api/v1/history/exports`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (importsRes.ok) {
+        const importsData = await importsRes.json();
+        setImports(importsData.items || []);
+      }
+
+      if (exportsRes.ok) {
+        const exportsData = await exportsRes.json();
+        setExports(exportsData.items || []);
+      }
+    } catch (err) {
+      console.error("Erreur chargement historique:", err);
+      setError("Impossible de charger l'historique. Vérifiez votre connexion.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchHistory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const currentData = activeTab === "imports" ? imports : exports;
   
@@ -107,6 +131,15 @@ export default function HistoryPage() {
     pending: currentData.filter(i => i.status === "pending").length,
   };
 
+  // Affichage du loader
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+      </div>
+    );
+  }
+
   return (
     <>
       <Head>
@@ -120,14 +153,32 @@ export default function HistoryPage() {
               <ArrowLeft className="h-4 w-4" />
               Retour aux paramètres
             </Link>
-            <h1 className="text-xl font-semibold text-gray-900">Historique</h1>
-            <p className="text-sm text-gray-500 mt-1">
-              Consultez l&apos;historique de tous vos imports et exports de données.
-            </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-xl font-semibold text-gray-900">Historique</h1>
+                <p className="text-sm text-gray-500 mt-1">
+                  Consultez l&apos;historique de tous vos imports et exports de données.
+                </p>
+              </div>
+              <button
+                onClick={fetchHistory}
+                className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Actualiser
+              </button>
+            </div>
           </div>
         </div>
 
         <div className="max-w-5xl mx-auto px-6 py-6">
+          {/* Erreur */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+              {error}
+            </div>
+          )}
+
           {/* Tabs */}
           <div className="flex items-center gap-4 mb-6">
             <button
