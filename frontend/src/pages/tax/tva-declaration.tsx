@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import Head from "next/head";
+import { PennylaneSidebar } from "@/components/layout/PennylaneSidebar";
 import {
     Receipt, Calculator, Download,
     Loader2, TrendingUp, TrendingDown, Eye, Send, Clock,
@@ -132,25 +133,26 @@ export default function TVADeclarationPage() {
                 <title>Déclaration TVA - SEKA</title>
             </Head>
 
-            <div className="min-h-screen bg-gray-50 pt-14">
-                <main className="p-6">
-                    <div className="max-w-6xl mx-auto">
-                        {/* Header */}
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div className="min-h-screen bg-gray-50">
+                <PennylaneSidebar />
+                <main className="ml-[220px]">
+                    {/* Header */}
+                    <div className="bg-white border-b border-gray-200 px-6 py-4">
+                        <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
-                                    <Receipt className="h-7 w-7 text-white" />
+                                <div className="p-2 rounded-lg bg-gray-100">
+                                    <Receipt className="h-5 w-5 text-gray-600" />
                                 </div>
                                 <div>
-                                    <h1 className="text-2xl font-bold text-gray-900">Déclaration TVA</h1>
-                                    <p className="text-sm text-gray-500">Calcul automatique basé sur vos écritures</p>
+                                    <h1 className="text-xl font-semibold text-gray-900">Déclaration TVA</h1>
+                                    <p className="text-sm text-gray-600 mt-0.5">Calcul automatique basé sur vos écritures</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-3">
                                 <select
                                     value={selectedPeriod}
                                     onChange={(e) => setSelectedPeriod(e.target.value)}
-                                    className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                    className="px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]"
                                 >
                                     <option value="2024-12">Décembre 2024</option>
                                     <option value="2024-11">Novembre 2024</option>
@@ -160,17 +162,19 @@ export default function TVADeclarationPage() {
                                 <button
                                     onClick={handleRecalculate}
                                     disabled={calculating}
-                                    className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50"
                                 >
                                     <RefreshCw className={`h-4 w-4 ${calculating ? "animate-spin" : ""}`} />
                                     Recalculer
                                 </button>
                             </div>
                         </div>
+                    </div>
 
+                    <div className="px-6 py-6">
                         {loading ? (
                             <div className="flex items-center justify-center py-20">
-                                <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
+                                <Loader2 className="h-8 w-8 text-[#1e3a5f] animate-spin" />
                             </div>
                         ) : (
                             <div className="grid gap-6 lg:grid-cols-3">
