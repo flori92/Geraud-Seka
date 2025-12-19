@@ -11,11 +11,22 @@ interface TopHeaderProps {
     onMenuToggle?: () => void;
 }
 
+interface NotificationItem {
+    id: string;
+    title: string;
+    message: string;
+    severity: string;
+    is_read: boolean;
+    created_at: string;
+}
+
 export default function TopHeader({ onClientChange, onMenuToggle }: TopHeaderProps) {
     const [user, setUser] = useState<User | null>(null);
-    const [notifications] = useState(3);
+    const [notifications, setNotifications] = useState<NotificationItem[]>([]);
     const [showHelp, setShowHelp] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
+
+    const unreadCount = notifications.filter(n => !n.is_read).length;
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -30,6 +41,29 @@ export default function TopHeader({ onClientChange, onMenuToggle }: TopHeaderPro
             }
         };
         fetchUser();
+    }, []);
+
+    // Charger les notifications depuis l'API
+    useEffect(() => {
+        const fetchNotifications = async () => {
+            try {
+                const token = localStorage.getItem("seka_access_token");
+                if (!token) return;
+                
+                const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+                const response = await fetch(`${API_BASE_URL}/api/v1/notifications`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    setNotifications(data.notifications || []);
+                }
+            } catch (error) {
+                console.error("Failed to fetch notifications:", error);
+            }
+        };
+        fetchNotifications();
     }, []);
 
     return (
@@ -86,9 +120,9 @@ export default function TopHeader({ onClientChange, onMenuToggle }: TopHeaderPro
                     title="Notifications"
                 >
                     <Bell className="h-5 w-5 text-gray-500" />
-                    {notifications > 0 && (
+                    {unreadCount > 0 && (
                         <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                            {notifications}
+                            {unreadCount}
                         </span>
                     )}
                 </button>
@@ -164,9 +198,9 @@ export default function TopHeader({ onClientChange, onMenuToggle }: TopHeaderPro
                     <div className="p-4 border-b border-gray-100 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <h3 className="font-semibold text-gray-900">Notifications</h3>
-                            {notifications > 0 && (
+                            {unreadCount > 0 && (
                                 <span className="px-2 py-0.5 bg-red-100 text-red-600 text-xs font-medium rounded-full">
-                                    {notifications} nouvelles
+                                    {unreadCount} nouvelles
                                 </span>
                             )}
                         </div>
@@ -174,12 +208,29 @@ export default function TopHeader({ onClientChange, onMenuToggle }: TopHeaderPro
                             <X className="h-4 w-4 text-gray-500" />
                         </button>
                     </div>
-                    <div className="flex-1 overflow-y-auto p-4">
-                        <div className="text-center py-8">
-                            <Bell className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                            <p className="text-gray-500 font-medium">Aucune notification</p>
-                            <p className="text-sm text-gray-400 mt-1">Vous êtes à jour !</p>
-                        </div>
+                    <div className="flex-1 overflow-y-auto">
+                        {notifications.length > 0 ? (
+                            <div className="divide-y divide-gray-100">
+                                {notifications.map((notif) => (
+                                    <div 
+                                        key={notif.id} 
+                                        className={`p-4 hover:bg-gray-50 cursor-pointer ${!notif.is_read ? "bg-blue-50/50" : ""}`}
+                                    >
+                                        <p className="text-sm font-medium text-gray-900">{notif.title}</p>
+                                        <p className="text-sm text-gray-500 mt-0.5">{notif.message}</p>
+                                        <p className="text-xs text-gray-400 mt-1">
+                                            {new Date(notif.created_at).toLocaleDateString('fr-FR')}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-8">
+                                <Bell className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                                <p className="text-gray-500 font-medium">Aucune notification</p>
+                                <p className="text-sm text-gray-400 mt-1">Vous êtes à jour !</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
