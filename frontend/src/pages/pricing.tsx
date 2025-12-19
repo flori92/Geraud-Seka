@@ -1,225 +1,121 @@
-import { useState } from 'react';
-import Head from 'next/head';
-import { DashboardLayout } from '@/components/DashboardLayout';
-import { Check } from 'lucide-react';
-import { createStripeCustomer, createStripeSubscription, createKKiaPayLink } from '@/lib/api';
-import { useToast } from '@/components/ui/ToastContainer';
-import { useRouter } from 'next/router';
+import { useState } from "react";
+import Head from "next/head";
+import { useRouter } from "next/router";
+import { PennylaneSidebar } from "@/components/layout/PennylaneSidebar";
+import { Check, CreditCard } from "lucide-react";
+import { createStripeCustomer, createStripeSubscription, createKKiaPayLink } from "@/lib/api";
 
 const tiers = [
-    {
-        name: 'Starter',
-        id: 'tier-starter',
-        href: '#',
-        priceMonthly: '29€',
-        priceCfa: '19.000 FCFA',
-        description: 'Idéal pour les auto-entrepreneurs et TPE qui démarrent.',
-        features: [
-            'Gestion de 5 clients',
-            'Facturation illimitée',
-            'Paiements Mobile Money',
-            'Support par email',
-            'Accès mobile basique',
-        ],
-        stripePriceId: 'price_starter',
-        amountCfa: 19000,
-    },
-    {
-        name: 'Business',
-        id: 'tier-business',
-        href: '#',
-        priceMonthly: '99€',
-        priceCfa: '65.000 FCFA',
-        description: 'Pour les PME en croissance avec des besoins avancés.',
-        features: [
-            'Clients illimités',
-            'Multi-utilisateurs (jusqu\'à 5)',
-            'CRM Avancé & Pipeline',
-            'Module RH complet',
-            'Support prioritaire',
-            'Analytique avancée',
-        ],
-        stripePriceId: 'price_business',
-        amountCfa: 65000,
-    },
-    {
-        name: 'Enterprise',
-        id: 'tier-enterprise',
-        href: '#',
-        priceMonthly: 'Sur devis',
-        priceCfa: 'Sur devis',
-        description: 'Solutions sur mesure pour les grandes structures.',
-        features: [
-            'Utilisateurs illimités',
-            'API dédiée & Intégrations',
-            'Formation sur site',
-            'Support dédié 24/7',
-            'SLA garanti',
-            'Déploiement personnalisé',
-        ],
-        stripePriceId: 'price_enterprise',
-        amountCfa: 0,
-    },
+  { name: "Starter", id: "tier-starter", priceMonthly: "29€", priceCfa: "19.000 FCFA", description: "Idéal pour les auto-entrepreneurs et TPE qui démarrent.",
+    features: ["Gestion de 5 clients", "Facturation illimitée", "Paiements Mobile Money", "Support par email", "Accès mobile basique"],
+    stripePriceId: "price_starter", amountCfa: 19000 },
+  { name: "Business", id: "tier-business", priceMonthly: "99€", priceCfa: "65.000 FCFA", description: "Pour les PME en croissance avec des besoins avancés.", popular: true,
+    features: ["Clients illimités", "Multi-utilisateurs (jusqu&apos;à 5)", "CRM Avancé & Pipeline", "Module RH complet", "Support prioritaire", "Analytique avancée"],
+    stripePriceId: "price_business", amountCfa: 65000 },
+  { name: "Enterprise", id: "tier-enterprise", priceMonthly: "Sur devis", priceCfa: "Sur devis", description: "Solutions sur mesure pour les grandes structures.",
+    features: ["Utilisateurs illimités", "API dédiée & Intégrations", "Formation sur site", "Support dédié 24/7", "SLA garanti", "Déploiement personnalisé"],
+    stripePriceId: "price_enterprise", amountCfa: 0 },
 ];
 
 export default function PricingPage() {
-    const router = useRouter();
-    const { success, error: showError } = useToast();
-    const [loading, setLoading] = useState<string | null>(null);
-    const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'kkiapay'>('stripe');
+  const router = useRouter();
+  const [loading, setLoading] = useState<string | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<"stripe" | "kkiapay">("stripe");
+  const [error, setError] = useState<string | null>(null);
 
-    const handleSubscribe = async (tier: typeof tiers[0]) => {
-        if (tier.name === 'Enterprise') {
-            window.location.href = 'mailto:sales@seka.app';
-            return;
-        }
+  const handleSubscribe = async (tier: typeof tiers[0]) => {
+    if (tier.name === "Enterprise") { window.location.href = "mailto:sales@seka.app"; return; }
+    setLoading(tier.id);
+    setError(null);
+    try {
+      const token = localStorage.getItem("seka_access_token");
+      if (!token) { router.push("/login"); return; }
+      if (paymentMethod === "stripe") {
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+        const customer = await createStripeCustomer({ email: user.email || "test@example.com", name: user.full_name || "Test User" }, token);
+        await createStripeSubscription({ customer_id: customer.id, price_id: tier.stripePriceId }, token);
+        alert(`Abonnement ${tier.name} activé avec succès via Stripe !`);
+      } else {
+        const link = await createKKiaPayLink({ amount: tier.amountCfa, reason: `Abonnement SEKA ${tier.name}`, callback_url: `${window.location.origin}/payment/callback` }, token);
+        if (link.url) { window.location.href = link.url; } else { setError("Erreur lors de la création du lien de paiement."); }
+      }
+    } catch (err) {
+      console.error("Payment error:", err);
+      setError("Une erreur est survenue lors du paiement.");
+    } finally {
+      setLoading(null);
+    }
+  };
 
-        setLoading(tier.id);
-        try {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                router.push('/login');
-                return;
-            }
-
-            if (paymentMethod === 'stripe') {
-                // 1. Create Customer (Mock logic, usually done once)
-                const user = JSON.parse(localStorage.getItem('user') || '{}');
-                const customer = await createStripeCustomer({
-                    email: user.email || 'test@example.com',
-                    name: user.full_name || 'Test User',
-                }, token);
-
-                // 2. Create Subscription
-                await createStripeSubscription({
-                    customer_id: customer.id,
-                    price_id: tier.stripePriceId,
-                }, token);
-
-                success(`Abonnement ${tier.name} activé avec succès via Stripe !`);
-            } else {
-                // KKiaPay
-                const link = await createKKiaPayLink({
-                    amount: tier.amountCfa,
-                    reason: `Abonnement SEKA ${tier.name}`,
-                    callback_url: `${window.location.origin}/payment/callback`,
-                }, token);
-
-                if (link.url) {
-                    window.location.href = link.url;
-                } else {
-                    showError('Erreur lors de la création du lien de paiement.');
-                }
-            }
-        } catch (error: any) {
-            console.error('Payment error:', error);
-            showError(error.response?.data?.detail || 'Une erreur est survenue lors du paiement.');
-        } finally {
-            setLoading(null);
-        }
-    };
-
-    return (
-        <DashboardLayout title="Offres & Tarifs">
-            <Head>
-                <title>Tarifs - SEKA Enterprise</title>
-            </Head>
-
-            <div className="py-12 sm:py-16">
-                <div className="mx-auto max-w-7xl px-6 lg:px-8">
-                    <div className="mx-auto max-w-4xl text-center">
-                        <h2 className="text-base font-semibold leading-7 text-indigo-600">Tarification</h2>
-                        <p className="mt-2 text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
-                            Des tarifs adaptés à votre croissance
-                        </p>
-                    </div>
-                    <p className="mx-auto mt-6 max-w-2xl text-center text-lg leading-8 text-gray-600">
-                        Choisissez le plan qui correspond le mieux à vos besoins. Changez à tout moment.
-                    </p>
-
-                    {/* Payment Method Toggle */}
-                    <div className="mt-8 flex justify-center">
-                        <div className="grid grid-cols-2 gap-x-1 rounded-full p-1 text-center text-xs font-semibold leading-5 ring-1 ring-inset ring-gray-200">
-                            <button
-                                onClick={() => setPaymentMethod('stripe')}
-                                className={`${paymentMethod === 'stripe' ? 'bg-primary-600 text-white' : 'text-gray-500 hover:text-gray-700'
-                                    } cursor-pointer rounded-full px-2.5 py-1`}
-                            >
-                                Carte Bancaire (Stripe)
-                            </button>
-                            <button
-                                onClick={() => setPaymentMethod('kkiapay')}
-                                className={`${paymentMethod === 'kkiapay' ? 'bg-primary-600 text-white' : 'text-gray-500 hover:text-gray-700'
-                                    } cursor-pointer rounded-full px-2.5 py-1`}
-                            >
-                                Mobile Money (KKiaPay)
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="isolate mx-auto mt-10 grid max-w-md grid-cols-1 gap-8 md:max-w-2xl md:grid-cols-2 lg:max-w-4xl lg:grid-cols-3">
-                        {tiers.map((tier) => (
-                            <div
-                                key={tier.id}
-                                className={`rounded-3xl p-8 ring-1 ring-gray-200 ${tier.name === 'Business' ? 'bg-gray-900 ring-gray-900' : 'bg-white'
-                                    } xl:p-10`}
-                            >
-                                <div className="flex items-center justify-between gap-x-4">
-                                    <h3
-                                        id={tier.id}
-                                        className={`text-lg font-semibold leading-8 ${tier.name === 'Business' ? 'text-white' : 'text-gray-900'
-                                            }`}
-                                    >
-                                        {tier.name}
-                                    </h3>
-                                    {tier.name === 'Business' ? (
-                                        <p className="rounded-full bg-indigo-500/10 px-2.5 py-1 text-xs font-semibold leading-5 text-indigo-400">
-                                            Populaire
-                                        </p>
-                                    ) : null}
-                                </div>
-                                <p className={`mt-4 text-sm leading-6 ${tier.name === 'Business' ? 'text-gray-300' : 'text-gray-600'
-                                    }`}>
-                                    {tier.description}
-                                </p>
-                                <p className="mt-6 flex items-baseline gap-x-1">
-                                    <span className={`text-4xl font-bold tracking-tight ${tier.name === 'Business' ? 'text-white' : 'text-gray-900'
-                                        }`}>
-                                        {paymentMethod === 'stripe' ? tier.priceMonthly : tier.priceCfa}
-                                    </span>
-                                    <span className={`text-sm font-semibold leading-6 ${tier.name === 'Business' ? 'text-gray-300' : 'text-gray-600'
-                                        }`}>
-                                        /mois
-                                    </span>
-                                </p>
-                                <button
-                                    onClick={() => handleSubscribe(tier)}
-                                    disabled={loading === tier.id}
-                                    className={`mt-6 block w-full rounded-md px-3 py-2 text-center text-sm font-semibold leading-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${tier.name === 'Business'
-                                            ? 'bg-white text-gray-900 hover:bg-gray-100 focus-visible:outline-white'
-                                            : 'bg-primary-600 text-white hover:bg-indigo-500 focus-visible:outline-indigo-600'
-                                        } ${loading === tier.id ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                >
-                                    {loading === tier.id ? 'Traitement...' : tier.name === 'Enterprise' ? 'Contactez-nous' : 'Choisir ce plan'}
-                                </button>
-                                <ul
-                                    role="list"
-                                    className={`mt-8 space-y-3 text-sm leading-6 ${tier.name === 'Business' ? 'text-gray-300' : 'text-gray-600'
-                                        }`}
-                                >
-                                    {tier.features.map((feature) => (
-                                        <li key={feature} className="flex gap-x-3">
-                                            <Check className={`h-6 w-5 flex-none ${tier.name === 'Business' ? 'text-white' : 'text-indigo-600'
-                                                }`} aria-hidden="true" />
-                                            {feature}
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        ))}
-                    </div>
-                </div>
+  return (
+    <>
+      <Head><title>Tarifs - SEKA</title></Head>
+      <div className="min-h-screen bg-gray-50">
+        <PennylaneSidebar />
+        <main className="ml-[220px]">
+          <div className="bg-white border-b border-gray-200 px-6 py-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-gray-100"><CreditCard className="h-5 w-5 text-gray-600" /></div>
+              <div>
+                <h1 className="text-xl font-semibold text-gray-900">Offres &amp; Tarifs</h1>
+                <p className="text-sm text-gray-600 mt-0.5">Choisissez le plan adapté à vos besoins</p>
+              </div>
             </div>
-        </DashboardLayout>
-    );
+          </div>
+
+          <div className="px-6 py-12">
+            <div className="max-w-7xl mx-auto">
+              <div className="text-center mb-10">
+                <h2 className="text-3xl font-bold text-gray-900">Des tarifs adaptés à votre croissance</h2>
+                <p className="mt-4 text-lg text-gray-600">Choisissez le plan qui correspond le mieux à vos besoins. Changez à tout moment.</p>
+              </div>
+
+              {error && <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm max-w-md mx-auto">{error}</div>}
+
+              <div className="flex justify-center mb-10">
+                <div className="inline-flex rounded-full p-1 bg-gray-100">
+                  <button onClick={() => setPaymentMethod("stripe")} className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${paymentMethod === "stripe" ? "bg-[#1e3a5f] text-white" : "text-gray-600 hover:text-gray-900"}`}>
+                    Carte Bancaire (Stripe)
+                  </button>
+                  <button onClick={() => setPaymentMethod("kkiapay")} className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${paymentMethod === "kkiapay" ? "bg-[#1e3a5f] text-white" : "text-gray-600 hover:text-gray-900"}`}>
+                    Mobile Money (KKiaPay)
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto">
+                {tiers.map((tier) => (
+                  <div key={tier.id} className={`rounded-2xl p-8 ${tier.popular ? "bg-[#1e3a5f] text-white ring-2 ring-[#1e3a5f]" : "bg-white border border-gray-200"}`}>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className={`text-lg font-semibold ${tier.popular ? "text-white" : "text-gray-900"}`}>{tier.name}</h3>
+                      {tier.popular && <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-white/20 text-white">Populaire</span>}
+                    </div>
+                    <p className={`text-sm mb-6 ${tier.popular ? "text-gray-300" : "text-gray-600"}`}>{tier.description}</p>
+                    <p className="flex items-baseline gap-x-1 mb-6">
+                      <span className={`text-4xl font-bold ${tier.popular ? "text-white" : "text-gray-900"}`}>
+                        {paymentMethod === "stripe" ? tier.priceMonthly : tier.priceCfa}
+                      </span>
+                      <span className={`text-sm ${tier.popular ? "text-gray-300" : "text-gray-600"}`}>/mois</span>
+                    </p>
+                    <button onClick={() => handleSubscribe(tier)} disabled={loading === tier.id}
+                      className={`w-full py-3 rounded-lg text-sm font-semibold transition-colors ${tier.popular ? "bg-white text-[#1e3a5f] hover:bg-gray-100" : "bg-[#1e3a5f] text-white hover:bg-[#172e4d]"} ${loading === tier.id ? "opacity-50 cursor-not-allowed" : ""}`}>
+                      {loading === tier.id ? "Traitement..." : tier.name === "Enterprise" ? "Contactez-nous" : "Choisir ce plan"}
+                    </button>
+                    <ul className={`mt-8 space-y-3 text-sm ${tier.popular ? "text-gray-300" : "text-gray-600"}`}>
+                      {tier.features.map((feature) => (
+                        <li key={feature} className="flex gap-x-3">
+                          <Check className={`h-5 w-5 flex-shrink-0 ${tier.popular ? "text-white" : "text-[#1e3a5f]"}`} />
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </>
+  );
 }
