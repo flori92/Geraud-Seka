@@ -153,17 +153,18 @@ const managementMenu: MenuSection[] = [
         label: "Paramètres",
         icon: Settings,
         submenu: [
-          { label: "Connexions bancaires", href: "/treasury/accounts" },
-          { label: "Transmission de factures", href: "/accounting/import-statements" },
-          { label: "Facturation client", href: "/ventes/factures-clients" },
-          { label: "Familles analytiques", href: "/coming-soon?feature=Familles analytiques" },
-          { label: "Centre de règles", href: "/settings/rules" },
-          { label: "Connectivité", href: "/settings/integrations" },
-          { label: "Fonctionnalités avancées", href: "/coming-soon?feature=Fonctionnalités avancées" },
+          // --- Entreprise ---
+          { label: "Informations entreprise", href: "/settings" },
+          { label: "Gestion de l'équipe", href: "/settings/team" },
+          { label: "Abonnement", href: "/billing" },
+          // --- Comptabilité ---
           { label: "Plan comptable", href: "/accounting/chart-of-accounts" },
-          { label: "Informations entreprise", href: "/settings?tab=company" },
-          { label: "Gestion de l’équipe", href: "/settings/team" },
-          { label: "Gestion d’abonnement", href: "/billing" },
+          { label: "Familles analytiques", href: "/settings/analytics" },
+          { label: "Centre de règles", href: "/settings/rules" },
+          // --- Connexions ---
+          { label: "Comptes bancaires", href: "/treasury/accounts" },
+          { label: "Intégrations", href: "/settings/integrations" },
+          // --- Données ---
           { label: "Imports", href: "/settings/import" },
           { label: "Exports", href: "/exports" },
         ]
@@ -283,17 +284,18 @@ const accountingMenu: MenuSection[] = [
         label: "Paramètres",
         icon: Settings,
         submenu: [
-          { label: "Connexions bancaires", href: "/treasury/accounts" },
-          { label: "Transmission de factures", href: "/accounting/import-statements" },
-          { label: "Facturation client", href: "/ventes/factures-clients" },
-          { label: "Familles analytiques", href: "/coming-soon?feature=Familles analytiques" },
-          { label: "Centre de règles", href: "/settings/rules" },
-          { label: "Connectivité", href: "/settings/integrations" },
-          { label: "Fonctionnalités avancées", href: "/coming-soon?feature=Fonctionnalités avancées" },
+          // --- Entreprise ---
+          { label: "Informations entreprise", href: "/settings" },
+          { label: "Gestion de l'équipe", href: "/settings/team" },
+          { label: "Abonnement", href: "/billing" },
+          // --- Comptabilité ---
           { label: "Plan comptable", href: "/accounting/chart-of-accounts" },
-          { label: "Informations entreprise", href: "/settings?tab=company" },
-          { label: "Gestion de l’équipe", href: "/coming-soon?feature=Gestion de l'équipe" },
-          { label: "Gestion d’abonnement", href: "/billing" },
+          { label: "Familles analytiques", href: "/settings/analytics" },
+          { label: "Centre de règles", href: "/settings/rules" },
+          // --- Connexions ---
+          { label: "Comptes bancaires", href: "/treasury/accounts" },
+          { label: "Intégrations", href: "/settings/integrations" },
+          // --- Données ---
           { label: "Imports", href: "/settings/import" },
           { label: "Exports", href: "/exports" },
         ]
