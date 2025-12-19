@@ -1,11 +1,12 @@
 /**
- * Dashboard Simple SEKA
+ * Dashboard Simple SEKA - Style Pennylane
  * Interface épurée et minimaliste
  */
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { DashboardLayout } from "@/components/DashboardLayout";
+import Head from "next/head";
+import { PennylaneSidebar } from "@/components/layout/PennylaneSidebar";
 import {
   getDashboardStats,
   getClients,
@@ -23,6 +24,8 @@ import {
   TrendingUp,
   TrendingDown,
   AlertCircle,
+  RefreshCw,
+  Loader2,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
 
@@ -33,32 +36,31 @@ export default function DashboardSimple() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const fetchData = async () => {
+    const token = localStorage.getItem("seka_access_token");
+    if (!token) { router.push("/login"); return; }
+
+    setLoading(true);
+    try {
+      const [statsData, clientsData, invoicesData] = await Promise.allSettled([
+        getDashboardStats(token),
+        getClients(token),
+        getInvoices(token),
+      ]);
+      if (statsData.status === "fulfilled") setStats(statsData.value);
+      if (clientsData.status === "fulfilled") setClients(clientsData.value);
+      if (invoicesData.status === "fulfilled") setInvoices(invoicesData.value);
+    } catch (err) {
+      console.error("Erreur chargement données", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const token = localStorage.getItem("seka_access_token");
-        if (!token) {
-          router.push("/login");
-          return;
-        }
-
-        const [statsData, clientsData, invoicesData] = await Promise.allSettled([
-          getDashboardStats(token),
-          getClients(token),
-          getInvoices(token),
-        ]);
-
-        if (statsData.status === "fulfilled") setStats(statsData.value);
-        if (clientsData.status === "fulfilled") setClients(clientsData.value);
-        if (invoicesData.status === "fulfilled") setInvoices(invoicesData.value);
-      } catch (err) {
-        console.error("Erreur chargement données", err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchData();
-  }, [router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const totalRevenue = invoices?.reduce((sum, inv) => sum + (inv?.paid || 0), 0) || 0;
   const pendingInvoices = invoices?.filter(inv => inv?.status === "Impayée" || inv?.status === "unpaid")?.length || 0;
@@ -66,100 +68,66 @@ export default function DashboardSimple() {
 
   if (loading) {
     return (
-      <DashboardLayout title="Tableau de bord">
-        <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-4 border-gray-200 border-t-primary-500 rounded-full animate-spin" />
-        </div>
-      </DashboardLayout>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#1e3a5f]" />
+      </div>
     );
   }
 
   return (
-    <DashboardLayout title="Tableau de bord">
-      {/* En-tête simple */}
-      <div className="mb-8">
-        <h1 className="text-xl font-semibold text-gray-900">Tableau de bord</h1>
-        <p className="text-sm text-gray-500 mt-1">Aperçu de votre activité</p>
-      </div>
+    <>
+      <Head>
+        <title>Tableau de bord - SEKA</title>
+      </Head>
+      <div className="min-h-screen bg-gray-50">
+        <PennylaneSidebar />
+        <main className="ml-[220px]">
+          {/* Header */}
+          <div className="bg-white border-b border-gray-200 px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-xl font-semibold text-gray-900">Tableau de bord</h1>
+                <p className="text-sm text-gray-600 mt-0.5">Aperçu de votre activité</p>
+              </div>
+              <button onClick={fetchData} className="p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100">
+                <RefreshCw className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
 
-      {/* KPIs - 4 cartes simples */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-        <StatCard
-          label="Chiffre d'affaires"
-          value={formatCurrency(totalRevenue)}
-          icon={Wallet}
-          trend={12.5}
-        />
-        <StatCard
-          label="Clients"
-          value={clientCount}
-          icon={Users}
-          trend={8}
-        />
-        <StatCard
-          label="Factures"
-          value={invoices.length}
-          icon={FileText}
-        />
-        <StatCard
-          label="Impayées"
-          value={pendingInvoices}
-          icon={Receipt}
-          alert={pendingInvoices > 0}
-        />
-      </div>
+          <div className="px-6 py-6 space-y-6">
+            {/* KPIs - 4 cartes simples */}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <StatCard label="Chiffre d'affaires" value={formatCurrency(totalRevenue)} icon={Wallet} trend={12.5} />
+              <StatCard label="Clients" value={clientCount} icon={Users} trend={8} />
+              <StatCard label="Factures" value={invoices.length} icon={FileText} />
+              <StatCard label="Impayées" value={pendingInvoices} icon={Receipt} alert={pendingInvoices > 0} />
+            </div>
 
-      {/* Actions rapides */}
-      <div className="bg-white rounded-lg border border-gray-200 p-5 mb-8">
-        <h2 className="text-sm font-medium text-gray-700 mb-4">Actions rapides</h2>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <QuickLink href="/ventes/factures-clients" label="Nouvelle facture" />
-          <QuickLink href="/achats/factures" label="Saisir un achat" />
-          <QuickLink href="/clients" label="Ajouter un client" />
-          <QuickLink href="/comptabilite/balance" label="Balance générale" />
-        </div>
-      </div>
+            {/* Actions rapides */}
+            <div className="bg-white rounded-lg border border-gray-200 p-5">
+              <h2 className="text-sm font-semibold text-gray-900 mb-4">Actions rapides</h2>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <QuickLink href="/ventes/factures-clients" label="Nouvelle facture" />
+                <QuickLink href="/achats/factures" label="Saisir un achat" />
+                <QuickLink href="/clients" label="Ajouter un client" />
+                <QuickLink href="/comptabilite/balance" label="Balance générale" />
+              </div>
+            </div>
 
-      {/* Modules principaux */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <ModuleLink
-          href="/ventes"
-          title="Ventes"
-          description="Devis, factures clients"
-          icon={FileText}
-        />
-        <ModuleLink
-          href="/achats"
-          title="Achats"
-          description="Factures fournisseurs"
-          icon={Receipt}
-        />
-        <ModuleLink
-          href="/comptabilite"
-          title="Comptabilité"
-          description="Balance, journal, bilan"
-          icon={Wallet}
-        />
-        <ModuleLink
-          href="/tresorerie"
-          title="Trésorerie"
-          description="Comptes et prévisions"
-          icon={TrendingUp}
-        />
-        <ModuleLink
-          href="/clients"
-          title="Clients"
-          description="Gestion des clients"
-          icon={Users}
-        />
-        <ModuleLink
-          href="/reports"
-          title="Rapports"
-          description="Analyses et exports"
-          icon={FileText}
-        />
+            {/* Modules principaux */}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <ModuleLink href="/ventes" title="Ventes" description="Devis, factures clients" icon={FileText} />
+              <ModuleLink href="/achats" title="Achats" description="Factures fournisseurs" icon={Receipt} />
+              <ModuleLink href="/comptabilite" title="Comptabilité" description="Balance, journal, bilan" icon={Wallet} />
+              <ModuleLink href="/tresorerie" title="Trésorerie" description="Comptes et prévisions" icon={TrendingUp} />
+              <ModuleLink href="/clients" title="Clients" description="Gestion des clients" icon={Users} />
+              <ModuleLink href="/reports" title="Rapports" description="Analyses et exports" icon={FileText} />
+            </div>
+          </div>
+        </main>
       </div>
-    </DashboardLayout>
+    </>
   );
 }
 
