@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Bell, Search, MessageSquare, HelpCircle, Menu } from "lucide-react";
+import { Bell, Search, MessageSquare, HelpCircle, Menu, X, ChevronRight, Book, Mail, ExternalLink } from "lucide-react";
+import Link from "next/link";
 import ClientSelector from "./ClientSelector";
 import { getCurrentUser, type User, type Client } from "@/lib/api";
 
@@ -12,7 +13,9 @@ interface TopHeaderProps {
 
 export default function TopHeader({ onClientChange, onMenuToggle }: TopHeaderProps) {
     const [user, setUser] = useState<User | null>(null);
-    const [notifications, setNotifications] = useState(3);
+    const [notifications] = useState(3);
+    const [showHelp, setShowHelp] = useState(false);
+    const [showNotifications, setShowNotifications] = useState(false);
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -30,6 +33,7 @@ export default function TopHeader({ onClientChange, onMenuToggle }: TopHeaderPro
     }, []);
 
     return (
+        <>
         <header className="fixed top-0 left-[220px] right-0 h-14 bg-white border-b border-gray-200 z-30 flex items-center justify-between px-4 shadow-sm">
             {/* Left side - Client Selector */}
             <div className="flex items-center gap-4">
@@ -60,7 +64,12 @@ export default function TopHeader({ onClientChange, onMenuToggle }: TopHeaderPro
             {/* Right side - Actions */}
             <div className="flex items-center gap-2">
                 {/* Help */}
-                <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="Aide">
+                <button 
+                    type="button"
+                    onClick={() => setShowHelp(true)}
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors" 
+                    title="Aide"
+                >
                     <HelpCircle className="h-5 w-5 text-gray-500" />
                 </button>
 
@@ -70,7 +79,12 @@ export default function TopHeader({ onClientChange, onMenuToggle }: TopHeaderPro
                 </button>
 
                 {/* Notifications */}
-                <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors relative" title="Notifications">
+                <button 
+                    type="button"
+                    onClick={() => setShowNotifications(true)}
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors relative" 
+                    title="Notifications"
+                >
                     <Bell className="h-5 w-5 text-gray-500" />
                     {notifications > 0 && (
                         <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
@@ -92,5 +106,84 @@ export default function TopHeader({ onClientChange, onMenuToggle }: TopHeaderPro
                 </div>
             </div>
         </header>
+
+        {/* Help Panel */}
+        {showHelp && (
+            <div className="fixed inset-0 z-50" onClick={() => setShowHelp(false)}>
+                <div className="absolute inset-0 bg-black/20" />
+                <div 
+                    className="absolute right-4 top-16 w-80 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+                        <h3 className="font-semibold text-gray-900">Centre d&apos;aide</h3>
+                        <button onClick={() => setShowHelp(false)} className="p-1 hover:bg-gray-100 rounded-lg">
+                            <X className="h-4 w-4 text-gray-500" />
+                        </button>
+                    </div>
+                    <div className="p-2">
+                        <Link href="/docs">
+                            <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                <div className="p-2 bg-blue-50 rounded-lg">
+                                    <Book className="h-5 w-5 text-blue-600" />
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-sm font-medium text-gray-900">Documentation</p>
+                                    <p className="text-xs text-gray-500">Guides et tutoriels</p>
+                                </div>
+                                <ChevronRight className="h-4 w-4 text-gray-400" />
+                            </div>
+                        </Link>
+                        <a href="mailto:support@sekagestion.com">
+                            <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer">
+                                <div className="p-2 bg-blue-50 rounded-lg">
+                                    <Mail className="h-5 w-5 text-blue-600" />
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-sm font-medium text-gray-900 flex items-center gap-1">
+                                        Support <ExternalLink className="h-3 w-3" />
+                                    </p>
+                                    <p className="text-xs text-gray-500">Contactez-nous</p>
+                                </div>
+                                <ChevronRight className="h-4 w-4 text-gray-400" />
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* Notifications Panel */}
+        {showNotifications && (
+            <div className="fixed inset-0 z-50" onClick={() => setShowNotifications(false)}>
+                <div className="absolute inset-0 bg-black/20" />
+                <div 
+                    className="absolute right-4 top-16 w-96 max-h-[70vh] bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden flex flex-col"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <h3 className="font-semibold text-gray-900">Notifications</h3>
+                            {notifications > 0 && (
+                                <span className="px-2 py-0.5 bg-red-100 text-red-600 text-xs font-medium rounded-full">
+                                    {notifications} nouvelles
+                                </span>
+                            )}
+                        </div>
+                        <button onClick={() => setShowNotifications(false)} className="p-1 hover:bg-gray-100 rounded-lg">
+                            <X className="h-4 w-4 text-gray-500" />
+                        </button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-4">
+                        <div className="text-center py-8">
+                            <Bell className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                            <p className="text-gray-500 font-medium">Aucune notification</p>
+                            <p className="text-sm text-gray-400 mt-1">Vous êtes à jour !</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
+    </>
     );
 }

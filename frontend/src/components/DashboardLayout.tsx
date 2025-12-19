@@ -3,9 +3,8 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import type { ReactNode } from "react";
 import { useRouter } from "next/router";
-import { PennylaneSidebar } from "./layout/PennylaneSidebar";
 import { ChatWidget } from "./Chatbot/ChatWidget";
-import { HelpCircle, Bell, X, ChevronRight, Book, MessageCircle, Mail, ExternalLink } from "lucide-react";
+import { X, ChevronRight, Book, MessageCircle, Mail, ExternalLink, Bell } from "lucide-react";
 
 interface DashboardLayoutProps {
   title?: string;
@@ -279,47 +278,19 @@ export function DashboardLayout({ title, children }: DashboardLayoutProps) {
       <Head>
         <title>{pageTitle}</title>
       </Head>
-      <div className="flex min-h-screen bg-accents-1 font-sans text-foreground">
-        {/* Pennylane Sidebar */}
-        <PennylaneSidebar />
-
-        {/* Main Content */}
-        <main className="flex-1 pl-[72px] transition-all duration-300">
-          <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-accents-2 bg-background/80 px-8 backdrop-blur-md">
-            <div />
-            <div className="flex items-center gap-2">
-              <button 
-                type="button"
-                onClick={() => { console.log('Aide clicked'); setShowHelp(true); }}
-                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 cursor-pointer"
-              >
-                <HelpCircle className="h-4 w-4" />
-                <span>Aide</span>
-              </button>
-              <button 
-                type="button"
-                onClick={() => { console.log('Notifications clicked'); setShowNotifications(true); }}
-                className="relative flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 cursor-pointer"
-              >
-                <Bell className="h-4 w-4" />
-                <span>Notifications</span>
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
-              </button>
-            </div>
-          </header>
-
-          <div className="mx-auto max-w-6xl p-8">
-            {children}
-          </div>
-        </main>
-
-        {/* Panels */}
-        <HelpPanel isOpen={showHelp} onClose={() => setShowHelp(false)} />
-        <NotificationsPanel isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
-
-        {/* Chatbot Widget - Available on all dashboard pages */}
-        <ChatWidget />
+      {/* Main Content - Sidebar et Header sont dans _app.tsx */}
+      <div className="min-h-screen bg-neutral-50">
+        <div className="mx-auto max-w-6xl p-6">
+          {children}
+        </div>
       </div>
+
+      {/* Panels */}
+      <HelpPanel isOpen={showHelp} onClose={() => setShowHelp(false)} />
+      <NotificationsPanel isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
+
+      {/* Chatbot Widget */}
+      <ChatWidget />
     </>
   );
 }
