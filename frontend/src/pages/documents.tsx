@@ -1,132 +1,133 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { DashboardLayout } from "@/components/DashboardLayout";
+import Head from "next/head";
+import { PennylaneSidebar } from "@/components/layout/PennylaneSidebar";
 import { DocumentUpload } from "@/components/DocumentUpload";
 import { getDocuments, type Document } from "@/lib/api";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/Table";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
+import { FileText, Loader2, Upload } from "lucide-react";
 
 export default function DocumentsPage() {
-    const router = useRouter();
-    const [documents, setDocuments] = useState<Document[]>([]);
-    const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [loading, setLoading] = useState(true);
 
-    const fetchDocuments = async () => {
-        const token = localStorage.getItem("seka_access_token");
-        if (token) {
-            try {
-                const data = await getDocuments(token);
-                setDocuments(data);
-            } catch (e) {
-                console.error(e);
-            }
-        }
-        setLoading(false);
+  const fetchDocuments = async () => {
+    const token = localStorage.getItem("seka_access_token");
+    if (token) {
+      try {
+        const data = await getDocuments(token);
+        setDocuments(data);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchDocuments(); }, []);
+
+  const handleUploadSuccess = () => { fetchDocuments(); };
+
+  const getStatusBadge = (status: string) => {
+    const config: Record<string, { bg: string; text: string; label: string }> = {
+      PENDING: { bg: "bg-gray-100", text: "text-gray-700", label: "En attente" },
+      OCR_PROCESSING: { bg: "bg-orange-100", text: "text-orange-700", label: "Traitement IA" },
+      OCR_COMPLETED: { bg: "bg-blue-100", text: "text-blue-700", label: "Traité" },
+      VALIDATED: { bg: "bg-green-100", text: "text-green-700", label: "Validé" },
+      REJECTED: { bg: "bg-red-100", text: "text-red-700", label: "Rejeté" },
     };
+    const c = config[status] || { bg: "bg-gray-100", text: "text-gray-700", label: status };
+    return <span className={`px-2 py-1 text-xs font-medium rounded-full ${c.bg} ${c.text}`}>{c.label}</span>;
+  };
 
-    useEffect(() => {
-        fetchDocuments();
-    }, []);
-
-    const handleUploadSuccess = () => {
-        fetchDocuments(); // Refresh list after upload
-    };
-
-    const getStatusBadge = (status: string) => {
-        const statusMap: Record<string, { variant: "default" | "success" | "warning" | "error"; label: string }> = {
-            PENDING: { variant: "default", label: "En attente" },
-            OCR_PROCESSING: { variant: "warning", label: "Traitement IA" },
-            OCR_COMPLETED: { variant: "success", label: "Traité" },
-            VALIDATED: { variant: "success", label: "Validé" },
-            REJECTED: { variant: "error", label: "Rejeté" },
-        };
-        const config = statusMap[status] || { variant: "default" as const, label: status };
-        return <Badge variant={config.variant}>{config.label}</Badge>;
-    };
-
-    return (
-        <DashboardLayout title="Documents">
-            <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold text-foreground">Gestion des Documents</h1>
-                        <p className="text-sm text-accents-5">Téléchargez et gérez vos pièces comptables.</p>
-                    </div>
-                </div>
-
-                <Card className="p-6">
-                    <h2 className="mb-4 text-lg font-medium text-foreground">Télécharger un document</h2>
-                    <DocumentUpload onUploadSuccess={handleUploadSuccess} />
-                </Card>
-
-                <Card className="overflow-hidden p-0">
-                    <div className="border-b border-accents-2 px-6 py-4">
-                        <h2 className="text-lg font-medium text-foreground">Documents récents</h2>
-                    </div>
-                    <Table>
-                        <TableHead>
-                            <TableRow>
-                                <TableHeader>Fichier</TableHeader>
-                                <TableHeader>Date</TableHeader>
-                                <TableHeader>Montant</TableHeader>
-                                <TableHeader>Statut</TableHeader>
-                                <TableHeader>Actions</TableHeader>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {loading ? (
-                                <TableRow>
-                                    <TableCell className="text-center" colSpan={5}>Chargement...</TableCell>
-                                </TableRow>
-                            ) : documents.length === 0 ? (
-                                <TableRow>
-                                    <TableCell className="text-center" colSpan={5}>
-                                        Aucun document. Téléchargez votre première pièce ci-dessus.
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                documents.map((doc) => (
-                                    <TableRow key={doc.id}>
-                                        <TableCell>
-                                            <div className="font-medium text-foreground">{doc.filename}</div>
-                                        </TableCell>
-                                        <TableCell className="text-accents-5">
-                                            {new Date(doc.created_at).toLocaleDateString('fr-FR')}
-                                        </TableCell>
-                                        <TableCell>
-                                            {doc.amount_ttc ? `${doc.amount_ttc.toLocaleString()} FCFA` :
-                                             doc.total_amount ? `${doc.total_amount.toLocaleString()} FCFA` : "-"}
-                                        </TableCell>
-                                        <TableCell>{getStatusBadge(doc.status)}</TableCell>
-                                        <TableCell>
-                                            {(doc.status === "OCR_COMPLETED" || doc.status === "PENDING") && (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => router.push(`/documents/${doc.id}/validate`)}
-                                                >
-                                                    Valider
-                                                </Button>
-                                            )}
-                                            {doc.status === "VALIDATED" && (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => router.push(`/documents/${doc.id}/validate`)}
-                                                >
-                                                    Détails
-                                                </Button>
-                                            )}
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
-                </Card>
+  return (
+    <>
+      <Head><title>Documents - SEKA</title></Head>
+      <div className="min-h-screen bg-gray-50">
+        <PennylaneSidebar />
+        <main className="ml-[220px]">
+          <div className="bg-white border-b border-gray-200 px-6 py-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-gray-100"><FileText className="h-5 w-5 text-gray-600" /></div>
+              <div>
+                <h1 className="text-xl font-semibold text-gray-900">Gestion des Documents</h1>
+                <p className="text-sm text-gray-600 mt-0.5">Téléchargez et gérez vos pièces comptables</p>
+              </div>
             </div>
-        </DashboardLayout>
-    );
+          </div>
+
+          <div className="px-6 py-6 space-y-6">
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Upload className="h-5 w-5 text-gray-500" />
+                <h2 className="text-lg font-medium text-gray-900">Télécharger un document</h2>
+              </div>
+              <DocumentUpload onUploadSuccess={handleUploadSuccess} />
+            </div>
+
+            <div className="bg-white rounded-lg border border-gray-200">
+              <div className="border-b border-gray-200 px-6 py-4">
+                <h2 className="text-lg font-medium text-gray-900">Documents récents</h2>
+              </div>
+              {loading ? (
+                <div className="p-12 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-[#1e3a5f]" /></div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="border-b border-gray-200 bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fichier</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Montant</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {documents.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="px-4 py-12 text-center text-gray-500">
+                            Aucun document. Téléchargez votre première pièce ci-dessus.
+                          </td>
+                        </tr>
+                      ) : (
+                        documents.map((doc) => (
+                          <tr key={doc.id} className="hover:bg-gray-50">
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-4 w-4 text-gray-400" />
+                                <span className="text-sm font-medium text-gray-900">{doc.filename}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-500">
+                              {new Date(doc.created_at).toLocaleDateString('fr-FR')}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-gray-900">
+                              {doc.amount_ttc ? `${doc.amount_ttc.toLocaleString()} FCFA` :
+                               doc.total_amount ? `${doc.total_amount.toLocaleString()} FCFA` : "-"}
+                            </td>
+                            <td className="px-4 py-3">{getStatusBadge(doc.status)}</td>
+                            <td className="px-4 py-3">
+                              {(doc.status === "OCR_COMPLETED" || doc.status === "PENDING") && (
+                                <button onClick={() => router.push(`/documents/${doc.id}/validate`)}
+                                  className="text-sm text-[#1e3a5f] hover:underline font-medium">Valider</button>
+                              )}
+                              {doc.status === "VALIDATED" && (
+                                <button onClick={() => router.push(`/documents/${doc.id}/validate`)}
+                                  className="text-sm text-[#1e3a5f] hover:underline font-medium">Détails</button>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        </main>
+      </div>
+    </>
+  );
 }
