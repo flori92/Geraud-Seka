@@ -240,7 +240,7 @@ async def get_clients_balance_stats(
         }
 
 
-@router.get("/{client_id}", response_model=client_schema.Client)
+@router.get("/", response_model=List[client_schema.Client])
 def read_clients(
     db: Session = Depends(deps.get_db_session),
     skip: int = 0,
