@@ -173,7 +173,7 @@ export default function NewAccountingEntry() {
               <button
                 onClick={handleSubmit}
                 disabled={!isBalanced()}
-                className="flex items-center gap-2 px-4 py-2 bg-[#0d4a44] text-white rounded-lg text-sm font-medium hover:bg-[#0a3d38] disabled:bg-gray-300 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-4 py-2 bg-[#1e3a5f] text-white rounded-lg text-sm font-medium hover:bg-[#172e4d] disabled:bg-gray-300 disabled:cursor-not-allowed"
               >
                 <Save className="w-4 h-4" />
                 Enregistrer
@@ -190,7 +190,7 @@ export default function NewAccountingEntry() {
                 <select
                   value={journalType}
                   onChange={(e) => setJournalType(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0d4a44]"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]"
                 >
                   <option value="ACH">Achats</option>
                   <option value="VTE">Ventes</option>
@@ -208,7 +208,7 @@ export default function NewAccountingEntry() {
                   type="date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0d4a44]"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]"
                 />
               </div>
 
@@ -221,7 +221,7 @@ export default function NewAccountingEntry() {
                   value={reference}
                   onChange={(e) => setReference(e.target.value)}
                   placeholder="Référence (optionnel)"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0d4a44]"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]"
                 />
               </div>
             </div>
@@ -235,7 +235,7 @@ export default function NewAccountingEntry() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Description de l'écriture"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0d4a44]"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]"
               />
             </div>
 
@@ -271,7 +271,7 @@ export default function NewAccountingEntry() {
                   </button>
                   <button
                     onClick={addLine}
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm text-[#0d4a44] hover:bg-[#e6f2f1] rounded-lg"
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm text-[#1e3a5f] hover:bg-[#e6f2f1] rounded-lg"
                   >
                     <Plus className="w-4 h-4" />
                     Ajouter une ligne
@@ -297,7 +297,7 @@ export default function NewAccountingEntry() {
                           <select
                             value={line.account_id}
                             onChange={(e) => updateLine(index, "account_id", e.target.value)}
-                            className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-[#0d4a44]"
+                            className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]"
                           >
                             <option value="">Sélectionner un compte</option>
                             {filteredAccounts.map((account) => (
@@ -313,7 +313,7 @@ export default function NewAccountingEntry() {
                             value={line.label}
                             onChange={(e) => updateLine(index, "label", e.target.value)}
                             placeholder="Libellé"
-                            className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-[#0d4a44]"
+                            className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]"
                           />
                         </td>
                         <td className="px-4 py-3">
@@ -321,7 +321,7 @@ export default function NewAccountingEntry() {
                             type="number"
                             value={line.debit}
                             onChange={(e) => updateLine(index, "debit", e.target.value)}
-                            className="w-full px-2 py-1.5 text-sm text-right border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-[#0d4a44]"
+                            className="w-full px-2 py-1.5 text-sm text-right border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]"
                           />
                         </td>
                         <td className="px-4 py-3">
@@ -329,7 +329,7 @@ export default function NewAccountingEntry() {
                             type="number"
                             value={line.credit}
                             onChange={(e) => updateLine(index, "credit", e.target.value)}
-                            className="w-full px-2 py-1.5 text-sm text-right border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-[#0d4a44]"
+                            className="w-full px-2 py-1.5 text-sm text-right border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]"
                           />
                         </td>
                         <td className="px-4 py-3 text-center">

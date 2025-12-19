@@ -1,15 +1,20 @@
+/**
+ * SEKA Design System - Palette de couleurs
+ * Bleu Nuit SEKA - Interface épurée et soft
+ */
 export const SEKA_COLORS = {
+  // Bleu Nuit SEKA - Couleur principale
   primary: {
-    50: '#e6f2f1',
-    100: '#b3d9d6',
-    200: '#80c0ba',
-    300: '#4da79d',
-    400: '#268e81',
-    500: '#0d4a44',
-    600: '#0a3d38',
-    700: '#08302c',
-    800: '#062320',
-    900: '#041614',
+    50: '#eef2ff',   // Très clair
+    100: '#e0e7ff',  // Clair
+    200: '#c7d2fe',  // Léger
+    300: '#a5b4fc',  // Soft
+    400: '#818cf8',  // Medium
+    500: '#1e3a5f',  // Bleu nuit SEKA principal
+    600: '#172e4d',  // Hover
+    700: '#11233b',  // Active
+    800: '#0b1829',  // Dark
+    900: '#050d17',  // Très dark
   },
   accent: {
     cyan: '#06b6d4',

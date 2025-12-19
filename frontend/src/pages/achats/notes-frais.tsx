@@ -80,7 +80,7 @@ export default function ExpenseReports() {
                                 <Download className="w-4 h-4" />
                                 Exporter
                             </button>
-                            <button className="px-4 py-2 bg-[#0d4a44] text-white rounded-lg text-sm font-medium hover:bg-[#0a3d38] flex items-center gap-2">
+                            <button className="px-4 py-2 bg-[#1e3a5f] text-white rounded-lg text-sm font-medium hover:bg-[#172e4d] flex items-center gap-2">
                                 <Plus className="w-4 h-4" />
                                 Nouvelle note de frais
                             </button>
@@ -95,7 +95,7 @@ export default function ExpenseReports() {
                                 <input
                                     type="text"
                                     placeholder="Rechercher (employé, description...)"
-                                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0d4a44]"
+                                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]"
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
                                 />
@@ -108,7 +108,7 @@ export default function ExpenseReports() {
                         <div className="flex items-center gap-4 px-4 border-l border-gray-200">
                             <div className="text-center">
                                 <span className="block text-xs text-gray-500 uppercase font-semibold">À valider</span>
-                                <span className="block text-lg font-bold text-[#0d4a44]">0,00 €</span>
+                                <span className="block text-lg font-bold text-[#1e3a5f]">0,00 €</span>
                             </div>
                             <div className="text-center">
                                 <span className="block text-xs text-gray-500 uppercase font-semibold">À rembourser</span>
@@ -141,7 +141,7 @@ export default function ExpenseReports() {
                                             {format(new Date(expense.date), 'dd MMM yyyy', { locale: fr })}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-[#e6f2f1] text-[#0d4a44] flex items-center justify-center text-xs font-bold">
+                                            <div className="w-8 h-8 rounded-full bg-[#e6f2f1] text-[#1e3a5f] flex items-center justify-center text-xs font-bold">
                                                 {expense.employee.split(' ').map(n => n[0]).join('')}
                                             </div>
                                             <span className="text-sm font-medium text-gray-900">{expense.employee}</span>
@@ -159,7 +159,7 @@ export default function ExpenseReports() {
                                             {getStatusBadge(expense.status)}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                                            <button className="text-[#0d4a44] hover:text-[#0a3d38] font-medium text-xs border border-[#0d4a44] px-3 py-1 rounded-lg">
+                                            <button className="text-[#1e3a5f] hover:text-[#172e4d] font-medium text-xs border border-[#1e3a5f] px-3 py-1 rounded-lg">
                                                 Détails
                                             </button>
                                         </td>

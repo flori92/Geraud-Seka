@@ -223,7 +223,7 @@ export default function TaxReturnsPage() {
                 {selectedReturn && selectedReturn.status === 'validated' && (
                   <button
                     onClick={() => handleTeleDeclare(selectedReturn.id)}
-                    className="px-4 py-2 bg-[#0d4a44] text-white rounded-lg hover:bg-[#0a3d38] flex items-center gap-2 text-sm font-medium"
+                    className="px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#172e4d] flex items-center gap-2 text-sm font-medium"
                   >
                     <Send className="h-4 w-4" />
                     Télédéclarer
@@ -282,7 +282,7 @@ export default function TaxReturnsPage() {
                   <div className="divide-y divide-gray-200">
                     {loading ? (
                       <div className="p-6 text-center">
-                        <div className="inline-block h-6 w-6 animate-spin rounded-full border-4 border-solid border-[#0d4a44] border-r-transparent"></div>
+                        <div className="inline-block h-6 w-6 animate-spin rounded-full border-4 border-solid border-[#1e3a5f] border-r-transparent"></div>
                       </div>
                     ) : taxReturns.length === 0 ? (
                       <div className="p-6 text-center">
@@ -333,7 +333,7 @@ export default function TaxReturnsPage() {
                         {/* Progress Line */}
                         <div className="absolute top-5 left-0 right-0 h-0.5 bg-gray-200" style={{ width: '100%', marginLeft: '20px', marginRight: '20px' }}>
                           <div
-                            className="h-full bg-[#0d4a44] transition-all duration-500"
+                            className="h-full bg-[#1e3a5f] transition-all duration-500"
                             style={{ width: `${(currentStepIndex / (timelineSteps.length - 1)) * 100}%` }}
                           ></div>
                         </div>
@@ -351,9 +351,9 @@ export default function TaxReturnsPage() {
                                 <div
                                   className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
                                     isCompleted
-                                      ? 'bg-[#0d4a44] text-white'
+                                      ? 'bg-[#1e3a5f] text-white'
                                       : 'bg-gray-200 text-gray-400'
-                                  } ${isCurrent ? 'ring-4 ring-[#0d4a44] ring-opacity-20' : ''}`}
+                                  } ${isCurrent ? 'ring-4 ring-[#1e3a5f] ring-opacity-20' : ''}`}
                                 >
                                   <StepIcon className="h-5 w-5" />
                                 </div>
@@ -456,13 +456,13 @@ export default function TaxReturnsPage() {
                           Télécharger tout
                         </button>
                         {selectedReturn.status === 'draft' && (
-                          <button className="px-4 py-2 bg-[#0d4a44] text-white rounded-lg hover:bg-[#0a3d38] text-sm font-medium flex items-center gap-2">
+                          <button className="px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#172e4d] text-sm font-medium flex items-center gap-2">
                             <CheckCircle2 className="h-4 w-4" />
                             Marquer en cours
                           </button>
                         )}
                         {selectedReturn.status === 'in_progress' && (
-                          <button className="px-4 py-2 bg-[#0d4a44] text-white rounded-lg hover:bg-[#0a3d38] text-sm font-medium flex items-center gap-2">
+                          <button className="px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#172e4d] text-sm font-medium flex items-center gap-2">
                             <CheckCheck className="h-4 w-4" />
                             Valider
                           </button>
@@ -470,7 +470,7 @@ export default function TaxReturnsPage() {
                         {selectedReturn.status === 'validated' && (
                           <button
                             onClick={() => handleTeleDeclare(selectedReturn.id)}
-                            className="px-4 py-2 bg-[#0d4a44] text-white rounded-lg hover:bg-[#0a3d38] text-sm font-medium flex items-center gap-2"
+                            className="px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#172e4d] text-sm font-medium flex items-center gap-2"
                           >
                             <Send className="h-4 w-4" />
                             Télédéclarer

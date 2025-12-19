@@ -266,7 +266,7 @@ export default function AccountingEntryDetailPage() {
 
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <Loader2 className="w-8 h-8 animate-spin text-[#0d4a44]" />
+              <Loader2 className="w-8 h-8 animate-spin text-[#1e3a5f]" />
             </div>
           ) : error ? (
             <div className="bg-white border border-red-200 text-red-700 rounded-lg p-4">{error}</div>

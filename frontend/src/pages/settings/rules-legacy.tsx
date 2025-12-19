@@ -225,7 +225,7 @@ export default function RulesCenter() {
                   <Upload className="h-4 w-4" />
                   Importer
                 </button>
-                <button className="px-4 py-2 bg-[#0d4a44] text-white rounded-lg hover:bg-[#0a3d38] flex items-center gap-2">
+                <button className="px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#172e4d] flex items-center gap-2">
                   <Plus className="h-4 w-4" />
                   Nouvelle règle
                 </button>
@@ -250,7 +250,7 @@ export default function RulesCenter() {
                       onClick={() => setActiveTab(tab.id)}
                       className={`px-6 py-4 text-sm font-medium transition-colors relative ${
                         activeTab === tab.id
-                          ? 'text-[#0d4a44] border-b-2 border-[#0d4a44]'
+                          ? 'text-[#1e3a5f] border-b-2 border-[#1e3a5f]'
                           : 'text-gray-600 hover:text-gray-900'
                       }`}
                     >
@@ -273,7 +273,7 @@ export default function RulesCenter() {
                       placeholder={`Rechercher ${activeTab === 'transactions' ? 'une règle' : activeTab === 'fournisseurs' ? 'un fournisseur' : activeTab === 'clients' ? 'un client' : 'un produit'}...`}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0d4a44] focus:border-transparent"
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a5f] focus:border-transparent"
                     />
                   </div>
                   {activeTab !== 'produits' && (

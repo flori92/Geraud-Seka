@@ -214,7 +214,7 @@ export default function BalanceGeneralePage() {
                   placeholder="Rechercher par numéro ou nom de compte..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0d4a44] focus:border-transparent text-sm"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] focus:border-transparent text-sm"
                 />
               </div>
 
@@ -223,7 +223,7 @@ export default function BalanceGeneralePage() {
                 <select
                   value={filters.account_type}
                   onChange={(e) => setFilters({ ...filters, account_type: e.target.value })}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0d4a44] focus:border-transparent pr-10"
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] focus:border-transparent pr-10"
                 >
                   {accountTypeOptions.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -236,7 +236,7 @@ export default function BalanceGeneralePage() {
                 <select
                   value={filters.period}
                   onChange={(e) => setFilters({ ...filters, period: e.target.value })}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0d4a44] focus:border-transparent pr-10"
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] focus:border-transparent pr-10"
                 >
                   {periodOptions.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -309,7 +309,7 @@ export default function BalanceGeneralePage() {
             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
               {loading ? (
                 <div className="p-12 text-center">
-                  <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-[#0d4a44] border-r-transparent"></div>
+                  <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-[#1e3a5f] border-r-transparent"></div>
                   <p className="text-sm text-gray-600 mt-3">Chargement de la balance...</p>
                 </div>
               ) : filteredAccounts.length === 0 ? (

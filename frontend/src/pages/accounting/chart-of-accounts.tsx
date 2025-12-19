@@ -59,7 +59,7 @@ export default function ChartOfAccounts() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#0d4a44]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#1e3a5f]" />
       </div>
     );
   }
@@ -80,7 +80,7 @@ export default function ChartOfAccounts() {
                 Exporter
               </button>
               <button
-                className="flex items-center gap-2 px-4 py-2 bg-[#0d4a44] text-white rounded-lg text-sm font-medium hover:bg-[#0a3d38]"
+                className="flex items-center gap-2 px-4 py-2 bg-[#1e3a5f] text-white rounded-lg text-sm font-medium hover:bg-[#172e4d]"
                 onClick={() => setIsModalOpen(true)}
               >
                 <Plus className="w-4 h-4" />
@@ -98,7 +98,7 @@ export default function ChartOfAccounts() {
                   placeholder="Rechercher un compte..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0d4a44]"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]"
                 />
               </div>
             </div>

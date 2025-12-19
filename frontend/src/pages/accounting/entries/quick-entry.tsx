@@ -208,7 +208,7 @@ export default function QuickAccountingEntry() {
                                         <select
                                             value={journalType}
                                             onChange={(e) => setJournalType(e.target.value)}
-                                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0d4a44] bg-gray-50"
+                                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] bg-gray-50"
                                         >
                                             <option value="ACH">Achats</option>
                                             <option value="VTE">Ventes</option>
@@ -226,7 +226,7 @@ export default function QuickAccountingEntry() {
                                             type="date"
                                             value={dateStr}
                                             onChange={(e) => setDateStr(e.target.value)}
-                                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0d4a44] bg-gray-50"
+                                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] bg-gray-50"
                                         />
                                     </div>
 
@@ -239,7 +239,7 @@ export default function QuickAccountingEntry() {
                                             value={reference}
                                             onChange={(e) => setReference(e.target.value)}
                                             placeholder="Ex: FAC-2024-001"
-                                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0d4a44]"
+                                            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]"
                                         />
                                     </div>
                                 </div>
@@ -253,7 +253,7 @@ export default function QuickAccountingEntry() {
                                         value={description}
                                         onChange={(e) => setDescription(e.target.value)}
                                         placeholder="Description de l'opération"
-                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0d4a44]"
+                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]"
                                     />
                                 </div>
 
@@ -276,7 +276,7 @@ export default function QuickAccountingEntry() {
                                                             <select
                                                                 value={line.account_id}
                                                                 onChange={(e) => updateLine(index, "account_id", e.target.value)}
-                                                                className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-[#0d4a44]"
+                                                                className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]"
                                                             >
                                                                 <option value="">-- Choisir --</option>
                                                                 {filteredAccounts.map((account) => (
@@ -292,7 +292,7 @@ export default function QuickAccountingEntry() {
                                                                 value={line.label}
                                                                 onChange={(e) => updateLine(index, "label", e.target.value)}
                                                                 placeholder={description}
-                                                                className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-[#0d4a44]"
+                                                                className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]"
                                                             />
                                                         </td>
                                                         <td className="px-4 py-2">
@@ -301,7 +301,7 @@ export default function QuickAccountingEntry() {
                                                                 value={line.debit}
                                                                 onChange={(e) => updateLine(index, "debit", e.target.value)}
                                                                 // onFocus={(e) => e.target.select()}
-                                                                className={`w-full px-2 py-1.5 text-sm text-right border rounded focus:outline-none focus:ring-2 focus:ring-[#0d4a44] ${parseFloat(line.debit) > 0 ? 'border-gray-300 font-medium' : 'border-gray-200 text-gray-400'}`}
+                                                                className={`w-full px-2 py-1.5 text-sm text-right border rounded focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] ${parseFloat(line.debit) > 0 ? 'border-gray-300 font-medium' : 'border-gray-200 text-gray-400'}`}
                                                             />
                                                         </td>
                                                         <td className="px-4 py-2">
@@ -310,7 +310,7 @@ export default function QuickAccountingEntry() {
                                                                 value={line.credit}
                                                                 onChange={(e) => updateLine(index, "credit", e.target.value)}
                                                                 // onFocus={(e) => e.target.select()}
-                                                                className={`w-full px-2 py-1.5 text-sm text-right border rounded focus:outline-none focus:ring-2 focus:ring-[#0d4a44] ${parseFloat(line.credit) > 0 ? 'border-gray-300 font-medium' : 'border-gray-200 text-gray-400'}`}
+                                                                className={`w-full px-2 py-1.5 text-sm text-right border rounded focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] ${parseFloat(line.credit) > 0 ? 'border-gray-300 font-medium' : 'border-gray-200 text-gray-400'}`}
                                                             />
                                                         </td>
                                                         <td className="px-2 py-2 text-center">
@@ -332,7 +332,7 @@ export default function QuickAccountingEntry() {
                                                     <td colSpan={2} className="px-4 py-2">
                                                         <button
                                                             onClick={addLine}
-                                                            className="text-xs font-medium text-[#0d4a44] hover:text-[#0a3d38] flex items-center gap-1"
+                                                            className="text-xs font-medium text-[#1e3a5f] hover:text-[#172e4d] flex items-center gap-1"
                                                         >
                                                             <Plus className="w-3 h-3" /> Ajouter une ligne
                                                         </button>
@@ -373,7 +373,7 @@ export default function QuickAccountingEntry() {
                                     <button
                                         onClick={() => handleSubmit(true)}
                                         disabled={!isBalanced() || isSubmitting || getTotalDebit() === 0}
-                                        className="flex items-center gap-2 px-6 py-2 text-sm font-medium text-white bg-[#0d4a44] hover:bg-[#0a3d38] rounded-lg shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="flex items-center gap-2 px-6 py-2 text-sm font-medium text-white bg-[#1e3a5f] hover:bg-[#172e4d] rounded-lg shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         <Save className="w-4 h-4" />
                                         Enregistrer et suivant
@@ -399,7 +399,7 @@ export default function QuickAccountingEntry() {
                                         {recentEntries.map((entry) => (
                                             <div key={entry.id} className="p-3 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors group relative cursor-pointer">
                                                 <div className="flex justify-between items-start mb-1">
-                                                    <span className="text-xs font-bold text-[#0d4a44] bg-[#e6f2f1] px-2 py-0.5 rounded">
+                                                    <span className="text-xs font-bold text-[#1e3a5f] bg-[#e6f2f1] px-2 py-0.5 rounded">
                                                         {entry.entry_number}
                                                     </span>
                                                     <span className="text-xs text-gray-500">{format(new Date(entry.date), 'dd/MM/yyyy')}</span>

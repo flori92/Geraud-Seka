@@ -92,7 +92,7 @@ export default function EntryTemplatesPage() {
         <div className="divide-y divide-gray-100">
           {loading ? (
             <div className="px-4 py-10 flex items-center justify-center">
-              <Loader2 className="w-6 h-6 animate-spin text-[#0d4a44]" />
+              <Loader2 className="w-6 h-6 animate-spin text-[#1e3a5f]" />
             </div>
           ) : error ? (
             <div className="px-4 py-6 text-sm text-red-700">{error}</div>

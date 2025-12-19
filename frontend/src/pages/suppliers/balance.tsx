@@ -236,7 +236,7 @@ export default function SupplierBalancePage() {
                 </button>
                 <Link
                   href="/achats/factures-fournisseurs"
-                  className="px-4 py-2 bg-[#0d4a44] text-white rounded-lg hover:bg-[#0a3d38] flex items-center gap-2 text-sm font-medium"
+                  className="px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#172e4d] flex items-center gap-2 text-sm font-medium"
                 >
                   <FileText className="h-4 w-4" />
                   Factures fournisseurs
@@ -305,7 +305,7 @@ export default function SupplierBalancePage() {
                       placeholder="Rechercher un fournisseur..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0d4a44] focus:border-transparent text-sm"
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] focus:border-transparent text-sm"
                     />
                   </div>
 
@@ -314,7 +314,7 @@ export default function SupplierBalancePage() {
                     <select
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value as any)}
-                      className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0d4a44] focus:border-transparent pr-10"
+                      className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] focus:border-transparent pr-10"
                     >
                       <option value="balance">Trier par solde</option>
                       <option value="overdue">Trier par retard</option>
@@ -374,7 +374,7 @@ export default function SupplierBalancePage() {
               {/* Suppliers Table */}
               {loading ? (
                 <div className="p-12 text-center">
-                  <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-[#0d4a44] border-r-transparent"></div>
+                  <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-[#1e3a5f] border-r-transparent"></div>
                   <p className="text-sm text-gray-600 mt-3">Chargement des balances fournisseurs...</p>
                 </div>
               ) : filteredSuppliers.length === 0 ? (
@@ -480,7 +480,7 @@ export default function SupplierBalancePage() {
                                   <a
                                     href={`mailto:${supplier.contact_email}`}
                                     onClick={(e) => e.stopPropagation()}
-                                    className="p-1 hover:bg-gray-100 rounded text-gray-600 hover:text-[#0d4a44]"
+                                    className="p-1 hover:bg-gray-100 rounded text-gray-600 hover:text-[#1e3a5f]"
                                     title={supplier.contact_email}
                                   >
                                     <Mail className="h-4 w-4" />
@@ -490,7 +490,7 @@ export default function SupplierBalancePage() {
                                   <a
                                     href={`tel:${supplier.contact_phone}`}
                                     onClick={(e) => e.stopPropagation()}
-                                    className="p-1 hover:bg-gray-100 rounded text-gray-600 hover:text-[#0d4a44]"
+                                    className="p-1 hover:bg-gray-100 rounded text-gray-600 hover:text-[#1e3a5f]"
                                     title={supplier.contact_phone}
                                   >
                                     <Phone className="h-4 w-4" />
@@ -501,7 +501,7 @@ export default function SupplierBalancePage() {
                             <td className="px-6 py-4 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
                               <Link
                                 href={`/suppliers/${supplier.id}/invoices`}
-                                className="text-xs text-[#0d4a44] hover:text-[#0a3d38] font-medium"
+                                className="text-xs text-[#1e3a5f] hover:text-[#172e4d] font-medium"
                               >
                                 Voir factures
                               </Link>

@@ -199,8 +199,8 @@ export default function FacturesFournisseurs() {
               </button>
             </div>
             <div className="flex items-center gap-3">
-              <button className="text-sm text-[#0d4a44] hover:text-[#0a3d38]">Clôturer l&apos;exercice</button>
-              <button className="flex items-center gap-2 px-4 py-2 bg-[#0d4a44] text-white rounded-lg text-sm font-medium hover:bg-[#0a3d38]">
+              <button className="text-sm text-[#1e3a5f] hover:text-[#172e4d]">Clôturer l&apos;exercice</button>
+              <button className="flex items-center gap-2 px-4 py-2 bg-[#1e3a5f] text-white rounded-lg text-sm font-medium hover:bg-[#172e4d]">
                 Importer des factures
               </button>
             </div>
@@ -384,7 +384,7 @@ export default function FacturesFournisseurs() {
               <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
                 <div className="flex items-center gap-2">
                   <button className="px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded">25</button>
-                  <button className="px-2 py-1 text-sm bg-[#0d4a44]/10 text-[#0d4a44] rounded font-medium">50</button>
+                  <button className="px-2 py-1 text-sm bg-[#1e3a5f]/10 text-[#1e3a5f] rounded font-medium">50</button>
                   <button className="px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded">100</button>
                   <span className="text-sm text-gray-500 ml-2">éléments par page</span>
                 </div>
@@ -392,7 +392,7 @@ export default function FacturesFournisseurs() {
                   <span className="text-sm text-gray-500">1-17 sur 17</span>
                   <div className="flex items-center gap-1">
                     <button className="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-400">&lt;</button>
-                    <button className="w-8 h-8 flex items-center justify-center rounded bg-[#0d4a44] text-white font-medium">1</button>
+                    <button className="w-8 h-8 flex items-center justify-center rounded bg-[#1e3a5f] text-white font-medium">1</button>
                     <button className="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-400">&gt;</button>
                   </div>
                 </div>

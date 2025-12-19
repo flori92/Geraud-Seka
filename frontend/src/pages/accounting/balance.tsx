@@ -58,7 +58,7 @@ export default function GeneralBalance() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#0d4a44]" />
+        <Loader2 className="w-8 h-8 animate-spin text-[#1e3a5f]" />
       </div>
     );
   }
@@ -86,14 +86,14 @@ export default function GeneralBalance() {
                   type="date"
                   value={dateRange.start || ""}
                   onChange={(e) => setDateRange((prev) => ({ ...prev, start: e.target.value || undefined }))}
-                  className="px-2 py-1 border border-gray-200 rounded-lg text-xs text-gray-600 focus:outline-none focus:ring-1 focus:ring-[#0d4a44]"
+                  className="px-2 py-1 border border-gray-200 rounded-lg text-xs text-gray-600 focus:outline-none focus:ring-1 focus:ring-[#1e3a5f]"
                 />
                 <span className="text-gray-400">au</span>
                 <input
                   type="date"
                   value={dateRange.end || ""}
                   onChange={(e) => setDateRange((prev) => ({ ...prev, end: e.target.value || undefined }))}
-                  className="px-2 py-1 border border-gray-200 rounded-lg text-xs text-gray-600 focus:outline-none focus:ring-1 focus:ring-[#0d4a44]"
+                  className="px-2 py-1 border border-gray-200 rounded-lg text-xs text-gray-600 focus:outline-none focus:ring-1 focus:ring-[#1e3a5f]"
                 />
                 <button
                   onClick={fetchBalance}

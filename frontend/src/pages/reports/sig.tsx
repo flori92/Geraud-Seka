@@ -80,7 +80,7 @@ export default function SigPage() {
 
       {loading ? (
         <div className="bg-white rounded-xl border border-gray-200 p-10 flex items-center justify-center">
-          <Loader2 className="w-6 h-6 animate-spin text-[#0d4a44]" />
+          <Loader2 className="w-6 h-6 animate-spin text-[#1e3a5f]" />
         </div>
       ) : error ? (
         <div className="bg-white rounded-xl border border-gray-200 p-4 text-sm text-red-700">{error}</div>

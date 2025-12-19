@@ -1,23 +1,23 @@
 /**
  * SEKA Design System
+ * Bleu Nuit - Interface épurée et soft
  * Central configuration for colors, spacing, typography, and components
- * Ensures consistency across the entire application
  */
 
 // ========== COLOR PALETTE ==========
 export const COLORS = {
-  // Primary brand colors (Teal/Dark Green)
+  // Bleu Nuit SEKA - Couleur principale
   primary: {
-    50: '#e6f2f1',
-    100: '#b3d9d6',
-    200: '#80c0ba',
-    300: '#4da79d',
-    400: '#268e81',
-    500: '#0d4a44',  // Main brand color
-    600: '#0a3d38',  // Hover state
-    700: '#08302c',
-    800: '#062320',
-    900: '#041614',
+    50: '#eef2ff',   // Très clair - backgrounds subtils
+    100: '#e0e7ff',  // Clair - hover backgrounds
+    200: '#c7d2fe',  // Léger - borders soft
+    300: '#a5b4fc',  // Soft - accents légers
+    400: '#818cf8',  // Medium - liens secondaires
+    500: '#1e3a5f',  // Bleu Nuit SEKA - couleur principale
+    600: '#172e4d',  // Hover state
+    700: '#11233b',  // Active/pressed
+    800: '#0b1829',  // Dark variant
+    900: '#050d17',  // Très dark
   },
   
   // Accent colors for secondary actions

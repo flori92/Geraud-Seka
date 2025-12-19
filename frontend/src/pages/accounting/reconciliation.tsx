@@ -336,7 +336,7 @@ export default function ReconciliationPage() {
                       placeholder="Rechercher une transaction..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0d4a44] focus:border-transparent text-sm"
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] focus:border-transparent text-sm"
                     />
                   </div>
 
@@ -345,7 +345,7 @@ export default function ReconciliationPage() {
                     <select
                       value={selectedBankAccount}
                       onChange={(e) => setSelectedBankAccount(e.target.value)}
-                      className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0d4a44] focus:border-transparent pr-10"
+                      className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] focus:border-transparent pr-10"
                     >
                       {bankAccounts.map(account => (
                         <option key={account.value} value={account.value}>{account.label}</option>
@@ -411,7 +411,7 @@ export default function ReconciliationPage() {
               {/* Transactions Table */}
               {loading ? (
                 <div className="p-12 text-center">
-                  <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-[#0d4a44] border-r-transparent"></div>
+                  <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-[#1e3a5f] border-r-transparent"></div>
                   <p className="text-sm text-gray-600 mt-3">Chargement des transactions...</p>
                 </div>
               ) : filteredTransactions.length === 0 ? (
@@ -538,7 +538,7 @@ export default function ReconciliationPage() {
                                 {transaction.status === 'pending' || transaction.status === 'auto_matched' ? (
                                   <button
                                     onClick={() => handleReconcile(transaction.id)}
-                                    className="px-3 py-1 text-xs bg-[#0d4a44] text-white rounded hover:bg-[#0a3d38] flex items-center gap-1 ml-auto"
+                                    className="px-3 py-1 text-xs bg-[#1e3a5f] text-white rounded hover:bg-[#172e4d] flex items-center gap-1 ml-auto"
                                   >
                                     Rapprocher
                                     <ArrowRight className="h-3 w-3" />

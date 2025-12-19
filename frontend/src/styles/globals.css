@@ -5,18 +5,47 @@
 :root {
   --font-inter: 'Inter', sans-serif;
   
-  /* Pennylane Design Tokens */
-  --pennylane-primary: #0066FF;
-  --pennylane-primary-hover: #0052CC;
-  --pennylane-success: #00A651;
-  --pennylane-danger: #FF3B30;
-  --pennylane-warning: #FF9500;
-  --pennylane-bg: #F8F9FC;
-  --pennylane-border: #E1E4E8;
-  --pennylane-text: #1A1D21;
-  --pennylane-text-secondary: #6B7280;
-  --pennylane-radius: 6px;
-  --pennylane-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  /* ========== SEKA Design System ========== */
+  /* Bleu Nuit SEKA - Interface épurée et soft */
+  
+  /* Couleurs principales */
+  --seka-primary: #1e3a5f;
+  --seka-primary-hover: #172e4d;
+  --seka-primary-active: #11233b;
+  --seka-primary-light: #eef2ff;
+  --seka-primary-soft: #e0e7ff;
+  
+  /* Couleurs de statut */
+  --seka-success: #10b981;
+  --seka-success-light: #d1fae5;
+  --seka-danger: #ef4444;
+  --seka-danger-light: #fee2e2;
+  --seka-warning: #f59e0b;
+  --seka-warning-light: #fef3c7;
+  --seka-info: #3b82f6;
+  --seka-info-light: #dbeafe;
+  
+  /* Neutres */
+  --seka-bg: #f9fafb;
+  --seka-bg-card: #ffffff;
+  --seka-border: #e5e7eb;
+  --seka-border-light: #f3f4f6;
+  --seka-text: #111827;
+  --seka-text-secondary: #6b7280;
+  --seka-text-muted: #9ca3af;
+  
+  /* Effets */
+  --seka-radius-sm: 6px;
+  --seka-radius-md: 8px;
+  --seka-radius-lg: 12px;
+  --seka-radius-xl: 16px;
+  --seka-shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+  --seka-shadow-md: 0 4px 6px -1px rgba(0,0,0,0.08);
+  --seka-shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.08);
+  
+  /* Transitions */
+  --seka-transition: 150ms ease;
+  --seka-transition-slow: 300ms ease;
 }
 
 /* Theme utility aliases used across the app */

@@ -91,7 +91,7 @@ export default function LetteringPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Rechercher un tiers ou une référence..."
-              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#0d4a44]"
+              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#1e3a5f]"
             />
           </div>
           <Button variant="secondary" onClick={() => setSearch("")}>Réinitialiser</Button>
@@ -107,7 +107,7 @@ export default function LetteringPage() {
         <div className="divide-y divide-gray-100">
           {loading ? (
             <div className="px-4 py-10 flex items-center justify-center">
-              <Loader2 className="w-6 h-6 animate-spin text-[#0d4a44]" />
+              <Loader2 className="w-6 h-6 animate-spin text-[#1e3a5f]" />
             </div>
           ) : error ? (
             <div className="px-4 py-6 text-sm text-red-700">{error}</div>

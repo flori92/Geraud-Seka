@@ -144,7 +144,7 @@ export default function AccountingEntryEditPage() {
               <button
                 onClick={handleSave}
                 disabled={saving || !entry || entry.status !== "draft" || !date || !description}
-                className="flex items-center gap-2 px-3 py-2 bg-[#0d4a44] text-white rounded-lg text-sm hover:bg-[#0a3d38] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-3 py-2 bg-[#1e3a5f] text-white rounded-lg text-sm hover:bg-[#172e4d] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 Enregistrer
@@ -154,7 +154,7 @@ export default function AccountingEntryEditPage() {
 
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <Loader2 className="w-8 h-8 animate-spin text-[#0d4a44]" />
+              <Loader2 className="w-8 h-8 animate-spin text-[#1e3a5f]" />
             </div>
           ) : error ? (
             <div className="bg-white border border-red-200 text-red-700 rounded-lg p-4">{error}</div>
@@ -173,7 +173,7 @@ export default function AccountingEntryEditPage() {
                     type="date"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0d4a44]"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]"
                   />
                 </div>
 
@@ -183,7 +183,7 @@ export default function AccountingEntryEditPage() {
                     type="text"
                     value={reference}
                     onChange={(e) => setReference(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0d4a44]"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]"
                   />
                 </div>
 
@@ -193,7 +193,7 @@ export default function AccountingEntryEditPage() {
                     type="text"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0d4a44]"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]"
                   />
                 </div>
               </div>

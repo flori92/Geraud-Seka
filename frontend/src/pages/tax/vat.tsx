@@ -226,7 +226,7 @@ export default function VATDeclarationsPage() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setShowNewDeclarationModal(true)}
-                  className="px-4 py-2 bg-[#0d4a44] text-white rounded-lg hover:bg-[#0a3d38] flex items-center gap-2 text-sm font-medium"
+                  className="px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#172e4d] flex items-center gap-2 text-sm font-medium"
                 >
                   <Plus className="h-4 w-4" />
                   Nouvelle déclaration
@@ -295,7 +295,7 @@ export default function VATDeclarationsPage() {
                       placeholder="Rechercher une période..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0d4a44] focus:border-transparent text-sm"
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] focus:border-transparent text-sm"
                     />
                   </div>
 
@@ -304,7 +304,7 @@ export default function VATDeclarationsPage() {
                     <select
                       value={selectedYear}
                       onChange={(e) => setSelectedYear(e.target.value)}
-                      className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0d4a44] focus:border-transparent pr-10"
+                      className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] focus:border-transparent pr-10"
                     >
                       {years.map(year => (
                         <option key={year.value} value={year.value}>{year.label}</option>
@@ -370,7 +370,7 @@ export default function VATDeclarationsPage() {
               {/* Declarations Table */}
               {loading ? (
                 <div className="p-12 text-center">
-                  <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-[#0d4a44] border-r-transparent"></div>
+                  <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-[#1e3a5f] border-r-transparent"></div>
                   <p className="text-sm text-gray-600 mt-3">Chargement des déclarations...</p>
                 </div>
               ) : filteredDeclarations.length === 0 ? (
@@ -379,7 +379,7 @@ export default function VATDeclarationsPage() {
                   <p className="text-gray-600 mb-4">Aucune déclaration de TVA</p>
                   <button
                     onClick={() => setShowNewDeclarationModal(true)}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#0d4a44] text-white rounded-lg hover:bg-[#0a3d38]"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#172e4d]"
                   >
                     <Plus className="h-4 w-4" />
                     Créer une déclaration
@@ -481,7 +481,7 @@ export default function VATDeclarationsPage() {
                                   {declaration.status === 'validated' && (
                                     <button
                                       onClick={() => handleTeleDeclare(declaration.id)}
-                                      className="px-3 py-1 text-xs bg-[#0d4a44] text-white rounded hover:bg-[#0a3d38] flex items-center gap-1"
+                                      className="px-3 py-1 text-xs bg-[#1e3a5f] text-white rounded hover:bg-[#172e4d] flex items-center gap-1"
                                     >
                                       <Send className="h-3 w-3" />
                                       Télédéclarer
@@ -567,7 +567,7 @@ export default function VATDeclarationsPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Période</label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0d4a44]">
+                <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]">
                   <option>T1 2024 (Janvier - Mars)</option>
                   <option>T2 2024 (Avril - Juin)</option>
                   <option>T3 2024 (Juillet - Septembre)</option>
@@ -576,7 +576,7 @@ export default function VATDeclarationsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0d4a44]">
+                <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]">
                   <option>Déclaration trimestrielle</option>
                   <option>Déclaration mensuelle</option>
                   <option>Déclaration annuelle</option>
@@ -590,7 +590,7 @@ export default function VATDeclarationsPage() {
               >
                 Annuler
               </button>
-              <button className="flex-1 px-4 py-2 bg-[#0d4a44] text-white rounded-lg hover:bg-[#0a3d38]">
+              <button className="flex-1 px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#172e4d]">
                 Créer
               </button>
             </div>

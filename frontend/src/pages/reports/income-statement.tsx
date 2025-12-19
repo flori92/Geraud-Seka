@@ -247,7 +247,7 @@ export default function IncomeStatementPage() {
                 </button>
                 <button
                   onClick={exportToPDF}
-                  className="px-4 py-2 bg-[#0d4a44] text-white rounded-lg hover:bg-[#0a3d38] flex items-center gap-2 text-sm font-medium"
+                  className="px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#172e4d] flex items-center gap-2 text-sm font-medium"
                 >
                   <Download className="h-4 w-4" />
                   Télécharger PDF
@@ -266,7 +266,7 @@ export default function IncomeStatementPage() {
                   <select
                     value={selectedYear}
                     onChange={(e) => setSelectedYear(e.target.value)}
-                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0d4a44] focus:border-transparent"
+                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] focus:border-transparent"
                   >
                     {years.map(year => (
                       <option key={year.value} value={year.value}>{year.label}</option>
@@ -282,7 +282,7 @@ export default function IncomeStatementPage() {
                       setPeriodType(e.target.value as PeriodType);
                       setSelectedPeriod('');
                     }}
-                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0d4a44] focus:border-transparent"
+                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] focus:border-transparent"
                   >
                     <option value="month">Mensuelle</option>
                     <option value="quarter">Trimestrielle</option>
@@ -294,7 +294,7 @@ export default function IncomeStatementPage() {
                   <select
                     value={selectedPeriod}
                     onChange={(e) => setSelectedPeriod(e.target.value)}
-                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0d4a44] focus:border-transparent"
+                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] focus:border-transparent"
                   >
                     <option value="">Toute l'année</option>
                     {getPeriodOptions().map(period => (
@@ -319,7 +319,7 @@ export default function IncomeStatementPage() {
 
           {loading ? (
             <div className="p-12 text-center">
-              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-[#0d4a44] border-r-transparent"></div>
+              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-[#1e3a5f] border-r-transparent"></div>
               <p className="text-sm text-gray-600 mt-3">Chargement du compte de résultat...</p>
             </div>
           ) : !incomeStatement ? (
