@@ -32,7 +32,7 @@ interface DataTableProps<T> {
   onSort?: (field: string) => void;
 }
 
-export function DataTable<T extends Record<string, unknown>>({
+export function DataTable<T extends object>({
   data,
   columns,
   keyField,
