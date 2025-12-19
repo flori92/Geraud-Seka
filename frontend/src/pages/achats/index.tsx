@@ -1,17 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { DashboardLayout } from "@/components/DashboardLayout";
-import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { PennylaneSidebar } from "@/components/layout/PennylaneSidebar";
 import { getTreasuryDashboard, getBankTransactions, type BankTransaction } from "@/lib/api";
 import { formatCurrency } from "@/lib/formatters";
 import {
-  ShoppingCart, Upload, Receipt, FileText, TrendingDown, TrendingUp,
-  Plus, Clock, AlertCircle, ChevronRight, Building2, Package,
-  CreditCard, ArrowRight, RefreshCw
+  Upload, Receipt, FileText, TrendingDown,
+  Plus, Clock, AlertCircle, Building2,
+  CreditCard, ArrowRight, RefreshCw, Loader2
 } from "lucide-react";
 
 interface PurchaseStats {
@@ -27,31 +24,20 @@ export default function AchatsPage() {
   const [stats, setStats] = useState<PurchaseStats | null>(null);
   const [recentTransactions, setRecentTransactions] = useState<BankTransaction[]>([]);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     const token = localStorage.getItem("seka_access_token");
-    if (!token) {
-      router.push("/login");
-      return;
-    }
+    if (!token) { router.push("/login"); return; }
 
+    setLoading(true);
     try {
-      setLoading(true);
-      // Fetch treasury data
       const treasury = await getTreasuryDashboard(token);
       const cashFlow = treasury.cash_flow_summary;
-
       setStats({
         total_spent: cashFlow?.total_expenses || 0,
         invoices_count: 24,
         pending_amount: 1250000,
         overdue_amount: 350000
       });
-
-      // Fetch recent transactions
       const transactions = await getBankTransactions(token, {}, 0, 5);
       setRecentTransactions(transactions.filter(t => t.transaction_type === "debit"));
     } catch (error) {
@@ -59,192 +45,149 @@ export default function AchatsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#1e3a5f]" />
+      </div>
+    );
+  }
 
   return (
     <>
       <Head>
         <title>Achats - SEKA</title>
       </Head>
-
-      <DashboardLayout title="Achats">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Achats</h1>
-            <p className="text-gray-500 mt-1">
-              Gérez vos factures fournisseurs, notes de frais et paiements
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <Link href="/achats/import">
-              <Button variant="secondary" size="sm">
-                <Upload className="h-4 w-4 mr-2" />
-                Importer
-              </Button>
-            </Link>
-            <Link href="/achats/factures">
-              <Button variant="primary" size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Nouvelle facture
-              </Button>
-            </Link>
-          </div>
-        </div>
-
-        {/* KPIs */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
-          <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
-            <div className="flex items-start justify-between">
-              <div className="rounded-xl bg-red-500 p-3">
-                <TrendingDown className="h-6 w-6 text-white" />
+      <div className="min-h-screen bg-gray-50">
+        <PennylaneSidebar />
+        <main className="ml-[220px]">
+          {/* Header */}
+          <div className="bg-white border-b border-gray-200 px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-xl font-semibold text-gray-900">Achats</h1>
+                <p className="text-sm text-gray-600 mt-0.5">Gérez vos factures fournisseurs, notes de frais et paiements</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button onClick={fetchData} className="p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100">
+                  <RefreshCw className="h-5 w-5" />
+                </button>
+                <Link href="/achats/import" className="flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-600 text-sm rounded-lg hover:bg-gray-50">
+                  <Upload className="h-4 w-4" />
+                  Importer
+                </Link>
+                <Link href="/achats/factures" className="flex items-center gap-2 px-4 py-2 bg-[#1e3a5f] text-white text-sm font-medium rounded-lg hover:bg-[#172e4d]">
+                  <Plus className="h-4 w-4" />
+                  Nouvelle facture
+                </Link>
               </div>
             </div>
-            <p className="text-sm font-medium text-gray-500 mt-4">Total Achats</p>
-            {loading ? (
-              <Skeleton className="h-8 w-32 mt-1" />
-            ) : (
-              <p className="text-3xl font-bold text-gray-900 mt-1">{formatCurrency(stats?.total_spent || 0)}</p>
-            )}
-            <p className="text-sm text-gray-500 mt-2">Ce mois</p>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
-            <div className="flex items-start justify-between">
-              <div className="rounded-xl bg-blue-500 p-3">
-                <Receipt className="h-6 w-6 text-white" />
-              </div>
-            </div>
-            <p className="text-sm font-medium text-gray-500 mt-4">Factures</p>
-            {loading ? (
-              <Skeleton className="h-8 w-20 mt-1" />
-            ) : (
-              <p className="text-3xl font-bold text-gray-900 mt-1">{stats?.invoices_count || 0}</p>
-            )}
-            <p className="text-sm text-gray-500 mt-2">À traiter</p>
-          </div>
-
-          <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
-            <div className="flex items-start justify-between">
-              <div className="rounded-xl bg-orange-500 p-3">
-                <Clock className="h-6 w-6 text-white" />
-              </div>
-            </div>
-            <p className="text-sm font-medium text-gray-500 mt-4">En attente</p>
-            {loading ? (
-              <Skeleton className="h-8 w-32 mt-1" />
-            ) : (
-              <p className="text-3xl font-bold text-orange-600 mt-1">{formatCurrency(stats?.pending_amount || 0)}</p>
-            )}
-            <p className="text-sm text-gray-500 mt-2">À payer</p>
-          </div>
-
-          <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
-            <div className="flex items-start justify-between">
-              <div className="rounded-xl bg-red-400 p-3">
-                <AlertCircle className="h-6 w-6 text-white" />
-              </div>
-            </div>
-            <p className="text-sm font-medium text-gray-500 mt-4">En retard</p>
-            {loading ? (
-              <Skeleton className="h-8 w-32 mt-1" />
-            ) : (
-              <p className="text-3xl font-bold text-red-600 mt-1">{formatCurrency(stats?.overdue_amount || 0)}</p>
-            )}
-            <p className="text-sm text-gray-500 mt-2">Échéances dépassées</p>
-          </div>
-        </div>
-
-        {/* Main Content */}
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Quick Actions */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
-              <div className="p-6 border-b border-gray-100">
-                <h3 className="text-lg font-semibold text-gray-900">Actions rapides</h3>
-              </div>
-              <div className="p-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <Link href="/achats/factures">
-                    <div className="p-4 rounded-xl border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all cursor-pointer">
-                      <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center mb-3">
-                        <Receipt className="h-6 w-6 text-blue-600" />
-                      </div>
-                      <h4 className="font-semibold text-gray-900 mb-1">Factures fournisseurs</h4>
-                      <p className="text-sm text-gray-500">Gérer vos factures d&apos;achat</p>
-                    </div>
-                  </Link>
-                  <Link href="/achats/notes-frais">
-                    <div className="p-4 rounded-xl border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all cursor-pointer">
-                      <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center mb-3">
-                        <CreditCard className="h-6 w-6 text-purple-600" />
-                      </div>
-                      <h4 className="font-semibold text-gray-900 mb-1">Notes de frais</h4>
-                      <p className="text-sm text-gray-500">Remboursements et dépenses</p>
-                    </div>
-                  </Link>
-                  <Link href="/suppliers">
-                    <div className="p-4 rounded-xl border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all cursor-pointer">
-                      <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center mb-3">
-                        <Building2 className="h-6 w-6 text-green-600" />
-                      </div>
-                      <h4 className="font-semibold text-gray-900 mb-1">Fournisseurs</h4>
-                      <p className="text-sm text-gray-500">Liste et coordonnées</p>
-                    </div>
-                  </Link>
-                  <Link href="/achats/bons-commande">
-                    <div className="p-4 rounded-xl border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all cursor-pointer">
-                      <div className="w-12 h-12 rounded-lg bg-orange-100 flex items-center justify-center mb-3">
-                        <FileText className="h-6 w-6 text-orange-600" />
-                      </div>
-                      <h4 className="font-semibold text-gray-900 mb-1">Bons de commande</h4>
-                      <p className="text-sm text-gray-500">Gérer les commandes</p>
-                    </div>
-                  </Link>
+          <div className="px-6 py-6 space-y-6">
+            {/* KPIs */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white rounded-lg border border-gray-200 p-5">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-600">Total Achats</span>
+                  <TrendingDown className="h-4 w-4 text-red-600" />
                 </div>
+                <p className="text-2xl font-bold text-red-600">{formatCurrency(stats?.total_spent || 0)}</p>
+                <p className="text-xs text-gray-500 mt-1">Ce mois</p>
+              </div>
+
+              <div className="bg-white rounded-lg border border-gray-200 p-5">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-600">Factures</span>
+                  <Receipt className="h-4 w-4 text-blue-600" />
+                </div>
+                <p className="text-2xl font-bold text-gray-900">{stats?.invoices_count || 0}</p>
+                <p className="text-xs text-gray-500 mt-1">À traiter</p>
+              </div>
+
+              <div className="bg-white rounded-lg border border-gray-200 p-5">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-600">En attente</span>
+                  <Clock className="h-4 w-4 text-orange-600" />
+                </div>
+                <p className="text-2xl font-bold text-orange-600">{formatCurrency(stats?.pending_amount || 0)}</p>
+                <p className="text-xs text-gray-500 mt-1">À payer</p>
+              </div>
+
+              <div className="bg-white rounded-lg border border-gray-200 p-5">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-600">En retard</span>
+                  <AlertCircle className="h-4 w-4 text-red-600" />
+                </div>
+                <p className="text-2xl font-bold text-red-600">{formatCurrency(stats?.overdue_amount || 0)}</p>
+                <p className="text-xs text-gray-500 mt-1">Échéances dépassées</p>
               </div>
             </div>
-          </div>
 
-          {/* Recent Expenses */}
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
-            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="font-semibold text-gray-900">Dernières dépenses</h3>
-              <Link href="/transactions" className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center">
-                Voir tout <ArrowRight className="h-4 w-4 ml-1" />
-              </Link>
-            </div>
-            <div className="p-4">
-              {loading ? (
-                <div className="space-y-3">
-                  {[1, 2, 3].map((i) => (
-                    <Skeleton key={i} className="h-14 w-full" />
+            {/* Main Content */}
+            <div className="grid gap-6 lg:grid-cols-3">
+              {/* Quick Actions */}
+              <div className="lg:col-span-2 bg-white rounded-lg border border-gray-200">
+                <div className="p-4 border-b border-gray-100">
+                  <h3 className="font-semibold text-gray-900">Actions rapides</h3>
+                </div>
+                <div className="p-4 grid grid-cols-2 gap-4">
+                  {[
+                    { href: "/achats/factures", icon: Receipt, color: "bg-blue-100 text-blue-600", title: "Factures fournisseurs", desc: "Gérer vos factures d'achat" },
+                    { href: "/achats/notes-frais", icon: CreditCard, color: "bg-purple-100 text-purple-600", title: "Notes de frais", desc: "Remboursements et dépenses" },
+                    { href: "/suppliers", icon: Building2, color: "bg-green-100 text-green-600", title: "Fournisseurs", desc: "Liste et coordonnées" },
+                    { href: "/achats/bons-commande", icon: FileText, color: "bg-orange-100 text-orange-600", title: "Bons de commande", desc: "Gérer les commandes" },
+                  ].map((item, idx) => (
+                    <Link key={idx} href={item.href} className="p-4 rounded-lg border border-gray-100 hover:shadow-md hover:border-gray-200 transition-all">
+                      <div className={`w-10 h-10 rounded-lg ${item.color} flex items-center justify-center mb-3`}>
+                        <item.icon className="h-5 w-5" />
+                      </div>
+                      <h4 className="font-semibold text-gray-900 text-sm mb-1">{item.title}</h4>
+                      <p className="text-xs text-gray-500">{item.desc}</p>
+                    </Link>
                   ))}
                 </div>
-              ) : recentTransactions.length === 0 ? (
-                <p className="text-center text-gray-500 py-8">Aucune dépense récente</p>
-              ) : (
-                <div className="space-y-3">
-                  {recentTransactions.slice(0, 5).map((tx) => (
-                    <div key={tx.id} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
-                      <div className="h-10 w-10 rounded-lg bg-red-100 flex items-center justify-center">
-                        <TrendingDown className="h-5 w-5 text-red-500" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">{tx.description}</p>
-                        <p className="text-xs text-gray-500">
-                          {new Date(tx.transaction_date).toLocaleDateString("fr-FR")}
-                        </p>
-                      </div>
-                      <Badge variant="error">-{formatCurrency(tx.amount)}</Badge>
-                    </div>
-                  ))}
+              </div>
+
+              {/* Recent Expenses */}
+              <div className="bg-white rounded-lg border border-gray-200">
+                <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+                  <h3 className="font-semibold text-gray-900">Dernières dépenses</h3>
+                  <Link href="/transactions" className="text-sm text-[#1e3a5f] hover:underline font-medium flex items-center">
+                    Voir tout <ArrowRight className="h-4 w-4 ml-1" />
+                  </Link>
                 </div>
-              )}
+                <div className="p-4">
+                  {recentTransactions.length === 0 ? (
+                    <p className="text-center text-gray-500 py-8 text-sm">Aucune dépense récente</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {recentTransactions.slice(0, 5).map((tx) => (
+                        <div key={tx.id} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
+                          <div className="h-9 w-9 rounded-lg bg-red-100 flex items-center justify-center">
+                            <TrendingDown className="h-4 w-4 text-red-500" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">{tx.description}</p>
+                            <p className="text-xs text-gray-500">{new Date(tx.transaction_date).toLocaleDateString("fr-FR")}</p>
+                          </div>
+                          <span className="px-2 py-1 text-xs font-medium bg-red-50 text-red-700 rounded-full">-{formatCurrency(tx.amount)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </DashboardLayout>
+        </main>
+      </div>
     </>
   );
 }

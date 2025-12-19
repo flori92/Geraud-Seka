@@ -1,16 +1,12 @@
 /**
- * HR Dashboard
+ * HR Dashboard - Style Pennylane
  * Vue d'ensemble du module Ressources Humaines
  */
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { DashboardLayout } from "@/components/DashboardLayout";
-import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
-import { Skeleton } from "@/components/ui/Skeleton";
-import { Alert } from "@/components/ui/Alert";
+import Head from "next/head";
+import { PennylaneSidebar } from "@/components/layout/PennylaneSidebar";
 import {
   getEmployees,
   getContracts,
@@ -21,90 +17,27 @@ import {
   type Payslip,
   type Leave
 } from "@/lib/api";
-import { formatCurrency, formatAmount } from "@/lib/formatters";
+import { formatCurrency } from "@/lib/formatters";
 import {
   Users,
   UserPlus,
   FileText,
   Calendar,
   DollarSign,
-  TrendingUp,
   ArrowRight,
   Plus,
   Clock,
   CheckCircle,
   XCircle,
-  AlertCircle,
-  Briefcase,
+  AlertTriangle,
   ChevronRight,
-  Building2,
-  Award
+  Award,
+  Loader2,
+  RefreshCw
 } from "lucide-react";
 
-interface StatCardProps {
-  title: string;
-  value: string | number;
-  subtitle?: string;
-  icon: React.ElementType;
-  color: string;
-  href?: string;
-  loading?: boolean;
-}
-
-function StatCard({ title, value, subtitle, icon: Icon, color, href, loading }: StatCardProps) {
-  const router = useRouter();
-  
-  if (loading) {
-    return (
-      <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
-        <Skeleton className="h-12 w-12 rounded-xl mb-4" />
-        <Skeleton className="h-4 w-24 mb-2" />
-        <Skeleton className="h-8 w-16" />
-      </div>
-    );
-  }
-
-  return (
-    <div 
-      onClick={() => href && router.push(href)}
-      className={`bg-white rounded-xl border border-gray-100 p-6 shadow-sm transition-all duration-200 ${
-        href ? "cursor-pointer hover:shadow-md hover:border-gray-200" : ""
-      }`}
-    >
-      <div className={`inline-flex rounded-xl ${color} p-3 mb-4`}>
-        <Icon className="h-6 w-6 text-white" />
-      </div>
-      <p className="text-sm font-medium text-gray-500">{title}</p>
-      <p className="text-3xl font-bold text-gray-900 mt-1">{value}</p>
-      {subtitle && (
-        <p className="text-sm text-gray-500 mt-1">{subtitle}</p>
-      )}
-    </div>
-  );
-}
-
-interface QuickActionProps {
-  icon: React.ElementType;
-  label: string;
-  href: string;
-  color: string;
-}
-
-function QuickAction({ icon: Icon, label, href, color }: QuickActionProps) {
-  return (
-    <Link href={href}>
-      <div className="flex items-center gap-3 p-4 rounded-xl border border-gray-100 bg-white hover:shadow-md transition-all cursor-pointer">
-        <div className={`rounded-lg ${color} p-2.5`}>
-          <Icon className="h-5 w-5 text-white" />
-        </div>
-        <span className="font-medium text-gray-900">{label}</span>
-        <ChevronRight className="h-5 w-5 text-gray-400 ml-auto" />
-      </div>
-    </Link>
-  );
-}
-
 export default function HRDashboardPage() {
+  const router = useRouter();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [payslips, setPayslips] = useState<Payslip[]>([]);
@@ -117,10 +50,11 @@ export default function HRDashboardPage() {
   }, []);
 
   const fetchData = async () => {
-    try {
-      const token = localStorage.getItem("seka_access_token");
-      if (!token) return;
+    const token = localStorage.getItem("seka_access_token");
+    if (!token) { router.push("/login"); return; }
 
+    setLoading(true);
+    try {
       const [empData, contractsData, payslipsData, leavesData] = await Promise.allSettled([
         getEmployees(token),
         getContracts(token),
@@ -128,241 +62,225 @@ export default function HRDashboardPage() {
         getLeaves(token)
       ]);
 
-      if (empData.status === "fulfilled") {
-        setEmployees(Array.isArray(empData.value) ? empData.value : []);
-      }
-      if (contractsData.status === "fulfilled") {
-        setContracts(Array.isArray(contractsData.value) ? contractsData.value : []);
-      }
-      if (payslipsData.status === "fulfilled") {
-        setPayslips(Array.isArray(payslipsData.value) ? payslipsData.value : []);
-      }
-      if (leavesData.status === "fulfilled") {
-        setLeaves(Array.isArray(leavesData.value) ? leavesData.value : []);
-      }
-
+      if (empData.status === "fulfilled") setEmployees(Array.isArray(empData.value) ? empData.value : []);
+      if (contractsData.status === "fulfilled") setContracts(Array.isArray(contractsData.value) ? contractsData.value : []);
+      if (payslipsData.status === "fulfilled") setPayslips(Array.isArray(payslipsData.value) ? payslipsData.value : []);
+      if (leavesData.status === "fulfilled") setLeaves(Array.isArray(leavesData.value) ? leavesData.value : []);
       setError(null);
-    } catch (err: any) {
+    } catch (err) {
       setError("Erreur lors du chargement des données RH");
       console.error(err);
-      setEmployees([]);
-      setContracts([]);
-      setPayslips([]);
-      setLeaves([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Calculs des statistiques
   const stats = useMemo(() => {
     const empList = Array.isArray(employees) ? employees : [];
     const contractList = Array.isArray(contracts) ? contracts : [];
     const payslipList = Array.isArray(payslips) ? payslips : [];
     const leaveList = Array.isArray(leaves) ? leaves : [];
 
-    const totalEmployees = empList.length;
-    const activeEmployees = empList.filter(e => e?.status === "active").length;
-    const onLeave = empList.filter(e => e?.status === "on_leave").length;
-    
-    const activeContracts = contractList.filter(c => c?.status === "active").length;
-    const expiringContracts = contractList.filter(c => {
-      if (!c?.end_date) return false;
-      const endDate = new Date(c.end_date);
-      const thirtyDaysFromNow = new Date();
-      thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-      return endDate <= thirtyDaysFromNow && c.status === "active";
-    }).length;
-    
-    const totalPayroll = payslipList.reduce((sum, p) => sum + (p?.gross_salary || 0), 0);
-    const pendingPayslips = payslipList.filter(p => p?.status === "pending").length;
-    
-    const pendingLeaves = leaveList.filter(l => l?.status === "pending").length;
-    const approvedLeaves = leaveList.filter(l => l?.status === "approved").length;
-
     return {
-      totalEmployees,
-      activeEmployees,
-      onLeave,
-      activeContracts,
-      expiringContracts,
-      totalPayroll,
-      pendingPayslips,
-      pendingLeaves,
-      approvedLeaves
+      totalEmployees: empList.length,
+      activeEmployees: empList.filter(e => e?.status === "active").length,
+      onLeave: empList.filter(e => e?.status === "on_leave").length,
+      activeContracts: contractList.filter(c => c?.status === "active").length,
+      expiringContracts: contractList.filter(c => {
+        if (!c?.end_date) return false;
+        const endDate = new Date(c.end_date);
+        const thirtyDaysFromNow = new Date();
+        thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+        return endDate <= thirtyDaysFromNow && c.status === "active";
+      }).length,
+      totalPayroll: payslipList.reduce((sum, p) => sum + (p?.gross_salary || 0), 0),
+      pendingLeaves: leaveList.filter(l => l?.status === "pending").length,
     };
   }, [employees, contracts, payslips, leaves]);
 
-  // Employés récents
   const recentEmployees = useMemo(() => {
     const empList = Array.isArray(employees) ? employees : [];
-    return empList
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-      .slice(0, 5);
+    return empList.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5);
   }, [employees]);
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#1e3a5f]" />
+      </div>
+    );
+  }
+
   return (
-    <DashboardLayout title="Ressources Humaines">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Ressources Humaines
-          </h1>
-          <p className="text-gray-500 mt-1">
-            Gérez vos employés, contrats, paie et congés
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <Link href="/hr/employees">
-            <Button variant="secondary" size="sm">
-              <Users className="h-4 w-4 mr-2" />
-              Employés
-            </Button>
-          </Link>
-          <Link href="/hr/employees">
-            <Button variant="primary" size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Nouvel employé
-            </Button>
-          </Link>
-        </div>
-      </div>
-
-      {error && (
-        <Alert variant="error" className="mb-6">{error}</Alert>
-      )}
-
-      {/* Alertes */}
-      {(stats.expiringContracts > 0 || stats.pendingLeaves > 0) && (
-        <div className="mb-6 space-y-3">
-          {stats.expiringContracts > 0 && (
-            <Alert variant="warning" title="Contrats expirant bientôt">
-              {stats.expiringContracts} contrat(s) expire(nt) dans les 30 prochains jours.
-            </Alert>
-          )}
-          {stats.pendingLeaves > 0 && (
-            <Alert variant="info" title="Demandes de congés">
-              {stats.pendingLeaves} demande(s) de congés en attente d'approbation.
-            </Alert>
-          )}
-        </div>
-      )}
-
-      {/* KPIs */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
-        <StatCard
-          title="Total Employés"
-          value={stats.totalEmployees}
-          subtitle={`${stats.activeEmployees} actifs`}
-          icon={Users}
-          color="bg-blue-500"
-          href="/hr/employees"
-          loading={loading}
-        />
-        <StatCard
-          title="Contrats Actifs"
-          value={stats.activeContracts}
-          subtitle={stats.expiringContracts > 0 ? `${stats.expiringContracts} expirent bientôt` : "Tous à jour"}
-          icon={FileText}
-          color="bg-primary-500"
-          href="/hr/contracts"
-          loading={loading}
-        />
-        <StatCard
-          title="Masse Salariale"
-          value={formatCurrency(stats.totalPayroll)}
-          subtitle="Ce mois"
-          icon={DollarSign}
-          color="bg-blue-500"
-          href="/hr/payslips"
-          loading={loading}
-        />
-        <StatCard
-          title="Congés"
-          value={stats.pendingLeaves}
-          subtitle="En attente d'approbation"
-          icon={Calendar}
-          color="bg-orange-500"
-          href="/hr/leaves"
-          loading={loading}
-        />
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Répartition par statut */}
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900">Répartition des Effectifs</h3>
-              <Link href="/hr/employees" className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center">
-                Voir tout <ArrowRight className="h-4 w-4 ml-1" />
-              </Link>
+    <>
+      <Head>
+        <title>Ressources Humaines - SEKA</title>
+      </Head>
+      <div className="min-h-screen bg-gray-50">
+        <PennylaneSidebar />
+        <main className="ml-[220px]">
+          {/* Header */}
+          <div className="bg-white border-b border-gray-200 px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-xl font-semibold text-gray-900">Ressources Humaines</h1>
+                <p className="text-sm text-gray-600 mt-0.5">Gérez vos employés, contrats, paie et congés</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button onClick={fetchData} className="p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100">
+                  <RefreshCw className="h-5 w-5" />
+                </button>
+                <Link href="/hr/employees" className="flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-600 text-sm rounded-lg hover:bg-gray-50">
+                  <Users className="h-4 w-4" />
+                  Employés
+                </Link>
+                <Link href="/hr/employees" className="flex items-center gap-2 px-4 py-2 bg-[#1e3a5f] text-white text-sm font-medium rounded-lg hover:bg-[#172e4d]">
+                  <Plus className="h-4 w-4" />
+                  Nouvel employé
+                </Link>
+              </div>
             </div>
+          </div>
 
-            {loading ? (
-              <Skeleton className="h-40 w-full" />
-            ) : (
-              <div className="grid grid-cols-3 gap-4">
-                <div className="text-center p-4 bg-blue-50 rounded-xl">
-                  <CheckCircle className="h-8 w-8 text-blue-500 mx-auto mb-2" />
-                  <p className="text-3xl font-bold text-blue-600">{stats.activeEmployees}</p>
-                  <p className="text-sm text-blue-700 font-medium">Actifs</p>
-                </div>
-                <div className="text-center p-4 bg-orange-50 rounded-xl">
-                  <Clock className="h-8 w-8 text-orange-500 mx-auto mb-2" />
-                  <p className="text-3xl font-bold text-orange-600">{stats.onLeave}</p>
-                  <p className="text-sm text-orange-700 font-medium">En congé</p>
-                </div>
-                <div className="text-center p-4 bg-gray-50 rounded-xl">
-                  <XCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                  <p className="text-3xl font-bold text-gray-600">
-                    {stats.totalEmployees - stats.activeEmployees - stats.onLeave}
-                  </p>
-                  <p className="text-sm text-gray-700 font-medium">Inactifs</p>
-                </div>
+          <div className="px-6 py-6 space-y-6">
+            {error && (
+              <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{error}</div>
+            )}
+
+            {/* Alertes */}
+            {(stats.expiringContracts > 0 || stats.pendingLeaves > 0) && (
+              <div className="space-y-3">
+                {stats.expiringContracts > 0 && (
+                  <div className="flex items-center gap-3 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                    <AlertTriangle className="h-5 w-5 text-orange-600" />
+                    <p className="text-sm text-orange-800"><strong>Contrats expirant bientôt:</strong> {stats.expiringContracts} contrat(s) expire(nt) dans les 30 prochains jours.</p>
+                  </div>
+                )}
+                {stats.pendingLeaves > 0 && (
+                  <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <Calendar className="h-5 w-5 text-blue-600" />
+                    <p className="text-sm text-blue-800"><strong>Demandes de congés:</strong> {stats.pendingLeaves} demande(s) en attente d&apos;approbation.</p>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Employés récents */}
-            <div className="mt-6 pt-6 border-t border-gray-100">
-              <h4 className="text-sm font-semibold text-gray-700 mb-4">Derniers employés</h4>
-              {recentEmployees.length > 0 ? (
-                <div className="space-y-3">
-                  {recentEmployees.slice(0, 3).map((emp, idx) => (
-                    <div key={idx} className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-violet-500 flex items-center justify-center text-white font-semibold">
-                        {emp.first_name?.charAt(0)}{emp.last_name?.charAt(0)}
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">
-                          {emp.first_name} {emp.last_name}
-                        </p>
-                        <p className="text-xs text-gray-500">{emp.position}</p>
-                      </div>
-                      <Badge variant={emp.status === "active" ? "success" : "default"}>
-                        {emp.status === "active" ? "Actif" : emp.status}
-                      </Badge>
-                    </div>
-                  ))}
+            {/* KPIs */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Link href="/hr/employees" className="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-600">Total Employés</span>
+                  <Users className="h-4 w-4 text-blue-600" />
                 </div>
-              ) : (
-                <p className="text-gray-500 text-sm">Aucun employé récent</p>
-              )}
+                <p className="text-2xl font-bold text-gray-900">{stats.totalEmployees}</p>
+                <p className="text-xs text-gray-500 mt-1">{stats.activeEmployees} actifs</p>
+              </Link>
+
+              <Link href="/hr/contracts" className="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-600">Contrats Actifs</span>
+                  <FileText className="h-4 w-4 text-[#1e3a5f]" />
+                </div>
+                <p className="text-2xl font-bold text-gray-900">{stats.activeContracts}</p>
+                <p className="text-xs text-gray-500 mt-1">{stats.expiringContracts > 0 ? `${stats.expiringContracts} expirent bientôt` : "Tous à jour"}</p>
+              </Link>
+
+              <Link href="/hr/payslips" className="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-600">Masse Salariale</span>
+                  <DollarSign className="h-4 w-4 text-green-600" />
+                </div>
+                <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.totalPayroll)}</p>
+                <p className="text-xs text-gray-500 mt-1">Ce mois</p>
+              </Link>
+
+              <Link href="/hr/leaves" className="bg-white rounded-lg border border-gray-200 p-5 hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-600">Congés en attente</span>
+                  <Calendar className="h-4 w-4 text-orange-600" />
+                </div>
+                <p className="text-2xl font-bold text-gray-900">{stats.pendingLeaves}</p>
+                <p className="text-xs text-gray-500 mt-1">À approuver</p>
+              </Link>
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-3">
+              {/* Répartition par statut */}
+              <div className="lg:col-span-2 bg-white rounded-lg border border-gray-200 p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="font-semibold text-gray-900">Répartition des Effectifs</h3>
+                  <Link href="/hr/employees" className="text-sm text-[#1e3a5f] hover:underline font-medium flex items-center">
+                    Voir tout <ArrowRight className="h-4 w-4 ml-1" />
+                  </Link>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <CheckCircle className="h-8 w-8 text-green-500 mx-auto mb-2" />
+                    <p className="text-2xl font-bold text-green-600">{stats.activeEmployees}</p>
+                    <p className="text-sm text-green-700">Actifs</p>
+                  </div>
+                  <div className="text-center p-4 bg-orange-50 rounded-lg">
+                    <Clock className="h-8 w-8 text-orange-500 mx-auto mb-2" />
+                    <p className="text-2xl font-bold text-orange-600">{stats.onLeave}</p>
+                    <p className="text-sm text-orange-700">En congé</p>
+                  </div>
+                  <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <XCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-2xl font-bold text-gray-600">{stats.totalEmployees - stats.activeEmployees - stats.onLeave}</p>
+                    <p className="text-sm text-gray-700">Inactifs</p>
+                  </div>
+                </div>
+
+                {/* Employés récents */}
+                <div className="pt-4 border-t border-gray-100">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3">Derniers employés</h4>
+                  {recentEmployees.length > 0 ? (
+                    <div className="space-y-3">
+                      {recentEmployees.slice(0, 3).map((emp, idx) => (
+                        <div key={idx} className="flex items-center gap-3">
+                          <div className="h-9 w-9 rounded-full bg-gradient-to-br from-[#1e3a5f] to-blue-400 flex items-center justify-center text-white text-sm font-medium">
+                            {emp.first_name?.charAt(0)}{emp.last_name?.charAt(0)}
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-900">{emp.first_name} {emp.last_name}</p>
+                            <p className="text-xs text-gray-500">{emp.position}</p>
+                          </div>
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${emp.status === "active" ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-600"}`}>
+                            {emp.status === "active" ? "Actif" : emp.status}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm">Aucun employé récent</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Actions rapides */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-gray-900">Actions rapides</h3>
+                {[
+                  { icon: UserPlus, label: "Nouvel employé", href: "/hr/employees", color: "bg-blue-500" },
+                  { icon: FileText, label: "Nouveau contrat", href: "/hr/contracts", color: "bg-[#1e3a5f]" },
+                  { icon: DollarSign, label: "Générer paie", href: "/hr/payslips", color: "bg-green-500" },
+                  { icon: Calendar, label: "Gérer congés", href: "/hr/leaves", color: "bg-orange-500" },
+                  { icon: Award, label: "Rapport RH", href: "/reports/hr", color: "bg-pink-500" },
+                ].map((action, idx) => (
+                  <Link key={idx} href={action.href} className="flex items-center gap-3 p-4 rounded-lg border border-gray-200 bg-white hover:shadow-md transition-all">
+                    <div className={`rounded-lg ${action.color} p-2.5`}>
+                      <action.icon className="h-5 w-5 text-white" />
+                    </div>
+                    <span className="font-medium text-gray-900">{action.label}</span>
+                    <ChevronRight className="h-5 w-5 text-gray-400 ml-auto" />
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-
-        {/* Actions rapides */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900">Actions rapides</h3>
-          <QuickAction icon={UserPlus} label="Nouvel employé" href="/hr/employees" color="bg-blue-500" />
-          <QuickAction icon={FileText} label="Nouveau contrat" href="/hr/contracts" color="bg-primary-500" />
-          <QuickAction icon={DollarSign} label="Générer paie" href="/hr/payslips" color="bg-blue-500" />
-          <QuickAction icon={Calendar} label="Gérer congés" href="/hr/leaves" color="bg-orange-500" />
-          <QuickAction icon={Award} label="Rapport RH" href="/reports/hr" color="bg-pink-500" />
-        </div>
+        </main>
       </div>
-    </DashboardLayout>
+    </>
   );
 }

@@ -5,6 +5,7 @@
 import { useState, useEffect } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
+import { PennylaneSidebar } from "@/components/layout/PennylaneSidebar";
 import {
   Plus,
   Search,
@@ -207,9 +208,10 @@ export default function AssetsPage() {
         <title>Immobilisations - SEKA</title>
       </Head>
       <div className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <div className="bg-white border-b border-gray-200">
-          <div className="max-w-6xl mx-auto px-6 py-6">
+        <PennylaneSidebar />
+        <main className="ml-[220px]">
+          {/* Header */}
+          <div className="bg-white border-b border-gray-200 px-6 py-4">
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-xl font-semibold text-gray-900">Immobilisations</h1>
@@ -247,9 +249,8 @@ export default function AssetsPage() {
               </div>
             </div>
           </div>
-        </div>
 
-        <div className="max-w-6xl mx-auto px-6 py-6">
+          <div className="px-6 py-6">
           {/* Résumé */}
           <div className="grid grid-cols-3 gap-4 mb-6">
             <div className="bg-white rounded-xl border border-gray-200 p-4">
@@ -384,7 +385,8 @@ export default function AssetsPage() {
               <span className="text-sm text-gray-500">{filteredAssets.length} immobilisation(s)</span>
             </div>
           </div>
-        </div>
+          </div>
+        </main>
       </div>
 
       {/* Modal Création */}

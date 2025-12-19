@@ -3,18 +3,28 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
-import { DashboardLayout } from '@/components/DashboardLayout';
+import Head from 'next/head';
+import { PennylaneSidebar } from '@/components/layout/PennylaneSidebar';
 import { PageHeader } from '@/components/pennylane/PageHeader';
 import { ControlBar } from '@/components/pennylane/ControlBar';
 import { DataTable, Column } from '@/components/pennylane/DataTable';
 import { Drawer } from '@/components/pennylane/Drawer';
 import { StatsCard } from '@/components/pennylane/StatsCard';
-import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
 import { 
   Plus, Building2, Mail, Phone, MapPin, FileText, 
   CreditCard, TrendingDown, Eye, History
 } from 'lucide-react';
+
+const Badge = ({ children, variant }: { children: React.ReactNode; variant?: string }) => {
+  const colors = variant === 'success' ? 'bg-green-50 text-green-700' : variant === 'danger' ? 'bg-red-50 text-red-700' : 'bg-gray-100 text-gray-700';
+  return <span className={`px-2 py-1 text-xs font-medium rounded-full ${colors}`}>{children}</span>;
+};
+
+const Button = ({ children, variant, size, className, onClick }: { children: React.ReactNode; variant?: string; size?: string; className?: string; onClick?: () => void }) => {
+  const base = variant === 'secondary' ? 'border border-gray-200 text-gray-600 hover:bg-gray-50' : 'bg-[#1e3a5f] text-white hover:bg-[#172e4d]';
+  const sizeClass = size === 'sm' ? 'px-3 py-1.5 text-sm' : 'px-4 py-2';
+  return <button onClick={onClick} className={`flex items-center gap-2 rounded-lg font-medium ${base} ${sizeClass} ${className || ''}`}>{children}</button>;
+};
 
 interface Supplier {
   id: string;
@@ -196,8 +206,13 @@ export default function SuppliersPage() {
   };
 
   return (
-    <DashboardLayout title="Fournisseurs">
-      <div className="h-full flex flex-col">
+    <>
+      <Head>
+        <title>Fournisseurs - SEKA</title>
+      </Head>
+      <div className="min-h-screen bg-gray-50">
+        <PennylaneSidebar />
+        <main className="ml-[220px] h-full flex flex-col">
         <PageHeader
           breadcrumb={[
             { label: 'Achats', href: '/achats' },
@@ -353,7 +368,8 @@ export default function SuppliersPage() {
             />
           )}
         </div>
+        </main>
       </div>
-    </DashboardLayout>
+    </>
   );
 }

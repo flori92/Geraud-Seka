@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import Link from "next/link";
+import { PennylaneSidebar } from "@/components/layout/PennylaneSidebar";
 import {
   Calendar,
   Plus,
@@ -243,9 +244,10 @@ export default function FiscalYearPage() {
         <title>Exercices comptables - SEKA</title>
       </Head>
       <div className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <div className="bg-white border-b border-gray-200">
-          <div className="max-w-5xl mx-auto px-6 py-6">
+        <PennylaneSidebar />
+        <main className="ml-[220px]">
+          {/* Header */}
+          <div className="bg-white border-b border-gray-200 px-6 py-4">
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-xl font-semibold text-gray-900">Exercices comptables</h1>
@@ -262,9 +264,8 @@ export default function FiscalYearPage() {
               </button>
             </div>
           </div>
-        </div>
 
-        <div className="max-w-5xl mx-auto px-6 py-6">
+          <div className="px-6 py-6">
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
               {error}
@@ -357,7 +358,8 @@ export default function FiscalYearPage() {
               </div>
             </div>
           </div>
-        </div>
+          </div>
+        </main>
       </div>
 
       {/* Modal Création */}
