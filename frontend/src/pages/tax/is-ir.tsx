@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
+import Head from "next/head";
 import { useRouter } from "next/router";
-import { DashboardLayout } from "@/components/DashboardLayout";
-import { Button } from "@/components/ui/Button";
-import { Download, Loader2 } from "lucide-react";
+import { PennylaneSidebar } from "@/components/layout/PennylaneSidebar";
+import { Download, Loader2, RefreshCw } from "lucide-react";
 import { getIsIr, type IsIrLine } from "@/lib/api";
 
 function downloadCsv(filename: string, rows: Record<string, string | number>[]) {
@@ -66,46 +66,81 @@ export default function IsIrPage() {
   };
 
   return (
-    <DashboardLayout title="IS / IR">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">IS / IR</h1>
-          <p className="text-sm text-gray-500 mt-1">Calcul et suivi de l’impôt sur le résultat</p>
-        </div>
-        <Button onClick={handleExport} className="flex items-center gap-2">
-          <Download className="w-4 h-4" />
-          Exporter CSV
-        </Button>
-      </div>
-
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="grid grid-cols-4 px-4 py-3 bg-gray-50 text-xs font-medium text-gray-600 uppercase border-b border-gray-200">
-          <div>Libellé</div>
-          <div className="text-right">Base</div>
-          <div className="text-right">Taux</div>
-          <div className="text-right">Montant</div>
-        </div>
-        <div className="divide-y divide-gray-100">
-          {loading ? (
-            <div className="px-4 py-10 flex items-center justify-center">
-              <Loader2 className="w-6 h-6 animate-spin text-[#1e3a5f]" />
-            </div>
-          ) : error ? (
-            <div className="px-4 py-6 text-sm text-red-700">{error}</div>
-          ) : lines.length === 0 ? (
-            <div className="px-4 py-10 text-center text-sm text-gray-500">Aucune donnée disponible</div>
-          ) : (
-            lines.map((l) => (
-              <div key={l.label} className="grid grid-cols-4 px-4 py-3 text-sm">
-                <div className="text-gray-800">{l.label}</div>
-                <div className="text-right text-gray-900">{l.base.toLocaleString("fr-FR")}</div>
-                <div className="text-right text-gray-900">{(l.rate * 100).toFixed(2)}%</div>
-                <div className="text-right font-medium text-gray-900">{l.amount.toLocaleString("fr-FR")}</div>
+    <>
+      <Head>
+        <title>IS / IR - SEKA</title>
+      </Head>
+      <div className="min-h-screen bg-gray-50">
+        <PennylaneSidebar />
+        <main className="ml-[220px]">
+          {/* Header */}
+          <div className="bg-white border-b border-gray-200 px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-xl font-semibold text-gray-900">IS / IR</h1>
+                <p className="text-sm text-gray-600 mt-0.5">Calcul et suivi de l&apos;impôt sur le résultat</p>
               </div>
-            ))
-          )}
-        </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => window.location.reload()}
+                  className="p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100"
+                >
+                  <RefreshCw className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={handleExport}
+                  className="flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-600 text-sm rounded-lg hover:bg-gray-50"
+                >
+                  <Download className="w-4 h-4" />
+                  Exporter CSV
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="px-6 py-6">
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Libellé</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Base</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Taux</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Montant</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={4} className="px-6 py-12 text-center">
+                        <Loader2 className="w-6 h-6 animate-spin text-[#1e3a5f] mx-auto" />
+                        <p className="text-sm text-gray-600 mt-3">Chargement...</p>
+                      </td>
+                    </tr>
+                  ) : error ? (
+                    <tr>
+                      <td colSpan={4} className="px-6 py-6 text-center text-sm text-red-700">{error}</td>
+                    </tr>
+                  ) : lines.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-6 py-12 text-center text-sm text-gray-500">Aucune donnée disponible</td>
+                    </tr>
+                  ) : (
+                    lines.map((l) => (
+                      <tr key={l.label} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 text-sm text-gray-900">{l.label}</td>
+                        <td className="px-6 py-4 text-sm text-right text-gray-900">{l.base.toLocaleString("fr-FR")} FCFA</td>
+                        <td className="px-6 py-4 text-sm text-right text-gray-900">{(l.rate * 100).toFixed(2)}%</td>
+                        <td className="px-6 py-4 text-sm text-right font-semibold text-gray-900">{l.amount.toLocaleString("fr-FR")} FCFA</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </main>
       </div>
-    </DashboardLayout>
+    </>
   );
 }
