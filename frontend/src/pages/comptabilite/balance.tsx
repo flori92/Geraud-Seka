@@ -324,7 +324,7 @@ function AccountRow({
       <TableCell className="text-gray-700">{account.label}</TableCell>
       <TableCell>
         {account.vatRate !== undefined && (
-          <Badge variant={account.vatRate === 20 ? 'primary' : account.vatRate === 5.5 ? 'success' : 'secondary'}>
+          <Badge variant={account.vatRate === 20 ? 'primary' : account.vatRate === 5.5 ? 'success' : 'neutral'}>
             {account.vatRate}%
           </Badge>
         )}
@@ -372,7 +372,7 @@ function GroupedAccountsSection({
         <div className="flex items-center gap-3">
           <ChevronRight className={`w-4 h-4 transition-transform ${group.expanded ? 'rotate-90' : ''}`} />
           <span className="font-medium">{group.label}</span>
-          <Badge variant="secondary">{group.accounts.length} comptes</Badge>
+          <Badge variant="neutral">{group.accounts.length} comptes</Badge>
         </div>
         <div className="flex items-center gap-6 text-sm">
           <span>Débit: <strong>{formatCurrency(group.totalDebit)}</strong></span>
@@ -422,6 +422,7 @@ function AccountDrawer({
   formatCurrency,
 }: {
   accountId: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   detail: any;
   loading: boolean;
   onClose: () => void;
@@ -485,11 +486,12 @@ function AccountDrawer({
             {entries.length === 0 ? (
               <p className="text-gray-500 text-center py-8">Aucune écriture</p>
             ) : (
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               entries.slice(0, 20).map((entry: any, idx: number) => (
                 <div key={idx} className="p-3 bg-gray-50 rounded-lg text-sm">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-gray-500">{entry.date}</span>
-                    <Badge variant="secondary">{entry.journal}</Badge>
+                    <Badge variant="neutral">{entry.journal}</Badge>
                   </div>
                   <p className="text-gray-700 mb-1">{entry.label}</p>
                   <div className="flex items-center justify-between">

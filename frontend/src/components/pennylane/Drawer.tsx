@@ -4,7 +4,6 @@
  */
 import { ReactNode, useState } from 'react';
 import { X, RefreshCw } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
 
 interface Tab {
   id: string;

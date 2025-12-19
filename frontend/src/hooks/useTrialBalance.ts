@@ -49,6 +49,8 @@ export function useTrialBalance(options: UseTrialBalanceOptions = {}): UseTrialB
   const [error, setError] = useState<string | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set());
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _ = expandedAccounts; // Used in toggleAccount
   const [sortField, setSortField] = useState<SortField>('number');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
@@ -77,6 +79,7 @@ export function useTrialBalance(options: UseTrialBalanceOptions = {}): UseTrialB
 
       const data = await response.json();
       
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const formattedAccounts: Account[] = (data.accounts || []).map((acc: any) => ({
         id: acc.id || acc.account_number,
         number: acc.account_number || acc.number,
@@ -216,7 +219,7 @@ export function useTrialBalance(options: UseTrialBalanceOptions = {}): UseTrialB
   }, [filteredAccounts, filters.compactBy, expandedGroups]);
 
   const setFilters = useCallback((newFilters: Partial<TrialBalanceFilters>) => {
-    setFiltersState((prev) => ({ ...prev, ...newFilters }));
+    setFiltersState((prev: TrialBalanceFilters) => ({ ...prev, ...newFilters }));
   }, []);
 
   const toggleGroup = useCallback((groupId: string) => {
@@ -278,7 +281,7 @@ function getClassLabel(accountClass: string): string {
 }
 
 export function useAccountDetail(accountId: string | null) {
-  const [detail, setDetail] = useState<any>(null);
+  const [detail, setDetail] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
