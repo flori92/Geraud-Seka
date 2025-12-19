@@ -12,6 +12,16 @@ interface DashboardLayoutProps {
   children: ReactNode;
 }
 
+interface SekaNotification {
+  id: string;
+  title: string;
+  message: string;
+  severity: string;
+  metric_name: string;
+  is_read: boolean;
+  created_at: string;
+}
+
 // Composant Panel d'Aide
 function HelpPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   if (!isOpen) return null;
@@ -30,7 +40,7 @@ function HelpPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-          <h3 className="font-semibold text-gray-900">Centre d'aide</h3>
+          <h3 className="font-semibold text-gray-900">Centre d&apos;aide</h3>
           <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-lg transition-colors">
             <X className="h-4 w-4 text-gray-500" />
           </button>
@@ -56,7 +66,7 @@ function HelpPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
         </div>
         <div className="p-4 bg-gray-50 border-t border-gray-100">
           <p className="text-xs text-gray-500 text-center">
-            Besoin d'aide personnalisée ?{" "}
+            Besoin d&apos;aide personnalisée ?{" "}
             <a href="mailto:support@sekagestion.com" className="text-blue-600 hover:underline">
               Contactez le support
             </a>
@@ -70,7 +80,7 @@ function HelpPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
 // Composant Panel de Notifications
 function NotificationsPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const router = useRouter();
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<SekaNotification[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   // Récupérer les notifications depuis l'API
@@ -122,7 +132,7 @@ function NotificationsPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () 
     }
   };
 
-  const handleNotificationClick = async (notification: any) => {
+  const handleNotificationClick = async (notification: SekaNotification) => {
     // Marquer comme lue
     if (!notification.is_read) {
       try {
