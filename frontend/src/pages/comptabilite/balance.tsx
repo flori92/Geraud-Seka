@@ -98,7 +98,7 @@ export default function BalanceGeneralePage() {
                 {period.start.split('-').reverse().join('/')} - {period.end.split('-').reverse().join('/')}
               </div>
 
-              <Button variant="secondary" size="sm" onClick={refetch}>
+              <Button variant="secondary" size="sm" onClick={() => refetch()} type="button">
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Actualiser
               </Button>
@@ -107,7 +107,7 @@ export default function BalanceGeneralePage() {
         </div>
 
         {/* Control Bar - sticky */}
-        <div className="bg-white border-b px-6 py-3 sticky top-0 z-10">
+        <div className="bg-white border-b px-6 py-3 sticky top-16 z-30">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               {/* Compacter par */}
@@ -164,6 +164,7 @@ export default function BalanceGeneralePage() {
                 <Button
                   variant="secondary"
                   size="sm"
+                  type="button"
                   onClick={() => setShowExportMenu(!showExportMenu)}
                 >
                   <Download className="w-4 h-4 mr-2" />
@@ -172,7 +173,7 @@ export default function BalanceGeneralePage() {
                 </Button>
                 
                 {showExportMenu && (
-                  <div className="absolute right-0 mt-1 w-40 bg-white border rounded-md shadow-lg z-20">
+                  <div className="absolute right-0 mt-1 w-40 bg-white border rounded-md shadow-lg z-50">
                     <button
                       onClick={() => handleExport('excel')}
                       className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"

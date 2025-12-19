@@ -279,15 +279,17 @@ export function DashboardLayout({ title, children }: DashboardLayoutProps) {
             <div />
             <div className="flex items-center gap-2">
               <button 
-                onClick={() => setShowHelp(true)}
-                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accents-2 hover:text-foreground"
+                type="button"
+                onClick={() => { console.log('Aide clicked'); setShowHelp(true); }}
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 cursor-pointer"
               >
                 <HelpCircle className="h-4 w-4" />
                 <span>Aide</span>
               </button>
               <button 
-                onClick={() => setShowNotifications(true)}
-                className="relative flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accents-2 hover:text-foreground"
+                type="button"
+                onClick={() => { console.log('Notifications clicked'); setShowNotifications(true); }}
+                className="relative flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-900 cursor-pointer"
               >
                 <Bell className="h-4 w-4" />
                 <span>Notifications</span>
