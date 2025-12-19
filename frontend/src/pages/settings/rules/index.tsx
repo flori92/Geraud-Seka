@@ -1,17 +1,60 @@
+/**
+ * Centre de règles SEKA - Version fonctionnelle
+ * Permet de définir des règles pour fournisseurs, clients, produits
+ */
 import { useState, useEffect } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { PennylaneSidebar } from "@/components/layout/PennylaneSidebar";
 import { 
   getSuppliers, getClients, getProducts,
   type Supplier, type Client, type Product
 } from "@/lib/api";
 import { 
-  Search, Plus, Download, Upload, Settings2, 
-  MoreHorizontal, Loader2
+  Search, Settings2, X, Save, Trash2, Zap, Loader2
 } from "lucide-react";
 
-type TabType = "transactions" | "fournisseurs" | "clients" | "produits";
+type TabType = "fournisseurs" | "clients" | "produits";
+
+interface Rule {
+  id: string;
+  entityId: string;
+  entityName: string;
+  entityType: TabType;
+  defaultAccount: string;
+  defaultTaxRate: string;
+  autoCategory: string;
+  isActive: boolean;
+}
+
+// Comptes comptables courants
+const accountOptions = [
+  { value: "", label: "-- Sélectionner --" },
+  { value: "401", label: "401 - Fournisseurs" },
+  { value: "411", label: "411 - Clients" },
+  { value: "512", label: "512 - Banque" },
+  { value: "601", label: "601 - Achats stockés" },
+  { value: "602", label: "602 - Achats non stockés" },
+  { value: "606", label: "606 - Achats non stockables" },
+  { value: "607", label: "607 - Achats de marchandises" },
+  { value: "613", label: "613 - Locations" },
+  { value: "615", label: "615 - Entretien et réparations" },
+  { value: "616", label: "616 - Assurances" },
+  { value: "622", label: "622 - Honoraires" },
+  { value: "625", label: "625 - Déplacements" },
+  { value: "626", label: "626 - Frais postaux" },
+  { value: "627", label: "627 - Services bancaires" },
+  { value: "706", label: "706 - Prestations de services" },
+  { value: "707", label: "707 - Ventes de marchandises" },
+];
+
+const taxRateOptions = [
+  { value: "", label: "-- Sélectionner --" },
+  { value: "0", label: "0% - Exonéré" },
+  { value: "5.5", label: "5,5% - Réduit" },
+  { value: "10", label: "10% - Intermédiaire" },
+  { value: "18", label: "18% - Normal (Afrique)" },
+  { value: "20", label: "20% - Normal (France)" },
+];
 
 export default function RulesCenter() {
   const router = useRouter();
@@ -24,6 +67,32 @@ export default function RulesCenter() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  
+  // Rules state (stockées localement pour démo, à connecter au backend)
+  const [rules, setRules] = useState<Rule[]>([]);
+  
+  // Modal states
+  const [showRuleModal, setShowRuleModal] = useState(false);
+  const [showCustomizeModal, setShowCustomizeModal] = useState(false);
+  const [editingRule, setEditingRule] = useState<Rule | null>(null);
+  const [selectedEntity, setSelectedEntity] = useState<{id: string; name: string; type: TabType} | null>(null);
+  
+  // Form state for rule
+  const [ruleForm, setRuleForm] = useState({
+    defaultAccount: "",
+    defaultTaxRate: "",
+    autoCategory: "",
+    isActive: true,
+  });
+
+  // Colonnes visibles
+  const [visibleColumns, setVisibleColumns] = useState({
+    name: true,
+    account: true,
+    taxRate: true,
+    email: true,
+    rules: true,
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -44,6 +113,12 @@ export default function RulesCenter() {
         setSuppliers(suppliersData);
         setClients(clientsData);
         setProducts(productsData);
+        
+        // Charger les règles sauvegardées
+        const savedRules = localStorage.getItem("seka_rules");
+        if (savedRules) {
+          setRules(JSON.parse(savedRules));
+        }
       } catch (err) {
         console.error("Error fetching data:", err);
         setError("Erreur lors du chargement des données");
@@ -55,22 +130,74 @@ export default function RulesCenter() {
     fetchData();
   }, [router]);
 
-  const formatCurrency = (amount: number) => {
-    const formatted = new Intl.NumberFormat("fr-FR", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(Math.abs(amount));
-    return amount < 0 ? <span className="text-red-600">-{formatted} €</span> : <span>{formatted} €</span>;
+  // Sauvegarder les règles
+  const saveRules = (newRules: Rule[]) => {
+    setRules(newRules);
+    localStorage.setItem("seka_rules", JSON.stringify(newRules));
+  };
+
+  // Ouvrir modal pour définir une règle
+  const openRuleModal = (entity: {id: string; name: string; type: TabType}) => {
+    setSelectedEntity(entity);
+    const existingRule = rules.find(r => r.entityId === entity.id && r.entityType === entity.type);
+    if (existingRule) {
+      setEditingRule(existingRule);
+      setRuleForm({
+        defaultAccount: existingRule.defaultAccount,
+        defaultTaxRate: existingRule.defaultTaxRate,
+        autoCategory: existingRule.autoCategory,
+        isActive: existingRule.isActive,
+      });
+    } else {
+      setEditingRule(null);
+      setRuleForm({ defaultAccount: "", defaultTaxRate: "", autoCategory: "", isActive: true });
+    }
+    setShowRuleModal(true);
+  };
+
+  // Sauvegarder une règle
+  const handleSaveRule = () => {
+    if (!selectedEntity) return;
+    
+    const newRule: Rule = {
+      id: editingRule?.id || Date.now().toString(),
+      entityId: selectedEntity.id,
+      entityName: selectedEntity.name,
+      entityType: selectedEntity.type,
+      ...ruleForm,
+    };
+    
+    let updatedRules: Rule[];
+    if (editingRule) {
+      updatedRules = rules.map(r => r.id === editingRule.id ? newRule : r);
+    } else {
+      updatedRules = [...rules, newRule];
+    }
+    
+    saveRules(updatedRules);
+    setShowRuleModal(false);
+    setSelectedEntity(null);
+    setEditingRule(null);
+  };
+
+  // Supprimer une règle
+  const handleDeleteRule = (ruleId: string) => {
+    const updatedRules = rules.filter(r => r.id !== ruleId);
+    saveRules(updatedRules);
+  };
+
+  // Obtenir la règle pour une entité
+  const getRuleForEntity = (entityId: string, entityType: TabType) => {
+    return rules.find(r => r.entityId === entityId && r.entityType === entityType);
   };
 
   const tabs = [
-    { id: "transactions" as TabType, label: "Transactions", count: 0 },
     { id: "fournisseurs" as TabType, label: "Fournisseurs", count: suppliers.length },
     { id: "clients" as TabType, label: "Clients", count: clients.length },
     { id: "produits" as TabType, label: "Produits", count: products.length },
   ];
 
-  // Filter data based on search
+  // Filter data
   const filteredSuppliers = suppliers.filter(s => 
     s.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -84,7 +211,7 @@ export default function RulesCenter() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-teal-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
       </div>
     );
   }
@@ -93,38 +220,22 @@ export default function RulesCenter() {
     <>
       <Head><title>Centre de règles - SEKA</title></Head>
       <div className="min-h-screen bg-gray-50">
-        <PennylaneSidebar />
-        <main className="ml-[220px] p-6">
+        <div className="max-w-6xl mx-auto px-6 py-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-semibold text-gray-900">Centre de règles</h1>
+            <div>
+              <h1 className="text-xl font-semibold text-gray-900">Centre de règles</h1>
+              <p className="text-sm text-gray-500 mt-1">
+                Définissez des règles comptables par fournisseur, client ou produit
+              </p>
+            </div>
             <div className="flex items-center gap-3">
               <button
+                onClick={() => setShowCustomizeModal(true)}
                 className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
-                onClick={() => {
-                  if (activeTab === "transactions") router.push("/settings/transaction-rules");
-                }}
               >
-                <Download className="w-4 h-4" />
-                Exporter
-              </button>
-              <button
-                className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
-                onClick={() => {
-                  if (activeTab === "transactions") router.push("/settings/transaction-rules");
-                }}
-              >
-                <Upload className="w-4 h-4" />
-                Importer
-              </button>
-              <button
-                className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700"
-                onClick={() => {
-                  if (activeTab === "transactions") router.push("/settings/transaction-rules");
-                }}
-              >
-                <Plus className="w-4 h-4" />
-                Nouveau
+                <Settings2 className="w-4 h-4" />
+                Personnaliser
               </button>
             </div>
           </div>
@@ -142,7 +253,7 @@ export default function RulesCenter() {
                   onClick={() => setActiveTab(tab.id)}
                   className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                     activeTab === tab.id
-                      ? "border-teal-600 text-teal-600"
+                      ? "border-primary-600 text-primary-600"
                       : "border-transparent text-gray-500 hover:text-gray-700"
                   }`}
                 >
@@ -153,100 +264,114 @@ export default function RulesCenter() {
 
             {/* Search */}
             <div className="p-4 border-b border-gray-200">
-              <div className="flex items-center gap-3">
-                <div className="relative flex-1 max-w-md">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Rechercher..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  />
-                </div>
-                <button className="ml-auto flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900">
-                  <Settings2 className="w-4 h-4" />
-                  Personnaliser
-                </button>
+              <div className="relative max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Rechercher..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
               </div>
             </div>
 
-            {/* Table Content */}
-            <div className="overflow-x-auto">
-              {activeTab === "transactions" && (
-                <div className="p-6 text-sm text-gray-600">
-                  <p className="mb-2 font-medium text-gray-900">
-                    Règles de transactions
-                  </p>
-                  <p className="mb-4">
-                    Définissez des règles automatiques de catégorisation pour vos transactions bancaires.
-                  </p>
-                  <button
-                    onClick={() => router.push("/settings/transaction-rules")}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700"
-                  >
-                    Ouvrir les règles de transactions
-                  </button>
-                </div>
-              )}
-
-              {activeTab === "fournisseurs" && (
+            {/* Table Content - Fournisseurs */}
+            {activeTab === "fournisseurs" && (
+              <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-gray-200 bg-gray-50">
-                      <th className="w-10 px-4 py-3"><input type="checkbox" className="rounded border-gray-300" /></th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nom</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">N° de compte</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contrepartie / TVA</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Solde</th>
+                      {visibleColumns.name && <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nom</th>}
+                      {visibleColumns.account && <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Compte par défaut</th>}
+                      {visibleColumns.taxRate && <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">TVA</th>}
+                      {visibleColumns.email && <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>}
+                      {visibleColumns.rules && <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Règle</th>}
                       <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="divide-y divide-gray-100">
                     {filteredSuppliers.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="px-4 py-12 text-center text-gray-500">
+                        <td colSpan={6} className="px-4 py-12 text-center text-gray-500">
                           Aucun fournisseur trouvé
                         </td>
                       </tr>
                     ) : (
-                      filteredSuppliers.map((supplier) => (
-                        <tr key={supplier.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3"><input type="checkbox" className="rounded border-gray-300" /></td>
-                          <td className="px-4 py-3 text-sm font-medium text-gray-900">{supplier.name}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{supplier.default_account || "-"}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">
-                            {supplier.default_tax_rate ? `${supplier.default_tax_rate}%` : "-"}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{supplier.email || "-"}</td>
-                          <td className="px-4 py-3 text-sm text-right">
-                            {supplier.total_spent ? formatCurrency(-supplier.total_spent) : "-"}
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <button className="text-gray-400 hover:text-gray-600">
-                              <MoreHorizontal className="w-4 h-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))
+                      filteredSuppliers.map((supplier) => {
+                        const rule = getRuleForEntity(supplier.id, "fournisseurs");
+                        return (
+                          <tr key={supplier.id} className="hover:bg-gray-50">
+                            {visibleColumns.name && (
+                              <td className="px-4 py-3 text-sm font-medium text-gray-900">{supplier.name}</td>
+                            )}
+                            {visibleColumns.account && (
+                              <td className="px-4 py-3 text-sm text-gray-600">
+                                {rule?.defaultAccount || supplier.default_account || "-"}
+                              </td>
+                            )}
+                            {visibleColumns.taxRate && (
+                              <td className="px-4 py-3 text-sm text-gray-600">
+                                {rule?.defaultTaxRate ? `${rule.defaultTaxRate}%` : (supplier.default_tax_rate ? `${supplier.default_tax_rate}%` : "-")}
+                              </td>
+                            )}
+                            {visibleColumns.email && (
+                              <td className="px-4 py-3 text-sm text-gray-600">{supplier.email || "-"}</td>
+                            )}
+                            {visibleColumns.rules && (
+                              <td className="px-4 py-3 text-center">
+                                {rule ? (
+                                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full">
+                                    <Zap className="w-3 h-3" /> Actif
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-gray-400">Aucune</span>
+                                )}
+                              </td>
+                            )}
+                            <td className="px-4 py-3 text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                <button
+                                  onClick={() => openRuleModal({ id: supplier.id, name: supplier.name, type: "fournisseurs" })}
+                                  className="p-1.5 text-primary-600 hover:bg-primary-50 rounded"
+                                  title="Définir une règle"
+                                >
+                                  <Zap className="w-4 h-4" />
+                                </button>
+                                {rule && (
+                                  <button
+                                    onClick={() => handleDeleteRule(rule.id)}
+                                    className="p-1.5 text-red-500 hover:bg-red-50 rounded"
+                                    title="Supprimer la règle"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
-              )}
+              </div>
+            )}
 
-              {activeTab === "clients" && (
+            {/* Table Content - Clients */}
+            {activeTab === "clients" && (
+              <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-gray-200 bg-gray-50">
-                      <th className="w-10 px-4 py-3"><input type="checkbox" className="rounded border-gray-300" /></th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nom</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Identifiant</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Secteur</th>
+                      {visibleColumns.name && <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nom</th>}
+                      {visibleColumns.account && <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Compte par défaut</th>}
+                      {visibleColumns.taxRate && <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">TVA</th>}
+                      {visibleColumns.rules && <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Règle</th>}
                       <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="divide-y divide-gray-100">
                     {filteredClients.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="px-4 py-12 text-center text-gray-500">
@@ -254,77 +379,281 @@ export default function RulesCenter() {
                         </td>
                       </tr>
                     ) : (
-                      filteredClients.map((client) => (
-                        <tr key={client.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3"><input type="checkbox" className="rounded border-gray-300" /></td>
-                          <td className="px-4 py-3 text-sm font-medium text-gray-900">{client.name}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{client.slug}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{client.sector || "-"}</td>
-                          <td className="px-4 py-3 text-center">
-                            <button className="text-gray-400 hover:text-gray-600">
-                              <MoreHorizontal className="w-4 h-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))
+                      filteredClients.map((client) => {
+                        const rule = getRuleForEntity(client.id, "clients");
+                        return (
+                          <tr key={client.id} className="hover:bg-gray-50">
+                            {visibleColumns.name && (
+                              <td className="px-4 py-3 text-sm font-medium text-gray-900">{client.name}</td>
+                            )}
+                            {visibleColumns.account && (
+                              <td className="px-4 py-3 text-sm text-gray-600">
+                                {rule?.defaultAccount || "-"}
+                              </td>
+                            )}
+                            {visibleColumns.taxRate && (
+                              <td className="px-4 py-3 text-sm text-gray-600">
+                                {rule?.defaultTaxRate ? `${rule.defaultTaxRate}%` : "-"}
+                              </td>
+                            )}
+                            {visibleColumns.rules && (
+                              <td className="px-4 py-3 text-center">
+                                {rule ? (
+                                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full">
+                                    <Zap className="w-3 h-3" /> Actif
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-gray-400">Aucune</span>
+                                )}
+                              </td>
+                            )}
+                            <td className="px-4 py-3 text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                <button
+                                  onClick={() => openRuleModal({ id: client.id, name: client.name, type: "clients" })}
+                                  className="p-1.5 text-primary-600 hover:bg-primary-50 rounded"
+                                  title="Définir une règle"
+                                >
+                                  <Zap className="w-4 h-4" />
+                                </button>
+                                {rule && (
+                                  <button
+                                    onClick={() => handleDeleteRule(rule.id)}
+                                    className="p-1.5 text-red-500 hover:bg-red-50 rounded"
+                                    title="Supprimer la règle"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
-              )}
+              </div>
+            )}
 
-              {activeTab === "produits" && (
+            {/* Table Content - Produits */}
+            {activeTab === "produits" && (
+              <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-gray-200 bg-gray-50">
-                      <th className="w-10 px-4 py-3"><input type="checkbox" className="rounded border-gray-300" /></th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nom</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Référence</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Prix HT</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">TVA</th>
-                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Prix TTC</th>
+                      {visibleColumns.name && <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nom</th>}
+                      {visibleColumns.account && <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Compte par défaut</th>}
+                      {visibleColumns.taxRate && <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">TVA</th>}
+                      {visibleColumns.rules && <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Règle</th>}
                       <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="divide-y divide-gray-100">
                     {filteredProducts.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="px-4 py-12 text-center text-gray-500">
+                        <td colSpan={5} className="px-4 py-12 text-center text-gray-500">
                           Aucun produit trouvé
                         </td>
                       </tr>
                     ) : (
-                      filteredProducts.map((product) => (
-                        <tr key={product.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3"><input type="checkbox" className="rounded border-gray-300" /></td>
-                          <td className="px-4 py-3 text-sm font-medium text-gray-900">{product.name}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{product.sku || "-"}</td>
-                          <td className="px-4 py-3 text-sm text-right text-gray-900">{formatCurrency(product.price)}</td>
-                          <td className="px-4 py-3 text-sm text-right text-gray-600">-</td>
-                          <td className="px-4 py-3 text-sm text-right text-gray-900">{formatCurrency(product.price)}</td>
-                          <td className="px-4 py-3 text-center">
-                            <button className="text-gray-400 hover:text-gray-600">
-                              <MoreHorizontal className="w-4 h-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))
+                      filteredProducts.map((product) => {
+                        const rule = getRuleForEntity(product.id, "produits");
+                        return (
+                          <tr key={product.id} className="hover:bg-gray-50">
+                            {visibleColumns.name && (
+                              <td className="px-4 py-3 text-sm font-medium text-gray-900">{product.name}</td>
+                            )}
+                            {visibleColumns.account && (
+                              <td className="px-4 py-3 text-sm text-gray-600">
+                                {rule?.defaultAccount || "-"}
+                              </td>
+                            )}
+                            {visibleColumns.taxRate && (
+                              <td className="px-4 py-3 text-sm text-gray-600">
+                                {rule?.defaultTaxRate ? `${rule.defaultTaxRate}%` : "-"}
+                              </td>
+                            )}
+                            {visibleColumns.rules && (
+                              <td className="px-4 py-3 text-center">
+                                {rule ? (
+                                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 text-xs font-medium rounded-full">
+                                    <Zap className="w-3 h-3" /> Actif
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-gray-400">Aucune</span>
+                                )}
+                              </td>
+                            )}
+                            <td className="px-4 py-3 text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                <button
+                                  onClick={() => openRuleModal({ id: product.id, name: product.name, type: "produits" })}
+                                  className="p-1.5 text-primary-600 hover:bg-primary-50 rounded"
+                                  title="Définir une règle"
+                                >
+                                  <Zap className="w-4 h-4" />
+                                </button>
+                                {rule && (
+                                  <button
+                                    onClick={() => handleDeleteRule(rule.id)}
+                                    className="p-1.5 text-red-500 hover:bg-red-50 rounded"
+                                    title="Supprimer la règle"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
-              )}
-            </div>
+              </div>
+            )}
 
-            {/* Pagination */}
-            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
+            {/* Footer */}
+            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-gray-50">
               <span className="text-sm text-gray-500">
                 {activeTab === "fournisseurs" && `${filteredSuppliers.length} fournisseurs`}
                 {activeTab === "clients" && `${filteredClients.length} clients`}
                 {activeTab === "produits" && `${filteredProducts.length} produits`}
+                {" • "}
+                {rules.filter(r => r.entityType === activeTab).length} règles définies
               </span>
             </div>
           </div>
-        </main>
+        </div>
       </div>
+
+      {/* Modal Définir Règle */}
+      {showRuleModal && selectedEntity && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/30" onClick={() => setShowRuleModal(false)} />
+          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Définir une règle</h2>
+                <p className="text-sm text-gray-500">{selectedEntity.name}</p>
+              </div>
+              <button onClick={() => setShowRuleModal(false)} className="p-1 hover:bg-gray-100 rounded">
+                <X className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Compte par défaut</label>
+                <select
+                  value={ruleForm.defaultAccount}
+                  onChange={(e) => setRuleForm({ ...ruleForm, defaultAccount: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  {accountOptions.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Ce compte sera utilisé automatiquement lors de la saisie
+                </p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Taux de TVA par défaut</label>
+                <select
+                  value={ruleForm.defaultTaxRate}
+                  onChange={(e) => setRuleForm({ ...ruleForm, defaultTaxRate: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  {taxRateOptions.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie automatique</label>
+                <input
+                  type="text"
+                  value={ruleForm.autoCategory}
+                  onChange={(e) => setRuleForm({ ...ruleForm, autoCategory: e.target.value })}
+                  placeholder="Ex: Fournitures bureau"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="ruleActive"
+                  checked={ruleForm.isActive}
+                  onChange={(e) => setRuleForm({ ...ruleForm, isActive: e.target.checked })}
+                  className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                <label htmlFor="ruleActive" className="text-sm text-gray-700">Règle active</label>
+              </div>
+            </div>
+            
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => setShowRuleModal(false)}
+                className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleSaveRule}
+                className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                <Save className="w-4 h-4" />
+                Enregistrer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Personnaliser */}
+      {showCustomizeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/30" onClick={() => setShowCustomizeModal(false)} />
+          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Personnaliser l&apos;affichage</h2>
+              <button onClick={() => setShowCustomizeModal(false)} className="p-1 hover:bg-gray-100 rounded">
+                <X className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
+            
+            <div className="space-y-3">
+              {Object.entries(visibleColumns).map(([key, value]) => (
+                <label key={key} className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={value}
+                    onChange={(e) => setVisibleColumns({ ...visibleColumns, [key]: e.target.checked })}
+                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  <span className="text-sm text-gray-700 capitalize">
+                    {key === "taxRate" ? "Taux TVA" : key === "account" ? "Compte" : key === "rules" ? "Statut règle" : key}
+                  </span>
+                </label>
+              ))}
+            </div>
+            
+            <div className="mt-6">
+              <button
+                onClick={() => setShowCustomizeModal(false)}
+                className="w-full px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Appliquer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
