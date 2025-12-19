@@ -116,7 +116,7 @@ export default function BlogPage() {
                                 className="flex-1 px-4 py-3 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-white"
                             />
                             <button className="px-6 py-3 bg-white text-indigo-600 font-medium rounded-lg hover:bg-gray-100 transition-colors">
-                                S'abonner
+                                S&apos;abonner
                             </button>
                         </div>
                     </div>
