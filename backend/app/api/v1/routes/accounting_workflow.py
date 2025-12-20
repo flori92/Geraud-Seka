@@ -68,6 +68,39 @@ async def get_consistency_checks(
     }
 
 
+@router.get("/lettering/accounts")
+async def get_lettering_accounts(
+    current_tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Dict[str, Any]:
+    """Retourne la liste des comptes éligibles au lettrage (clients/fournisseurs)."""
+    try:
+        service = AccountingAnalyticsService(db, current_tenant.id)
+        rec_pay = service.get_receivables_payables()
+    except (ProgrammingError, OperationalError):
+        db.rollback()
+        rec_pay = {"receivables": 0.0, "payables": 0.0}
+
+    accounts = [
+        {
+            "account_code": "411000",
+            "account_name": "Clients",
+            "balance": float(rec_pay.get("receivables") or 0),
+            "unlettered_count": 0,
+            "type": "client",
+        },
+        {
+            "account_code": "401000",
+            "account_name": "Fournisseurs",
+            "balance": float(rec_pay.get("payables") or 0),
+            "unlettered_count": 0,
+            "type": "supplier",
+        },
+    ]
+    return {"accounts": accounts}
+
+
 @router.get("/lettering")
 async def get_lettering_summary(
     year: int = Query(date.today().year, ge=1900, le=2100),
