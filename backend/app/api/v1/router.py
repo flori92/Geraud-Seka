@@ -49,6 +49,12 @@ from app.api.v1.routes import (
     accounting_analytics,
     tax,
     accounting_workflow,
+    accounting_assets,
+    sales_reminders,
+    sales_credit_notes,
+    settings_audit,
+    settings_fiscal,
+    hr_expenses,
 )
 
 api_router = APIRouter()
@@ -127,3 +133,17 @@ api_router.include_router(accounting_workflow.router, prefix="/accounting/workfl
 
 # Billing Module Routes
 api_router.include_router(billing.router, prefix="/billing", tags=["billing", "subscription"])
+
+# Assets / Immobilisations Routes
+api_router.include_router(accounting_assets.router, prefix="/accounting/assets", tags=["accounting", "assets"])
+
+# Sales Additional Routes
+api_router.include_router(sales_reminders.router, prefix="/sales/reminders", tags=["sales", "reminders"])
+api_router.include_router(sales_credit_notes.router, prefix="/sales/credit-notes", tags=["sales", "credit-notes"])
+
+# Settings Routes
+api_router.include_router(settings_audit.router, prefix="/settings/audit-trail", tags=["settings", "audit"])
+api_router.include_router(settings_fiscal.router, prefix="/settings/fiscal-closing", tags=["settings", "fiscal"])
+
+# HR Additional Routes
+api_router.include_router(hr_expenses.router, prefix="/hr/expenses", tags=["hr", "expenses"])

@@ -101,6 +101,110 @@ async def get_lettering_accounts(
     return {"accounts": accounts}
 
 
+@router.get("/lettering/entries")
+async def get_lettering_entries(
+    account_code: str = Query(..., description="Code du compte à lettrer"),
+    current_tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Dict[str, Any]:
+    """Retourne les écritures à lettrer pour un compte donné."""
+    try:
+        entries = (
+            db.query(AccountingEntry)
+            .filter(
+                AccountingEntry.tenant_id == current_tenant.id,
+                AccountingEntry.account_code.like(f"{account_code[:3]}%"),
+                AccountingEntry.lettering_code.is_(None),
+            )
+            .order_by(AccountingEntry.date.desc())
+            .limit(100)
+            .all()
+        )
+        return {
+            "entries": [
+                {
+                    "id": str(e.id),
+                    "date": e.date.isoformat() if e.date else None,
+                    "label": e.label,
+                    "debit": float(e.debit or 0),
+                    "credit": float(e.credit or 0),
+                    "account_code": e.account_code,
+                    "lettering_code": e.lettering_code,
+                }
+                for e in entries
+            ]
+        }
+    except (ProgrammingError, OperationalError):
+        db.rollback()
+        return {"entries": []}
+
+
+@router.post("/lettering/letter")
+async def letter_entries(
+    entry_ids: List[str] = Query(..., description="IDs des écritures à lettrer"),
+    current_tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Dict[str, Any]:
+    """Lettre un groupe d'écritures."""
+    import uuid
+    lettering_code = f"L{date.today().strftime('%y%m%d')}{str(uuid.uuid4())[:4].upper()}"
+    
+    try:
+        updated = 0
+        for entry_id in entry_ids:
+            entry = db.query(AccountingEntry).filter(
+                AccountingEntry.id == entry_id,
+                AccountingEntry.tenant_id == current_tenant.id,
+            ).first()
+            if entry:
+                entry.lettering_code = lettering_code
+                updated += 1
+        db.commit()
+        return {"success": True, "lettering_code": lettering_code, "entries_updated": updated}
+    except (ProgrammingError, OperationalError) as e:
+        db.rollback()
+        return {"success": False, "error": str(e)}
+
+
+@router.post("/lettering/unletter")
+async def unletter_entries(
+    entry_ids: List[str] = Query(..., description="IDs des écritures à délettrer"),
+    current_tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Dict[str, Any]:
+    """Supprime le lettrage d'un groupe d'écritures."""
+    try:
+        updated = 0
+        for entry_id in entry_ids:
+            entry = db.query(AccountingEntry).filter(
+                AccountingEntry.id == entry_id,
+                AccountingEntry.tenant_id == current_tenant.id,
+            ).first()
+            if entry:
+                entry.lettering_code = None
+                updated += 1
+        db.commit()
+        return {"success": True, "entries_updated": updated}
+    except (ProgrammingError, OperationalError) as e:
+        db.rollback()
+        return {"success": False, "error": str(e)}
+
+
+@router.post("/lettering/auto")
+async def auto_letter(
+    account_code: str = Query(..., description="Code du compte à lettrer automatiquement"),
+    current_tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Dict[str, Any]:
+    """Lettrage automatique basé sur les montants correspondants."""
+    # Pour l'instant, retourne un résultat vide - fonctionnalité à implémenter
+    return {"success": True, "matched_groups": 0, "entries_lettered": 0}
+
+
 @router.get("/lettering")
 async def get_lettering_summary(
     year: int = Query(date.today().year, ge=1900, le=2100),
