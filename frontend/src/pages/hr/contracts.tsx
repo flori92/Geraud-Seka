@@ -57,7 +57,7 @@ export default function ContractsPage() {
   };
 
   const filteredContracts = contracts.filter(c => {
-    const matchesSearch = c.employee_name?.toLowerCase().includes(searchTerm.toLowerCase()) || c.position?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = c.employee_name?.toLowerCase().includes(searchTerm.toLowerCase()) || c.contract_type?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = typeFilter === "all" || c.contract_type === typeFilter;
     return matchesSearch && matchesType;
   });
