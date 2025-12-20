@@ -9,6 +9,7 @@ import TopHeader from "@/components/layout/TopHeader";
 import { ClientProvider, useClient } from "@/contexts/ClientContext";
 import { useRouter } from "next/router";
 import type { Client } from "@/lib/api";
+import { initProductionSecurity } from "@/lib/security";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -22,6 +23,8 @@ export default function App({ Component, pageProps }: AppProps) {
 
   useEffect(() => {
     setIsMounted(true);
+    // Initialiser la sécurité en production (masque les logs console, etc.)
+    initProductionSecurity();
   }, []);
 
   function HeaderWithClientSync() {

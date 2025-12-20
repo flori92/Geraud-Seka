@@ -9,6 +9,7 @@ from app.api.v1.router import api_router
 from app.core.config import get_settings
 from app.middleware.monitoring import MonitoringMiddleware
 from app.middleware.proxy_headers import ProxyHeadersMiddleware
+from app.middleware.security import SecurityMiddleware, RequestValidationMiddleware
 from app.services.monitoring import monitoring_service
 
 logger = logging.getLogger(__name__)
@@ -17,9 +18,12 @@ logger = logging.getLogger(__name__)
 def create_application() -> FastAPI:
     settings = get_settings()
 
+    # En production: désactiver la documentation OpenAPI pour la sécurité
+    is_production = settings.environment == "production"
+    
     app = FastAPI(
         title="SEKA API",
-        description="""
+        description="API SEKA - ERP/CRM pour PME Africaines" if is_production else """
         ## 🚀 SEKA - ERP/CRM Intelligent pour PME Africaines
         
         API REST complète pour la gestion de la comptabilité, trésorerie, CRM, RH et plus.
@@ -35,7 +39,11 @@ def create_application() -> FastAPI:
         ### Authentification
         Utilisez un Bearer token JWT dans le header Authorization.
         """,
-        version="1.0.0-alpha",
+        version="1.0.0",
+        # Désactiver docs en production
+        docs_url=None if is_production else "/docs",
+        redoc_url=None if is_production else "/redoc",
+        openapi_url=None if is_production else "/openapi.json",
         terms_of_service="https://seka.app/terms",
         contact={
             "name": "SEKA Support",
@@ -44,7 +52,7 @@ def create_application() -> FastAPI:
         license_info={
             "name": "Proprietary",
         },
-        openapi_tags=[
+        openapi_tags=[] if is_production else [
             {"name": "auth", "description": "Authentification et gestion utilisateurs"},
             {"name": "documents", "description": "Gestion des pièces comptables"},
             {"name": "clients", "description": "Gestion CRM clients"},
@@ -54,7 +62,7 @@ def create_application() -> FastAPI:
             {"name": "dashboard", "description": "Statistiques et KPI"},
             {"name": "health", "description": "Health checks"},
         ],
-        debug=settings.debug
+        debug=False  # Toujours False en production
     )
 
     # Proxy Headers Middleware - MUST BE FIRST
@@ -103,6 +111,10 @@ def create_application() -> FastAPI:
         expose_headers=["*"],
     )
 
+    # Security Middleware - Protection headers, rate limiting
+    app.add_middleware(SecurityMiddleware, environment=settings.environment)
+    app.add_middleware(RequestValidationMiddleware)
+    
     # Monitoring Middleware
     app.add_middleware(MonitoringMiddleware)
     
@@ -128,16 +140,16 @@ def create_application() -> FastAPI:
 
         return await call_next(request)
 
-    # Root endpoint for health check and CORS verification
+    # Root endpoint for health check (minimal info in production)
     @app.get("/")
     async def root(request: Request):
+        if is_production:
+            return {"status": "ok", "version": "1.0.0"}
         return {
             "status": "ok",
             "message": "SEKA API is running",
-            "version": "1.0.0-alpha",
+            "version": "1.0.0",
             "environment": settings.environment,
-            "cors_origins": settings.backend_cors_origins,
-            "headers": dict(request.headers)
         }
 
     @app.head("/")
@@ -291,25 +303,39 @@ def create_application() -> FastAPI:
             tenant_id="system"
         )
     
-    # Global Exception Handler for 500 errors
+    # Global Exception Handler for 500 errors - Production-ready
     import traceback
+    import uuid
     
     @app.exception_handler(Exception)
     async def global_exception_handler(request: Request, exc: Exception):
-        logger.error(f"Global error on {request.url.path}: {str(exc)}")
-        logger.error(f"Request method: {request.method}")
-        logger.error(f"Request headers: {dict(request.headers)}")
-        traceback.print_exc()
+        # Generate unique error ID for tracking
+        error_id = str(uuid.uuid4())[:8].upper()
         
-        # Return CORS headers even for errors
-        response = JSONResponse(
-            status_code=500,
-            content={
-                "detail": f"Internal Server Error: {str(exc)}",
+        # Log full details server-side (never exposed to client)
+        logger.error(f"[{error_id}] Error on {request.method} {request.url.path}")
+        logger.error(f"[{error_id}] Exception: {type(exc).__name__}: {str(exc)}")
+        if not is_production:
+            traceback.print_exc()
+        
+        # Production: generic message with error ID for support
+        # Development: include error details for debugging
+        if is_production:
+            content = {
+                "error": "Une erreur est survenue",
+                "error_id": error_id,
+                "message": "Veuillez réessayer. Si le problème persiste, contactez le support avec ce code.",
+            }
+        else:
+            content = {
+                "error": "Internal Server Error",
+                "error_id": error_id,
+                "detail": str(exc),
+                "type": type(exc).__name__,
                 "path": request.url.path,
-                "error_type": type(exc).__name__
-            },
-        )
+            }
+        
+        response = JSONResponse(status_code=500, content=content)
         
         # Add CORS headers manually for error responses
         origin = request.headers.get("origin")
@@ -318,6 +344,46 @@ def create_application() -> FastAPI:
             response.headers["Access-Control-Allow-Credentials"] = "true"
             response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
             response.headers["Access-Control-Allow-Headers"] = "Accept, Accept-Language, Content-Language, Content-Type, Authorization, X-Requested-With, X-CSRF-Token, Access-Control-Allow-Origin, Cache-Control, Pragma, Origin, User-Agent, Referer"
+        
+        return response
+    
+    # Handler for 404 errors - Production-ready
+    from fastapi.exceptions import RequestValidationError
+    from starlette.exceptions import HTTPException as StarletteHTTPException
+    
+    @app.exception_handler(StarletteHTTPException)
+    async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+        if is_production and exc.status_code == 404:
+            content = {"error": "Ressource non trouvée"}
+        elif is_production and exc.status_code == 401:
+            content = {"error": "Authentification requise"}
+        elif is_production and exc.status_code == 403:
+            content = {"error": "Accès refusé"}
+        else:
+            content = {"error": exc.detail if hasattr(exc, 'detail') else str(exc)}
+        
+        response = JSONResponse(status_code=exc.status_code, content=content)
+        
+        origin = request.headers.get("origin")
+        if origin in cors_origins:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+        
+        return response
+    
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(request: Request, exc: RequestValidationError):
+        if is_production:
+            content = {"error": "Données invalides", "message": "Vérifiez les informations saisies"}
+        else:
+            content = {"error": "Validation Error", "details": exc.errors()}
+        
+        response = JSONResponse(status_code=422, content=content)
+        
+        origin = request.headers.get("origin")
+        if origin in cors_origins:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
         
         return response
     
