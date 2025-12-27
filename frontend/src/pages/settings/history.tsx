@@ -26,7 +26,7 @@ interface HistoryItem {
   details?: string;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http:
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export default function HistoryPage() {
   const router = useRouter();

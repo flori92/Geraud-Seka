@@ -27,7 +27,7 @@ interface AuditLog {
   ip_address: string;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http:
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 const actionLabels: Record<string, { label: string; color: string }> = {
   create: { label: "Création", color: "green" },

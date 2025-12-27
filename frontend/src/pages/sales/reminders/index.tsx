@@ -44,7 +44,7 @@ interface ReminderSettings {
   email_template_3: string;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http:
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export default function RemindersPage() {
   const router = useRouter();

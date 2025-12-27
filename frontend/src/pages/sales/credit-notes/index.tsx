@@ -28,7 +28,7 @@ interface CreditNote {
   status: "draft" | "validated" | "refunded";
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http:
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export default function CreditNotesPage() {
   const router = useRouter();

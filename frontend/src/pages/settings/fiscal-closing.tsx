@@ -49,7 +49,7 @@ interface BalanceAccount {
   action: "carry_forward" | "reset_to_zero" | "transfer_to_result";
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http:
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 const defaultChecklist: ClosingChecklistItem[] = [
   { id: "1", label: "Rapprochement bancaire effectué", required: true, order: 1 },

@@ -34,7 +34,7 @@ interface ForecastSummary {
   min_balance_period: string;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http:
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export default function TreasuryForecastsPage() {
   const router = useRouter();

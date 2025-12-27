@@ -7,7 +7,7 @@ import {
   SortField, SortOrder 
 } from '@/types/trial-balance';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http:
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 interface UseTrialBalanceOptions {
   period?: { start: string; end: string };

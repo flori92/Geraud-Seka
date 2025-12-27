@@ -38,7 +38,7 @@ interface KPICategory {
   kpis: KPI[];
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http:
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export default function KPIDashboardPage() {
   const router = useRouter();

@@ -24,7 +24,7 @@ export default function CompteProPage() {
         const token = localStorage.getItem("seka_access_token");
         if (!token) return;
 
-        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http:
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
         const response = await fetch(`${API_BASE_URL}/api/v1/treasury/accounts/main`, {
           headers: { Authorization: `Bearer ${token}` }
         });

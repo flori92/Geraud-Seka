@@ -245,7 +245,7 @@ export default function DashboardPage() {
   const [accountingStats, setAccountingStats] = useState<any>(null);
   const [treasuryData, setTreasuryData] = useState<any>(null);
 
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http:
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
   const fetchAllData = async () => {
     try {
