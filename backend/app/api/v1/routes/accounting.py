@@ -21,7 +21,6 @@ from app.models.accounting_advanced import JournalEntry
 router = APIRouter()
 
 
-# Pydantic schemas
 class LedgerAccountCreate(BaseModel):
     account_code: str
     account_name: str
@@ -66,7 +65,6 @@ class JournalEntryResponse(BaseModel):
         from_attributes = True
 
 
-# Mock data for ledger accounts (will be replaced with real DB queries)
 MOCK_LEDGER_ACCOUNTS = [
     {
         "id": "1",
@@ -258,7 +256,6 @@ def get_ledger_accounts(
             for acc in accounts
         ]
     except (ProgrammingError, OperationalError) as e:
-        # Table doesn't exist yet - return mock data
         db.rollback()
         return [
             LedgerAccountResponse(**acc) for acc in MOCK_LEDGER_ACCOUNTS
@@ -280,7 +277,6 @@ def create_ledger_account(
     """
     Create a new ledger account
     """
-    # Vérifier si le code compte existe déjà
     existing = db.query(LedgerAccount).filter(
         LedgerAccount.tenant_id == current_user.tenant_id,
         LedgerAccount.account_code == account.account_code
@@ -289,7 +285,6 @@ def create_ledger_account(
     if existing:
         raise HTTPException(status_code=400, detail="Ce code de compte existe déjà")
     
-    # Créer le nouveau compte
     new_account = LedgerAccount(
         tenant_id=current_user.tenant_id,
         account_code=account.account_code,
@@ -321,9 +316,6 @@ def get_journal_entries(
 ):
     """Get journal entries - supports both /journals and /journal/ endpoints"""
     try:
-        # TEMP: Return empty list until JournalEntry model is adapted
-        # The current JournalEntry model uses complex line-based structure
-        # Frontend expects simple debit/credit entries
         print(f"Journal entries requested for tenant {current_user.tenant_id}")
         return []
     except Exception as e:
@@ -342,7 +334,6 @@ def create_journal_entry(
     """
     Create a new journal entry and update account balances
     """
-    # Trouver les comptes par code
     debit_account = db.query(LedgerAccount).filter(
         LedgerAccount.tenant_id == current_user.tenant_id,
         LedgerAccount.account_code == entry.debit_account
@@ -358,13 +349,11 @@ def create_journal_entry(
     if not credit_account:
         raise HTTPException(status_code=404, detail=f"Compte crédit {entry.credit_account} introuvable")
     
-    # Générer numéro d'écriture
     count = db.query(func.count(JournalEntry.id)).filter(
         JournalEntry.tenant_id == current_user.tenant_id
     ).scalar()
     entry_number = f"JE-{count + 1:06d}"
     
-    # Créer l'écriture
     new_entry = JournalEntry(
         tenant_id=current_user.tenant_id,
         debit_account_id=debit_account.id,
@@ -376,7 +365,6 @@ def create_journal_entry(
         reference=entry.reference
     )
     
-    # Mettre à jour les balances
     amount_decimal = Decimal(str(entry.amount))
     debit_account.balance += amount_decimal
     credit_account.balance -= amount_decimal
@@ -408,17 +396,14 @@ def get_balance_sheet(
     Returns assets, liabilities, and equity
     """
     try:
-        # Vérifier que l'utilisateur a un tenant_id
         if not current_user.tenant_id:
             raise HTTPException(status_code=400, detail="Utilisateur sans tenant_id")
         
-        # Calculer les totaux depuis la DB
         accounts = db.query(LedgerAccount).filter(
             LedgerAccount.tenant_id == current_user.tenant_id,
             LedgerAccount.is_active == True
         ).all()
         
-        # Si aucun compte, retourner des valeurs à zéro
         if not accounts:
             return {
                 "assets": {
@@ -462,7 +447,6 @@ def get_balance_sheet(
             "period": datetime.now().strftime("%Y-%m")
         }
     except Exception as e:
-        # Log l'erreur et retourner des valeurs par défaut
         print(f"Error in get_balance_sheet: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erreur lors du calcul de la balance: {str(e)}")
 
@@ -504,13 +488,11 @@ def get_balance_generale(
     - period: Period filter (complete, current_year, current_quarter, current_month)
     """
     try:
-        # Base query for current year balances
         accounts = db.query(LedgerAccount).filter(
             LedgerAccount.tenant_id == current_user.tenant_id,
             LedgerAccount.is_active == True
         )
 
-        # Apply search filter
         if search:
             search_pattern = f"%{search}%"
             accounts = accounts.filter(
@@ -518,7 +500,6 @@ def get_balance_generale(
                 (LedgerAccount.account_name.ilike(search_pattern))
             )
 
-        # Apply account type filter
         if account_type and account_type != 'all':
             type_mapping = {
                 'actif': AccountType.ASSET,
@@ -531,25 +512,18 @@ def get_balance_generale(
 
         accounts = accounts.all()
 
-        # Build response with mock N-1 data
-        # In production, this would query historical data from a separate table or time-partitioned data
         balance_data = []
 
         for account in accounts:
-            # Current year data
             current_balance = Decimal(str(account.balance or 0))
 
-            # Mock N-1 data (in production, fetch from historical records)
-            # For demo: N-1 is 80-120% of current balance
             import random
             variance_factor = random.uniform(0.8, 1.2)
             balance_n1 = current_balance * Decimal(str(variance_factor))
 
-            # Calculate variance
             variance_amount = current_balance - balance_n1
             variance_percent = float((variance_amount / balance_n1 * 100) if balance_n1 != 0 else 0)
 
-            # Mock debit/credit (in production, sum from journal entries)
             if current_balance >= 0:
                 debit = abs(current_balance)
                 credit = Decimal('0')
@@ -557,8 +531,6 @@ def get_balance_generale(
                 debit = Decimal('0')
                 credit = abs(current_balance)
 
-            # Determine hierarchy level based on account code length
-            # Standard: 1 digit = level 1, 2-3 digits = level 2, 4+ digits = level 3
             account_code = account.account_code
             if len(account_code) == 1:
                 level = 1
@@ -583,12 +555,10 @@ def get_balance_generale(
                 level=level
             ))
 
-        # Sort by account number
         balance_data.sort(key=lambda x: x.account_number)
 
         return balance_data
 
     except Exception as e:
         print(f"Error in get_balance_generale: {str(e)}")
-        # Return empty list on error rather than failing
         return []

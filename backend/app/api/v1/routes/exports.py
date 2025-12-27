@@ -37,7 +37,6 @@ def export_sage(
     output = io.StringIO()
     writer = csv.writer(output, delimiter=';', quoting=csv.QUOTE_MINIMAL)
     
-    # Header
     writer.writerow(["DatePiece", "Journal", "Compte", "Libelle", "Debit", "Credit", "Ref_piece", "DateEcheance"])
     
     for entry in entries:
@@ -79,7 +78,6 @@ def export_fiscal_year(
     output = io.StringIO()
     writer = csv.writer(output, delimiter=';', quoting=csv.QUOTE_MINIMAL)
 
-    # Header
     writer.writerow(["Date", "Journal", "Compte", "Libelle", "Debit", "Credit", "Reference", "DateEcheance", "NumeroEcriture"])
 
     for entry in entries:
@@ -95,7 +93,6 @@ def export_fiscal_year(
             entry.entry_number or ""
         ])
 
-    # Generate filename
     filename = f"export_exercice_{fiscal_year_code or 'custom'}.csv"
     content_length = len(output.getvalue().encode('utf-8'))
 

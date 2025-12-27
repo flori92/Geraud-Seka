@@ -51,7 +51,6 @@ async def process_bot_query(
     - **context**: Contexte optionnel (page actuelle, filtres, etc.)
     """
     try:
-        # Traitement du message par le bot
         response = await seka_bot.process_message(
             message=chat_message.message,
             tenant_id=str(current_tenant.id),
@@ -59,7 +58,6 @@ async def process_bot_query(
             db=db
         )
         
-        # Log de l'interaction en arrière-plan
         background_tasks.add_task(
             log_bot_interaction,
             tenant_id=str(current_tenant.id),
@@ -69,7 +67,6 @@ async def process_bot_query(
             success=True
         )
         
-        # Formatage de la réponse
         return ChatResponse(
             type=response.get("type", "text"),
             message=response.get("message", ""),
@@ -81,7 +78,6 @@ async def process_bot_query(
         )
         
     except Exception as e:
-        # Log de l'erreur en arrière-plan
         background_tasks.add_task(
             log_bot_interaction,
             tenant_id=str(current_tenant.id),
@@ -166,10 +162,8 @@ async def get_quick_insights(
     Récupérer des insights rapides pour la page d'accueil du bot
     """
     try:
-        # Générer quelques insights rapides sans requête complète
         insights = []
         
-        # Simuler des insights (à remplacer par vraies données)
         sample_insights = [
             {
                 "type": "metric",
@@ -278,7 +272,6 @@ async def submit_bot_feedback(
     - **is_helpful**: La réponse était-elle utile ?
     """
     try:
-        # Log du feedback pour amélioration continue
         monitoring_service.log_business_event(
             event_type="bot_feedback",
             description=f"Feedback bot: rating={rating}, helpful={is_helpful}",
@@ -314,8 +307,6 @@ async def get_conversation_history(
     """
     Récupérer l'historique des conversations (fonctionnalité future)
     """
-    # Placeholder pour l'historique des conversations
-    # À implémenter avec un modèle ChatHistory
     
     return {
         "conversations": [],
@@ -338,7 +329,6 @@ async def clear_conversation_history(
     }
 
 
-# Fonctions utilitaires
 
 async def log_bot_interaction(
     tenant_id: str,

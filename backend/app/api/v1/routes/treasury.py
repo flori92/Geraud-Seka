@@ -36,7 +36,6 @@ def get_cash_flow(
     """
     today = date.today()
 
-    # Parse custom date range if provided
     if start_date and end_date:
         try:
             start = date.fromisoformat(start_date)
@@ -47,7 +46,6 @@ def get_cash_flow(
                 detail="Invalid date format. Use YYYY-MM-DD"
             )
     else:
-        # Use period-based date range
         if period == "day":
             start = today
             end = today

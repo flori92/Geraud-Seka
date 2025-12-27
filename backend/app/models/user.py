@@ -21,12 +21,8 @@ class User(Base, TimestampMixin):
 
     tenant = relationship("Tenant", back_populates="users")
 
-    # Relations Module Ventes
     quotes = relationship("Quote", back_populates="user")
     sales_invoices = relationship("SalesInvoice", back_populates="user")
     purchase_orders = relationship("PurchaseOrder", back_populates="user")
     delivery_notes = relationship("DeliveryNote", back_populates="user")
     
-    # Relations Module CRM (commentées car module CRM supprimé)
-    # assigned_leads = relationship("Lead", back_populates="assignee", foreign_keys="Lead.assigned_to")
-    # assigned_opportunities = relationship("Opportunity", back_populates="assignee", foreign_keys="Opportunity.assigned_to")

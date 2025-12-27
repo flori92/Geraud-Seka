@@ -26,7 +26,6 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref
   ) => {
-    // Base styles - consistent across all buttons
     const baseStyles = cn(
       "inline-flex items-center justify-center gap-2",
       "font-medium transition-all duration-200",
@@ -36,51 +35,43 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       fullWidth && "w-full"
     );
 
-    // Variant styles
     const variants = {
-      // Primary - Main action button (Teal/Dark Green)
       primary: cn(
         "bg-primary-500 text-white",
         "hover:bg-primary-600 focus:ring-primary-500",
         "active:bg-primary-700",
         "shadow-sm hover:shadow-md"
       ),
-      // Secondary - Alternative action (Light gray)
       secondary: cn(
         "bg-neutral-100 text-neutral-900",
         "hover:bg-neutral-200 focus:ring-neutral-300",
         "active:bg-neutral-300",
         "border-neutral-200"
       ),
-      // Tertiary - Subtle action (Transparent with border)
       tertiary: cn(
         "bg-transparent text-neutral-700",
         "border-neutral-300 hover:border-neutral-400",
         "hover:bg-neutral-50 focus:ring-neutral-300",
         "active:bg-neutral-100"
       ),
-      // Danger - Destructive action (Red)
       danger: cn(
         "bg-status-danger text-white",
         "hover:bg-red-700 focus:ring-status-danger",
         "active:bg-red-800",
         "shadow-sm hover:shadow-md"
       ),
-      // Success - Positive action (Green)
       success: cn(
         "bg-status-success text-white",
         "hover:bg-green-600 focus:ring-status-success",
         "active:bg-green-700",
         "shadow-sm hover:shadow-md"
       ),
-      // Outline - Border-only button
       outline: cn(
         "bg-white text-primary-600",
         "border-2 border-primary-500",
         "hover:bg-primary-50 focus:ring-primary-500",
         "active:bg-primary-100"
       ),
-      // Ghost - minimal, low-emphasis button (no background, subtle hover)
       ghost: cn(
         "bg-transparent text-neutral-700",
         "hover:bg-neutral-50 focus:ring-neutral-300",
@@ -88,7 +79,6 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       ),
     };
 
-    // Size styles
     const sizes = {
       xs: "h-8 px-3 text-xs",
       sm: "h-9 px-3.5 text-sm",

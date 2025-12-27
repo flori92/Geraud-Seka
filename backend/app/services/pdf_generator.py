@@ -72,14 +72,11 @@ class PDFGenerator:
         Returns:
             str: Path to generated PDF or storage URL
         """
-        # Create temporary file for PDF
         temp_dir = Path(tempfile.gettempdir())
         pdf_path = temp_dir / filename
 
-        # Generate PDF
         HTML(string=html_content).write_pdf(pdf_path, stylesheets=[CSS(string=self._get_base_css())])
 
-        # Upload to storage if service available
         if self.storage_service:
             try:
                 with open(pdf_path, 'rb') as f:
@@ -88,7 +85,6 @@ class PDFGenerator:
                         f"documents/{filename}",
                         content_type='application/pdf'
                     )
-                # Clean up temp file
                 pdf_path.unlink()
                 return url
             except Exception as e:
@@ -234,7 +230,6 @@ class PDFGenerator:
             </tr>
             """
 
-        # Payment history
         payments_html = ""
         if invoice.payments:
             for payment in invoice.payments:

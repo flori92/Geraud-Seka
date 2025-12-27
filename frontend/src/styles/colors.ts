@@ -3,18 +3,17 @@
  * Bleu Nuit SEKA - Interface épurée et soft
  */
 export const SEKA_COLORS = {
-  // Bleu Nuit SEKA - Couleur principale
   primary: {
-    50: '#eef2ff',   // Très clair
-    100: '#e0e7ff',  // Clair
-    200: '#c7d2fe',  // Léger
-    300: '#a5b4fc',  // Soft
-    400: '#818cf8',  // Medium
-    500: '#1e3a5f',  // Bleu nuit SEKA principal
-    600: '#172e4d',  // Hover
-    700: '#11233b',  // Active
-    800: '#0b1829',  // Dark
-    900: '#050d17',  // Très dark
+    50: '#eef2ff',
+    100: '#e0e7ff',
+    200: '#c7d2fe',
+    300: '#a5b4fc',
+    400: '#818cf8',
+    500: '#1e3a5f',
+    600: '#172e4d',
+    700: '#11233b',
+    800: '#0b1829',
+    900: '#050d17',
   },
   accent: {
     cyan: '#06b6d4',

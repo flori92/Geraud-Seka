@@ -180,7 +180,6 @@ export function MetricCard({
   );
 }
 
-// Variante compacte pour les sous-métriques
 export function CompactMetricCard({ 
   title, 
   value, 
@@ -206,7 +205,6 @@ export function CompactMetricCard({
   );
 }
 
-// Métrique avec sparkline (mini graphique)
 export function SparklineMetricCard({ 
   title, 
   value, 
@@ -217,7 +215,6 @@ export function SparklineMetricCard({
 }: MetricCardProps & { sparklineData?: number[] }) {
   const classes = colorClasses[color];
   
-  // Générer des points SVG pour le sparkline
   const generateSparklinePath = (data: number[]): string => {
     if (data.length < 2) return '';
     

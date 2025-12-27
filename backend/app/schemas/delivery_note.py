@@ -6,7 +6,6 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 
-# ========== DeliveryNoteItem Schemas ==========
 
 class DeliveryNoteItemBase(BaseModel):
     """Base schema pour les lignes de bon de livraison."""
@@ -45,7 +44,6 @@ class DeliveryNoteItem(DeliveryNoteItemBase):
     model_config = ConfigDict(from_attributes=True)
 
 
-# ========== DeliveryNote Schemas ==========
 
 class DeliveryNoteBase(BaseModel):
     """Base schema pour les bons de livraison."""

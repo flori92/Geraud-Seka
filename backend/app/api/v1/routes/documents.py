@@ -32,11 +32,9 @@ async def upload_document(
     Upload a new document, save to storage, and trigger OCR.
     """
     try:
-        # Validate file
         if not file.filename:
             raise HTTPException(status_code=400, detail="Nom de fichier manquant")
         
-        # Check file size (max 50MB)
         file.file.seek(0, 2)  # Seek to end
         file_size = file.file.tell()
         file.file.seek(0)  # Reset to start
@@ -44,21 +42,17 @@ async def upload_document(
         if file_size > 50 * 1024 * 1024:  # 50MB
             raise HTTPException(status_code=413, detail="Fichier trop volumineux (max 50MB)")
         
-        # 1. Upload to Storage
         upload_result = await storage_service.upload_file(file, tenant_id=str(current_user.tenant_id))
 
-        # Extract file path from upload result (storage service returns a dict)
         if isinstance(upload_result, dict):
             file_path = upload_result.get('key') or upload_result.get('url') or upload_result.get('path')
             file_size = upload_result.get('size', file_size)
         else:
-            # Fallback if it's a string (old behavior)
             file_path = str(upload_result)
             file.file.seek(0, 2)
             file_size = file.file.tell()
             file.file.seek(0)
 
-        # 2. Create Document in DB
         doc_data = {
             "filename": file.filename,
             "original_filename": file.filename,
@@ -71,7 +65,6 @@ async def upload_document(
             "uploaded_by": current_user.id,
         }
 
-        # Add client_id only if provided
         if client_id:
             doc_data["client_id"] = client_id
 
@@ -80,16 +73,13 @@ async def upload_document(
         db.commit()
         db.refresh(db_obj)
         
-        # 4. Process with OCR (Mindee) - Non-blocking
         try:
             print(f"🔍 Starting OCR processing for document: {file.filename}")
             ocr_data = await ocr_service.process_invoice(file_path)
             print(f"✅ OCR completed. Extracted data: {ocr_data}")
 
-            # Update document with OCR data with proper type conversion
             db_obj.reference_number = ocr_data.get("reference_number")
 
-            # Convert date strings to date objects
             from datetime import datetime
             if ocr_data.get("date"):
                 try:
@@ -122,25 +112,20 @@ async def upload_document(
             print(f"❌ OCR Error: {ocr_error}")
             import traceback
             traceback.print_exc()
-            # Set status to UPLOADED if OCR fails
             db_obj.status = DocumentStatus.UPLOADED
             db.commit()
             db.refresh(db_obj)
             print(f"⚠️  Document saved with UPLOADED status (OCR failed)")
-            # Continue without failing the upload
 
         return db_obj
         
     except HTTPException:
-        # Re-raise HTTP exceptions
         raise
     except Exception as e:
-        # Log the error for debugging
         print(f"Upload error: {str(e)}")
         import traceback
         traceback.print_exc()
         
-        # Raise a more informative error
         raise HTTPException(
             status_code=500,
             detail=f"Erreur lors de l'upload du document: {str(e)}"
@@ -159,10 +144,8 @@ def read_documents(
     Retrieve documents filtered by tenant.
     """
     try:
-        # Filtrer par tenant_id de l'utilisateur pour la sécurité
         query = db.query(Document).filter(Document.tenant_id == current_user.tenant_id)
         
-        # Filtrer par client si spécifié
         if client_id:
             query = query.filter(Document.client_id == client_id)
         
@@ -232,23 +215,19 @@ class ValidationData(BaseModel):
     due_date: Optional[date] = None
     supplier_name: Optional[str] = None
 
-    # Montants (compat payload front)
     amount_ht: Optional[Decimal] = None
     amount_vat: Optional[Decimal] = None
     amount_ttc: Optional[Decimal] = None
 
-    # Montants (compat payload legacy)
     total_amount: Optional[Decimal] = None
     tax_amount: Optional[Decimal] = None
 
     description: str
-    # Accounting overrides
     account_number: Optional[str] = None
     journal_code: Optional[str] = "ACH"
 
     @model_validator(mode="after")
     def compute_amounts(self):
-        # Harmoniser les noms entre front et backend
         if self.total_amount is None:
             if self.amount_ttc is not None:
                 self.total_amount = self.amount_ttc
@@ -258,7 +237,6 @@ class ValidationData(BaseModel):
         if self.tax_amount is None and self.amount_vat is not None:
             self.tax_amount = self.amount_vat
 
-        # Backfill amounts
         if self.amount_ttc is None and self.total_amount is not None:
             self.amount_ttc = self.total_amount
         if self.amount_vat is None and self.tax_amount is not None:
@@ -283,7 +261,6 @@ def validate_document(
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
 
-    # 1. Update Document Metadata
     document.status = DocumentStatus.VALIDATED
     document.reference_number = validation_data.reference_number or document.reference_number
     document.document_date = validation_data.date
@@ -292,9 +269,7 @@ def validate_document(
     document.amount_vat = float(validation_data.amount_vat) if validation_data.amount_vat is not None else document.amount_vat
     document.amount_ttc = float(validation_data.amount_ttc) if validation_data.amount_ttc is not None else document.amount_ttc
     document.description = validation_data.description
-    # document.extracted_data = validation_data.model_dump(mode='json') # Optional: update extracted data
     
-    # 2. Manage Supplier & Rules
     supplier_name = (validation_data.supplier_name or "").strip()
     if not supplier_name:
         raise HTTPException(status_code=422, detail="supplier_name est requis")
@@ -313,14 +288,11 @@ def validate_document(
 
     document.supplier_id = supplier.id
     
-    # Update rules if provided
     if validation_data.account_number:
         supplier.default_account = validation_data.account_number
     if validation_data.journal_code:
         supplier.default_journal = validation_data.journal_code
     
-    # 3. Generate Accounting Entries (Simple Schema: Expense + VAT = Payable)
-    # Expense Line (Debit)
     if validation_data.total_amount is None or validation_data.tax_amount is None:
         raise HTTPException(status_code=422, detail="Montants invalides (total_amount/tax_amount) - vérifiez HT/TVA/TTC")
 
@@ -341,7 +313,6 @@ def validate_document(
     )
     db.add(entry_expense)
     
-    # VAT Line (Debit)
     if validation_data.tax_amount > 0:
         entry_vat = AccountingEntry(
             document_id=document.id,
@@ -357,7 +328,6 @@ def validate_document(
         )
         db.add(entry_vat)
         
-    # Payable Line (Credit)
     entry_payable = AccountingEntry(
         document_id=document.id,
         entry_type=EntryType.CREDIT,

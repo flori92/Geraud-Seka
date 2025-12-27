@@ -151,7 +151,7 @@ export default function AccountingDashboardPage() {
 
     const totalEntries = entriesList.length;
     const totalDebit = entriesList.reduce((sum, e) => sum + (e?.amount || 0), 0);
-    const totalCredit = totalDebit; // Dans une écriture équilibrée, débit = crédit
+    const totalCredit = totalDebit;
     
     const assetAccounts = accountsList.filter(a => a?.account_type === "asset");
     const liabilityAccounts = accountsList.filter(a => a?.account_type === "liability");

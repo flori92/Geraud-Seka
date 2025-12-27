@@ -11,7 +11,6 @@ from app.models.tenant import Tenant
 
 router = APIRouter()
 
-# Mock subscription data
 MOCK_SUBSCRIPTION = {
     "id": "sub_seka_123456",
     "tenant_id": "tenant_001",
@@ -46,7 +45,6 @@ MOCK_SUBSCRIPTION = {
     }
 }
 
-# Mock billing history
 MOCK_BILLING_HISTORY = [
     {
         "id": "inv_2025_03",

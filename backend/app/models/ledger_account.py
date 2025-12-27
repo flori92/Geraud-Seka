@@ -26,18 +26,14 @@ class LedgerAccount(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
     
-    # Relations
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
     
-    # Informations du compte
     account_code = Column(String(20), nullable=False, index=True)  # Code SYSCOHADA
     account_name = Column(String(255), nullable=False)
     account_type = Column(SQLEnum(AccountType), nullable=False, index=True)
     
-    # Solde et devise
     balance = Column(Numeric(15, 2), default=0, nullable=False)
     currency = Column(String(3), default="XOF", nullable=False)
     
-    # Métadonnées
     description = Column(String(500), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)

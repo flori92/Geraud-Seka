@@ -7,7 +7,6 @@ from fastapi import APIRouter
 
 router = APIRouter()
 
-# Pixel transparent 1x1 PNG (43 bytes)
 TRACKING_PIXEL = bytes([
     0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
     0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
@@ -36,13 +35,11 @@ def parse_user_agent(user_agent: str) -> dict:
     
     ua_lower = user_agent.lower()
     
-    # Device type
     if "mobile" in ua_lower or "android" in ua_lower and "mobile" in ua_lower:
         result["device_type"] = "mobile"
     elif "tablet" in ua_lower or "ipad" in ua_lower:
         result["device_type"] = "tablet"
     
-    # Browser
     if "chrome" in ua_lower and "edg" not in ua_lower:
         result["browser"] = "Chrome"
     elif "firefox" in ua_lower:
@@ -54,7 +51,6 @@ def parse_user_agent(user_agent: str) -> dict:
     elif "opera" in ua_lower or "opr" in ua_lower:
         result["browser"] = "Opera"
     
-    # OS
     if "windows" in ua_lower:
         result["os"] = "Windows"
     elif "mac os" in ua_lower or "macintosh" in ua_lower:
@@ -69,8 +65,6 @@ def parse_user_agent(user_agent: str) -> dict:
     return result
 
 
-# ==================== ROUTES PUBLIQUES DE TRACKING ====================
-# Ces routes n'ont PAS besoin d'authentification (appelées depuis les emails)
 
 @router.get("/open/{token}.png")
 async def track_email_open(
@@ -83,23 +77,19 @@ async def track_email_open(
     Retourne une image PNG transparente 1x1
     """
     try:
-        # Trouver le tracking par token
         tracking = db.query(EmailTracking).filter(
             EmailTracking.tracking_token == token
         ).first()
         
         if tracking:
-            # Mettre à jour les compteurs
             tracking.open_count += 1
             tracking.last_opened_at = datetime.utcnow()
             if not tracking.first_opened_at:
                 tracking.first_opened_at = datetime.utcnow()
             
-            # Parser les infos du client
             user_agent = request.headers.get("user-agent", "")
             ua_info = parse_user_agent(user_agent)
             
-            # Créer l'événement
             event = EmailEvent(
                 tracking_id=tracking.id,
                 event_type=EmailEventType.OPENED,
@@ -111,7 +101,6 @@ async def track_email_open(
             )
             db.add(event)
             
-            # Mettre à jour le lead ou contact associé
             if tracking.lead_id:
                 lead = db.query(Lead).filter(Lead.id == tracking.lead_id).first()
                 """
@@ -133,7 +122,6 @@ async def track_email_click(
     Tracking de clic sur un lien dans l'email
     Redirige vers l'URL de destination après enregistrement
     """
-    # Trouver le lien par token
     link = db.query(EmailLink).filter(
         EmailLink.link_token == token
     ).first()
@@ -142,10 +130,8 @@ async def track_email_click(
         raise HTTPException(status_code=404, detail="Lien non trouvé")
     
     try:
-        # Mettre à jour le compteur du lien
         link.click_count += 1
         
-        # Mettre à jour le tracking parent
         tracking = link.tracking
         if tracking:
             tracking.click_count += 1
@@ -153,11 +139,9 @@ async def track_email_click(
             if not tracking.first_clicked_at:
                 tracking.first_clicked_at = datetime.utcnow()
             
-            # Parser les infos du client
             user_agent = request.headers.get("user-agent", "")
             ua_info = parse_user_agent(user_agent)
             
-            # Créer l'événement
             event = EmailEvent(
                 tracking_id=tracking.id,
                 event_type=EmailEventType.CLICKED,
@@ -170,7 +154,6 @@ async def track_email_click(
             )
             db.add(event)
             
-            # Mettre à jour le lead ou contact associé
             if tracking.lead_id:
                 lead = db.query(Lead).filter(Lead.id == tracking.lead_id).first()
                 if lead:
@@ -187,11 +170,9 @@ async def track_email_click(
         print(f"Error tracking email click: {e}")
         db.rollback()
     
-    # Rediriger vers l'URL de destination
     return RedirectResponse(url=link.original_url, status_code=302)
 
 
-# ==================== ROUTES AUTHENTIFIÉES (API CRM) ====================
 
 class CreateTrackingRequest(BaseModel):
     """Requête pour créer un tracking email"""
@@ -222,10 +203,8 @@ async def create_email_tracking(
     Créer un nouveau tracking pour un email à envoyer
     Retourne les URLs de tracking à insérer dans l'email
     """
-    # Générer le token
     token = generate_tracking_token()
     
-    # Créer le tracking
     tracking = EmailTracking(
         tracking_token=token,
         recipient_email=data.recipient_email,
@@ -242,7 +221,6 @@ async def create_email_tracking(
     db.commit()
     db.refresh(tracking)
     
-    # Construire les URLs
     base_url = "https://www.sekagestion.com/api/v1/email"
     
     return CreateTrackingResponse(
@@ -275,7 +253,6 @@ async def create_tracked_link(
     """
     Créer un lien tracké pour un email
     """
-    # Vérifier que le tracking existe
     tracking = db.query(EmailTracking).filter(
         and_(
             EmailTracking.id == data.tracking_id,
@@ -286,10 +263,8 @@ async def create_tracked_link(
     if not tracking:
         raise HTTPException(status_code=404, detail="Tracking non trouvé")
     
-    # Générer le token du lien
     link_token = generate_tracking_token()
     
-    # Créer le lien
     link = EmailLink(
         link_token=link_token,
         tracking_id=tracking.id,
@@ -299,7 +274,6 @@ async def create_tracked_link(
     db.add(link)
     db.commit()
     
-    # Construire l'URL trackée
     base_url = "https://www.sekagestion.com/api/v1/email"
     
     return CreateLinkResponse(
@@ -324,7 +298,6 @@ async def get_email_stats(
     """
     from datetime import timedelta
     
-    # Filtre de base
     query = db.query(EmailTracking).filter(
         EmailTracking.tenant_id == current_tenant.id,
         EmailTracking.created_at >= datetime.utcnow() - timedelta(days=days)
@@ -339,7 +312,6 @@ async def get_email_stats(
     
     trackings = query.all()
     
-    # Calculer les stats
     total_sent = len(trackings)
     total_opened = len([t for t in trackings if t.open_count > 0])
     total_clicked = len([t for t in trackings if t.click_count > 0])

@@ -9,7 +9,6 @@ from pydantic import BaseModel, Field
 from app.schemas.base import BaseSchema
 
 
-# ===== LEAD SCHEMAS =====
 
 class LeadBase(BaseModel):
     first_name: str = Field(..., min_length=1, max_length=100)
@@ -82,7 +81,6 @@ class Lead(LeadBase, BaseSchema):
         from_attributes = True
 
 
-# ===== OPPORTUNITY SCHEMAS =====
 
 class OpportunityBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
@@ -145,7 +143,6 @@ class Opportunity(OpportunityBase, BaseSchema):
         from_attributes = True
 
 
-# ===== CRM ACTIVITY SCHEMAS =====
 
 class CRMActivityBase(BaseModel):
     type: str = Field(default="note", max_length=50)
@@ -198,7 +195,6 @@ class CRMActivity(CRMActivityBase, BaseSchema):
         from_attributes = True
 
 
-# ===== CAMPAIGN SCHEMAS =====
 
 class CampaignBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)

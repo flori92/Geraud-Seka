@@ -42,10 +42,8 @@ async def get_leads(
     - **offset**: Pagination
     """
     try:
-        # Base query
         query = db.query(Lead).filter(Lead.tenant_id == current_tenant.id)
         
-        # Filtres
         if status:
             query = query.filter(Lead.status == status)
         
@@ -55,16 +53,13 @@ async def get_leads(
         if assigned_to:
             query = query.filter(Lead.assigned_to == assigned_to)
         
-        # Récupérer avec relations
         leads = query.options(
             selectinload(Lead.assignee),
             selectinload(Lead.activities)
         ).order_by(desc(Lead.score), desc(Lead.created_at)).offset(offset).limit(limit).all()
         
-        # Count total pour pagination
         total_count = query.count()
         
-        # Format response
         lead_list = []
         for lead in leads:
             lead_data = {
@@ -127,7 +122,6 @@ async def recalculate_lead_score(
         raise HTTPException(status_code=404, detail="Lead non trouvé")
     
     try:
-        # Recalculer le score
         new_score = await crm_service.calculate_lead_score(lead)
         db.commit()
         
@@ -251,10 +245,8 @@ async def get_opportunities(
     Récupère les opportunités avec filtres
     """
     try:
-        # Base query
         query = db.query(Opportunity).filter(Opportunity.tenant_id == current_tenant.id)
         
-        # Filtres
         if stage:
             query = query.filter(Opportunity.stage == stage)
         
@@ -270,7 +262,6 @@ async def get_opportunities(
             selectinload(Opportunity.assignee)
         ).order_by(desc(Opportunity.amount)).limit(limit).all()
         
-        # Format response safely
         opp_list = []
         for opp in opportunities:
             try:
@@ -293,7 +284,6 @@ async def get_opportunities(
                 }
                 opp_list.append(opp_data)
             except Exception as inner_e:
-                # Skip problematic item but log it (in a real app)
                 continue
         
         return {
@@ -302,7 +292,6 @@ async def get_opportunities(
         }
         
     except Exception as e:
-        # Return empty list instead of 500 error
         return {
             "opportunities": [],
             "count": 0,
@@ -328,7 +317,6 @@ async def get_conversion_funnel(
         return funnel_analysis
         
     except Exception as e:
-        # Return empty/default structure instead of crashing
         return {
             "stages": [],
             "conversion_rates": {},
@@ -349,7 +337,6 @@ async def send_follow_up(
     Envoyer un follow-up automatique personnalisé
     """
     try:
-        # Vérifier que le lead existe
         lead = db.query(Lead).filter(
             and_(
                 Lead.id == lead_id,
@@ -360,7 +347,6 @@ async def send_follow_up(
         if not lead:
             raise HTTPException(status_code=404, detail="Lead non trouvé")
         
-        # Lancer l'envoi en arrière-plan
         background_tasks.add_task(
             crm_service.send_automated_follow_up,
             lead_id=lead_id
@@ -393,7 +379,6 @@ async def get_crm_activities(
     try:
         start_date = datetime.utcnow() - timedelta(days=days_back)
         
-        # Base query
         query = db.query(CRMActivity).filter(
             and_(
                 CRMActivity.tenant_id == current_tenant.id,
@@ -401,7 +386,6 @@ async def get_crm_activities(
             )
         )
         
-        # Filtres
         if activity_type:
             query = query.filter(CRMActivity.type == activity_type)
         
@@ -418,7 +402,6 @@ async def get_crm_activities(
             selectinload(CRMActivity.assignee)
         ).order_by(desc(CRMActivity.created_at)).limit(limit).all()
         
-        # Format response safely
         activity_list = []
         for activity in activities:
             try:
@@ -479,7 +462,6 @@ async def get_crm_dashboard(
     Dashboard CRM avec métriques clés
     """
     try:
-        # Métriques leads
         total_leads = db.query(Lead).filter(Lead.tenant_id == current_tenant.id).count()
         
         hot_leads_count = db.query(Lead).filter(
@@ -489,12 +471,10 @@ async def get_crm_dashboard(
             )
         ).count()
         
-        # Métriques opportunités
         total_opportunities = db.query(Opportunity).filter(
             Opportunity.tenant_id == current_tenant.id
         ).count()
         
-        # Pipeline value
         pipeline_value = db.query(func.sum(Opportunity.amount)).filter(
             and_(
                 Opportunity.tenant_id == current_tenant.id,
@@ -507,7 +487,6 @@ async def get_crm_dashboard(
             )
         ).scalar() or 0
         
-        # Activités cette semaine
         week_start = datetime.utcnow() - timedelta(days=7)
         activities_this_week = db.query(CRMActivity).filter(
             and_(
@@ -542,7 +521,6 @@ async def get_crm_dashboard(
         )
 
 
-# ==================== CONTACTS CRM ====================
 
 @router.get("/contacts/", response_model=List[contact_schema.ContactWithRelations])
 async def get_contacts(
@@ -567,10 +545,8 @@ async def get_contacts(
     - **is_active**: Filtrer les contacts actifs (défaut: True)
     """
     try:
-        # Base query
         query = db.query(Contact).filter(Contact.tenant_id == current_tenant.id)
         
-        # Filtres
         if client_id:
             query = query.filter(Contact.client_id == client_id)
         
@@ -586,14 +562,12 @@ async def get_contacts(
         if is_active is not None:
             query = query.filter(Contact.is_active == is_active)
         
-        # Récupérer avec relations
         contacts = query.options(
             selectinload(Contact.client),
             selectinload(Contact.lead),
             selectinload(Contact.assignee)
         ).order_by(desc(Contact.is_primary), Contact.last_name).offset(offset).limit(limit).all()
         
-        # Format response
         contact_list = []
         for contact in contacts:
             contact_data = {
@@ -659,7 +633,6 @@ async def create_contact(
 ):
     """Créer un nouveau contact"""
     try:
-        # Vérifier que le client ou lead existe si spécifié
         if contact_in.client_id:
             client = db.query(Client).filter(
                 and_(
@@ -680,7 +653,6 @@ async def create_contact(
             if not lead:
                 raise HTTPException(status_code=404, detail="Lead non trouvé")
         
-        # Créer le contact
         contact = Contact(
             **contact_in.model_dump(exclude={'assigned_to'}),
             full_name=f"{contact_in.first_name} {contact_in.last_name}",
@@ -769,7 +741,6 @@ async def get_contact_timeline(
     
     timeline = []
     
-    # Activités CRM
     for activity in contact.activities:
         timeline.append({
             "type": "activity",
@@ -785,7 +756,6 @@ async def get_contact_timeline(
             }
         })
     
-    # Opportunités liées au client/lead
     if contact.client_id:
         opportunities = db.query(Opportunity).filter(
             Opportunity.client_id == contact.client_id
@@ -806,7 +776,6 @@ async def get_contact_timeline(
                 }
             })
     
-    # Devis liés au client
     if contact.client_id:
         quotes = db.query(Quote).filter(
             Quote.client_id == contact.client_id
@@ -826,7 +795,6 @@ async def get_contact_timeline(
                 }
             })
     
-    # Événement de création du contact
     timeline.append({
         "type": "created",
         "icon": "user-plus",
@@ -836,7 +804,6 @@ async def get_contact_timeline(
         "metadata": {}
     })
     
-    # Trier par date décroissante
     timeline.sort(key=lambda x: x["date"], reverse=True)
     
     return {
@@ -867,10 +834,8 @@ async def update_contact(
         raise HTTPException(status_code=404, detail="Contact non trouvé")
     
     try:
-        # Mettre à jour les champs
         update_data = contact_in.model_dump(exclude_unset=True)
         
-        # Mettre à jour full_name si first_name ou last_name change
         if 'first_name' in update_data or 'last_name' in update_data:
             first_name = update_data.get('first_name', contact.first_name)
             last_name = update_data.get('last_name', contact.last_name)
@@ -924,7 +889,6 @@ async def delete_contact(
         )
 
 
-# ==================== OPPORTUNITÉS → DEVIS ====================
 
 @router.get("/opportunities/{opportunity_id}/quotes")
 async def get_opportunity_quotes(
@@ -1004,7 +968,6 @@ async def convert_opportunity_to_quote(
         )
     
     try:
-        # Générer le numéro de devis
         from datetime import date
         year = date.today().year
         last_quote = db.query(Quote).filter(
@@ -1022,7 +985,6 @@ async def convert_opportunity_to_quote(
         
         quote_number = f"QUOTE-{year}-{new_num:04d}"
         
-        # Créer le devis
         from decimal import Decimal
         from datetime import timedelta
         
@@ -1048,7 +1010,6 @@ async def convert_opportunity_to_quote(
         db.commit()
         db.refresh(new_quote)
         
-        # Mettre à jour l'opportunité
         opportunity.stage = OpportunityStage.PROPOSAL
         db.commit()
         
@@ -1097,7 +1058,6 @@ async def get_opportunity_summary(
     if not opportunity:
         raise HTTPException(status_code=404, detail="Opportunité non trouvée")
     
-    # Activités récentes (5 dernières)
     recent_activities = sorted(
         opportunity.activities,
         key=lambda x: x.created_at,
@@ -1152,7 +1112,6 @@ async def get_opportunity_summary(
     }
 
 
-# ==================== RAPPORTS CRM ====================
 
 @router.get("/reports/performance")
 async def get_performance_report(
@@ -1168,7 +1127,6 @@ async def get_performance_report(
     """
     from datetime import timedelta
     
-    # Définir la période
     now = datetime.utcnow()
     if period == "month":
         start_date = now - timedelta(days=30)
@@ -1179,7 +1137,6 @@ async def get_performance_report(
     else:
         start_date = now - timedelta(days=30)
     
-    # Filtrer par utilisateur si spécifié
     query_filter = and_(
         Opportunity.tenant_id == current_tenant.id,
         Opportunity.created_at >= start_date
@@ -1188,10 +1145,8 @@ async def get_performance_report(
     if user_id:
         query_filter = and_(query_filter, Opportunity.assigned_to == user_id)
     
-    # Récupérer les opportunités
     opportunities = db.query(Opportunity).filter(query_filter).all()
     
-    # Récupérer les leads
     lead_query_filter = and_(
         Lead.tenant_id == current_tenant.id,
         Lead.created_at >= start_date
@@ -1201,7 +1156,6 @@ async def get_performance_report(
     
     leads = db.query(Lead).filter(lead_query_filter).all()
     
-    # Calculer les métriques
     total_leads = len(leads)
     qualified_leads = len([l for l in leads if l.status in [LeadStatus.QUALIFIED, LeadStatus.CONVERTED]])
     converted_leads = len([l for l in leads if l.status == LeadStatus.CONVERTED])
@@ -1213,11 +1167,9 @@ async def get_performance_report(
     total_value = sum(float(o.amount) for o in opportunities)
     won_value = sum(float(o.amount) for o in opportunities if o.status == "won")
     
-    # Taux de conversion
     lead_conversion_rate = (converted_leads / total_leads * 100) if total_leads > 0 else 0
     opportunity_win_rate = (won_opportunities / total_opportunities * 100) if total_opportunities > 0 else 0
     
-    # Opportunités par étape
     by_stage = {}
     for stage in OpportunityStage:
         count = len([o for o in opportunities if o.stage == stage])
@@ -1325,7 +1277,6 @@ async def get_sales_forecast(
     from datetime import timedelta
     from dateutil.relativedelta import relativedelta
     
-    # Récupérer les opportunités actives
     opportunities = db.query(Opportunity).filter(
         and_(
             Opportunity.tenant_id == current_tenant.id,
@@ -1333,7 +1284,6 @@ async def get_sales_forecast(
         )
     ).all()
     
-    # Historique des 6 derniers mois pour tendance
     six_months_ago = datetime.utcnow() - relativedelta(months=6)
     historical_won = db.query(Opportunity).filter(
         and_(
@@ -1343,7 +1293,6 @@ async def get_sales_forecast(
         )
     ).all()
     
-    # Calculer le taux de conversion historique
     total_historical = db.query(func.count(Opportunity.id)).filter(
         and_(
             Opportunity.tenant_id == current_tenant.id,
@@ -1353,7 +1302,6 @@ async def get_sales_forecast(
     
     historical_win_rate = (len(historical_won) / total_historical * 100) if total_historical > 0 else 30
     
-    # Revenu moyen par mois (6 derniers mois)
     monthly_revenue = {}
     for i in range(6):
         month_start = datetime.utcnow() - relativedelta(months=i+1)
@@ -1364,7 +1312,6 @@ async def get_sales_forecast(
     
     avg_monthly_revenue = sum(monthly_revenue.values()) / 6 if monthly_revenue else 0
     
-    # Générer les prévisions
     forecasts = []
     now = datetime.utcnow()
     
@@ -1372,7 +1319,6 @@ async def get_sales_forecast(
         forecast_month = now + relativedelta(months=i+1)
         month_key = forecast_month.strftime("%Y-%m")
         
-        # Opportunités qui devraient se fermer ce mois
         month_opportunities = [
             o for o in opportunities 
             if o.expected_close_date and 
@@ -1380,7 +1326,6 @@ async def get_sales_forecast(
             o.expected_close_date.year == forecast_month.year
         ]
         
-        # Scénarios
         optimistic = sum(float(o.amount) for o in month_opportunities)  # 100% des opportunités
         realistic = sum(o.weighted_amount for o in month_opportunities)  # Basé sur probabilité
         conservative = realistic * (historical_win_rate / 100)  # Basé sur taux historique
@@ -1423,7 +1368,6 @@ async def get_conversion_funnel(
     """
     from datetime import timedelta
     
-    # Définir la période
     now = datetime.utcnow()
     if period == "month":
         start_date = now - timedelta(days=30)
@@ -1432,7 +1376,6 @@ async def get_conversion_funnel(
     else:
         start_date = now - timedelta(days=365)
     
-    # Leads
     total_leads = db.query(func.count(Lead.id)).filter(
         and_(
             Lead.tenant_id == current_tenant.id,
@@ -1448,7 +1391,6 @@ async def get_conversion_funnel(
         )
     ).scalar()
     
-    # Opportunités
     total_opportunities = db.query(func.count(Opportunity.id)).filter(
         and_(
             Opportunity.tenant_id == current_tenant.id,
@@ -1456,7 +1398,6 @@ async def get_conversion_funnel(
         )
     ).scalar()
     
-    # Devis
     total_quotes = db.query(func.count(Quote.id)).filter(
         and_(
             Quote.tenant_id == current_tenant.id,
@@ -1472,7 +1413,6 @@ async def get_conversion_funnel(
         )
     ).scalar()
     
-    # Ventes (opportunités gagnées)
     won_opportunities = db.query(func.count(Opportunity.id)).filter(
         and_(
             Opportunity.tenant_id == current_tenant.id,
@@ -1481,7 +1421,6 @@ async def get_conversion_funnel(
         )
     ).scalar()
     
-    # Calculer les taux de conversion
     lead_to_opportunity = (total_opportunities / total_leads * 100) if total_leads > 0 else 0
     opportunity_to_quote = (total_quotes / total_opportunities * 100) if total_opportunities > 0 else 0
     quote_to_sale = (accepted_quotes / total_quotes * 100) if total_quotes > 0 else 0

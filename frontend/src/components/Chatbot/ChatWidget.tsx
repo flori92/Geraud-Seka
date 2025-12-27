@@ -59,7 +59,6 @@ export function ChatWidget() {
         };
         setMessages((prev) => [...prev, botMessage]);
       } else {
-        // Fallback response if API fails
         const fallbackMessage: Message = {
           id: (Date.now() + 1).toString(),
           text: 'Je suis actuellement indisponible. Veuillez contacter support@sekagestion.com pour une assistance immédiate.',

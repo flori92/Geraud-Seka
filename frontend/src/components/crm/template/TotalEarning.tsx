@@ -1,6 +1,5 @@
 'use client'
 
-// MUI Imports
 import Card from '@mui/material/Card'
 import CardHeader from '@mui/material/CardHeader'
 import CardContent from '@mui/material/CardContent'
@@ -11,10 +10,8 @@ import IconButton from '@mui/material/IconButton'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
 import ArrowDropUpIcon from '@mui/icons-material/ArrowDropUp'
 
-// Icons
 import { Smartphone, Layers, Code, DollarSign, Briefcase } from 'lucide-react'
 
-// Types
 type ThemeColor = 'primary' | 'secondary' | 'error' | 'warning' | 'info' | 'success'
 
 export interface TopOpportunity {

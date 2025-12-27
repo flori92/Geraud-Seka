@@ -11,7 +11,6 @@ from app.models.accounting_advanced import JournalEntry, JournalEntryLine, Journ
 from app.models.ledger_account import LedgerAccount
 
 
-# Règles de validation par type de journal (conforme au document d'architecture)
 JOURNAL_VALIDATION_RULES = {
     JournalType.PURCHASE: {
         "name": "Journal des Achats",
@@ -91,19 +90,15 @@ class JournalValidationService:
         """
         errors = []
 
-        # 1. Validation de l'équilibre (règle fondamentale)
         balance_errors = self._validate_balance(entry)
         errors.extend(balance_errors)
 
-        # 2. Validation spécifique au type de journal
         journal_errors = self._validate_journal_rules(entry)
         errors.extend(journal_errors)
 
-        # 3. Validation des montants
         amount_errors = self._validate_amounts(entry)
         errors.extend(amount_errors)
 
-        # Déterminer si l'écriture est valide (pas d'erreurs de type "error")
         is_valid = not any(e.severity == "error" for e in errors)
 
         return is_valid, errors
@@ -134,13 +129,11 @@ class JournalValidationService:
 
         rules = JOURNAL_VALIDATION_RULES.get(JournalType(journal_type), {})
 
-        # Extraire les codes de compte des lignes
         account_codes = []
         for line in entry.lines:
             if line.account:
                 account_codes.append(line.account.account_code if hasattr(line.account, 'account_code') else str(line.account.account_number))
 
-        # Vérifier les comptes obligatoires
         comptes_obligatoires = rules.get("comptes_obligatoires", [])
         for pattern in comptes_obligatoires:
             if not self._has_matching_account(account_codes, pattern):
@@ -150,7 +143,6 @@ class JournalValidationService:
                     severity="error"
                 ))
 
-        # Vérifier le compte principal (banque, caisse)
         compte_principal = rules.get("compte_principal")
         if compte_principal:
             if not self._has_matching_account(account_codes, compte_principal):
@@ -160,7 +152,6 @@ class JournalValidationService:
                     severity="error"
                 ))
 
-        # Vérifier les comptes autorisés
         comptes_autorises = rules.get("comptes_autorises", [])
         if comptes_autorises and comptes_autorises != "*":
             for code in account_codes:
@@ -171,7 +162,6 @@ class JournalValidationService:
                         severity="warning"
                     ))
 
-        # Vérifier le solde négatif pour la caisse
         if rules.get("solde_negatif_interdit"):
             cash_balance = self._get_cash_balance(account_codes)
             if cash_balance < 0:
@@ -181,7 +171,6 @@ class JournalValidationService:
                     severity="error"
                 ))
 
-        # Avertissement si justification requise (OD)
         if rules.get("justification_requise"):
             if not entry.notes and not entry.reference:
                 errors.append(JournalValidationError(
@@ -200,7 +189,6 @@ class JournalValidationService:
             debit = line.debit or Decimal("0")
             credit = line.credit or Decimal("0")
 
-            # Une ligne ne peut pas avoir à la fois débit et crédit
             if debit > 0 and credit > 0:
                 errors.append(JournalValidationError(
                     code="DUAL_AMOUNT",
@@ -208,7 +196,6 @@ class JournalValidationService:
                     severity="error"
                 ))
 
-            # Une ligne doit avoir au moins un montant
             if debit == 0 and credit == 0:
                 errors.append(JournalValidationError(
                     code="ZERO_AMOUNT",
@@ -216,7 +203,6 @@ class JournalValidationService:
                     severity="warning"
                 ))
 
-            # Les montants doivent être positifs
             if debit < 0 or credit < 0:
                 errors.append(JournalValidationError(
                     code="NEGATIVE_AMOUNT",
@@ -244,8 +230,6 @@ class JournalValidationService:
         Calcule le solde de caisse après l'opération
         Note: Implémentation simplifiée, à améliorer avec le solde réel
         """
-        # Pour une implémentation complète, récupérer le solde actuel du compte
-        # et vérifier si l'opération le rendrait négatif
         return Decimal("0")  # Placeholder
 
 

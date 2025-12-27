@@ -16,14 +16,11 @@ class Product(Base, TimestampMixin):
     stock_quantity = Column(Integer, nullable=False, default=0)
     min_stock_alert = Column(Integer, nullable=True, default=5)
     
-    # Links
     client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id", ondelete="CASCADE"), nullable=False)
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
 
     client = relationship("Client")
     tenant = relationship("Tenant")
 
-    # Note: Product est référencé par QuoteItem, SalesInvoiceItem, PurchaseOrderItem, DeliveryNoteItem
-    # Les relations inverses sont gérées automatiquement par SQLAlchemy via les ForeignKeys
 
     __table_args__ = ({"sqlite_autoincrement": True},)

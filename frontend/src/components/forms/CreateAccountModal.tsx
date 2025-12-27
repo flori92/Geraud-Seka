@@ -62,7 +62,6 @@ export function CreateAccountModal({
       if (response.ok) {
         onSuccess();
         onClose();
-        // Reset form
         setFormData({
           account_code: "",
           account_name: "",

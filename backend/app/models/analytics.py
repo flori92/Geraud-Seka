@@ -38,27 +38,22 @@ class Metric(Base, TimestampMixin):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     
-    # Identification métrique
     name = Column(String(100), nullable=False, index=True)
     display_name = Column(String(150))
     description = Column(Text)
     category = Column(String(50), nullable=False, index=True)
     
-    # Valeur et unité
     value = Column(Float, nullable=False)
     previous_value = Column(Float)  # Valeur précédente pour calcul variation
     unit = Column(String(20))  # €, %, count, etc.
     
-    # Métadonnées
     calculation_method = Column(String(100))  # sum, avg, count, custom
     period = Column(String(20))  # daily, weekly, monthly, yearly
     timestamp = Column(DateTime, nullable=False, default=datetime.utcnow, index=True)
     
-    # Relations tenant
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
     tenant = relationship("Tenant")
 
-    # Métadonnées supplémentaires JSON
     extra_metadata = Column("metadata", JSON)  # Stockage flexible pour données spécifiques
 
     @property
@@ -88,21 +83,17 @@ class Dashboard(Base, TimestampMixin):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     
-    # Identification
     name = Column(String(100), nullable=False)
     description = Column(Text)
     slug = Column(String(150), unique=True, nullable=False)
     
-    # Configuration dashboard
     layout = Column(JSON, nullable=False)  # Configuration widgets et layout
     filters = Column(JSON)  # Filtres par défaut
     refresh_interval = Column(Integer, default=30)  # Secondes
     
-    # Partage et permissions
     is_public = Column(Boolean, default=False)
     is_default = Column(Boolean, default=False)
     
-    # Relations
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
     
@@ -116,27 +107,22 @@ class Alert(Base, TimestampMixin):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     
-    # Contenu alerte
     title = Column(String(200), nullable=False)
     message = Column(Text, nullable=False)
     severity = Column(String(20), nullable=False, default=AlertSeverity.INFO)
     
-    # Trigger et conditions
     metric_name = Column(String(100))  # Métrique qui a déclenché l'alerte
     threshold_value = Column(Float)
     actual_value = Column(Float)
     condition = Column(String(50))  # greater_than, less_than, equals, etc.
     
-    # État
     is_read = Column(Boolean, default=False)
     is_resolved = Column(Boolean, default=False)
     resolved_at = Column(DateTime)
     resolved_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     
-    # Actions suggérées
     suggested_actions = Column(JSON)  # Liste d'actions recommandées
     
-    # Relations
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
 
@@ -151,26 +137,20 @@ class BusinessInsight(Base, TimestampMixin):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     
-    # Contenu insight
     title = Column(String(200), nullable=False)
     description = Column(Text, nullable=False)
     insight_type = Column(String(50), nullable=False)  # trend, anomaly, opportunity, risk
     
-    # Confiance et priorité
     confidence_score = Column(Float)  # 0-1 confiance de l'IA
     priority = Column(String(20), default="medium")  # low, medium, high
     
-    # Données supportant l'insight
     supporting_data = Column(JSON)
     
-    # Actions recommandées
     recommendations = Column(JSON)  # Liste d'actions suggérées
     
-    # État
     is_dismissed = Column(Boolean, default=False)
     is_acted_upon = Column(Boolean, default=False)
     
-    # Relations
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
     tenant = relationship("Tenant")
 
@@ -181,23 +161,18 @@ class KPITarget(Base, TimestampMixin):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     
-    # Identification
     metric_name = Column(String(100), nullable=False)
     period = Column(String(20), nullable=False)  # monthly, quarterly, yearly
     
-    # Objectifs
     target_value = Column(Float, nullable=False)
     minimum_acceptable = Column(Float)
     stretch_goal = Column(Float)
     
-    # Période
     start_date = Column(DateTime, nullable=False)
     end_date = Column(DateTime, nullable=False)
     
-    # État
     is_active = Column(Boolean, default=True)
     
-    # Relations
     set_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
     
@@ -207,7 +182,6 @@ class KPITarget(Base, TimestampMixin):
     @property
     def current_progress(self) -> Optional[float]:
         """Calcule le progrès actuel vers l'objectif"""
-        # À implémenter avec la métrique actuelle
         pass
 
 
@@ -217,29 +191,23 @@ class ReportSchedule(Base, TimestampMixin):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     
-    # Configuration rapport
     name = Column(String(100), nullable=False)
     report_type = Column(String(50), nullable=False)  # executive, sales, finance, hr
     
-    # Planification
     frequency = Column(String(20), nullable=False)  # daily, weekly, monthly
     schedule_time = Column(String(10))  # HH:MM format
     timezone = Column(String(50), default="UTC")
     
-    # Configuration contenu
     metrics_included = Column(JSON)  # Liste des métriques à inclure
     filters = Column(JSON)  # Filtres appliqués
     format = Column(String(20), default="pdf")  # pdf, excel, email
     
-    # Destinataires
     recipients = Column(JSON)  # Liste emails destinataires
     
-    # État
     is_active = Column(Boolean, default=True)
     last_sent = Column(DateTime)
     next_send = Column(DateTime)
     
-    # Relations
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
     

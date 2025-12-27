@@ -21,7 +21,6 @@ from datetime import date, timedelta
 router = APIRouter()
 
 
-# Pydantic Schemas
 class SupplierBase(BaseModel):
     name: str
     nif: Optional[str] = None
@@ -54,7 +53,6 @@ class SupplierResponse(SupplierBase):
         from_attributes = True
 
 
-# Balance DTOs
 class SupplierBalanceRow(BaseModel):
     id: str
     supplier_name: str
@@ -100,10 +98,8 @@ async def list_suppliers(
         
         suppliers = query.offset(skip).limit(limit).all()
         
-        # Calculate order stats for each supplier
         result = []
         for supplier in suppliers:
-            # Get order stats
             order_stats = db.query(
                 func.count(PurchaseOrder.id).label('total_orders'),
                 func.coalesce(func.sum(PurchaseOrder.total_amount), 0).label('total_spent')
@@ -175,7 +171,6 @@ async def get_suppliers_balance(
         order = (sort_order or "desc").strip().lower()
         reverse = order != "asc"
 
-        # Get all suppliers for tenant
         suppliers = db.query(Supplier).filter(
             Supplier.client_id == current_user.tenant_id
         ).all()
@@ -363,7 +358,6 @@ async def get_supplier(
     if not supplier:
         raise HTTPException(status_code=404, detail="Fournisseur non trouvé")
     
-    # Get order stats
     order_stats = db.query(
         func.count(PurchaseOrder.id).label('total_orders'),
         func.coalesce(func.sum(PurchaseOrder.total_amount), 0).label('total_spent')
@@ -410,7 +404,6 @@ async def create_supplier(
             client_id=current_user.tenant_id
         )
         
-        # Add optional contact fields if the model supports them
         if hasattr(supplier, 'contact_name'):
             supplier.contact_name = supplier_data.contact_name
         if hasattr(supplier, 'email'):
@@ -475,7 +468,6 @@ async def update_supplier(
         db.commit()
         db.refresh(supplier)
         
-        # Get order stats
         order_stats = db.query(
             func.count(PurchaseOrder.id).label('total_orders'),
             func.coalesce(func.sum(PurchaseOrder.total_amount), 0).label('total_spent')

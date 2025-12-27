@@ -28,7 +28,7 @@ interface CreditNote {
   status: "draft" | "validated" | "refunded";
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http:
 
 export default function CreditNotesPage() {
   const router = useRouter();
@@ -56,7 +56,7 @@ export default function CreditNotesPage() {
     }
   };
 
-  useEffect(() => { fetchCreditNotes(); // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchCreditNotes();
   }, []);
 
   const formatCurrency = (amount: number) => {

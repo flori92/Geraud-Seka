@@ -71,7 +71,6 @@ export function ExecutiveDashboard({ tenantId, userId }: DashboardProps) {
   const [selectedPeriod, setSelectedPeriod] = useState('month');
   const [selectedCategory, setSelectedCategory] = useState('all');
   
-  // Auto-refresh toutes les 30 secondes
   useEffect(() => {
     fetchDashboardData();
     const interval = setInterval(fetchDashboardData, 30000);
@@ -82,7 +81,6 @@ export function ExecutiveDashboard({ tenantId, userId }: DashboardProps) {
     try {
       setIsLoading(true);
       
-      // Fetch metrics en parallèle avec API_BASE_URL
       const token = localStorage.getItem('seka_access_token');
       const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
       
@@ -342,7 +340,6 @@ export function ExecutiveDashboard({ tenantId, userId }: DashboardProps) {
           </div>
           <div className="p-6">
             <AlertsPanel alerts={alerts} onMarkAsRead={(id: string) => {
-              // TODO: Appeler API pour marquer comme lu
               setAlerts(alerts.map(alert => 
                 alert.id === id ? { ...alert, is_read: true } : alert
               ));

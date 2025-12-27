@@ -34,7 +34,6 @@ class SekaBot:
     def __init__(self):
         self.monitoring = monitoring_service
         
-        # Patterns de reconnaissance d'intention
         self.intent_patterns = {
             'revenue_query': [
                 r'chiffre.*affaires?',
@@ -84,7 +83,6 @@ class SekaBot:
             ]
         }
         
-        # Mots-clés temporels
         self.time_patterns = {
             'today': ['aujourd\'hui', 'ce jour'],
             'week': ['semaine', 'hebdo'],
@@ -107,16 +105,12 @@ class SekaBot:
             Réponse formatée avec données et visualisations
         """
         try:
-            # Nettoyage et préparation du message
             clean_message = self._clean_message(message)
             
-            # Détection d'intention
             intent = self._detect_intent(clean_message)
             
-            # Extraction des paramètres temporels
             time_period = self._extract_time_period(clean_message)
             
-            # Log de l'interaction
             self.monitoring.log_business_event(
                 event_type="bot_query",
                 description=f"Query: {message[:100]}... Intent: {intent}",
@@ -129,7 +123,6 @@ class SekaBot:
                 }
             )
             
-            # Génération de réponse basée sur l'intention
             response = await self._generate_response(intent, time_period, tenant_id, user_id, db, clean_message)
             
             return response
@@ -183,7 +176,6 @@ class SekaBot:
     async def _handle_greeting(self, tenant_id: str, user_id: str, db: Session) -> Dict[str, Any]:
         """Gestion des salutations avec résumé personnalisé"""
         try:
-            # Récupérer quelques métriques rapides pour personnaliser
             today_revenue = await self._get_today_revenue(tenant_id, db)
             pending_tasks = await self._get_pending_tasks(user_id, db)
             
@@ -193,7 +185,6 @@ class SekaBot:
                 "Hello ! Comment puis-je vous aider avec SEKA aujourd'hui ?"
             ]
             
-            # Choisir le message selon les données disponibles
             if today_revenue > 0:
                 message = greeting_messages[0]
             elif pending_tasks > 0:
@@ -234,14 +225,12 @@ class SekaBot:
     async def _handle_revenue_query(self, time_period: str, tenant_id: str, db: Session) -> Dict[str, Any]:
         """Gestion des requêtes sur le chiffre d'affaires"""
         try:
-            # Récupérer les métriques via le service analytics
             metrics = await analytics_service.calculate_real_time_metrics(tenant_id, time_period)
             
             revenue_data = metrics.get('total_revenue', {})
             current_revenue = revenue_data.get('value', 0)
             previous_revenue = revenue_data.get('previous_value', 0)
             
-            # Calcul de la variation
             if previous_revenue > 0:
                 change_percent = ((current_revenue - previous_revenue) / previous_revenue) * 100
                 trend = "hausse" if change_percent > 0 else "baisse"
@@ -251,14 +240,12 @@ class SekaBot:
                 trend = "stable"
                 trend_emoji = "📊"
             
-            # Construction de la réponse
             period_label = self._get_period_label(time_period)
             message = f"💰 Votre chiffre d'affaires {period_label} est de **{self._format_currency(current_revenue)}**"
             
             if abs(change_percent) > 0.1:  # Si variation significative
                 message += f"\n\n{trend_emoji} {trend.capitalize()} de {abs(change_percent):.1f}% par rapport à la période précédente"
             
-            # Analyse contextuelle
             insights = []
             if change_percent > 20:
                 insights.append("🎉 Excellente performance ! Votre croissance est remarquable.")
@@ -291,14 +278,12 @@ class SekaBot:
     async def _handle_client_query(self, time_period: str, tenant_id: str, db: Session) -> Dict[str, Any]:
         """Gestion des requêtes sur les clients"""
         try:
-            # Récupérer les métriques clients
             metrics = await analytics_service.calculate_real_time_metrics(tenant_id, time_period)
             
             active_clients = metrics.get('active_customers', {}).get('value', 0)
             new_clients = metrics.get('new_customers', {}).get('value', 0)
             total_clients = metrics.get('total_customers', {}).get('value', 0)
             
-            # Message principal
             period_label = self._get_period_label(time_period)
             
             if time_period in ['day', 'week', 'month']:
@@ -309,7 +294,6 @@ class SekaBot:
             else:
                 message = f"👥 Vous avez **{total_clients}** clients au total"
             
-            # Données CRM si disponibles
             crm_data = None
             try:
                 hot_leads = await self._get_hot_leads_count(tenant_id, db)
@@ -319,7 +303,6 @@ class SekaBot:
             except:
                 pass
             
-            # Recommandations
             suggestions = []
             if new_clients == 0:
                 suggestions.append("Lancez une campagne d'acquisition de nouveaux clients")
@@ -352,20 +335,17 @@ class SekaBot:
     async def _handle_cash_flow_query(self, time_period: str, tenant_id: str, db: Session) -> Dict[str, Any]:
         """Gestion des requêtes sur la trésorerie"""
         try:
-            # Récupérer métriques trésorerie
             metrics = await analytics_service.calculate_real_time_metrics(tenant_id, time_period)
             
             cash_in = metrics.get('cash_inflow', {}).get('value', 0)
             cash_out = metrics.get('cash_outflow', {}).get('value', 0)
             net_cash_flow = metrics.get('net_cash_flow', {}).get('value', 0)
             
-            # Message principal
             period_label = self._get_period_label(time_period)
             message = f"💳 Trésorerie {period_label} :\n"
             message += f"• **Entrées** : {self._format_currency(cash_in)}\n"
             message += f"• **Sorties** : {self._format_currency(cash_out)}\n"
             
-            # Flux net avec indicateur visuel
             if net_cash_flow > 0:
                 message += f"• **Flux net** : +{self._format_currency(net_cash_flow)} 💚"
                 health_status = "positive"
@@ -376,7 +356,6 @@ class SekaBot:
                 message += f"• **Flux net** : {self._format_currency(net_cash_flow)} ⚖️"
                 health_status = "neutral"
             
-            # Prédictions si demandées
             forecast_data = None
             if 'prév' in message.lower() or 'futur' in message.lower():
                 try:
@@ -387,7 +366,6 @@ class SekaBot:
                 except:
                     pass
             
-            # Alertes et recommandations
             alerts = []
             if net_cash_flow < -50000:
                 alerts.append("🚨 Attention : flux négatif important. Vérifiez vos échéances.")
@@ -422,15 +400,12 @@ class SekaBot:
     async def _handle_forecast_query(self, time_period: str, tenant_id: str, db: Session) -> Dict[str, Any]:
         """Gestion des requêtes de prévisions"""
         try:
-            # Générer rapport complet de prévisions
             forecast_report = await forecasting_service.generate_business_forecast_report(tenant_id)
             
-            # Extraire les insights clés
             executive_summary = forecast_report.get('executive_summary', {})
             key_insights = executive_summary.get('key_insights', [])
             health_score = executive_summary.get('overall_health_score', 0)
             
-            # Message principal
             message = f"🔮 **Prévisions Business**\n\n"
             message += f"📊 **Score de santé** : {health_score}/100\n\n"
             
@@ -439,7 +414,6 @@ class SekaBot:
                 for i, insight in enumerate(key_insights[:3], 1):
                     message += f"{i}. {insight}\n"
             
-            # Actions prioritaires
             priority_actions = forecast_report.get('priority_actions', [])
             if priority_actions:
                 message += f"\n⚡ **Actions prioritaires :**\n"
@@ -509,7 +483,6 @@ Je peux vous aider avec :
     async def _handle_unknown_query(self, message: str, tenant_id: str, db: Session) -> Dict[str, Any]:
         """Gestion des requêtes non reconnues avec suggestions intelligentes"""
         
-        # Essayer de donner des suggestions contextuelles
         suggestions = [
             "Quel est mon chiffre d'affaires ce mois ?",
             "Combien j'ai de nouveaux clients ?",
@@ -517,7 +490,6 @@ Je peux vous aider avec :
             "Prévisions pour les 3 prochains mois"
         ]
         
-        # Analyser le message pour des mots-clés partiels
         message_lower = message.lower()
         if any(word in message_lower for word in ['stock', 'produit', 'inventaire']):
             suggestions = [
@@ -543,11 +515,9 @@ Je peux vous aider avec :
             ]
         }
     
-    # Méthodes utilitaires
     
     def _clean_message(self, message: str) -> str:
         """Nettoie et normalise le message"""
-        # Suppression des caractères spéciaux, normalisation
         cleaned = re.sub(r'[^\w\s\-\'àâäéèêëïîôöùûüÿç]', ' ', message.lower())
         cleaned = re.sub(r'\s+', ' ', cleaned).strip()
         return cleaned
@@ -604,7 +574,6 @@ Je peux vous aider avec :
     
     async def _get_pending_tasks(self, user_id: str, db: Session) -> int:
         """Récupère le nombre de tâches en attente"""
-        # Placeholder - à implémenter selon le modèle de tâches
         return 0
     
     async def _get_hot_leads_count(self, tenant_id: str, db: Session) -> int:
@@ -647,5 +616,4 @@ Je peux vous aider avec :
         return suggestions[:3]  # Limiter à 3 suggestions
 
 
-# Instance singleton
 seka_bot = SekaBot()

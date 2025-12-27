@@ -6,7 +6,6 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 
-# ========== Payment Schemas ==========
 
 class PaymentBase(BaseModel):
     """Base schema pour les paiements."""
@@ -41,7 +40,6 @@ class Payment(PaymentBase):
     model_config = ConfigDict(from_attributes=True)
 
 
-# ========== SalesInvoiceItem Schemas ==========
 
 class SalesInvoiceItemBase(BaseModel):
     """Base schema pour les lignes de facture."""
@@ -83,7 +81,6 @@ class SalesInvoiceItem(SalesInvoiceItemBase):
     model_config = ConfigDict(from_attributes=True)
 
 
-# ========== SalesInvoice Schemas ==========
 
 class SalesInvoiceBase(BaseModel):
     """Base schema pour les factures de vente."""

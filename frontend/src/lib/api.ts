@@ -323,7 +323,6 @@ export async function validateDocument(
   return response.data;
 }
 
-// Activities
 export interface Activity {
   id: string;
   type: "REVENUE" | "EXPENSE";
@@ -357,7 +356,6 @@ export async function createActivity(data: ActivityCreate, accessToken: string):
   return response.data;
 }
 
-// Products
 export interface Product {
   id: string;
   name: string;
@@ -375,7 +373,7 @@ export interface ProductCreate {
   price: number;
   stock_quantity: number;
   min_stock_alert?: number;
-  client_id?: string; // Optional - backend will use tenant from JWT if not provided
+  client_id?: string;
 }
 
 export interface ProductUpdate {
@@ -439,7 +437,6 @@ export const getAnomalies = async () => {
   return response.data;
 };
 
-// Payments
 export interface StripeCustomerCreate {
   email: string;
   name: string;
@@ -504,11 +501,9 @@ export async function verifyKKiaPayTransaction(
   return response.data;
 }
 
-// ========== CRM APIs ==========
 
 const CRM_DISABLED_ERROR = "CRM supprimé";
 
-// Opportunities
 export interface Opportunity {
   id: string;
   title: string;
@@ -545,7 +540,6 @@ export async function createOpportunity(_data: OpportunityCreate, _accessToken: 
   throw new Error(CRM_DISABLED_ERROR);
 }
 
-// Leads
 export interface Lead {
   id: string;
   name: string;
@@ -579,7 +573,6 @@ export async function createLead(_data: LeadCreate, _accessToken: string): Promi
   throw new Error(CRM_DISABLED_ERROR);
 }
 
-// CRM Activities
 export interface CRMActivity {
   id: string;
   type: "call" | "meeting" | "email" | "task";
@@ -602,7 +595,7 @@ export interface CRMActivityCreate {
   due_date?: string;
   duration_minutes?: number;
   client_id?: string;
-  assigned_to?: string; // Optional - backend will use authenticated user from JWT if not provided
+  assigned_to?: string;
 }
 
 export async function getCRMActivities(_accessToken: string): Promise<CRMActivity[]> {
@@ -616,9 +609,7 @@ export async function createCRMActivity(_data: CRMActivityCreate, _accessToken: 
   throw new Error(CRM_DISABLED_ERROR);
 }
 
-// ========== SALES APIs ==========
 
-// Quotes
 export interface Quote {
   id: string;
   number: string;
@@ -655,7 +646,7 @@ export async function getQuotes(accessToken: string): Promise<Quote[]> {
     const response = await api.get<QuotesResponse | Quote[]>("/sales/quotes/", {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
-    // Handle both wrapped and array responses
+   
     if (Array.isArray(response.data)) {
       return response.data;
     }
@@ -673,7 +664,6 @@ export async function createQuote(data: QuoteCreate, accessToken: string): Promi
   return response.data;
 }
 
-// Invoices
 export interface Invoice {
   id: string;
   number: string;
@@ -711,7 +701,7 @@ export async function getInvoices(accessToken: string): Promise<Invoice[]> {
     const response = await api.get<InvoicesResponse | Invoice[]>("/sales/invoices/", {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
-    // Handle both wrapped and array responses
+   
     if (Array.isArray(response.data)) {
       return response.data;
     }
@@ -729,9 +719,7 @@ export async function createInvoice(data: InvoiceCreate, accessToken: string): P
   return response.data;
 }
 
-// ========== HR APIs ==========
 
-// Employees
 export interface Employee {
   id: string;
   first_name: string;
@@ -778,7 +766,6 @@ export async function createEmployee(data: EmployeeCreate, accessToken: string):
   return response.data;
 }
 
-// Contracts
 export interface Contract {
   id: string;
   employee_id: string;
@@ -820,7 +807,6 @@ export async function createContract(data: ContractCreate, accessToken: string):
   return response.data;
 }
 
-// Payslips
 export interface Payslip {
   id: string;
   employee_id: string;
@@ -864,7 +850,6 @@ export async function createPayslip(data: PayslipCreate, accessToken: string): P
   return response.data;
 }
 
-// Leaves
 export interface Leave {
   id: string;
   employee_id: string;
@@ -905,9 +890,7 @@ export async function createLeave(data: LeaveCreate, accessToken: string): Promi
   return response.data;
 }
 
-// ========== ACCOUNTING APIs ==========
 
-// Journal Entries
 export interface JournalEntry {
   id: string;
   entry_number: string;
@@ -988,7 +971,6 @@ export async function createJournalEntry(data: JournalEntryCreate, accessToken: 
   return response.data;
 }
 
-// Balance Sheet
 export interface TrialBalanceItem {
   account_number: string;
   account_name: string;
@@ -1050,7 +1032,6 @@ export const getBalanceSheet = async (token: string, date?: string): Promise<Bal
   return response.data;
 };
 
-// Ledger
 export interface LedgerAccount {
   id: string;
   account_code: string;
@@ -1087,7 +1068,6 @@ export async function createLedgerAccount(data: LedgerAccountCreate, accessToken
   return response.data;
 }
 
-// Treasury Dashboard
 export interface TreasuryAlert {
   severity?: "critical" | "warning" | "info" | string;
   title?: string;
@@ -1175,9 +1155,7 @@ export async function getTreasuryDashboard(accessToken: string): Promise<Treasur
   }
 }
 
-// ========== STOCK APIs ==========
 
-// Inventory
 export interface InventoryItem {
   id: string;
   product_id: string;
@@ -1212,7 +1190,7 @@ export async function getInventory(accessToken: string): Promise<InventoryItem[]
     const response = await api.get<InventoryResponse | InventoryItem[]>("/stock/", {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
-    // Handle both wrapped and array responses
+   
     if (Array.isArray(response.data)) {
       return response.data;
     }
@@ -1223,13 +1201,12 @@ export async function getInventory(accessToken: string): Promise<InventoryItem[]
   }
 }
 
-// Stock Movements
 export interface StockMovement {
   id: string;
   product_id: string;
   product_name?: string;
   movement_type: "in" | "out" | "adjustment" | "transfer";
-  type?: "in" | "out"; // Backend uses 'type' instead of 'movement_type'
+  type?: "in" | "out";
   quantity: number;
   reference?: string;
   reason?: string;
@@ -1262,7 +1239,7 @@ export async function getStockMovements(accessToken: string): Promise<StockMovem
     const response = await api.get<MovementsResponse | StockMovement[]>("/stock/movements/", {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
-    // Handle both wrapped and array responses
+   
     if (Array.isArray(response.data)) {
       return response.data;
     }
@@ -1280,9 +1257,7 @@ export async function createStockMovement(data: StockMovementCreate, accessToken
   return response.data;
 }
 
-// ========== SALES APIs (Extended) ==========
 
-// Purchase Orders
 export interface PurchaseOrder {
   id: string;
   number: string;
@@ -1319,7 +1294,7 @@ export async function getPurchaseOrders(accessToken: string): Promise<PurchaseOr
     const response = await api.get<PurchaseOrdersResponse | PurchaseOrder[]>("/sales/purchase-orders/", {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
-    // Handle both wrapped and array responses
+   
     if (Array.isArray(response.data)) {
       return response.data;
     }
@@ -1337,7 +1312,6 @@ export async function createPurchaseOrder(data: PurchaseOrderCreate, accessToken
   return response.data;
 }
 
-// Delivery Notes
 export interface DeliveryNote {
   id: string;
   number: string;
@@ -1371,7 +1345,7 @@ export async function getDeliveryNotes(accessToken: string): Promise<DeliveryNot
     const response = await api.get<DeliveryNotesResponse | DeliveryNote[]>("/sales/delivery-notes/", {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
-    // Handle both wrapped and array responses
+   
     if (Array.isArray(response.data)) {
       return response.data;
     }
@@ -1389,7 +1363,6 @@ export async function createDeliveryNote(data: DeliveryNoteCreate, accessToken: 
   return response.data;
 }
 
-// ========== REPORTS APIs ==========
 
 export interface SalesReport {
   period: string;
@@ -1480,7 +1453,6 @@ export async function getHRReport(accessToken: string, period?: string): Promise
   return response.data;
 }
 
-// ========== TREASURY APIs ==========
 
 export interface CashFlowData {
   label: string;
@@ -1496,7 +1468,6 @@ export async function getCashFlow(accessToken: string, period?: string): Promise
   return response.data;
 }
 
-// ========== BILLING APIs ==========
 
 export interface Subscription {
   plan: string;
@@ -1529,7 +1500,6 @@ export async function getBillingHistory(accessToken: string): Promise<BillingInv
   return response.data;
 }
 
-// ========== SUPPLIERS APIs ==========
 
 export interface Supplier {
   id: string;
@@ -1603,7 +1573,6 @@ export async function deleteSupplier(accessToken: string, supplierId: string): P
   });
 }
 
-// ========== BANK TRANSACTIONS APIs ==========
 
 export interface BankTransaction {
   id: string;
@@ -1738,7 +1707,6 @@ export async function getUnreconciledTransactions(
   }
 }
 
-// ========== BANK ACCOUNTS APIs ==========
 
 export interface BankAccount {
   id: string;
@@ -1767,7 +1735,6 @@ export async function getBankAccounts(accessToken: string): Promise<BankAccount[
   }
 }
 
-// ========== DASHBOARD STATS (Extended) ==========
 
 export interface DashboardStatsExtended extends DashboardStats {
   solde_comptes: number;
@@ -1789,7 +1756,7 @@ export async function getDashboardStatsExtended(accessToken: string): Promise<Da
     return response.data;
   } catch (error) {
     console.error("Error fetching extended dashboard stats:", error);
-    // Return default values
+   
     return {
       total_clients: 0,
       active_clients: 0,
@@ -1810,7 +1777,6 @@ export async function getDashboardStatsExtended(accessToken: string): Promise<Da
   }
 }
 
-// ========== ACCOUNTING RULES APIs ==========
 
 export interface AccountingRule {
   id: string;
@@ -1909,7 +1875,6 @@ export async function toggleAccountingRule(
   return response.data;
 }
 
-// ========== JOURNALS APIs ==========
 
 export interface Journal {
   id: string;
@@ -1958,7 +1923,6 @@ export async function getJournalEntriesFiltered(
   }
 }
 
-// ========== AI LEARNING APIs ==========
 
 export interface AILearningModel {
   id: string;
@@ -1987,7 +1951,7 @@ export async function getAILearningStats(accessToken: string): Promise<AILearnin
     return response.data;
   } catch (error) {
     console.error("Error fetching AI learning stats:", error);
-    // Return default if API doesn't exist yet
+   
     return {
       average_accuracy: 0,
       total_samples: 0,
@@ -2011,7 +1975,6 @@ export async function submitAIFeedback(
   );
 }
 
-// ========== CRM CONTACTS APIs ==========
 
 export interface CRMContact {
   id: string;
@@ -2109,7 +2072,6 @@ export async function deleteCRMContact(accessToken: string, contactId: string): 
   });
 }
 
-// ========== EXTENDED CRM APIs ==========
 
 export async function getCRMLeads(accessToken: string, status?: string): Promise<Lead[]> {
   void accessToken;
@@ -2132,7 +2094,6 @@ export async function getOpportunitiesPipeline(accessToken: string): Promise<{
   return { stages: [], total_value: 0, total_weighted: 0 };
 }
 
-// ========== ACCOUNTING ANALYTICS APIs ==========
 
 export interface AccountingAnalyticsStats {
   revenue: number;

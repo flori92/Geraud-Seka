@@ -31,7 +31,6 @@ export function CreateActivityModal({ isOpen, onClose, onSuccess }: CreateActivi
     e.preventDefault();
     setError(null);
 
-    // Validation
     if (!formData.title.trim()) {
       setError("Le titre est requis");
       return;
@@ -57,12 +56,10 @@ export function CreateActivityModal({ isOpen, onClose, onSuccess }: CreateActivi
           due_date: formData.date,
           duration_minutes: formData.duration ? parseInt(formData.duration) : undefined,
           client_id: formData.client_id || undefined,
-          // assigned_to is optional - backend will use authenticated user from JWT
         },
         token
       );
 
-      // Reset form
       setFormData({
         type: "call",
         title: "",

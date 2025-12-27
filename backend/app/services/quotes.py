@@ -50,15 +50,12 @@ class QuoteService:
 
     def create_quote(self, db: Session, tenant_id: UUID, quote_data: dict) -> Quote:
         """Create a new quote"""
-        # Extract items if present
         items_data = quote_data.pop("items", [])
 
-        # Create quote
         quote = Quote(tenant_id=tenant_id, **quote_data)
         db.add(quote)
         db.flush()  # Get the quote ID
 
-        # Create items
         for item_data in items_data:
             item = QuoteItem(quote_id=quote.id, **item_data)
             db.add(item)

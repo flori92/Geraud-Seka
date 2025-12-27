@@ -19,10 +19,8 @@ class GeminiService:
         
         genai.configure(api_key=api_key)
         
-        # Use Gemini Pro model
         self.model = genai.GenerativeModel('gemini-pro')
         
-        # System context for SEKA
         self.system_context = """
 Tu es l'assistant virtuel de SEKA, un ERP/CRM moderne pour les PME africaines.
 
@@ -85,26 +83,21 @@ INSTRUCTIONS:
             AI-generated response
         """
         try:
-            # Build conversation context
             full_prompt = self.system_context + "\n\n"
             
-            # Add conversation history if provided
             if conversation_history:
                 for msg in conversation_history[-5:]:  # Last 5 messages for context
                     role = "Utilisateur" if msg["role"] == "user" else "Assistant"
                     full_prompt += f"{role}: {msg['content']}\n"
             
-            # Add current message
             full_prompt += f"\nUtilisateur: {user_message}\nAssistant:"
             
-            # Generate response
             response = self.model.generate_content(full_prompt)
             
             return response.text.strip()
             
         except Exception as e:
             print(f"Gemini API Error: {str(e)}")
-            # Fallback to basic response
             return self._get_fallback_response(user_message)
     
     def _get_fallback_response(self, user_message: str) -> str:
@@ -122,12 +115,9 @@ INSTRUCTIONS:
         conversation_history: Optional[List[Dict[str, str]]] = None
     ) -> str:
         """Async version of generate_response"""
-        # Note: google.generativeai doesn't have native async support yet
-        # This is a wrapper for future compatibility
         return self.generate_response(user_message, conversation_history)
 
 
-# Singleton instance
 _gemini_service: Optional[GeminiService] = None
 
 

@@ -20,7 +20,6 @@ class Activity(Base, TimestampMixin):
     amount = Column(Numeric(15, 2), nullable=False)
     description = Column(String(255), nullable=True)
     
-    # Links
     client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id", ondelete="CASCADE"), nullable=False)
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
 

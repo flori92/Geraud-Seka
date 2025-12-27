@@ -15,39 +15,32 @@ class AIAnalyticsService:
         Prédit les flux de trésorerie futurs basés sur les factures en attente et l'historique.
         Utilise une projection linéaire simple pondérée par la probabilité de paiement.
         """
-        # 1. Récupérer les factures clients (Entrées prévues)
         receivables = db.query(Document).filter(
             Document.tenant_id == tenant_id,
             Document.type == DocumentType.INVOICE,
             Document.status.in_([DocumentStatus.VALIDATED, DocumentStatus.SENT, DocumentStatus.PARTIALLY_PAID])
         ).all()
 
-        # 2. Récupérer les factures fournisseurs (Sorties prévues)
         payables = db.query(Document).filter(
             Document.tenant_id == tenant_id,
             Document.type == DocumentType.EXPENSE,
             Document.status.in_([DocumentStatus.VALIDATED, DocumentStatus.PARTIALLY_PAID])
         ).all()
 
-        # Préparer les données pour la projection
         today = datetime.now().date()
         dates = [today + timedelta(days=i) for i in range(days + 1)]
         projection = {d.isoformat(): 0.0 for d in dates}
         
-        # Solde actuel (Simulé pour l'instant, à connecter à la banque plus tard)
         current_balance = 1000000.0 # Exemple: 1M FCFA
         projection[today.isoformat()] = current_balance
 
-        # Projeter les entrées
         for doc in receivables:
             if doc.due_date and doc.due_date >= today:
                 due_date_str = doc.due_date.isoformat()
                 if due_date_str in projection:
-                    # On suppose 90% de probabilité de paiement à la date d'échéance
                     remaining = (doc.amount_ttc or 0) - (doc.amount_paid or 0)
                     projection[due_date_str] += remaining * 0.9
 
-        # Projeter les sorties
         for doc in payables:
             if doc.due_date and doc.due_date >= today:
                 due_date_str = doc.due_date.isoformat()
@@ -55,7 +48,6 @@ class AIAnalyticsService:
                     remaining = (doc.amount_ttc or 0) - (doc.amount_paid or 0)
                     projection[due_date_str] -= remaining
 
-        # Calculer le cumulatif
         cumulative_balance = current_balance
         result_data = []
         
@@ -71,7 +63,6 @@ class AIAnalyticsService:
                 "daily_change": round(daily_change, 2)
             })
 
-        # Analyse simple de tendance
         trend = "stable"
         if result_data[-1]["balance"] > result_data[0]["balance"] * 1.1:
             trend = "up"
@@ -91,7 +82,6 @@ class AIAnalyticsService:
         Détecte les anomalies dans les écritures comptables en utilisant des méthodes statistiques (Z-Score).
         Identifie les montants inhabituellement élevés pour un compte donné.
         """
-        # Récupérer les écritures récentes
         entries = db.query(AccountingEntry).filter(
             AccountingEntry.tenant_id == tenant_id
         ).all()
@@ -99,7 +89,6 @@ class AIAnalyticsService:
         if not entries or len(entries) < 10:
             return []
 
-        # Convertir en DataFrame Pandas
         data = [{
             "id": str(e.id),
             "date": e.date,
@@ -111,14 +100,12 @@ class AIAnalyticsService:
         df = pd.DataFrame(data)
         anomalies = []
 
-        # Analyser par compte comptable
         for account in df['account'].unique():
             account_df = df[df['account'] == account].copy()
             
             if len(account_df) < 5:
                 continue
 
-            # Calculer Z-Score pour les montants
             mean = account_df['amount'].mean()
             std = account_df['amount'].std()
             
@@ -127,7 +114,6 @@ class AIAnalyticsService:
                 
             account_df['z_score'] = (account_df['amount'] - mean) / std
             
-            # Seuil d'anomalie (Z-Score > 3 signifie > 3 écarts-types, très rare)
             outliers = account_df[account_df['z_score'].abs() > 2.5]
             
             for _, row in outliers.iterrows():

@@ -50,7 +50,6 @@ export function DocumentUpload({ onUploadSuccess }: DocumentUploadProps) {
             const formData = new FormData();
             formData.append("file", file);
 
-            // Upload sans client_id - sera géré par le backend ou attribué plus tard
             const response = await fetch(
                 `${API_BASE_URL}/api/v1/documents/`,
                 {
@@ -68,7 +67,6 @@ export function DocumentUpload({ onUploadSuccess }: DocumentUploadProps) {
 
             setUploadStatus(`${file.name} téléchargé avec succès`);
 
-            // Call success callback if provided
             if (onUploadSuccess) {
                 setTimeout(() => onUploadSuccess(), 500);
             }
@@ -77,7 +75,6 @@ export function DocumentUpload({ onUploadSuccess }: DocumentUploadProps) {
             setUploadStatus(`Erreur lors de l'upload de ${file.name}`);
         } finally {
             setUploading(false);
-            // Clear status after 3 seconds
             setTimeout(() => setUploadStatus(""), 3000);
         }
     };

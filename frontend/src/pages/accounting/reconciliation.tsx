@@ -30,16 +30,16 @@ interface BankTransaction {
   account_entry_amount?: number;
   status: ReconciliationStatus;
   bank_account: string;
-  match_confidence?: number; // AI matching confidence 0-100
+  match_confidence?: number;
 }
 
 type ReconciliationStatus = 'pending' | 'auto_matched' | 'manually_matched' | 'reconciled';
 
 interface ReconciliationStats {
-  a_rapprocher: number;      // Transactions to reconcile count
-  rapprochees_ce_mois: number; // Reconciled this month
-  en_attente: number;        // Pending count
-  dernier_rapprochement: string; // Last reconciliation date
+  a_rapprocher: number;
+  rapprochees_ce_mois: number;
+  en_attente: number;
+  dernier_rapprochement: string;
 }
 
 interface FilterChip {

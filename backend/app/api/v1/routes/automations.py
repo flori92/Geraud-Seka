@@ -16,7 +16,6 @@ async def create_automation(
     db: Session = Depends(get_db)
 ):
     """Créer une nouvelle automatisation"""
-    # Valider le trigger_type
     valid_triggers = [t.value for t in AutomationTriggerType]
     if data.trigger_type not in valid_triggers:
         raise HTTPException(status_code=400, detail=f"Type de déclencheur invalide. Valeurs possibles: {valid_triggers}")
@@ -35,7 +34,6 @@ async def create_automation(
     db.add(automation)
     db.flush()
     
-    # Ajouter les actions si fournies
     if data.actions:
         for i, action_data in enumerate(data.actions):
             action = AutomationAction(
@@ -152,7 +150,6 @@ async def delete_automation(
     return {"message": "Automatisation supprimée"}
 
 
-# ==================== ACTIVATION / DÉSACTIVATION ====================
 
 @router.post("/{automation_id}/activate")
 async def activate_automation(
@@ -205,7 +202,6 @@ async def pause_automation(
     return {"message": "Automatisation mise en pause", "status": automation.status}
 
 
-# ==================== ACTIONS ====================
 
 @router.post("/{automation_id}/actions")
 async def add_action(
@@ -226,7 +222,6 @@ async def add_action(
     if not automation:
         raise HTTPException(status_code=404, detail="Automatisation non trouvée")
     
-    # Valider le type d'action
     valid_actions = [a.value for a in AutomationActionType]
     if data.action_type not in valid_actions:
         raise HTTPException(status_code=400, detail=f"Type d'action invalide. Valeurs possibles: {valid_actions}")
@@ -323,7 +318,6 @@ async def delete_action(
     return {"message": "Action supprimée"}
 
 
-# ==================== EXÉCUTION MANUELLE ====================
 
 @router.post("/{automation_id}/test")
 async def test_automation(
@@ -349,7 +343,6 @@ async def test_automation(
     if not automation.actions:
         raise HTTPException(status_code=400, detail="L'automatisation n'a pas d'actions")
     
-    # Créer une exécution de test
     execution = AutomationExecution(
         automation_id=automation.id,
         entity_type=entity_type,
@@ -361,7 +354,6 @@ async def test_automation(
     db.commit()
     db.refresh(execution)
     
-    # Lancer l'exécution en arrière-plan
     if background_tasks:
         background_tasks.add_task(
             execute_automation,
@@ -375,7 +367,6 @@ async def test_automation(
     }
 
 
-# ==================== HISTORIQUE ====================
 
 @router.get("/{automation_id}/executions")
 async def get_executions(
@@ -426,7 +417,6 @@ async def get_executions(
     }
 
 
-# ==================== UTILITAIRES ====================
 
 @router.get("/triggers/types")
 async def get_trigger_types(
@@ -498,7 +488,6 @@ async def get_automations_stats(
     total_success = sum(a.success_count for a in automations)
     total_errors = sum(a.error_count for a in automations)
     
-    # Top automatisations par exécutions
     top_by_executions = sorted(automations, key=lambda x: x.execution_count, reverse=True)[:5]
     
     return {
@@ -522,7 +511,6 @@ async def get_automations_stats(
     }
 
 
-# ==================== FONCTION D'EXÉCUTION ====================
 
 async def execute_automation(execution_id: str, tenant_id: str):
     """Exécute une automatisation (tâche d'arrière-plan)"""
@@ -542,7 +530,6 @@ async def execute_automation(execution_id: str, tenant_id: str):
         
         execution_log = []
         
-        # Récupérer l'entité
         entity = None
         if execution.entity_type == "lead":
             entity = db.query(Lead).get(execution.entity_id)
@@ -557,7 +544,6 @@ async def execute_automation(execution_id: str, tenant_id: str):
             db.commit()
             return
         
-        # Exécuter chaque action
         for action in actions:
             try:
                 execution.current_action_id = action.id
@@ -594,7 +580,6 @@ async def execute_automation(execution_id: str, tenant_id: str):
                 db.commit()
                 return
         
-        # Succès
         execution.status = "completed"
         execution.execution_log = execution_log
         execution.completed_at = datetime.utcnow()
@@ -646,7 +631,6 @@ async def execute_action(db, action: AutomationAction, entity, entity_type: str,
         segment_id = config.get("segment_id")
         field_name = f"{entity_type}_id"
         
-        # Vérifier si déjà membre
         existing = db.query(SegmentMembership).filter(
             and_(
                 SegmentMembership.segment_id == segment_id,
@@ -701,11 +685,9 @@ async def execute_action(db, action: AutomationAction, entity, entity_type: str,
     
     elif action_type == "send_email":
         template_id = config.get("template_id")
-        # TODO: Implémenter l'envoi d'email via EmailService
         return {"template_id": template_id, "sent": True}
     
     elif action_type == "wait":
-        # L'attente est gérée différemment (via scheduler)
         duration_hours = config.get("duration_hours", 1)
         return {"wait_hours": duration_hours}
     

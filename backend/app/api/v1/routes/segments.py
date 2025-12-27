@@ -8,7 +8,6 @@ from fastapi import APIRouter
 router = APIRouter()
 
 
-# ==================== SCHEMAS ====================
 
 class RuleCreate(BaseModel):
     field: str
@@ -42,14 +41,12 @@ class AddMembersRequest(BaseModel):
     entity_ids: List[str]
 
 
-# ==================== HELPERS ====================
 
 def evaluate_rule(entity, rule: SegmentRule) -> bool:
     """Évalue si une entité correspond à une règle"""
     field_value = getattr(entity, rule.field, None)
     rule_value = rule.value
     
-    # Conversion selon le type
     if rule.value_type == "number" and rule_value:
         try:
             rule_value = float(rule_value)
@@ -64,7 +61,6 @@ def evaluate_rule(entity, rule: SegmentRule) -> bool:
         except:
             rule_value = [rule_value]
     
-    # Évaluation selon l'opérateur
     op = rule.operator
     
     if op == RuleOperator.EQUALS:
@@ -131,7 +127,6 @@ def get_membership_field(entity_type: str) -> str:
     raise ValueError(f"Type d'entité inconnu: {entity_type}")
 
 
-# ==================== ROUTES SEGMENTS ====================
 
 @router.get("/")
 async def list_segments(
@@ -185,7 +180,6 @@ async def create_segment(
     db: Session = Depends(get_db)
 ):
     """Créer un nouveau segment"""
-    # Créer le segment
     segment = Segment(
         name=data.name,
         description=data.description,
@@ -201,7 +195,6 @@ async def create_segment(
     db.add(segment)
     db.flush()
     
-    # Ajouter les règles si segment dynamique
     if data.rules and data.segment_type == SegmentType.DYNAMIC:
         for i, rule_data in enumerate(data.rules):
             rule = SegmentRule(
@@ -294,7 +287,6 @@ async def update_segment(
     if segment.is_system:
         raise HTTPException(status_code=403, detail="Les segments système ne peuvent pas être modifiés")
     
-    # Mise à jour des champs
     if data.name is not None:
         segment.name = data.name
     if data.description is not None:
@@ -340,7 +332,6 @@ async def delete_segment(
     return {"message": "Segment supprimé"}
 
 
-# ==================== ROUTES RÈGLES ====================
 
 @router.post("/{segment_id}/rules")
 async def add_rule(
@@ -414,7 +405,6 @@ async def delete_rule(
     return {"message": "Règle supprimée"}
 
 
-# ==================== ROUTES MEMBRES ====================
 
 @router.get("/{segment_id}/members")
 async def get_segment_members(
@@ -436,7 +426,6 @@ async def get_segment_members(
     if not segment:
         raise HTTPException(status_code=404, detail="Segment non trouvé")
     
-    # Récupérer les memberships
     memberships = db.query(SegmentMembership).filter(
         SegmentMembership.segment_id == segment_id
     ).offset(offset).limit(limit).all()
@@ -512,7 +501,6 @@ async def add_members(
     added = 0
     
     for entity_id in data.entity_ids:
-        # Vérifier si déjà membre
         existing = db.query(SegmentMembership).filter(
             and_(
                 SegmentMembership.segment_id == segment_id,
@@ -529,7 +517,6 @@ async def add_members(
             db.add(membership)
             added += 1
     
-    # Mettre à jour le compteur
     segment.member_count = db.query(SegmentMembership).filter(
         SegmentMembership.segment_id == segment_id
     ).count()
@@ -572,7 +559,6 @@ async def remove_member(
     
     db.delete(membership)
     
-    # Mettre à jour le compteur
     segment.member_count = db.query(SegmentMembership).filter(
         SegmentMembership.segment_id == segment_id
     ).count()
@@ -582,7 +568,6 @@ async def remove_member(
     return {"message": "Membre retiré", "total_members": segment.member_count}
 
 
-# ==================== ROUTES CALCUL DYNAMIQUE ====================
 
 @router.post("/{segment_id}/compute")
 async def compute_segment(
@@ -608,26 +593,21 @@ async def compute_segment(
     if not segment.rules:
         raise HTTPException(status_code=400, detail="Le segment n'a pas de règles définies")
     
-    # Récupérer le modèle d'entité
     EntityModel = get_entity_model(segment.entity_type)
     field_name = get_membership_field(segment.entity_type)
     
-    # Récupérer toutes les entités du tenant
     entities = db.query(EntityModel).filter(
         EntityModel.tenant_id == current_tenant.id
     ).all()
     
-    # Supprimer les anciens membres
     db.query(SegmentMembership).filter(
         SegmentMembership.segment_id == segment_id
     ).delete()
     
-    # Évaluer chaque entité
     matched = 0
     rules = sorted(segment.rules, key=lambda x: x.order)
     
     for entity in entities:
-        # Évaluer les règles
         if segment.rules_logic == "AND":
             matches = all(evaluate_rule(entity, rule) for rule in rules)
         else:  # OR
@@ -642,7 +622,6 @@ async def compute_segment(
             db.add(membership)
             matched += 1
     
-    # Mettre à jour les stats
     segment.member_count = matched
     segment.last_computed_at = datetime.utcnow()
     
@@ -655,7 +634,6 @@ async def compute_segment(
     }
 
 
-# ==================== ROUTES UTILITAIRES ====================
 
 @router.get("/fields/{entity_type}")
 async def get_segmentable_fields(

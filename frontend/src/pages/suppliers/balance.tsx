@@ -38,10 +38,10 @@ interface SupplierBalance {
 }
 
 interface SupplierBalanceStats {
-  total_du: number;           // Total owed
-  en_retard: number;         // Overdue amount
-  a_payer_30j: number;       // To pay within 30 days
-  fournisseurs_actifs: number; // Active suppliers count
+  total_du: number;
+  en_retard: number;
+  a_payer_30j: number;
+  fournisseurs_actifs: number;
 }
 
 interface FilterChip {

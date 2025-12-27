@@ -6,7 +6,6 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 
-# ========== PurchaseOrderItem Schemas ==========
 
 class PurchaseOrderItemBase(BaseModel):
     """Base schema pour les lignes de bon de commande."""
@@ -50,7 +49,6 @@ class PurchaseOrderItem(PurchaseOrderItemBase):
     model_config = ConfigDict(from_attributes=True)
 
 
-# ========== PurchaseOrder Schemas ==========
 
 class PurchaseOrderBase(BaseModel):
     """Base schema pour les bons de commande."""

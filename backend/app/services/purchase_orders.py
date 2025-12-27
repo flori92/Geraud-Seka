@@ -41,15 +41,12 @@ class PurchaseOrderService:
 
     def create_purchase_order(self, db: Session, tenant_id: str, po_data: dict) -> PurchaseOrder:
         """Create a new purchase order"""
-        # Extract items if present
         items_data = po_data.pop("items", [])
 
-        # Create purchase order
         po = PurchaseOrder(tenant_id=tenant_id, **po_data)
         db.add(po)
         db.flush()  # Get the PO ID
 
-        # Create items
         for item_data in items_data:
             item = PurchaseOrderItem(purchase_order_id=po.id, **item_data)
             db.add(item)

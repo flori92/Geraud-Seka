@@ -8,11 +8,9 @@ import hashlib
 import json
 import time
 
-# Simple in-memory cache
 _cache = {}
 _cache_timestamps = {}
 
-# Default TTL: 5 minutes
 DEFAULT_TTL = 300
 
 
@@ -36,16 +34,13 @@ def cached(ttl: int = DEFAULT_TTL):
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         async def async_wrapper(*args, **kwargs):
-            # Generate cache key
             key = f"{func.__module__}.{func.__name__}:{cache_key(*args, **kwargs)}"
             
-            # Check if cached and not expired
             if key in _cache:
                 timestamp = _cache_timestamps.get(key, 0)
                 if time.time() - timestamp < ttl:
                     return _cache[key]
             
-            # Call function and cache result
             result = await func(*args, **kwargs)
             _cache[key] = result
             _cache_timestamps[key] = time.time()
@@ -54,23 +49,19 @@ def cached(ttl: int = DEFAULT_TTL):
         
         @wraps(func)
         def sync_wrapper(*args, **kwargs):
-            # Generate cache key
             key = f"{func.__module__}.{func.__name__}:{cache_key(*args, **kwargs)}"
             
-            # Check if cached and not expired
             if key in _cache:
                 timestamp = _cache_timestamps.get(key, 0)
                 if time.time() - timestamp < ttl:
                     return _cache[key]
             
-            # Call function and cache result
             result = func(*args, **kwargs)
             _cache[key] = result
             _cache_timestamps[key] = time.time()
             
             return result
         
-        # Return appropriate wrapper based on function type
         import inspect
         if inspect.iscoroutinefunction(func):
             return async_wrapper

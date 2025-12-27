@@ -23,7 +23,6 @@ from app.services.delivery_notes import delivery_note_service
 
 router = APIRouter()
 
-# ==================== QUOTES ALIASES ====================
 
 @router.get("/quotes/")
 async def get_quotes_alias(
@@ -39,7 +38,6 @@ async def get_quotes_alias(
     Frontend calls /api/v1/sales/quotes/ → uses real DB queries
     """
     try:
-        # Validate tenant_id exists
         if not current_user.tenant_id:
             print("❌ Error: User has no tenant_id")
             return {"quotes": [], "total": 0, "skip": skip, "limit": limit}
@@ -60,7 +58,6 @@ async def get_quotes_alias(
             client_id=client_uuid
         )
 
-        # Count total quotes for pagination
         query = db.query(Quote).filter(Quote.tenant_id == current_user.tenant_id)
         if status:
             query = query.filter(Quote.status == status)
@@ -75,12 +72,10 @@ async def get_quotes_alias(
             "limit": limit
         }
     except (ProgrammingError, OperationalError) as e:
-        # Table doesn't exist yet - rollback and return empty list
         db.rollback()
         print(f"Quotes table error: {str(e)}")
         return {"quotes": [], "total": 0, "skip": skip, "limit": limit}
     except Exception as e:
-        # Return empty list on error but log full trace
         db.rollback()
         import traceback
         traceback.print_exc()
@@ -88,7 +83,6 @@ async def get_quotes_alias(
         return {"quotes": [], "total": 0, "skip": skip, "limit": limit}
 
 
-# ==================== INVOICES ALIASES ====================
 
 @router.get("/invoices/")
 async def get_invoices_alias(
@@ -112,7 +106,6 @@ async def get_invoices_alias(
         client_id=client_id
     )
 
-    # Count total invoices for pagination
     query = db.query(SalesInvoice).filter(SalesInvoice.tenant_id == str(current_user.tenant_id))
     if status:
         query = query.filter(SalesInvoice.status == status)
@@ -128,7 +121,6 @@ async def get_invoices_alias(
     }
 
 
-# ==================== PURCHASE ORDERS ALIASES ====================
 
 @router.get("/purchase-orders/")
 async def get_purchase_orders_alias(
@@ -152,7 +144,6 @@ async def get_purchase_orders_alias(
         supplier_id=supplier_id
     )
 
-    # Count total purchase orders for pagination
     query = db.query(PurchaseOrder).filter(PurchaseOrder.tenant_id == str(current_user.tenant_id))
     if status:
         query = query.filter(PurchaseOrder.status == status)
@@ -168,7 +159,6 @@ async def get_purchase_orders_alias(
     }
 
 
-# ==================== DELIVERY NOTES ALIASES ====================
 
 @router.get("/delivery-notes/")
 async def get_delivery_notes_alias(
@@ -192,7 +182,6 @@ async def get_delivery_notes_alias(
         purchase_order_id=purchase_order_id
     )
 
-    # Count total delivery notes for pagination
     query = db.query(DeliveryNote).filter(DeliveryNote.tenant_id == str(current_user.tenant_id))
     if status:
         query = query.filter(DeliveryNote.status == status)

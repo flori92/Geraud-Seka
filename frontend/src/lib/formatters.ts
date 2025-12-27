@@ -3,12 +3,10 @@
  * No hardcoded divisors - all conversion factors are defined as constants
  */
 
-// Currency conversion constants
 const THOUSAND = 1000;
 const MILLION = 1000000;
 const BILLION = 1000000000;
 
-// Currency mappings
 const CURRENCY_SYMBOLS = {
   'XOF': 'FCFA',
   'EUR': '€',
@@ -23,7 +21,6 @@ const CURRENCY_SYMBOLS = {
  * @param decimals - Number of decimal places (default: 0)
  */
 export function formatCurrency(amount: number | undefined | null, currency: string = "XOF", decimals: number = 0): string {
-  // Handle invalid values
   const numAmount = typeof amount === 'number' ? amount : Number(amount);
   if (isNaN(numAmount) || amount === null || amount === undefined) {
     return `0 ${CURRENCY_SYMBOLS[currency as keyof typeof CURRENCY_SYMBOLS] || currency}`;
@@ -49,7 +46,6 @@ export function formatCurrency(amount: number | undefined | null, currency: stri
  * @param decimals - Number of decimal places (default: 0)
  */
 export function formatAmount(amount: number | undefined | null, decimals: number = 0): string {
-  // Handle invalid values
   const numAmount = typeof amount === 'number' ? amount : Number(amount);
   if (isNaN(numAmount) || amount === null || amount === undefined) {
     return "0";
@@ -72,7 +68,6 @@ export function formatAmount(amount: number | undefined | null, decimals: number
  * @param amount - The amount to format
  */
 export function formatChartValue(amount: number | undefined | null): string {
-  // Handle invalid values
   const numAmount = typeof amount === 'number' ? amount : Number(amount);
   if (isNaN(numAmount) || amount === null || amount === undefined) {
     return "0";

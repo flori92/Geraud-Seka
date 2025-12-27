@@ -154,6 +154,5 @@ class KKiaPayService:
             }
 
 
-# Instances singleton
 stripe_service = StripeService()
 kkiapay_service = KKiaPayService()

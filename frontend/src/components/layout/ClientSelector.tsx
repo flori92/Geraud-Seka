@@ -24,7 +24,6 @@ export default function ClientSelector({ onChange }: ClientSelectorProps) {
                     const data = await getClients(token);
                     setClients(data);
 
-                    // Restore previously selected client from localStorage
                     const savedClientId = localStorage.getItem("seka_selected_client");
                     if (savedClientId) {
                         const saved = data.find((c) => c.id === savedClientId);

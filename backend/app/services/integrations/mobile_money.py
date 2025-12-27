@@ -23,13 +23,6 @@ class MobileMoneyService:
             logger.warning("KKiaPay keys not configured")
             return "mock-transaction-id"
 
-        # Real implementation would call KKiaPay API
-        # payload = {
-        #     "amount": amount,
-        #     "phone": phone_number,
-        #     "reason": reason
-        # }
-        # response = requests.post(f"{self.base_url}/api/v1/payments", json=payload, headers=...)
         
         return "transaction_ref_12345"
 

@@ -91,7 +91,7 @@ export default function AccountingEntryFromOCR() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `https:
     }
   }, []);
 
@@ -167,7 +167,7 @@ export default function AccountingEntryFromOCR() {
     const limit = typeof maxPages === 'number' ? Math.min(pdf.numPages, maxPages) : pdf.numPages;
     for (let pageNum = 1; pageNum <= limit; pageNum++) {
       const page = await pdf.getPage(pageNum);
-      const viewport = page.getViewport({ scale: 2.0 }); // Higher scale for better OCR quality
+      const viewport = page.getViewport({ scale: 2.0 });
 
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');

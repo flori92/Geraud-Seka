@@ -17,8 +17,8 @@ import {
   type Client,
   type Invoice,
   type Quote,
-  type Opportunity,     // Keep type for existing state variables
-  type CRMActivity      // Keep type for existing state variables
+  type Opportunity,
+  type CRMActivity
 } from "@/lib/api";
 import { Card } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -245,7 +245,7 @@ export default function DashboardPage() {
   const [accountingStats, setAccountingStats] = useState<any>(null);
   const [treasuryData, setTreasuryData] = useState<any>(null);
 
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http:
 
   const fetchAllData = async () => {
     try {

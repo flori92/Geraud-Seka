@@ -56,10 +56,10 @@ type InvoiceStatus = 'draft' | 'pending' | 'overdue' | 'paid' | 'cancelled';
 type TabFilter = 'all' | 'to_process' | 'upcoming' | 'overdue' | 'paid';
 
 interface InvoiceStats {
-  ca_facture: number;     // Total invoiced revenue
-  ca_paye: number;        // Total paid revenue
-  factures_retard: number; // Overdue invoices count
-  factures_non_envoyees: number; // Unsent invoices count
+  ca_facture: number;
+  ca_paye: number;
+  factures_retard: number;
+  factures_non_envoyees: number;
 }
 
 interface FilterChip {

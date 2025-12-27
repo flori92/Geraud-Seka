@@ -56,7 +56,6 @@ class ForecastingService:
             Prédictions avec intervalles de confiance
         """
         try:
-            # Récupérer les données historiques
             cash_flow_data = await self._get_historical_cash_flow(tenant_id)
             
             if len(cash_flow_data) < 10:
@@ -80,16 +79,13 @@ class ForecastingService:
         Prédiction du chiffre d'affaires avec analyse saisonnière
         """
         try:
-            # Données historiques des ventes
             sales_data = await self._get_historical_sales(tenant_id)
             
             if len(sales_data) < 12:  # Moins d'un an de données
                 return await self._simple_sales_prediction(sales_data, months_ahead)
             
-            # Analyse des tendances
             trends = await self._analyze_sales_trends(sales_data)
             
-            # Prédiction avec saisonnalité
             predictions = await self._seasonal_sales_prediction(sales_data, months_ahead, trends)
             
             return {
@@ -113,22 +109,18 @@ class ForecastingService:
         Prédiction du risque de churn client avec ML
         """
         try:
-            # Récupérer les données clients
             customer_features = await self._extract_customer_features(tenant_id)
             
             if len(customer_features) < 5:
                 return {"error": "Pas assez de données clients pour la prédiction"}
             
-            # Calculer les scores de risque
             churn_scores = await self._calculate_churn_scores(customer_features)
             
-            # Identifier les clients à risque
             high_risk_customers = [
                 customer for customer in churn_scores 
                 if customer["churn_probability"] > 0.7
             ]
             
-            # Recommandations d'actions
             recommendations = await self._generate_retention_recommendations(high_risk_customers)
             
             return {
@@ -152,16 +144,12 @@ class ForecastingService:
         Optimisation des niveaux de stock avec prédiction de demande
         """
         try:
-            # Analyser les mouvements de stock
             inventory_data = await self._analyze_inventory_movements(tenant_id)
             
-            # Prédire la demande future
             demand_forecasts = await self._predict_product_demand(inventory_data)
             
-            # Calculer les niveaux optimaux
             optimal_levels = await self._calculate_optimal_stock_levels(demand_forecasts)
             
-            # Recommandations d'approvisionnement
             reorder_recommendations = []
             for product in optimal_levels:
                 if product["current_stock"] < product["recommended_min"]:
@@ -194,7 +182,6 @@ class ForecastingService:
         Prédiction de la probabilité de conversion d'un lead
         """
         try:
-            # Features utilisées pour la prédiction
             features = {
                 "score": lead_data.get("score", 0),
                 "source_value": self._encode_lead_source(lead_data.get("source", "direct")),
@@ -208,7 +195,6 @@ class ForecastingService:
                 "has_company": 1 if lead_data.get("company") else 0
             }
             
-            # Modèle simplifié (à remplacer par un vrai modèle entraîné)
             probability = self._simple_conversion_model(features)
             
             return min(max(probability, 0.0), 1.0)  # Clamp entre 0 et 1
@@ -226,7 +212,6 @@ class ForecastingService:
         Génération d'un rapport de prévisions business complet
         """
         try:
-            # Exécution parallèle des prédictions
             forecast_tasks = [
                 self.predict_cash_flow(tenant_id, 6),
                 self.predict_sales_revenue(tenant_id, 3),
@@ -241,12 +226,10 @@ class ForecastingService:
             churn_analysis = results[2] if not isinstance(results[2], Exception) else None
             inventory_optimization = results[3] if not isinstance(results[3], Exception) else None
             
-            # Synthèse exécutive
             executive_summary = await self._generate_executive_summary(
                 cash_flow_forecast, sales_forecast, churn_analysis, inventory_optimization
             )
             
-            # Recommandations prioritaires
             priority_actions = await self._generate_priority_actions(
                 cash_flow_forecast, sales_forecast, churn_analysis, inventory_optimization
             )
@@ -272,14 +255,11 @@ class ForecastingService:
             )
             raise
     
-    # Méthodes privées pour les calculs
     
     async def _get_historical_cash_flow(self, tenant_id: str) -> pd.DataFrame:
         """Récupère l'historique des flux de trésorerie"""
-        # Simuler des données (à remplacer par vraie requête DB)
         dates = pd.date_range(start='2023-01-01', end=datetime.now(), freq='D')
         
-        # Générer des données de cash flow simulées avec tendance et saisonnalité
         np.random.seed(42)
         trend = np.linspace(50000, 80000, len(dates))
         seasonal = 10000 * np.sin(2 * np.pi * np.arange(len(dates)) / 365.25)
@@ -293,7 +273,6 @@ class ForecastingService:
     
     async def _get_historical_sales(self, tenant_id: str) -> pd.DataFrame:
         """Récupère l'historique des ventes"""
-        # Similaire à cash_flow mais pour les ventes
         dates = pd.date_range(start='2023-01-01', end=datetime.now(), freq='M')
         
         np.random.seed(123)
@@ -302,13 +281,10 @@ class ForecastingService:
         sales = []
         
         for i, date in enumerate(dates):
-            # Tendance de croissance
             trend_value = base_sales * (1 + growth_rate) ** i
             
-            # Saisonnalité (pic en décembre)
             seasonal_factor = 1 + 0.3 * np.sin(2 * np.pi * date.month / 12 + np.pi/2)
             
-            # Bruit
             noise_factor = np.random.normal(1, 0.1)
             
             monthly_sales = trend_value * seasonal_factor * noise_factor
@@ -331,11 +307,9 @@ class ForecastingService:
             
             model.fit(data)
             
-            # Prédictions futures
             future = model.make_future_dataframe(periods=months_ahead * 30)
             forecast = model.predict(future)
             
-            # Extraire les prédictions futures uniquement
             future_predictions = forecast.tail(months_ahead * 30)
             
             return {
@@ -355,12 +329,10 @@ class ForecastingService:
             }
             
         except Exception as e:
-            # Fallback vers méthode linéaire
             return await self._linear_cash_flow_prediction(data, months_ahead)
     
     async def _linear_cash_flow_prediction(self, data: pd.DataFrame, months_ahead: int) -> Dict:
         """Prédiction linéaire simple"""
-        # Convertir dates en nombres pour régression
         data['days'] = (data['ds'] - data['ds'].min()).dt.days
         
         if SKLEARN_AVAILABLE:
@@ -369,12 +341,10 @@ class ForecastingService:
             y = data['y'].values
             model.fit(X, y)
             
-            # Prédictions futures
             last_day = data['days'].max()
             future_days = np.arange(last_day + 1, last_day + 1 + months_ahead * 30)
             predictions = model.predict(future_days.reshape(-1, 1))
             
-            # Calcul intervalle de confiance simple
             residuals = y - model.predict(X)
             std_error = np.std(residuals)
             
@@ -395,12 +365,10 @@ class ForecastingService:
                 "method": "linear_regression"
             }
         else:
-            # Méthode encore plus simple si sklearn n'est pas disponible
             return await self._fallback_cash_flow_prediction("", months_ahead)
     
     async def _fallback_cash_flow_prediction(self, tenant_id: str, months_ahead: int) -> Dict:
         """Prédiction de fallback basée sur des moyennes"""
-        # Prédiction simple basée sur la tendance moyenne
         current_month = 150000  # À récupérer de la DB
         growth_rate = 0.03  # 3% de croissance mensuelle estimée
         
@@ -426,20 +394,15 @@ class ForecastingService:
         """Modèle de conversion simplifié"""
         score = 0.0
         
-        # Score de base du lead (0-100)
         score += features["score"] / 100 * 0.4
         
-        # Source du lead
         score += features["source_value"] * 0.15
         
-        # Taille de l'entreprise
         score += features["company_size_value"] * 0.1
         
-        # Engagement email
         engagement_score = min(features["email_engagement"] / 10, 1.0)
         score += engagement_score * 0.15
         
-        # Complétude du profil
         profile_completeness = (
             features["has_phone"] + 
             features["has_job_title"] + 
@@ -447,7 +410,6 @@ class ForecastingService:
         ) / 3
         score += profile_completeness * 0.1
         
-        # Récence (pénalité si trop vieux)
         days_penalty = max(0, (features["days_since_creation"] - 30) / 365)
         score -= days_penalty * 0.1
         
@@ -479,7 +441,6 @@ class ForecastingService:
     
     def _encode_industry(self, industry: str) -> float:
         """Encode l'industrie (à personnaliser selon le secteur)"""
-        # Placeholder - à adapter selon les secteurs porteurs pour SEKA
         industry_values = {
             "technology": 0.9,
             "finance": 0.8,
@@ -522,5 +483,4 @@ class ForecastingService:
         ]
 
 
-# Instance singleton
 forecasting_service = ForecastingService()

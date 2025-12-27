@@ -35,13 +35,11 @@ async def get_realtime_metrics(
     - **category**: Filtrer par catégorie (sales, finance, customer, inventory, hr)
     """
     try:
-        # Calculer les métriques
         metrics = await analytics_service.calculate_real_time_metrics(
             tenant_id=str(current_tenant.id),
             period=period
         )
         
-        # Filtrer par catégorie si spécifiée
         if category:
             metrics = {
                 name: data for name, data in metrics.items()
@@ -77,12 +75,10 @@ async def get_business_insights(
     - **dismissed**: Inclure les insights rejetés
     """
     try:
-        # Générer de nouveaux insights
         fresh_insights = await analytics_service.generate_business_insights(
             tenant_id=str(current_tenant.id)
         )
         
-        # Récupérer les insights existants depuis la DB
         query = db.query(BusinessInsight).filter(
             BusinessInsight.tenant_id == current_tenant.id
         )
@@ -92,7 +88,6 @@ async def get_business_insights(
         
         db_insights = query.order_by(desc(BusinessInsight.created_at)).limit(limit).all()
         
-        # Convertir en format response
         insights = []
         for insight in db_insights:
             insights.append({
@@ -134,15 +129,11 @@ async def get_alerts(
     - **limit**: Nombre maximum d'alertes
     """
     try:
-        # TEMP: Skip alert generation for now - returns existing alerts only
-        # TODO: Fix generate_alerts to accept user_id parameter
 
-        # Query base - make user_id optional for now
         query = db.query(Alert).filter(
             Alert.tenant_id == current_tenant.id
         )
 
-        # Filter by user if user_id is set
         if hasattr(Alert, 'user_id'):
             query = query.filter(
                 or_(
@@ -151,7 +142,6 @@ async def get_alerts(
                 )
             )
 
-        # Filtres
         if unread_only:
             query = query.filter(Alert.is_read == False)
 
@@ -160,7 +150,6 @@ async def get_alerts(
 
         alerts = query.order_by(desc(Alert.created_at)).limit(limit).all()
 
-        # Convertir en format response
         alert_responses = []
         for alert in alerts:
             alert_responses.append({
@@ -184,7 +173,6 @@ async def get_alerts(
         print(f"Error fetching alerts: {str(e)}")
         import traceback
         traceback.print_exc()
-        # Return empty list instead of error
         return []
 
 
@@ -250,13 +238,11 @@ async def get_performance_summary(
 ):
     """Résumé des performances business"""
     try:
-        # Calculer les métriques pour différentes périodes
         current_month = await analytics_service.calculate_real_time_metrics(
             tenant_id=str(current_tenant.id),
             period="month"
         )
         
-        # Résumé des KPIs principaux
         summary = {
             "monthly": {
                 "revenue": current_month.get("total_revenue", {}).get("value", 0),
@@ -276,7 +262,6 @@ async def get_performance_summary(
         )
 
 
-# Endpoints IA existants (conservés pour compatibilité)
 @router.get("/cash-flow-prediction", response_model=Any)
 def get_cash_flow_prediction(
     days: int = 30,

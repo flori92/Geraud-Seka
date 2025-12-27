@@ -25,7 +25,6 @@ from app.schemas.document_ged import (
 router = APIRouter()
 
 
-# ==================== DOSSIERS ====================
 
 @router.get("/folders/", response_model=List[DocumentFolderSchema])
 async def get_folders(
@@ -54,7 +53,6 @@ async def create_folder(
     db: Session = Depends(get_db)
 ):
     """Créer un nouveau dossier"""
-    # Vérifier que le parent existe si spécifié
     if folder_in.parent_id:
         parent = db.query(DocumentFolder).filter(
             and_(
@@ -65,7 +63,6 @@ async def create_folder(
         if not parent:
             raise HTTPException(status_code=404, detail="Dossier parent non trouvé")
         
-        # Construire le chemin
         path = f"{parent.path}/{folder_in.name}" if parent.path else folder_in.name
     else:
         path = folder_in.name
@@ -105,7 +102,6 @@ async def update_folder(
     
     update_data = folder_in.model_dump(exclude_unset=True)
     
-    # Si le nom change, mettre à jour le chemin
     if 'name' in update_data and update_data['name'] != folder.name:
         old_path = folder.path
         if folder.parent_id:
@@ -116,7 +112,6 @@ async def update_folder(
         
         update_data['path'] = new_path
         
-        # Mettre à jour les chemins des sous-dossiers
         subfolders = db.query(DocumentFolder).filter(
             DocumentFolder.path.like(f"{old_path}/%")
         ).all()
@@ -151,7 +146,6 @@ async def delete_folder(
     if not folder:
         raise HTTPException(status_code=404, detail="Dossier non trouvé")
     
-    # Vérifier s'il y a des documents
     doc_count = db.query(func.count(Document.id)).filter(
         Document.folder_id == folder_id
     ).scalar()
@@ -186,17 +180,14 @@ async def get_folder_stats(
     if not folder:
         raise HTTPException(status_code=404, detail="Dossier non trouvé")
     
-    # Compter les documents
     doc_count = db.query(func.count(Document.id)).filter(
         Document.folder_id == folder_id
     ).scalar()
     
-    # Compter les sous-dossiers
     subfolder_count = db.query(func.count(DocumentFolder.id)).filter(
         DocumentFolder.parent_id == folder_id
     ).scalar()
     
-    # Calculer la taille totale
     total_size = db.query(func.sum(Document.file_size)).filter(
         Document.folder_id == folder_id
     ).scalar() or 0
@@ -209,7 +200,6 @@ async def get_folder_stats(
     }
 
 
-# ==================== DOCUMENTS ====================
 
 @router.get("/", response_model=List[DocumentWithRelations])
 async def get_documents(
@@ -249,7 +239,6 @@ async def get_documents(
         selectinload(Document.uploader)
     ).order_by(desc(Document.created_at)).offset(offset).limit(limit).all()
     
-    # Formater la réponse
     result = []
     for doc in documents:
         base = jsonable_encoder(doc)
@@ -289,7 +278,6 @@ async def upload_document(
     import json
     from pathlib import Path
     
-    # Vérifier le dossier si spécifié
     if folder_id:
         folder = db.query(DocumentFolder).filter(
             and_(
@@ -300,18 +288,13 @@ async def upload_document(
         if not folder:
             raise HTTPException(status_code=404, detail="Dossier non trouvé")
     
-    # Lire le fichier
     content = await file.read()
     file_size = len(content)
     
-    # Extraire l'extension
     file_extension = Path(file.filename).suffix.lower()
     
-    # TODO: Upload vers le stockage cloud
-    # Pour l'instant, on simule avec un chemin local
     file_path = f"uploads/{current_tenant.id}/{file.filename}"
     
-    # Parser les tags si fournis
     tags_list = None
     if tags:
         try:
@@ -319,7 +302,6 @@ async def upload_document(
         except:
             tags_list = [tags]
     
-    # Créer le document
     document = Document(
         filename=file.filename,
         original_filename=file.filename,
@@ -439,7 +421,6 @@ async def delete_document(
     if document.is_locked:
         raise HTTPException(status_code=403, detail="Document verrouillé, impossible de supprimer")
     
-    # TODO: Supprimer le fichier du stockage cloud
     
     db.delete(document)
     db.commit()
@@ -459,7 +440,6 @@ async def search_documents(
     """Recherche avancée de documents"""
     query = db.query(Document).filter(Document.tenant_id == current_tenant.id)
     
-    # Recherche textuelle
     if filters.query:
         search_term = f"%{filters.query}%"
         query = query.filter(
@@ -471,7 +451,6 @@ async def search_documents(
             )
         )
     
-    # Filtres
     if filters.category:
         query = query.filter(Document.category == filters.category)
     
@@ -505,21 +484,18 @@ async def search_documents(
     if filters.uploaded_by:
         query = query.filter(Document.uploaded_by == filters.uploaded_by)
     
-    # Filtres de dates
     if filters.date_from:
         query = query.filter(Document.document_date >= filters.date_from)
     
     if filters.date_to:
         query = query.filter(Document.document_date <= filters.date_to)
     
-    # Filtres de taille
     if filters.min_size:
         query = query.filter(Document.file_size >= filters.min_size)
     
     if filters.max_size:
         query = query.filter(Document.file_size <= filters.max_size)
     
-    # Tags
     if filters.tags:
         for tag in filters.tags:
             query = query.filter(Document.tags.contains([tag]))
@@ -531,7 +507,6 @@ async def search_documents(
         selectinload(Document.uploader)
     ).order_by(desc(Document.created_at)).offset(offset).limit(limit).all()
     
-    # Formater la réponse
     result = []
     for doc in documents:
         base = jsonable_encoder(doc)
@@ -557,17 +532,14 @@ async def get_document_stats(
     """Récupérer les statistiques globales des documents"""
     from datetime import timedelta
     
-    # Total documents
     total_documents = db.query(func.count(Document.id)).filter(
         Document.tenant_id == current_tenant.id
     ).scalar()
     
-    # Taille totale
     total_size = db.query(func.sum(Document.file_size)).filter(
         Document.tenant_id == current_tenant.id
     ).scalar() or 0
     
-    # Par catégorie
     by_category = {}
     categories = db.query(
         Document.category,
@@ -579,7 +551,6 @@ async def get_document_stats(
     for cat, count in categories:
         by_category[cat or "other"] = count
     
-    # Par type
     by_type = {}
     types = db.query(
         Document.type,
@@ -591,7 +562,6 @@ async def get_document_stats(
     for typ, count in types:
         by_type[typ or "OTHER"] = count
     
-    # Par statut
     by_status = {}
     statuses = db.query(
         Document.status,
@@ -603,7 +573,6 @@ async def get_document_stats(
     for status, count in statuses:
         by_status[status] = count
     
-    # Uploads récents (7 derniers jours)
     seven_days_ago = datetime.utcnow() - timedelta(days=7)
     recent_uploads = db.query(func.count(Document.id)).filter(
         and_(
@@ -612,7 +581,6 @@ async def get_document_stats(
         )
     ).scalar()
     
-    # En attente de validation
     pending_validation = db.query(func.count(Document.id)).filter(
         and_(
             Document.tenant_id == current_tenant.id,
@@ -621,7 +589,6 @@ async def get_document_stats(
         )
     ).scalar()
     
-    # Formater la taille totale
     size = total_size
     for unit in ['B', 'KB', 'MB', 'GB']:
         if size < 1024.0:

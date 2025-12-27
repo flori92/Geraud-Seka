@@ -33,7 +33,6 @@ export default function AccountAutocomplete({
     const containerRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    // Filter accounts based on search
     const filteredAccounts = useMemo(() => {
         if (!search.trim()) return accounts.slice(0, 50);
         const lowerSearch = search.toLowerCase();
@@ -46,12 +45,10 @@ export default function AccountAutocomplete({
             .slice(0, 50);
     }, [search, accounts]);
 
-    // Update search when value changes externally
     useEffect(() => {
         setSearch(value);
     }, [value]);
 
-    // Close dropdown when clicking outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (containerRef.current && !containerRef.current.contains(event.target as Node)) {

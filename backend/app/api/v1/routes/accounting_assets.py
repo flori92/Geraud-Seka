@@ -22,7 +22,6 @@ async def get_assets(
     db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """Liste des immobilisations."""
-    # Placeholder - table à créer
     return {"assets": [], "total": 0}
 
 

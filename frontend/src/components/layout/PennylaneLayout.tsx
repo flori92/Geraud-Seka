@@ -2,7 +2,6 @@ import Head from "next/head";
 import { useState, useEffect } from "react";
 import type { ReactNode } from "react";
 import { useRouter } from "next/router";
-// Sidebar is rendered globally in _app.tsx to avoid duplicate sidebars
 
 import { ChatWidget } from "../Chatbot/ChatWidget";
 import { HelpCircle, Bell, X, ChevronRight, Book, MessageCircle, Mail, ExternalLink, Search, Building2 } from "lucide-react";

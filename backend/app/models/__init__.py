@@ -1,5 +1,3 @@
-# IMPORTANT: Import order matters for SQLAlchemy relationships
-# Import Quote and SalesInvoice BEFORE Client to avoid mapper initialization errors
 try:
     from app.models.accounting import AccountingEntry
     from app.models.document import Document
@@ -8,7 +6,6 @@ try:
     from app.models.activity import Activity
     from app.models.product import Product
 except Exception as e:
-    # If import fails due to HR module removal, set to None and handle later
     print(f"⚠️  Model import failed (HR likely removed): {e}")
     Tenant = None
     User = None
@@ -16,16 +13,11 @@ except Exception as e:
     Document = None
     Activity = None
     Product = None
-# Import models that Client depends on FIRST
 from app.models.quote import Quote, QuoteItem
 from app.models.sales_invoice import SalesInvoice, SalesInvoiceItem, Payment
-# Import PurchaseOrder and DeliveryNote BEFORE Supplier (which references them)
 from app.models.purchase_order import PurchaseOrder, PurchaseOrderItem, DeliveryNote, DeliveryNoteItem
-# Now import Supplier (which references PurchaseOrder and DeliveryNote)
 from app.models.supplier import Supplier
-# Now import Client (which references Quote and SalesInvoice)
 from app.models.client import Client
-# Import Treasury models AFTER SalesInvoice and PurchaseOrder (which they reference)
 from app.models.treasury import BankAccount, BankTransaction, PaymentSchedule
 try:
     from app.models.crm import Lead, Opportunity, CRMActivity

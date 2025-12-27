@@ -56,12 +56,10 @@ def get_treasury_dashboard(
         dashboard_data = treasury_service.get_dashboard_data(current_user.tenant_id)
         return dashboard_data
     except (ProgrammingError, OperationalError) as e:
-        # Tables don't exist yet - return empty data
         db.rollback()
         return get_empty_dashboard_response()
     except Exception as e:
         db.rollback()
-        # Log error but return empty data to avoid breaking frontend
         print(f"Treasury dashboard error: {str(e)}")
         return get_empty_dashboard_response()
 

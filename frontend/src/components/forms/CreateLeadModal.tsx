@@ -39,7 +39,6 @@ export function CreateLeadModal({ isOpen, onClose, onSuccess }: CreateLeadModalP
 
       await createLead(formData, token);
 
-      // Reset form
       setFormData({
         first_name: "",
         last_name: "",

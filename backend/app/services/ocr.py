@@ -11,7 +11,6 @@ import os
 
 import httpx
 
-# Tentative d'import de pdf2image, avec gestion d'erreur si poppler n'est pas installé
 try:
     from pdf2image import convert_from_bytes
     PDF_SUPPORT = True
@@ -19,7 +18,6 @@ except (ImportError, Exception):
     PDF_SUPPORT = False
     print("Attention: pdf2image non disponible ou poppler manquant. Le support PDF OCR sera limité.")
 
-# Import du service amélioré
 try:
     from app.services.ocr_enhanced import enhanced_ocr_service
     USE_ENHANCED = True
@@ -27,7 +25,6 @@ except ImportError:
     USE_ENHANCED = False
     print("⚠️  Service OCR amélioré non disponible, fallback vers service basique")
 
-# Configuration
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_MODEL = os.getenv("GROQ_MODEL", "meta-llama/llama-4-scout-17b-16e-instruct")
@@ -51,7 +48,6 @@ class GroqOCRService:
         if not self.api_key:
             raise RuntimeError("GROQ_API_KEY non configurée: impossible d'utiliser l'OCR serveur.")
 
-        # Si le service amélioré est disponible, l'utiliser (avec fallback basique)
         if self.use_enhanced:
             print("🚀 Utilisation du service OCR amélioré (LlamaOCR)")
             try:
@@ -60,7 +56,6 @@ class GroqOCRService:
                 print(f"⚠️  OCR amélioré en échec, fallback basique: {e}")
                 return await self._process_invoice_basic(file_path, file_content, extract_all_pages)
 
-        # Sinon, continuer avec le service basique
         print("⚠️  Utilisation du service OCR basique (fallback)")
         return await self._process_invoice_basic(file_path, file_content, extract_all_pages)
 
@@ -69,7 +64,6 @@ class GroqOCRService:
         Traite une facture avec Groq Vision API.
         Convertit les PDF en images si nécessaire.
         """
-        # Lecture fichier si nécessaire
         if not file_content:
             if os.path.exists(file_path):
                 try:
@@ -81,25 +75,19 @@ class GroqOCRService:
             else:
                 raise FileNotFoundError(f"Fichier introuvable: {file_path}")
 
-        # Détection type et conversion si PDF
         file_ext = os.path.splitext(file_path)[1].lower() if file_path else ""
         
-        # Préparation de l'image (base64)
         image_base64 = None
         
         try:
-            # Si c'est un PDF, on convertit la première page en image
             if file_ext == '.pdf' or (file_content and file_content.startswith(b'%PDF')):
                 if not PDF_SUPPORT:
                     print("Erreur: Support PDF non disponible (pdf2image/poppler manquant).")
                     raise RuntimeError("Support PDF non disponible (pdf2image/poppler manquant).")
                 
                 try:
-                    # Convertir la première page seulement pour économiser tokens et temps
-                    # (Llama Vision prend une image)
                     images = convert_from_bytes(file_content, first_page=1, last_page=1)
                     if images:
-                        # Sauvegarder en buffer bytes JPEG
                         img_byte_arr = io.BytesIO()
                         images[0].save(img_byte_arr, format='JPEG')
                         image_base64 = base64.b64encode(img_byte_arr.getvalue()).decode('utf-8')
@@ -109,13 +97,11 @@ class GroqOCRService:
                     raise
             
             else:
-                # C'est déjà une image (normalement)
                 image_base64 = base64.b64encode(file_content).decode('utf-8')
 
             if not image_base64:
                 raise ValueError("Impossible de générer l'image Base64")
 
-            # Appel API Groq
             async with httpx.AsyncClient(timeout=60.0) as client:
                 data_schema = self._get_json_schema()
                 
@@ -166,7 +152,6 @@ class GroqOCRService:
                 if response.status_code == 200:
                     result = response.json()
                     content = result['choices'][0]['message']['content']
-                    # Nettoyage si jamais le modèle met des backticks
                     if content.strip().startswith("```json"):
                         content = content.strip().split("```json")[1].split("```")[0]
                     elif content.strip().startswith("```"):
@@ -231,5 +216,4 @@ class GroqOCRService:
         }
 
 
-# Instance singleton remplacée
 ocr_service = GroqOCRService()

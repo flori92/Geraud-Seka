@@ -28,13 +28,10 @@ class MonitoringService:
     
     def setup_logging(self):
         """Configure le logging structuré."""
-        # Format des logs
         log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
         
-        # Configuration du niveau de log
         log_level = logging.DEBUG if settings.debug else logging.INFO
         
-        # Configuration du logger principal
         logging.basicConfig(
             level=log_level,
             format=log_format,
@@ -44,7 +41,6 @@ class MonitoringService:
             ]
         )
         
-        # Réduire le bruit des librairies externes
         logging.getLogger("uvicorn").setLevel(logging.WARNING)
         logging.getLogger("httpx").setLevel(logging.WARNING)
         logging.getLogger("httpcore").setLevel(logging.WARNING)
@@ -74,11 +70,9 @@ class MonitoringService:
     
     def _filter_sentry_events(self, event, hint):
         """Filtre les événements Sentry pour éviter le spam."""
-        # Ignorer les erreurs de healthcheck
         if 'request' in event and '/health' in str(event.get('request', {}).get('url', '')):
             return None
         
-        # Ignorer certaines erreurs HTTP courantes
         if 'exception' in event:
             for exception in event['exception']['values']:
                 exc_type = exception.get('type', '')
@@ -131,7 +125,6 @@ class MonitoringService:
         
         self.logger.info(f"BUSINESS_EVENT: {event_type} - {description}", extra=extra)
         
-        # Envoyer vers Sentry comme breadcrumb
         if SENTRY_AVAILABLE:
             sentry_sdk.add_breadcrumb(
                 message=f"{event_type}: {description}",
@@ -162,7 +155,6 @@ class MonitoringService:
         
         self.logger.error(f"ERROR in {context}: {error}", extra=error_data, exc_info=True)
         
-        # Envoyer vers Sentry
         if SENTRY_AVAILABLE:
             with sentry_sdk.configure_scope() as scope:
                 if tenant_id:
@@ -212,7 +204,6 @@ class MonitoringService:
         log_level = getattr(logging, severity.upper(), logging.INFO)
         self.logger.log(log_level, f"SECURITY: {event_type} - {description}", extra=security_data)
         
-        # Alerter Sentry pour les événements critiques
         if severity in ["warning", "error", "critical"] and SENTRY_AVAILABLE:
             sentry_sdk.capture_message(
                 f"Security Event: {event_type} - {description}",
@@ -228,5 +219,4 @@ class MonitoringService:
             "environment": settings.environment
         }
 
-# Instance singleton
 monitoring_service = MonitoringService()

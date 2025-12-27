@@ -69,26 +69,19 @@ class AccountingControlsService:
         """
         results = []
 
-        # 1. Équilibre des écritures
         results.append(self.check_entries_balance(fiscal_year_id, date_from, date_to))
 
-        # 2. Cohérence TVA
         results.append(self.check_vat_consistency(fiscal_year_id, date_from, date_to))
 
-        # 3. Numérotation continue
         results.append(self.check_sequential_numbering(fiscal_year_id))
 
-        # 4. Dates cohérentes
         results.append(self.check_date_consistency(fiscal_year_id))
 
-        # 5. Comptes de gestion soldés (si clôture)
         if fiscal_year_id:
             results.append(self.check_management_accounts_balanced(fiscal_year_id))
 
-        # 6. Lettrage équilibré
         results.append(self.check_reconciliation_balance())
 
-        # Résumé
         passed = len([r for r in results if r.status == "passed"])
         failed = len([r for r in results if r.status == "failed"])
         warnings = len([r for r in results if r.status == "warning"])
@@ -177,7 +170,6 @@ class AccountingControlsService:
         Vérifie la cohérence TVA: base × taux = montant TVA
         Comptes TVA: 443* (collectée), 445* (déductible)
         """
-        # Récupérer les écritures avec TVA
         vat_entries = self.db.query(JournalEntryLine).join(JournalEntry).join(ChartOfAccounts).filter(
             JournalEntry.tenant_id == self.tenant_id,
             ChartOfAccounts.account_number.like("44%")
@@ -190,8 +182,6 @@ class AccountingControlsService:
         if date_to:
             vat_entries = vat_entries.filter(JournalEntry.entry_date <= date_to)
 
-        # Pour une vérification complète, il faudrait lier chaque ligne TVA
-        # à sa base correspondante. Ici on vérifie juste les totaux par exercice.
 
         vat_collected = self.db.query(
             func.sum(JournalEntryLine.credit - JournalEntryLine.debit)
@@ -241,7 +231,6 @@ class AccountingControlsService:
                 message="Pas assez d'écritures pour vérifier la séquence"
             )
 
-        # Vérification simplifiée - à adapter selon le format de numérotation
         return ControlResult(
             control_name="Numérotation continue",
             status="passed",
@@ -274,7 +263,6 @@ class AccountingControlsService:
                 message="Exercice non trouvé"
             )
 
-        # Vérifier les écritures hors période
         out_of_period = self.db.query(JournalEntry).filter(
             JournalEntry.tenant_id == self.tenant_id,
             JournalEntry.fiscal_year_id == fiscal_year_id,
@@ -315,7 +303,6 @@ class AccountingControlsService:
                 message="Ce contrôle s'applique uniquement aux exercices clôturés"
             )
 
-        # Vérifier les soldes des classes 6 et 7
         unsettled = []
         for account_class in ["6", "7"]:
             balance = self.db.query(
@@ -350,7 +337,6 @@ class AccountingControlsService:
         """
         Vérifie l'équilibre des lettrages
         """
-        # Récupérer les groupes de lettrage
         reconciled = self.db.query(
             JournalEntryLine.reconciliation_code,
             func.sum(JournalEntryLine.debit).label("total_debit"),

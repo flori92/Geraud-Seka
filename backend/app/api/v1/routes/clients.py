@@ -15,7 +15,6 @@ from pydantic import BaseModel
 
 router = APIRouter()
 
-# Balance schemas
 class ClientBalanceRow(BaseModel):
     id: str
     client_name: str
@@ -250,7 +249,6 @@ def read_clients(
     """
     Retrieve clients.
     """
-    # Filter by tenant_id of the current user
     clients = (
         db.query(Client)
         .filter(Client.tenant_id == current_user.tenant_id)

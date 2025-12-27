@@ -63,7 +63,6 @@ export function AddPaymentMethodModal({ isOpen, onClose, onSuccess }: AddPayment
                 throw new Error(data.detail || 'Erreur lors de l\'ajout du moyen de paiement');
             }
 
-            // Reset form
             setCardNumber('');
             setExpiryDate('');
             setCvv('');

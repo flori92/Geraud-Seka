@@ -55,7 +55,6 @@ interface MenuSection {
   items: MenuItem[];
 }
 
-// Menu GESTION (Mode Dirigeant) - Style Pennylane complet
 const managementMenu: MenuSection[] = [
   {
     items: [
@@ -153,18 +152,14 @@ const managementMenu: MenuSection[] = [
         label: "Paramètres",
         icon: Settings,
         submenu: [
-          // --- Entreprise ---
           { label: "Informations entreprise", href: "/settings" },
           { label: "Gestion de l'équipe", href: "/settings/team" },
           { label: "Abonnement", href: "/billing" },
-          // --- Comptabilité ---
           { label: "Plan comptable", href: "/accounting/chart-of-accounts" },
           { label: "Familles analytiques", href: "/settings/analytics" },
           { label: "Centre de règles", href: "/settings/rules" },
-          // --- Connexions ---
           { label: "Comptes bancaires", href: "/treasury/accounts" },
           { label: "Intégrations", href: "/settings/integrations" },
-          // --- Données ---
           { label: "Imports", href: "/settings/import" },
           { label: "Exports", href: "/exports" },
         ]
@@ -174,7 +169,6 @@ const managementMenu: MenuSection[] = [
   }
 ];
 
-// Menu COMPTABILITÉ (Mode Expert-Comptable) - Style Pennylane complet
 const accountingMenu: MenuSection[] = [
   {
     items: [
@@ -284,18 +278,14 @@ const accountingMenu: MenuSection[] = [
         label: "Paramètres",
         icon: Settings,
         submenu: [
-          // --- Entreprise ---
           { label: "Informations entreprise", href: "/settings" },
           { label: "Gestion de l'équipe", href: "/settings/team" },
           { label: "Abonnement", href: "/billing" },
-          // --- Comptabilité ---
           { label: "Plan comptable", href: "/accounting/chart-of-accounts" },
           { label: "Familles analytiques", href: "/settings/analytics" },
           { label: "Centre de règles", href: "/settings/rules" },
-          // --- Connexions ---
           { label: "Comptes bancaires", href: "/treasury/accounts" },
           { label: "Intégrations", href: "/settings/integrations" },
-          // --- Données ---
           { label: "Imports", href: "/settings/import" },
           { label: "Exports", href: "/exports" },
         ]
@@ -314,7 +304,6 @@ const badgeStyles: Record<string, string> = {
 };
 
 export function PennylaneSidebar() {
-  // Initialiser le mode depuis localStorage ou par défaut "management"
   const [viewMode, setViewMode] = useState<"management" | "accounting">("management");
   const [openMenus, setOpenMenus] = useState<string[]>([]);
   const [user, setUser] = useState<User | null>(null);
@@ -324,7 +313,6 @@ export function PennylaneSidebar() {
 
   const currentMenu = viewMode === "management" ? managementMenu : accountingMenu;
 
-  // Charger le mode depuis localStorage au montage (une seule fois)
   useEffect(() => {
     if (typeof window !== "undefined" && !isInitialized) {
       const savedMode = localStorage.getItem("seka_view_mode") as "management" | "accounting" | null;
@@ -350,7 +338,6 @@ export function PennylaneSidebar() {
     fetchUser();
   }, []);
 
-  // Ouvrir automatiquement le menu parent si on est sur une route enfant
   useEffect(() => {
     const allMenuItems = currentMenu.flatMap(section => section.items);
     setOpenMenus((prev) => {
@@ -372,7 +359,7 @@ export function PennylaneSidebar() {
 
   const handleModeChange = (mode: "management" | "accounting") => {
     setViewMode(mode);
-    setOpenMenus([]); // Reset open menus when switching
+    setOpenMenus([]);
     if (typeof window !== "undefined") {
       localStorage.setItem("seka_view_mode", mode);
     }

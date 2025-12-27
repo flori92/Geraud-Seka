@@ -69,7 +69,6 @@ def get_latest_forecast(
     scenario: str = "realistic",
 ) -> List[CashFlowForecast]:
     """Get the most recent forecast for a tenant."""
-    # Get the latest creation date
     latest_created = db.query(CashFlowForecast.created_at).filter(
         and_(
             CashFlowForecast.tenant_id == tenant_id,
@@ -80,7 +79,6 @@ def get_latest_forecast(
     if not latest_created:
         return []
 
-    # Get all forecasts from that creation date
     return db.query(CashFlowForecast).filter(
         and_(
             CashFlowForecast.tenant_id == tenant_id,
@@ -111,7 +109,6 @@ def get_by_scenario(
     if end_date:
         query = query.filter(CashFlowForecast.forecast_date <= end_date)
 
-    # Get the latest batch
     latest_created = query.order_by(desc(CashFlowForecast.created_at)).first()
     if not latest_created:
         return []

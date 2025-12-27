@@ -27,10 +27,10 @@ interface VATDeclaration {
   id: string;
   period_start: string;
   period_end: string;
-  period_label: string;  // e.g., "T1 2024", "Janvier 2024"
-  vat_collected: number;  // TVA collectée
-  vat_deductible: number; // TVA déductible
-  vat_balance: number;    // Solde (à payer ou à rembourser)
+  period_label: string;
+  vat_collected: number;
+  vat_deductible: number;
+  vat_balance: number;
   status: VATStatus;
   declaration_date?: string;
   payment_date?: string;
@@ -41,10 +41,10 @@ interface VATDeclaration {
 type VATStatus = 'draft' | 'validated' | 'declared' | 'paid';
 
 interface VATStats {
-  a_declarer_ce_mois: number;    // To declare this month
-  tva_collectee_totale: number;  // Total VAT collected
-  tva_deductible_totale: number; // Total VAT deductible
-  derniere_declaration: string;  // Last declaration date
+  a_declarer_ce_mois: number;
+  tva_collectee_totale: number;
+  tva_deductible_totale: number;
+  derniere_declaration: string;
 }
 
 interface FilterChip {

@@ -17,7 +17,6 @@ export function useNavigation() {
     activeSubmenu: null
   });
 
-  // Détecter le mode basé sur la route actuelle
   useEffect(() => {
     const pathname = router.pathname || '';
     const accountingRoutes = [
@@ -38,7 +37,6 @@ export function useNavigation() {
     setNavigationState(prev => ({
       ...prev,
       viewMode: isAccountingRoute ? 'accounting' : 'management',
-      // Ouvrir le menu saisie par défaut en mode comptabilité
       openMenus: isAccountingRoute && !prev.openMenus.includes('saisie') 
         ? [...prev.openMenus, 'saisie'] 
         : prev.openMenus
@@ -49,7 +47,6 @@ export function useNavigation() {
     setNavigationState(prev => ({
       ...prev,
       viewMode: mode,
-      // Réinitialiser les menus ouverts selon le mode
       openMenus: mode === 'accounting' ? ['saisie'] : [],
       activeSubmenu: null
     }));
@@ -72,7 +69,6 @@ export function useNavigation() {
   }, []);
 
   const navigateToSubmenu = useCallback((href: string, parentMenuId?: string) => {
-    // Garder le menu parent ouvert lors de la navigation
     if (parentMenuId && !navigationState.openMenus.includes(parentMenuId)) {
       setNavigationState(prev => ({
         ...prev,

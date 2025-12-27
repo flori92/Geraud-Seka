@@ -106,7 +106,6 @@ def create(
     """Create a new purchase order with items."""
     po_number = generate_po_number(db, tenant_id)
 
-    # Create the purchase order (without items first)
     po_data = obj_in.model_dump(exclude={"items"})
     db_po = PurchaseOrder(
         **po_data,
@@ -116,7 +115,6 @@ def create(
         status=PurchaseOrderStatus.DRAFT,
     )
 
-    # Create purchase order items
     for item_in in obj_in.items:
         item_totals = calculate_item_totals(item_in)
         db_item = PurchaseOrderItem(
@@ -125,7 +123,6 @@ def create(
         )
         db_po.items.append(db_item)
 
-    # Calculate purchase order totals
     db.add(db_po)
     db.flush()
 
@@ -145,7 +142,6 @@ def update(db: Session, *, db_obj: PurchaseOrder, obj_in: PurchaseOrderUpdate) -
     for field, value in update_data.items():
         setattr(db_obj, field, value)
 
-    # Recalculate totals if items were modified
     if db_obj.items:
         po_totals = calculate_po_totals(db_obj.items)
         for field, value in po_totals.items():
@@ -200,7 +196,6 @@ def update_received_quantity(
     if not po:
         return None
 
-    # Find and update the item
     item = None
     for po_item in po.items:
         if po_item.id == item_id:
@@ -213,7 +208,6 @@ def update_received_quantity(
     item.quantity_received += quantity_received
     db.add(item)
 
-    # Check if all items are fully received
     all_received = True
     partially_received = False
 
@@ -223,7 +217,6 @@ def update_received_quantity(
         if po_item.quantity_received > 0:
             partially_received = True
 
-    # Update PO status
     if all_received:
         po.status = PurchaseOrderStatus.RECEIVED
         po.actual_delivery_date = date.today()

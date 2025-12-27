@@ -18,17 +18,14 @@ logger = logging.getLogger(__name__)
 def create_application() -> FastAPI:
     settings = get_settings()
 
-    # En production: désactiver la documentation OpenAPI pour la sécurité
     is_production = settings.environment == "production"
     
     app = FastAPI(
         title="SEKA API",
         description="API SEKA - ERP/CRM pour PME Africaines" if is_production else """
-        ## 🚀 SEKA - ERP/CRM Intelligent pour PME Africaines
         
         API REST complète pour la gestion de la comptabilité, trésorerie, CRM, RH et plus.
         
-        ### Fonctionnalités Principales
         * **Comptabilité** : Gestion pièces, validation OCR, écritures SYSCOHADA
         * **CRM** : Gestion clients, leads, opportunités
         * **Trésorerie** : Prévisions, rapprochement bancaire
@@ -36,11 +33,9 @@ def create_application() -> FastAPI:
         * **RH** : Employés, paie, présence (à venir)
         * **IA** : Lead scoring, prédictions, détection anomalies
         
-        ### Authentification
         Utilisez un Bearer token JWT dans le header Authorization.
         """,
         version="1.0.0",
-        # Désactiver docs en production
         docs_url=None if is_production else "/docs",
         redoc_url=None if is_production else "/redoc",
         openapi_url=None if is_production else "/openapi.json",
@@ -65,13 +60,8 @@ def create_application() -> FastAPI:
         debug=False  # Toujours False en production
     )
 
-    # Proxy Headers Middleware - MUST BE FIRST
-    # Handles X-Forwarded-* headers from Cloudflare/Railway proxy
-    # This ensures FastAPI recognizes HTTPS from X-Forwarded-Proto header
     app.add_middleware(ProxyHeadersMiddleware)
 
-    # CORS Middleware - IMPORTANT: Must be added BEFORE other middleware
-    # Always include production origins to ensure CORS works
     production_origins = [
         "https://sekagestion.com",
         "https://www.sekagestion.com",
@@ -83,7 +73,6 @@ def create_application() -> FastAPI:
         "http://127.0.0.1:3001",
     ]
     
-    # Merge with settings origins (avoid duplicates)
     cors_origins = list(set(settings.backend_cors_origins + production_origins))
     logger.info(f"🌐 CORS Configuration - Environment: {settings.environment}")
     logger.info(f"🌐 CORS Allowed Origins: {cors_origins}")
@@ -111,27 +100,21 @@ def create_application() -> FastAPI:
         expose_headers=["*"],
     )
 
-    # Security Middleware - Protection headers, rate limiting
     app.add_middleware(SecurityMiddleware, environment=settings.environment)
     app.add_middleware(RequestValidationMiddleware)
     
-    # Monitoring Middleware
     app.add_middleware(MonitoringMiddleware)
     
-    # Servir les fichiers statiques (uploads locaux)
     if os.path.exists("uploads"):
         app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
     
-    # Routes API
     app.include_router(api_router, prefix=settings.api_v1_prefix)
 
-    # Host-based redirections (avoid serving API JSON on root domain)
     @app.middleware("http")
     async def host_redirect_middleware(request: Request, call_next):
         host = (request.headers.get("x-forwarded-host") or request.headers.get("host") or "").split(":")[0]
         path = request.url.path or "/"
 
-        # If someone hits the API service using the root domain, redirect to the correct host.
         if host == "sekagestion.com":
             if path.startswith(settings.api_v1_prefix):
                 return RedirectResponse(url=f"https://api.sekagestion.com{path}", status_code=308)
@@ -140,7 +123,6 @@ def create_application() -> FastAPI:
 
         return await call_next(request)
 
-    # Root endpoint for health check (minimal info in production)
     @app.get("/")
     async def root(request: Request):
         if is_production:
@@ -156,7 +138,6 @@ def create_application() -> FastAPI:
     async def root_head():
         return Response(status_code=200)
 
-    # Health check endpoint
     @app.get("/health")
     async def health():
         return {"status": "healthy"}
@@ -165,7 +146,6 @@ def create_application() -> FastAPI:
     async def health_head():
         return Response(status_code=200)
 
-    # /api/v1 endpoint for load balancers / monitoring (avoid 404/405 on prefix root)
     @app.get(settings.api_v1_prefix)
     async def api_v1_root():
         return {"status": "ok"}
@@ -182,10 +162,8 @@ def create_application() -> FastAPI:
     async def api_v1_root_slash_head():
         return Response(status_code=200)
 
-    # Event handlers
     @app.on_event("startup")
     async def startup_event():
-        # Create missing database tables on startup
         try:
             import app.models
             from app.db.session import engine
@@ -207,7 +185,6 @@ def create_application() -> FastAPI:
             else:
                 logger.info("✅ All database tables exist")
 
-            # Treasury compatibility (bank_accounts / bank_transactions)
             existing_tables = set(inspector.get_table_names())
             from sqlalchemy import text
 
@@ -242,7 +219,6 @@ def create_application() -> FastAPI:
                         conn.execute(text("ALTER TABLE bank_transactions ADD COLUMN IF NOT EXISTS bank_statement_line VARCHAR(255)"))
                     logger.info("✅ Added bank_transactions.bank_statement_line")
 
-            # Postgres enum value for BankAccountType (only if enum type exists)
             try:
                 with engine.begin() as conn:
                     conn.execute(text(
@@ -261,7 +237,6 @@ def create_application() -> FastAPI:
             except Exception as e:
                 logger.info(f"ℹ️  Enum bankaccounttype not updated: {e}")
             
-            # Fix ledger_accounts.is_active type mismatch (VARCHAR -> BOOLEAN)
             if 'ledger_accounts' in existing_tables:
                 columns = {col['name']: col for col in inspector.get_columns('ledger_accounts')}
                 if 'is_active' in columns:
@@ -270,7 +245,6 @@ def create_application() -> FastAPI:
                         logger.info(f"🔧 Fixing ledger_accounts.is_active type mismatch (current: {col_type})...")
                         from sqlalchemy import text
                         with engine.begin() as conn:
-                            # Convert 'true'/'1' string values to boolean
                             conn.execute(text("""
                                 ALTER TABLE ledger_accounts 
                                 ALTER COLUMN is_active TYPE BOOLEAN 
@@ -281,7 +255,6 @@ def create_application() -> FastAPI:
                             """))
                         logger.info("✅ Fixed ledger_accounts.is_active type to BOOLEAN")
 
-            # Hotfix: ensure documents.file_extension exists (some DBs are behind GED migrations)
             if 'documents' in existing_tables:
                 doc_columns = {col['name']: col for col in inspector.get_columns('documents')}
                 if 'file_extension' not in doc_columns:
@@ -303,23 +276,18 @@ def create_application() -> FastAPI:
             tenant_id="system"
         )
     
-    # Global Exception Handler for 500 errors - Production-ready
     import traceback
     import uuid
     
     @app.exception_handler(Exception)
     async def global_exception_handler(request: Request, exc: Exception):
-        # Generate unique error ID for tracking
         error_id = str(uuid.uuid4())[:8].upper()
         
-        # Log full details server-side (never exposed to client)
         logger.error(f"[{error_id}] Error on {request.method} {request.url.path}")
         logger.error(f"[{error_id}] Exception: {type(exc).__name__}: {str(exc)}")
         if not is_production:
             traceback.print_exc()
         
-        # Production: generic message with error ID for support
-        # Development: include error details for debugging
         if is_production:
             content = {
                 "error": "Une erreur est survenue",
@@ -337,7 +305,6 @@ def create_application() -> FastAPI:
         
         response = JSONResponse(status_code=500, content=content)
         
-        # Add CORS headers manually for error responses
         origin = request.headers.get("origin")
         if origin in cors_origins:
             response.headers["Access-Control-Allow-Origin"] = origin
@@ -347,7 +314,6 @@ def create_application() -> FastAPI:
         
         return response
     
-    # Handler for 404 errors - Production-ready
     from fastapi.exceptions import RequestValidationError
     from starlette.exceptions import HTTPException as StarletteHTTPException
     

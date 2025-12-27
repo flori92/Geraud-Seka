@@ -18,7 +18,6 @@ import asyncio
 from datetime import date, timedelta
 from PIL import Image
 
-# Import PDF support
 try:
     from pdf2image import convert_from_bytes
     PDF_SUPPORT = True
@@ -30,11 +29,9 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
-# Configuration Groq API
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
-# Modèles optimisés
 VISION_MODEL = os.getenv("GROQ_VISION_MODEL", "meta-llama/llama-4-maverick-17b-128e-instruct")
 VISION_FALLBACK = os.getenv("GROQ_VISION_FALLBACK_MODEL", "meta-llama/llama-4-scout-17b-16e-instruct")
 PROCESSING_MODEL = os.getenv("GROQ_PROCESSING_MODEL", "llama-3.3-70b-versatile")
@@ -47,13 +44,11 @@ class EnhancedGroqOCRService:
         self.api_key = GROQ_API_KEY
         self.supported_formats = ['.pdf', '.jpg', '.jpeg', '.png', '.tiff', '.heic', '.webp']
         
-        # Configuration du découpage en bandes
         self.enable_striping = True
         self.stripe_count = 5
         self.stripe_overlap = 0.15
         self.min_height_for_striping = 1000
         
-        # Configuration retry
         self.max_retries = 2
         self.retry_delay = 1.0
 
@@ -61,7 +56,6 @@ class EnhancedGroqOCRService:
         """Encode une image PIL en base64 JPEG optimisé."""
         buffered = io.BytesIO()
         image = image.convert("RGB")
-        # Optimisation: réduire si trop grande
         max_dimension = 2048
         if max(image.size) > max_dimension:
             image.thumbnail((max_dimension, max_dimension), Image.Resampling.LANCZOS)
@@ -246,7 +240,6 @@ JSON:"""
                     result = response.json()
                     content = result['choices'][0]['message']['content'].strip()
                     
-                    # Nettoyage
                     if content.startswith("```"):
                         content = content.split("```")[1]
                         if content.startswith("json"):
@@ -287,7 +280,6 @@ JSON:"""
         if not self.api_key:
             raise RuntimeError("GROQ_API_KEY non configurée: impossible d'utiliser l'OCR")
         
-        # Lecture
         if not file_content:
             if os.path.exists(file_path):
                 try:
@@ -303,7 +295,6 @@ JSON:"""
         try:
             print(f"📄 Processing {file_path}")
             
-            # Convert PDF
             if file_ext == '.pdf' or (file_content and file_content.startswith(b'%PDF')):
                 if not PDF_SUPPORT:
                     raise RuntimeError("Support PDF non disponible (pdf2image/poppler manquant)")
@@ -319,7 +310,6 @@ JSON:"""
                 image = image.convert("RGB")
                 print(f"🖼️  Image: {image.size}")
             
-            # Split
             if self.enable_striping and image.size[1] >= self.min_height_for_striping:
                 print(f"✂️  Splitting into {self.stripe_count} stripes")
                 stripes = self.split_image_into_stripes(image)
@@ -328,7 +318,6 @@ JSON:"""
                 print("📐 Small image, direct processing")
                 stripes = [image]
             
-            # Extract
             print(f"🔍 Extracting with {VISION_MODEL}...")
             tasks = [
                 self.extract_text_from_stripe(stripe, i, len(stripes), VISION_MODEL)
@@ -340,7 +329,6 @@ JSON:"""
             
             print(f"✅ Extracted {len(stripe_texts)} sections")
             
-            # Fallback
             if not stripe_texts:
                 print(f"⚠️  Retry with {VISION_FALLBACK}")
                 fallback = await self.extract_text_from_stripe(image, 0, 1, VISION_FALLBACK)
@@ -350,7 +338,6 @@ JSON:"""
             if not stripe_texts:
                 raise RuntimeError("Échec total de l'extraction OCR: aucun texte extrait")
             
-            # Consolidate
             print(f"🧠 Consolidating with {PROCESSING_MODEL}...")
             structured = await self.consolidate_and_structure(stripe_texts)
             
@@ -392,5 +379,4 @@ JSON:"""
             "extraction_quality": "high"
         }
 
-# Instance
 enhanced_ocr_service = EnhancedGroqOCRService()

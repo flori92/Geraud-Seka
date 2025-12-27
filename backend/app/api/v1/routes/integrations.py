@@ -20,7 +20,6 @@ from app.models.notifications import Integration, IntegrationLog, IntegrationTyp
 router = APIRouter()
 
 
-# ==================== SCHEMAS ====================
 
 class IntegrationCreate(BaseModel):
     name: str
@@ -47,7 +46,6 @@ class WebhookPayload(BaseModel):
     data: dict
 
 
-# ==================== ROUTES ====================
 
 @router.get("/")
 async def list_integrations(
@@ -266,7 +264,6 @@ async def get_integration_logs(
     ]
 
 
-# ==================== TYPES D'INTÉGRATIONS ====================
 
 @router.get("/types/list")
 async def get_integration_types(
@@ -328,7 +325,6 @@ async def get_trigger_events(
     }
 
 
-# ==================== EXECUTION ====================
 
 async def execute_integration(
     db: Session,
@@ -427,7 +423,6 @@ async def call_webhook(config: dict, data: dict) -> dict:
         return {"status_code": response.status_code, "body": response.text[:500]}
 
 
-# ==================== TRIGGER HELPER ====================
 
 async def trigger_integrations(
     db: Session,

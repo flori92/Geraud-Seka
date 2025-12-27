@@ -41,15 +41,12 @@ class DeliveryNoteService:
 
     def create_delivery_note(self, db: Session, tenant_id: str, delivery_note_data: dict) -> DeliveryNote:
         """Create a new delivery note"""
-        # Extract items if present
         items_data = delivery_note_data.pop("items", [])
 
-        # Create delivery note
         delivery_note = DeliveryNote(tenant_id=tenant_id, **delivery_note_data)
         db.add(delivery_note)
         db.flush()  # Get the delivery note ID
 
-        # Create items
         for item_data in items_data:
             item = DeliveryNoteItem(delivery_note_id=delivery_note.id, **item_data)
             db.add(item)

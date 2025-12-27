@@ -48,18 +48,14 @@ class FiscalYearClosingService:
         """
         fiscal_year = self._get_fiscal_year(fiscal_year_id)
 
-        # Calculer les totaux par classe
         class_totals = self._calculate_class_totals(fiscal_year)
 
-        # Calculer le résultat
         total_produits = class_totals.get("7", Decimal("0"))
         total_charges = class_totals.get("6", Decimal("0"))
         resultat = total_produits - total_charges
 
-        # Vérifier les écritures non validées
         unvalidated_count = self._count_unvalidated_entries(fiscal_year)
 
-        # Vérifier les périodes non clôturées
         unclosed_periods = self._get_unclosed_periods(fiscal_year)
 
         return {
@@ -99,7 +95,6 @@ class FiscalYearClosingService:
         """
         fiscal_year = self._get_fiscal_year(fiscal_year_id)
 
-        # Vérifier que l'exercice peut être clôturé
         if fiscal_year.status == FiscalYearStatus.CLOSED:
             raise FiscalYearClosingError("Cet exercice est déjà clôturé")
 
@@ -109,28 +104,22 @@ class FiscalYearClosingService:
                 "Utilisez force=True pour continuer."
             )
 
-        # Vérifications préalables
         preview = self.get_closing_preview(fiscal_year_id)
         if not preview["can_close"] and not force:
             raise FiscalYearClosingError(
                 f"Impossible de clôturer: {preview['blocking_issues']}"
             )
 
-        # Passer en statut "closing"
         fiscal_year.status = FiscalYearStatus.CLOSING
         self.db.commit()
 
         try:
-            # 1. Créer l'écriture de détermination du résultat
             result_entry = self._create_result_entry(fiscal_year, preview)
 
-            # 2. Solder les comptes de gestion (classes 6 et 7)
             self._close_management_accounts(fiscal_year, preview)
 
-            # 3. Clôturer toutes les périodes
             self._close_all_periods(fiscal_year)
 
-            # 4. Mettre à jour l'exercice
             fiscal_year.status = FiscalYearStatus.CLOSED
             fiscal_year.closed_at = datetime.utcnow()
             fiscal_year.closed_by = UUID(self.user_id)
@@ -150,7 +139,6 @@ class FiscalYearClosingService:
             }
 
         except Exception as e:
-            # Rollback en cas d'erreur
             fiscal_year.status = FiscalYearStatus.OPEN
             self.db.rollback()
             raise FiscalYearClosingError(f"Erreur lors de la clôture: {str(e)}")
@@ -183,13 +171,11 @@ class FiscalYearClosingService:
                 "L'exercice cible doit être ouvert"
             )
 
-        # Récupérer les soldes des comptes de bilan (classes 1-5)
         balance_accounts = self._get_balance_sheet_balances(closed_fy)
 
         if not balance_accounts:
             return {"success": True, "message": "Aucun solde à reporter"}
 
-        # Créer l'écriture d'à-nouveau
         opening_entry = self._create_opening_entry(new_fy, balance_accounts)
 
         self.db.commit()
@@ -230,7 +216,6 @@ class FiscalYearClosingService:
 
             totals[account_class] = result or Decimal("0")
 
-        # Pour les produits (classe 7), le solde est créditeur
         totals["7"] = -totals.get("7", Decimal("0"))
 
         return totals
@@ -261,14 +246,12 @@ class FiscalYearClosingService:
         if resultat == 0:
             return None
 
-        # Trouver le journal de clôture
         closing_journal = self.db.query(AccountingJournal).filter(
             AccountingJournal.tenant_id == self.tenant_id,
             AccountingJournal.journal_type == JournalType.CLOSING
         ).first()
 
         if not closing_journal:
-            # Créer le journal de clôture s'il n'existe pas
             closing_journal = AccountingJournal(
                 tenant_id=self.tenant_id,
                 code="CLO",
@@ -278,7 +261,6 @@ class FiscalYearClosingService:
             self.db.add(closing_journal)
             self.db.flush()
 
-        # Créer l'écriture
         entry = JournalEntry(
             tenant_id=self.tenant_id,
             journal_id=closing_journal.id,
@@ -294,16 +276,12 @@ class FiscalYearClosingService:
         self.db.add(entry)
         self.db.flush()
 
-        # Trouver les comptes de résultat (12)
         if resultat > 0:
-            # Bénéfice → Compte 131
             result_account = self._get_or_create_account("131", "Résultat net: Bénéfice")
         else:
-            # Perte → Compte 139
             result_account = self._get_or_create_account("139", "Résultat net: Perte")
             resultat = abs(resultat)
 
-        # Ligne de résultat
         result_line = JournalEntryLine(
             entry_id=entry.id,
             account_id=result_account.id,
@@ -313,7 +291,6 @@ class FiscalYearClosingService:
         )
         self.db.add(result_line)
 
-        # Mettre à jour les totaux
         entry.total_debit = result_line.debit
         entry.total_credit = result_line.credit
 
@@ -325,8 +302,6 @@ class FiscalYearClosingService:
         preview: Dict
     ) -> None:
         """Solde les comptes de gestion (classes 6 et 7)"""
-        # Les comptes de gestion sont soldés automatiquement
-        # car leurs mouvements ne sont pas reportés à l'exercice suivant
         pass
 
     def _close_all_periods(self, fiscal_year: FiscalYear) -> None:
@@ -345,7 +320,6 @@ class FiscalYearClosingService:
         """Récupère les soldes des comptes de bilan"""
         balances = []
 
-        # Classes de bilan: 1, 2, 3, 4, 5
         results = self.db.query(
             ChartOfAccounts.id,
             ChartOfAccounts.account_number,
@@ -385,7 +359,6 @@ class FiscalYearClosingService:
         balances: List[Dict]
     ) -> JournalEntry:
         """Crée l'écriture d'à-nouveau"""
-        # Trouver ou créer le journal d'à-nouveau
         opening_journal = self.db.query(AccountingJournal).filter(
             AccountingJournal.tenant_id == self.tenant_id,
             AccountingJournal.journal_type == JournalType.OPENING
@@ -401,7 +374,6 @@ class FiscalYearClosingService:
             self.db.add(opening_journal)
             self.db.flush()
 
-        # Créer l'écriture
         entry = JournalEntry(
             tenant_id=self.tenant_id,
             journal_id=opening_journal.id,
@@ -417,7 +389,6 @@ class FiscalYearClosingService:
         self.db.add(entry)
         self.db.flush()
 
-        # Créer les lignes
         total_debit = Decimal("0")
         total_credit = Decimal("0")
 

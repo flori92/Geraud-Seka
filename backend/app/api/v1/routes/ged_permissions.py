@@ -39,7 +39,6 @@ def verify_password(password: str, hashed: str) -> bool:
     return hash_password(password) == hashed
 
 
-# ==================== SCHEMAS ====================
 
 class PermissionCreate(BaseModel):
     document_id: Optional[str] = None
@@ -72,7 +71,6 @@ class ShareLinkAccess(BaseModel):
     password: Optional[str] = None
 
 
-# ==================== PERMISSIONS ====================
 
 @router.get("/document/{document_id}")
 async def get_document_permissions(
@@ -82,7 +80,6 @@ async def get_document_permissions(
     db: Session = Depends(get_db)
 ):
     """Liste les permissions d'un document"""
-    # Vérifier que le document existe
     document = db.query(Document).filter(
         and_(
             Document.id == document_id,
@@ -128,11 +125,9 @@ async def create_permission(
     db: Session = Depends(get_db)
 ):
     """Créer une permission (partager un document/dossier)"""
-    # Vérifier qu'on a soit document_id soit folder_id
     if not data.document_id and not data.folder_id:
         raise HTTPException(status_code=400, detail="document_id ou folder_id requis")
     
-    # Vérifier que l'entité existe
     if data.document_id:
         entity = db.query(Document).filter(
             and_(
@@ -152,12 +147,10 @@ async def create_permission(
         if not entity:
             raise HTTPException(status_code=404, detail="Dossier non trouvé")
     
-    # Calculer l'expiration
     expires_at = None
     if data.expires_in_days:
         expires_at = datetime.utcnow() + timedelta(days=data.expires_in_days)
     
-    # Créer la permission
     permission = DocumentPermission(
         document_id=data.document_id,
         folder_id=data.folder_id,
@@ -208,7 +201,6 @@ async def delete_permission(
     return {"message": "Permission supprimée"}
 
 
-# ==================== LIENS DE PARTAGE ====================
 
 @router.get("/links/document/{document_id}")
 async def get_document_share_links(
@@ -257,11 +249,9 @@ async def create_share_link(
     db: Session = Depends(get_db)
 ):
     """Créer un lien de partage public"""
-    # Vérifier qu'on a soit document_id soit folder_id
     if not data.document_id and not data.folder_id:
         raise HTTPException(status_code=400, detail="document_id ou folder_id requis")
     
-    # Vérifier que l'entité existe
     if data.document_id:
         entity = db.query(Document).filter(
             and_(
@@ -283,22 +273,18 @@ async def create_share_link(
             raise HTTPException(status_code=404, detail="Dossier non trouvé")
         entity_name = entity.name
     
-    # Générer le token
     share_token = generate_share_token()
     
-    # Hash du mot de passe si fourni
     password_hash = None
     requires_password = False
     if data.password:
         password_hash = hash_password(data.password)
         requires_password = True
     
-    # Calculer l'expiration
     expires_at = None
     if data.expires_in_days:
         expires_at = datetime.utcnow() + timedelta(days=data.expires_in_days)
     
-    # Créer le lien
     link = DocumentShareLink(
         document_id=data.document_id,
         folder_id=data.folder_id,
@@ -392,7 +378,6 @@ async def delete_share_link(
     return {"message": "Lien supprimé"}
 
 
-# ==================== ACCÈS PUBLIC (sans auth) ====================
 
 @router.get("/public/{share_token}")
 async def access_share_link(
@@ -412,7 +397,6 @@ async def access_share_link(
     if not link:
         raise HTTPException(status_code=404, detail="Lien non trouvé ou expiré")
     
-    # Vérifications
     if not link.is_active:
         raise HTTPException(status_code=403, detail="Ce lien a été désactivé")
     
@@ -422,7 +406,6 @@ async def access_share_link(
     if link.is_view_limit_reached:
         raise HTTPException(status_code=403, detail="Limite de vues atteinte")
     
-    # Vérifier le mot de passe si requis
     if link.requires_password:
         if not password:
             return {
@@ -432,10 +415,8 @@ async def access_share_link(
         if not verify_password(password, link.password_hash):
             raise HTTPException(status_code=403, detail="Mot de passe incorrect")
     
-    # Incrémenter le compteur de vues
     link.current_views += 1
     
-    # Logger l'accès
     log = ShareLinkAccessLog(
         share_link_id=link.id,
         access_type="view",
@@ -446,7 +427,6 @@ async def access_share_link(
     db.add(log)
     db.commit()
     
-    # Retourner les infos du document
     if link.document_id:
         doc = link.document
         return {
@@ -461,7 +441,6 @@ async def access_share_link(
         }
     else:
         folder = link.folder
-        # Lister les documents du dossier
         documents = db.query(Document).filter(
             Document.folder_id == folder.id
         ).all()
@@ -510,15 +489,12 @@ async def download_via_share_link(
     if link.is_download_limit_reached:
         raise HTTPException(status_code=403, detail="Limite de téléchargements atteinte")
     
-    # Vérifier le mot de passe
     if link.requires_password:
         if not password or not verify_password(password, link.password_hash):
             raise HTTPException(status_code=403, detail="Mot de passe requis ou incorrect")
     
-    # Incrémenter le compteur
     link.current_downloads += 1
     
-    # Logger l'accès
     log = ShareLinkAccessLog(
         share_link_id=link.id,
         access_type="download",
@@ -528,10 +504,8 @@ async def download_via_share_link(
     db.add(log)
     db.commit()
     
-    # Rediriger vers le fichier
     if link.document_id:
         doc = link.document
-        # Retourner l'URL de téléchargement (à adapter selon votre stockage)
         return {
             "download_url": doc.file_path,
             "filename": doc.original_filename
@@ -558,7 +532,6 @@ async def get_share_link_stats(
     if not link:
         raise HTTPException(status_code=404, detail="Lien non trouvé")
     
-    # Récupérer les logs
     logs = db.query(ShareLinkAccessLog).filter(
         ShareLinkAccessLog.share_link_id == link_id
     ).order_by(ShareLinkAccessLog.accessed_at.desc()).limit(50).all()

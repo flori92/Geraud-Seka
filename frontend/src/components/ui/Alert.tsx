@@ -64,7 +64,6 @@ export function Alert({
       icon: <XCircle className="h-5 w-5" />,
       iconColor: "text-status-danger",
     },
-    // Alias 'error' for backwards-compatibility with older usages
     error: {
       container:
         "bg-status-danger/10 border-status-danger/20 text-status-danger",
@@ -124,7 +123,6 @@ export function Alert({
   );
 }
 
-// ========== ALERT VARIANTS ==========
 
 /**
  * Success Alert - Positive feedback

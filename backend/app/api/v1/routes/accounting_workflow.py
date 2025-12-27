@@ -201,7 +201,6 @@ async def auto_letter(
     db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
     """Lettrage automatique basé sur les montants correspondants."""
-    # Pour l'instant, retourne un résultat vide - fonctionnalité à implémenter
     return {"success": True, "matched_groups": 0, "entries_lettered": 0}
 
 
@@ -233,7 +232,6 @@ async def get_periods(
     current_tenant: Tenant = Depends(get_current_tenant),
     current_user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
-    # Pas de table de clôture de période pour le moment: renvoyer une liste vide.
     return {"periods": []}
 
 
@@ -242,7 +240,6 @@ async def get_entry_templates(
     current_tenant: Tenant = Depends(get_current_tenant),
     current_user: User = Depends(get_current_user),
 ) -> Dict[str, Any]:
-    # Pas de table de templates pour le moment.
     return {"templates": []}
 
 

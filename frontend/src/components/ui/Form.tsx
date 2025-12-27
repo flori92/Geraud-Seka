@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
  * Form Container - Wraps all form elements
  */
 interface FormProps extends HTMLAttributes<HTMLFormElement> {
-  // Extends HTMLFormElement attributes
 }
 
 export function Form({ className, children, ...props }: FormProps) {

@@ -52,12 +52,10 @@ crm_service = CRMService()
                     
                     pipeline[OpportunityStage(opp.stage)].append(stage_data)
                     
-                    # Calculs métriques
                     total_value += float(opp.amount)
                     if opp.stage not in [OpportunityStage.WON, OpportunityStage.LOST]:
                         weighted_value += opp.weighted_amount
                 
-                # Métriques du pipeline
                 metrics = {
                     "total_opportunities": len(opportunities),
                     "total_value": total_value,
@@ -87,7 +85,6 @@ crm_service = CRMService()
         
         try:
             async with AsyncSession() as db:
-                # 1. Leads froids à relancer
                 cold_leads = await db.query(Lead).filter(
                     and_(
                         Lead.tenant_id == tenant_id,
@@ -114,7 +111,6 @@ crm_service = CRMService()
                         "suggested_message": f"Bonjour {lead.first_name}, je fais suite à notre dernier échange..."
                     })
                 
-                # 2. Opportunités qui stagnent
                 stale_opportunities = await db.query(Opportunity).filter(
                     and_(
                         Opportunity.tenant_id == tenant_id,
@@ -139,7 +135,6 @@ crm_service = CRMService()
                             "suggested_action": "Organiser un point avec le client pour identifier les blocages"
                         })
                 
-                # 3. Leads chauds à convertir rapidement
                 hot_leads = await db.query(Lead).filter(
                     and_(
                         Lead.tenant_id == tenant_id,
@@ -160,7 +155,6 @@ crm_service = CRMService()
                         "suggested_action": "Préparer et envoyer une proposition commerciale"
                     })
                 
-                # 4. Suivis de propositions envoyées
                 pending_proposals = await db.query(Opportunity).filter(
                     and_(
                         Opportunity.tenant_id == tenant_id,
@@ -181,7 +175,6 @@ crm_service = CRMService()
                         "suggested_action": "Appeler pour connaître la décision"
                     })
                 
-                # Trier par priorité
                 priority_order = {"urgent": 0, "high": 1, "medium": 2, "low": 3}
                 actions.sort(key=lambda x: priority_order.get(x["priority"], 3))
                 
@@ -201,7 +194,6 @@ crm_service = CRMService()
         """
         try:
             async with AsyncSession() as db:
-                # Récupérer les leads non assignés
                 unassigned_leads = await db.query(Lead).filter(
                     and_(
                         Lead.tenant_id == tenant_id,
@@ -213,7 +205,6 @@ crm_service = CRMService()
                 if not unassigned_leads:
                     return 0
                 
-                # Récupérer les commerciaux actifs
                 from app.models.user import User
                 salespeople = await db.query(User).filter(
                     and_(
@@ -226,7 +217,6 @@ crm_service = CRMService()
                 if not salespeople:
                     return 0
                 
-                # Calculer la charge de travail de chaque commercial
                 workload = {}
                 for person in salespeople:
                     active_leads_count = await db.query(func.count(Lead.id)).filter(
@@ -240,17 +230,13 @@ crm_service = CRMService()
                 
                 assigned_count = 0
                 
-                # Assigner en mode round-robin équilibré
                 for lead in unassigned_leads:
-                    # Trouver le commercial avec le moins de leads
                     least_busy_id = min(workload.keys(), key=lambda k: workload[k])
                     
-                    # Assigner le lead
                     lead.assigned_to = least_busy_id
                     workload[least_busy_id] += 1
                     assigned_count += 1
                     
-                    # Calculer le score immédiatement
                     await self.calculate_lead_score(lead)
                 
                 await db.commit()
@@ -280,7 +266,6 @@ crm_service = CRMService()
             async with AsyncSession() as db:
                 start_date = datetime.utcnow() - timedelta(days=period_days)
                 
-                # Compter les leads par status
                 funnel_data = {}
                 
                 for status in LeadStatus:
@@ -294,7 +279,6 @@ crm_service = CRMService()
                     
                     funnel_data[status.value] = count
                 
-                # Calculer les taux de conversion
                 total_leads = sum(funnel_data.values())
                 conversion_rates = {}
                 
@@ -302,7 +286,6 @@ crm_service = CRMService()
                     for status, count in funnel_data.items():
                         conversion_rates[status] = (count / total_leads) * 100
                 
-                # Analyser les goulots d'étranglement
                 bottlenecks = []
                 
                 if conversion_rates.get("qualified", 0) < 30:
@@ -346,10 +329,8 @@ crm_service = CRMService()
                 if not lead:
                     return False
                 
-                # Générer un message personnalisé basé sur le profil du lead
                 message = await self._generate_personalized_message(lead)
                 
-                # Envoyer l'email
                 success = await self.email_service.send_lead_follow_up(
                     lead_email=lead.email,
                     lead_name=lead.first_name,
@@ -358,7 +339,6 @@ crm_service = CRMService()
                 )
                 
                 if success:
-                    # Enregistrer l'activité
                     activity = CRMActivity(
                         type=ActivityType.EMAIL,
                         subject=f"Email de suivi automatique",
@@ -390,7 +370,6 @@ crm_service = CRMService()
         """
         Génère un message personnalisé basé sur le profil du lead
         """
-        # Template de base avec personnalisation
         templates = {
             "high_score": f"""
             Bonjour {lead.first_name},
@@ -454,5 +433,4 @@ crm_service = CRMService()
             return (converted_leads / total_leads) * 100
 
 
-# Instance singleton
 crm_service = CRMService()

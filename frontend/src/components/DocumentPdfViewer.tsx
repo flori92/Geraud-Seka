@@ -1,7 +1,6 @@
 "use client";
 import React, { useEffect, useRef, useState } from 'react';
 
-// Lazy load pdfjs-dist only on client
 export default function DocumentPdfViewer({ url }: { url: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [pageCount, setPageCount] = useState<number>(0);
@@ -16,7 +15,6 @@ export default function DocumentPdfViewer({ url }: { url: string }) {
       setLoading(true);
       try {
         const pdfjsLib = await import('pdfjs-dist');
-        // Utiliser le CDN pour le worker - plus fiable avec Next.js
         const PDFJS_VERSION = '4.7.76';
         (pdfjsLib as any).GlobalWorkerOptions.workerSrc =
           `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VERSION}/build/pdf.worker.min.mjs`;
@@ -26,7 +24,6 @@ export default function DocumentPdfViewer({ url }: { url: string }) {
         pdfDoc = pdf;
         setPageCount(pdf.numPages);
 
-        // Render first page
         await renderPage(pdf, 1);
       } catch (e) {
         console.error('PDF load error', e);

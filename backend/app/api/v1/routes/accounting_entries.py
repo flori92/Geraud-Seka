@@ -75,8 +75,6 @@ def create_accounting_entry(
                     LedgerAccount.tenant_id == current_user.tenant_id,
                 ).first()
 
-                # Bridge: si l'OCR fournit un code présent dans le plan comptable avancé, mais absent du ledger,
-                # on crée le LedgerAccount correspondant.
                 if not account:
                     coa = db.query(ChartOfAccounts).filter(
                         ChartOfAccounts.tenant_id == current_user.tenant_id,
@@ -96,8 +94,6 @@ def create_accounting_entry(
                         db.add(account)
                         db.flush()
                     else:
-                        # Fallback: créer un compte minimal pour ne pas bloquer l'enregistrement.
-                        # Heuristique SYSCOHADA: 6 = charges, 7 = produits.
                         first_digit = account_code[:1]
                         if first_digit == "7":
                             inferred_type = LedgerAccountType.REVENUE
@@ -294,7 +290,6 @@ async def search_entries(
         AccountingEntryHeader.tenant_id == current_user.tenant_id
     )
     
-    # Filtres de base
     if criteria.journal_types:
         query = query.filter(AccountingEntryHeader.journal_type.in_(criteria.journal_types))
     
@@ -313,7 +308,6 @@ async def search_entries(
     if criteria.description:
         query = query.filter(AccountingEntryHeader.description.ilike(f"%{criteria.description}%"))
     
-    # Filtres sur les lignes d'écriture
     if any([criteria.account_number, criteria.partner_id, criteria.analytic_code]):
         query = query.join(AccountingEntryHeader.lines)
         
@@ -327,7 +321,6 @@ async def search_entries(
         if criteria.analytic_code:
             query = query.filter(AccountingEntryLine.analytic_code == criteria.analytic_code)
     
-    # Tri et pagination
     if criteria.sort_by:
         sort_field = getattr(AccountingEntryHeader, criteria.sort_by, None)
         if sort_field is not None:
@@ -356,7 +349,6 @@ async def export_entries(
     """
     Export des écritures dans différents formats (CSV, Excel, FEC, PDF)
     """
-    # Récupère les écritures selon les critères
     entries = await search_entries(criteria, current_user, db)
     
     if format == EntryExportFormat.CSV:
@@ -376,13 +368,11 @@ def export_entries_to_csv(entries: List[AccountingEntryHeader]):
     output = io.StringIO()
     writer = csv.writer(output, delimiter=';')
     
-    # En-têtes
     writer.writerow([
         "Date", "Journal", "Pièce", "Référence", "Compte", "Libellé",
         "Débit", "Crédit", "Tiers", "Code Analytique"
     ])
     
-    # Données
     for entry in entries:
         for line in entry.lines:
             writer.writerow([
@@ -466,7 +456,6 @@ def export_entries_to_excel(entries: List[AccountingEntryHeader]):
         import pandas as pd
         from io import BytesIO
         
-        # Création d'un DataFrame avec les données
         data = []
         for entry in entries:
             for line in entry.lines:
@@ -485,7 +474,6 @@ def export_entries_to_excel(entries: List[AccountingEntryHeader]):
         
         df = pd.DataFrame(data)
         
-        # Création du fichier Excel en mémoire
         output = BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
             df.to_excel(writer, index=False, sheet_name='Écritures')
@@ -506,7 +494,6 @@ def export_entries_to_fec(entries: List[AccountingEntryHeader], tenant_id: str):
     output = io.StringIO()
     writer = csv.writer(output, delimiter='|')
     
-    # En-tête FEC
     writer.writerow([
         "JournalCode", "JournalLib", "EcritureNum", "EcritureDate",
         "CompteNum", "CompteLib", "CompAuxNum", "CompAuxLib",
@@ -515,7 +502,6 @@ def export_entries_to_fec(entries: List[AccountingEntryHeader], tenant_id: str):
         "Idevise", "DateRglt", "ModeRglt"
     ])
     
-    # Données FEC
     for entry in entries:
         for line in entry.lines:
             writer.writerow([
@@ -537,7 +523,6 @@ def export_entries_to_fec(entries: List[AccountingEntryHeader], tenant_id: str):
     
     output.seek(0)
     
-    # Nom du fichier FEC selon la norme
     siren = tenant_id.replace("-", "")[:9]  # Format SIREN sur 9 chiffres
     fec_filename = f"FEC_{siren}_{date.today().strftime('%Y%m%d')}.txt"
     
@@ -577,7 +562,6 @@ async def batch_validate_entries(
                 errors.append(f"L'écriture {entry_id} n'est pas en statut brouillon")
                 continue
                 
-            # Vérification de l'équilibre
             total_debit = sum(line.debit for line in entry.lines)
             total_credit = sum(line.credit for line in entry.lines)
             
@@ -585,12 +569,10 @@ async def batch_validate_entries(
                 errors.append(f"L'écriture {entry_id} n'est pas équilibrée")
                 continue
                 
-            # Validation de l'écriture
             entry.status = EntryStatus.VALIDATED
             entry.validated_by = current_user.id
             entry.validated_at = datetime.now()
             
-            # Création d'une révision
             revision = AccountingRevision(
                 tenant_id=current_user.tenant_id,
                 entry_id=entry.id,
@@ -646,7 +628,6 @@ async def batch_delete_entries(
                 errors.append(f"Impossible de supprimer une écriture comptabilisée ({entry_id})")
                 continue
                 
-            # Création d'une révision avant suppression
             revision = AccountingRevision(
                 tenant_id=current_user.tenant_id,
                 entry_id=entry.id,
@@ -658,13 +639,11 @@ async def batch_delete_entries(
             )
             db.add(revision)
             
-            # Suppression des lignes d'écriture
             db.query(AccountingEntryLine).filter(
                 AccountingEntryLine.entry_id == entry.id,
                 AccountingEntryLine.tenant_id == current_user.tenant_id
             ).delete()
             
-            # Suppression de l'entête
             db.delete(entry)
             deleted_count += 1
             
@@ -692,7 +671,6 @@ async def batch_export_entries(
     if not entry_ids:
         raise HTTPException(status_code=400, detail="Aucune écriture spécifiée")
     
-    # Récupération des écritures demandées
     entries = db.query(AccountingEntryHeader).options(
         joinedload(AccountingEntryHeader.lines).joinedload(AccountingEntryLine.account)
     ).filter(
@@ -703,7 +681,6 @@ async def batch_export_entries(
     if not entries:
         raise HTTPException(status_code=404, detail="Aucune écriture trouvée avec les IDs fournis")
     
-    # Appel à la fonction d'export appropriée
     if format == EntryExportFormat.CSV:
         return export_entries_to_csv(entries)
     elif format == EntryExportFormat.EXCEL:
@@ -734,14 +711,12 @@ async def post_entry(
     if entry.status != EntryStatus.VALIDATED:
         raise HTTPException(status_code=400, detail="Seules les écritures validées peuvent être comptabilisées")
     
-    # Vérifier que l'écriture est équilibrée
     total_debit = sum(line.debit for line in entry.lines)
     total_credit = sum(line.credit for line in entry.lines)
     
     if abs(total_debit - total_credit) > Decimal("0.01"):
         raise HTTPException(status_code=400, detail="L'écriture n'est pas équilibrée")
     
-    # Mettre à jour les soldes des comptes
     for line in entry.lines:
         account = db.query(LedgerAccount).filter(
             LedgerAccount.id == line.account_id,
@@ -751,12 +726,10 @@ async def post_entry(
         if account:
             account.balance += (line.debit - line.credit)
     
-    # Mettre à jour le statut
     entry.status = EntryStatus.POSTED
     entry.posted_by = current_user.id
     entry.posted_at = datetime.now()
     
-    # Créer une révision
     revision = AccountingRevision(
         tenant_id=current_user.tenant_id,
         entry_id=entry.id,

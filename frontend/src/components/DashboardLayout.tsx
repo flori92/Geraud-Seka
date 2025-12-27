@@ -21,7 +21,6 @@ interface SekaNotification {
   created_at: string;
 }
 
-// Composant Panel d'Aide
 function HelpPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   if (!isOpen) return null;
 
@@ -76,13 +75,11 @@ function HelpPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
   );
 }
 
-// Composant Panel de Notifications
 function NotificationsPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const router = useRouter();
   const [notifications, setNotifications] = useState<SekaNotification[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Récupérer les notifications depuis l'API
   useEffect(() => {
     if (isOpen) {
       fetchNotifications();
@@ -123,7 +120,6 @@ function NotificationsPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () 
       });
 
       if (response.ok) {
-        // Mettre à jour l'état local
         setNotifications(notifications.map(n => ({ ...n, is_read: true })));
       }
     } catch (error) {
@@ -132,7 +128,6 @@ function NotificationsPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () 
   };
 
   const handleNotificationClick = async (notification: SekaNotification) => {
-    // Marquer comme lue
     if (!notification.is_read) {
       try {
         const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
@@ -147,7 +142,6 @@ function NotificationsPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () 
           headers
         });
 
-        // Mettre à jour l'état local
         setNotifications(notifications.map(n => 
           n.id === notification.id ? { ...n, is_read: true } : n
         ));
@@ -156,7 +150,6 @@ function NotificationsPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () 
       }
     }
 
-    // Navigation basée sur le type de notification
     const navigationMap: Record<string, string> = {
       'invoice': '/invoices',
       'payment': '/payments',

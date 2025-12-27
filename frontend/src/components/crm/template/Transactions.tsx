@@ -1,6 +1,5 @@
 'use client'
 
-// MUI Imports
 import Card from '@mui/material/Card'
 import CardHeader from '@mui/material/CardHeader'
 import CardContent from '@mui/material/CardContent'
@@ -9,10 +8,8 @@ import Avatar from '@mui/material/Avatar'
 import IconButton from '@mui/material/IconButton'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
 
-// Icons
 import { PieChart, Users, Laptop, DollarSign } from 'lucide-react'
 
-// Types
 type ThemeColor = 'primary' | 'success' | 'warning' | 'info' | 'secondary' | 'error'
 
 interface TransactionsProps {

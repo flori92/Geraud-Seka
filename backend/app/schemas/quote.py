@@ -6,7 +6,6 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 
-# ========== QuoteItem Schemas ==========
 
 class QuoteItemBase(BaseModel):
     """Base schema pour les lignes de devis."""
@@ -48,7 +47,6 @@ class QuoteItem(QuoteItemBase):
     model_config = ConfigDict(from_attributes=True)
 
 
-# ========== Quote Schemas ==========
 
 class QuoteBase(BaseModel):
     """Base schema pour les devis."""

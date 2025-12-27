@@ -22,7 +22,7 @@ interface BalanceSheetLine {
   amount_n1: number;
   variance_amount: number;
   variance_percent: number;
-  level: number; // 1 = total, 2 = category, 3 = detail
+  level: number;
   is_total?: boolean;
 }
 

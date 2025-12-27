@@ -41,15 +41,12 @@ class SalesInvoiceService:
 
     def create_invoice(self, db: Session, tenant_id: str, invoice_data: dict) -> SalesInvoice:
         """Create a new invoice"""
-        # Extract items if present
         items_data = invoice_data.pop("items", [])
 
-        # Create invoice
         invoice = SalesInvoice(tenant_id=tenant_id, **invoice_data)
         db.add(invoice)
         db.flush()  # Get the invoice ID
 
-        # Create items
         for item_data in items_data:
             item = SalesInvoiceItem(invoice_id=invoice.id, **item_data)
             db.add(item)

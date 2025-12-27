@@ -53,10 +53,10 @@ type PaymentStatus = 'unpaid' | 'partial' | 'paid' | 'overpaid';
 type TabFilter = 'all' | 'inbox' | 'to_approve' | 'to_pay' | 'paid';
 
 interface SupplierInvoiceStats {
-  a_payer: number;           // Amount to pay
-  paye: number;              // Amount paid
-  factures_retard: number;   // Overdue invoices count
-  en_attente_approbation: number; // Awaiting approval count
+  a_payer: number;
+  paye: number;
+  factures_retard: number;
+  en_attente_approbation: number;
 }
 
 interface FilterChip {
@@ -208,7 +208,7 @@ export default function FacturesFournisseursPage() {
         }
       );
       if (response.ok) {
-        fetchData(); // Refresh data
+        fetchData();
       }
     } catch (error) {
       console.error("Error approving invoice:", error);

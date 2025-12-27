@@ -48,10 +48,8 @@ export function NotificationCenter() {
   useEffect(() => {
     fetchNotifications();
     
-    // Polling toutes les 30 secondes
     const interval = setInterval(fetchNotifications, 30000);
     
-    // WebSocket pour temps réel
     const userId = localStorage.getItem("seka_user_id");
     if (userId) {
       try {

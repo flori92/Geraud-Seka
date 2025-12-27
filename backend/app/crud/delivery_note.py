@@ -77,7 +77,6 @@ def create(
     """Create a new delivery note with items."""
     delivery_number = generate_delivery_number(db, tenant_id)
 
-    # Create the delivery note (without items first)
     dn_data = obj_in.model_dump(exclude={"items"})
     db_dn = DeliveryNote(
         **dn_data,
@@ -87,7 +86,6 @@ def create(
         status=DeliveryNoteStatus.DRAFT,
     )
 
-    # Create delivery note items
     for item_in in obj_in.items:
         db_item = DeliveryNoteItem(**item_in.model_dump())
         db_dn.items.append(db_item)
@@ -151,7 +149,6 @@ def validate_delivery(
     if not dn:
         return None
 
-    # Update delivery note
     dn.status = DeliveryNoteStatus.VALIDATED
     dn.received_by = received_by
     if signature_url:
@@ -159,7 +156,6 @@ def validate_delivery(
 
     db.add(dn)
 
-    # Update purchase order items if linked
     if dn.purchase_order_id:
         for item in dn.items:
             if item.purchase_order_item_id and item.quantity_accepted > 0:

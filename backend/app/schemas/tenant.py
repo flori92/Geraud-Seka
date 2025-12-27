@@ -25,5 +25,4 @@ class TenantRead(TenantBase, IDSchema, TimestampSchema):
     pass
 
 
-# Alias pour compatibilité avec les imports existants
 Tenant = TenantRead

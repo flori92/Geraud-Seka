@@ -23,36 +23,25 @@ class ProxyHeadersMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
 
     async def dispatch(self, request: Request, call_next):
-        # Get forwarded protocol (http or https)
         forwarded_proto = request.headers.get("X-Forwarded-Proto")
         if forwarded_proto:
-            # Update the URL scheme in the request scope
             request.scope["scheme"] = forwarded_proto
 
-        # Get forwarded host
         forwarded_host = request.headers.get("X-Forwarded-Host")
         if forwarded_host:
-            # Update the host in the request headers
-            # This ensures url_for() generates correct URLs
             pass  # Starlette handles this automatically
 
-        # Get original client IP (behind proxy)
         forwarded_for = request.headers.get("X-Forwarded-For")
         if forwarded_for:
-            # X-Forwarded-For can be a comma-separated list
             client_ip = forwarded_for.split(",")[0].strip()
-            # Update client in scope
             if request.client:
                 request.scope["client"] = (client_ip, request.client.port)
 
         response = await call_next(request)
 
-        # Fix redirect locations to use HTTPS when forwarded proto is HTTPS
-        # This prevents HTTP redirects when behind a HTTPS proxy
         if response.status_code in (301, 302, 303, 307, 308):
             location = response.headers.get("location")
             if location and forwarded_proto == "https" and location.startswith("http://"):
-                # Replace http:// with https:// in redirect location
                 fixed_location = location.replace("http://", "https://", 1)
                 response.headers["location"] = fixed_location
 

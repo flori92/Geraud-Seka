@@ -6,7 +6,6 @@ interface ConversionFunnelProps {
   period: string;
 }
 
-// Implémentation simple d'un funnel en barres horizontales avec des valeurs fictives cohérentes
 export const ConversionFunnel: React.FC<ConversionFunnelProps> = ({ period }) => {
   const steps = [
     { label: "Leads", value: 100 },

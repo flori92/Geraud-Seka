@@ -56,7 +56,6 @@ def create(
     tenant_id: UUID,
 ) -> BankAccount:
     """Create a new bank account."""
-    # If this is set as default, remove default flag from other accounts
     if obj_in.is_default:
         db.query(BankAccount).filter(
             and_(BankAccount.tenant_id == tenant_id, BankAccount.is_default == True)
@@ -78,7 +77,6 @@ def update(db: Session, *, db_obj: BankAccount, obj_in: BankAccountUpdate) -> Ba
     """Update a bank account."""
     update_data = obj_in.model_dump(exclude_unset=True)
 
-    # If setting as default, remove default flag from other accounts
     if update_data.get("is_default") is True:
         db.query(BankAccount).filter(
             and_(BankAccount.tenant_id == db_obj.tenant_id, BankAccount.is_default == True, BankAccount.id != db_obj.id)

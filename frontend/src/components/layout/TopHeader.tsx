@@ -43,7 +43,6 @@ export default function TopHeader({ onClientChange, onMenuToggle }: TopHeaderPro
         fetchUser();
     }, []);
 
-    // Charger les notifications depuis l'API
     useEffect(() => {
         const fetchNotifications = async () => {
             try {

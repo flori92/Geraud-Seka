@@ -139,7 +139,6 @@ async def create_invoice(
     - due_date: Date d'échéance requise
     - items: Liste d'au moins 1 item avec product_name, quantity, unit_price
     """
-    # Vérifier que le numéro de facture est unique par tenant
     existing = db.query(SalesInvoice).filter(
         and_(
             SalesInvoice.tenant_id == current_user.tenant_id,
@@ -153,7 +152,6 @@ async def create_invoice(
             detail=f"Facture avec le numéro {invoice_data.reference_number} existe déjà",
         )
     
-    # Créer la facture
     invoice_id = str(uuid4())
     invoice = SalesInvoice(
         id=invoice_id,
@@ -167,7 +165,6 @@ async def create_invoice(
         status=invoice_data.status.value,
     )
     
-    # Ajouter les items et calculer totaux
     total_ht = Decimal(0)
     total_tax = Decimal(0)
     
@@ -267,10 +264,8 @@ async def update_invoice(
             detail="Seules les factures en brouillon peuvent être modifiées",
         )
     
-    # Mettre à jour les champs
     update_data = invoice_data.dict(exclude_unset=True)
     
-    # Gérer les items séparément
     items_data = update_data.pop("items", None)
     
     for field, value in update_data.items():
@@ -280,14 +275,11 @@ async def update_invoice(
             else:
                 setattr(invoice, field, value)
     
-    # Si les items sont fournis, les remplacer
     if items_data is not None:
-        # Supprimer les anciens items
         db.query(SalesInvoiceItem).filter(
             SalesInvoiceItem.sales_invoice_id == invoice_id
         ).delete()
         
-        # Ajouter les nouveaux
         total_ht = Decimal(0)
         total_tax = Decimal(0)
         

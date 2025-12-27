@@ -32,7 +32,6 @@ from fastapi import APIRouter
 
 router = APIRouter()
 
-# ==================== ROUTES IMPORT ====================
 
 @router.post("/import/upload")
 async def upload_import_file(
@@ -49,7 +48,6 @@ async def upload_import_file(
     
     content = await file.read()
     
-    # Analyser le fichier
     try:
         decoded = content.decode('utf-8')
         reader = csv.reader(io.StringIO(decoded))
@@ -58,7 +56,6 @@ async def upload_import_file(
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Erreur lecture CSV: {str(e)}")
     
-    # Créer le job d'import
     job = ImportExportJob(
         job_type="import",
         entity_type=entity_type,
@@ -109,7 +106,6 @@ async def start_import(
     job.started_at = datetime.utcnow()
     db.commit()
     
-    # Lancer en arrière-plan
     background_tasks.add_task(process_import, str(job.id), str(current_tenant.id))
     
     return {"message": "Import démarré", "job_id": str(job.id)}
@@ -147,7 +143,6 @@ async def get_import_status(
     }
 
 
-# ==================== ROUTES EXPORT ====================
 
 @router.get("/export/{entity_type}")
 async def export_data(
@@ -165,7 +160,6 @@ async def export_data(
     else:
         raise HTTPException(status_code=400, detail="Type d'entité non supporté")
     
-    # Créer le CSV
     output = io.StringIO()
     if data:
         writer = csv.DictWriter(output, fieldnames=data[0].keys())
@@ -219,7 +213,6 @@ async def list_jobs(
     ]
 
 
-# ==================== HELPERS ====================
 
 def suggest_column_mapping(headers: List[str], entity_type: str) -> dict:
     """Suggère un mapping automatique des colonnes"""
@@ -322,17 +315,12 @@ async def process_import(job_id: str, tenant_id: str):
         errors = []
         success = 0
         
-        # TODO: Lire le fichier depuis le stockage
-        # Pour l'instant, simulation
         
         for i in range(job.total_rows):
             try:
-                # Créer l'entité selon le type
                 if job.entity_type == "leads":
-                    # Créer un lead
                     pass
                 elif job.entity_type == "contacts":
-                    # Créer un contact
                     pass
                 
                 success += 1

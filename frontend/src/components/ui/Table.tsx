@@ -2,7 +2,6 @@ import React, { TableHTMLAttributes, ThHTMLAttributes, TdHTMLAttributes } from "
 import { cn } from "@/lib/utils";
 import { ChevronDown } from "lucide-react";
 
-// ========== TABLE CONTAINER ==========
 
 interface TableProps extends TableHTMLAttributes<HTMLTableElement> {
   striped?: boolean;
@@ -33,7 +32,6 @@ export function Table({
   );
 }
 
-// ========== TABLE HEADER ==========
 
 interface TableHeadProps extends React.HTMLAttributes<HTMLTableSectionElement> {}
 
@@ -51,7 +49,6 @@ export function TableHead({ className, children, ...props }: TableHeadProps) {
   );
 }
 
-// ========== TABLE BODY ==========
 
 interface TableBodyProps extends React.HTMLAttributes<HTMLTableSectionElement> {}
 
@@ -66,7 +63,6 @@ export function TableBody({ className, children, ...props }: TableBodyProps) {
   );
 }
 
-// ========== TABLE ROW ==========
 
 interface TableRowProps extends React.HTMLAttributes<HTMLTableRowElement> {
   variant?: "default" | "highlight" | "interactive";
@@ -100,7 +96,6 @@ export function TableRow({
   );
 }
 
-// ========== TABLE HEADER CELL ==========
 
 interface TableHeaderProps extends ThHTMLAttributes<HTMLTableCellElement> {
   align?: "left" | "center" | "right";
@@ -148,7 +143,6 @@ export function TableHeader({
   );
 }
 
-// ========== TABLE DATA CELL ==========
 
 interface TableCellProps extends TdHTMLAttributes<HTMLTableCellElement> {
   align?: "left" | "center" | "right";
@@ -186,7 +180,6 @@ export function TableCell({
   );
 }
 
-// ========== TABLE FOOTER ==========
 
 interface TableFooterProps extends React.HTMLAttributes<HTMLTableSectionElement> {}
 
@@ -204,7 +197,6 @@ export function TableFooter({ className, children, ...props }: TableFooterProps)
   );
 }
 
-// ========== TABLE EMPTY STATE ==========
 
 interface TableEmptyProps extends React.HTMLAttributes<HTMLDivElement> {
   message?: string;

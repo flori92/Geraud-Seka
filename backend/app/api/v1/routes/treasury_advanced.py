@@ -20,7 +20,6 @@ from app.models.accounting_advanced import BankReconciliation, BankReconciliatio
 router = APIRouter()
 
 
-# ==================== DASHBOARD TRÉSORERIE ====================
 
 @router.get("/dashboard")
 async def get_treasury_dashboard(
@@ -33,7 +32,6 @@ async def get_treasury_dashboard(
 
     today = date.today()
 
-    # Récupérer les soldes bancaires réels depuis les comptes classe 5
     bank_accounts_query = db.query(ChartOfAccounts).filter(
         ChartOfAccounts.tenant_id == current_tenant.id,
         ChartOfAccounts.account_class == "5",
@@ -43,15 +41,12 @@ async def get_treasury_dashboard(
     current_balance = sum(float(acc.balance) for acc in bank_accounts_query) if bank_accounts_query else 0
     available_balance = current_balance * 0.93  # Approximation : 93% disponible
 
-    # Flux du mois (à calculer depuis les écritures réelles)
     month_inflows = current_balance * 0.44  # Approximation
     month_outflows = current_balance * 0.34
 
-    # Prévisions 30 jours (à affiner)
     forecast_inflows = current_balance * 0.51
     forecast_outflows = current_balance * 0.39
 
-    # Données graphiques hebdomadaires (6 dernières semaines)
     weekly_balances = [
         current_balance * 0.86,
         current_balance * 0.94,
@@ -61,7 +56,6 @@ async def get_treasury_dashboard(
         current_balance
     ]
 
-    # Flux hebdomadaires (4 dernières semaines)
     weekly_inflows = [
         month_inflows * 0.36,
         month_inflows * 0.30,
@@ -105,14 +99,12 @@ async def get_treasury_dashboard(
         ] if bank_accounts_query else [
             {"name": "Compte Principal", "bank": "SGBCI", "balance": 0, "currency": "XOF"}
         ],
-        # Nouvelles données pour graphiques
         "weekly_balances": weekly_balances,
         "weekly_inflows": weekly_inflows,
         "weekly_outflows": weekly_outflows
     }
 
 
-# ==================== PRÉVISIONS DE TRÉSORERIE ====================
 
 @router.get("/forecast")
 async def get_cash_forecast(
@@ -125,18 +117,15 @@ async def get_cash_forecast(
     today = date.today()
     current_balance = 2847500.00
     
-    # Générer les prévisions jour par jour
     forecast = []
     running_balance = current_balance
     
     for i in range(days):
         forecast_date = today + timedelta(days=i)
         
-        # Simuler des flux basés sur des patterns
         day_of_week = forecast_date.weekday()
         day_of_month = forecast_date.day
         
-        # Entrées (plus élevées en début de mois)
         if day_of_month <= 5:
             inflows = 150000 + (5 - day_of_month) * 30000
         elif day_of_month >= 25:
@@ -144,7 +133,6 @@ async def get_cash_forecast(
         else:
             inflows = 45000 if day_of_week < 5 else 10000
         
-        # Sorties (salaires fin de mois, charges fixes)
         if day_of_month == 25:
             outflows = 450000  # Salaires
         elif day_of_month in [5, 15]:
@@ -165,7 +153,6 @@ async def get_cash_forecast(
             "is_weekend": day_of_week >= 5
         })
     
-    # Résumé
     total_inflows = sum(f["inflows"] for f in forecast)
     total_outflows = sum(f["outflows"] for f in forecast)
     
@@ -186,7 +173,6 @@ async def get_cash_forecast(
     }
 
 
-# ==================== FLUX DE TRÉSORERIE ====================
 
 @router.get("/cash-flow")
 async def get_cash_flow_statement(
@@ -197,7 +183,6 @@ async def get_cash_flow_statement(
 ):
     """État des flux de trésorerie"""
     
-    # Flux d'exploitation
     operating = {
         "receipts_from_customers": 1850000,
         "payments_to_suppliers": -720000,
@@ -207,7 +192,6 @@ async def get_cash_flow_statement(
         "net_operating": 550000
     }
     
-    # Flux d'investissement
     investing = {
         "purchase_of_equipment": -180000,
         "sale_of_assets": 25000,
@@ -215,7 +199,6 @@ async def get_cash_flow_statement(
         "net_investing": -205000
     }
     
-    # Flux de financement
     financing = {
         "loan_proceeds": 500000,
         "loan_repayments": -120000,
@@ -238,7 +221,6 @@ async def get_cash_flow_statement(
     }
 
 
-# ==================== RAPPROCHEMENT BANCAIRE ====================
 
 @router.get("/reconciliation")
 async def list_reconciliations(
@@ -249,7 +231,6 @@ async def list_reconciliations(
     db: Session = Depends(get_db)
 ):
     """Liste des rapprochements bancaires"""
-    # Données simulées
     return [
         {
             "id": "rec-001",
@@ -331,7 +312,6 @@ async def complete_reconciliation(
     return {"message": "Rapprochement finalisé", "is_reconciled": True}
 
 
-# ==================== ÉCHÉANCIER ====================
 
 @router.get("/schedule")
 async def get_payment_schedule(
@@ -374,7 +354,6 @@ async def get_payment_schedule(
     return result
 
 
-# ==================== INDICATEURS KPI ====================
 
 @router.get("/kpis")
 async def get_treasury_kpis(
@@ -402,7 +381,6 @@ async def get_treasury_kpis(
     }
 
 
-# ==================== ALERTES ====================
 
 @router.get("/alerts")
 async def get_treasury_alerts(
@@ -445,7 +423,6 @@ async def get_treasury_alerts(
     ]
 
 
-# ==================== HISTORIQUE ====================
 
 @router.get("/history")
 async def get_cash_history(
@@ -471,7 +448,6 @@ async def get_cash_history(
     
     for i in range(days, 0, -1):
         hist_date = today - timedelta(days=i)
-        # Variation aléatoire mais réaliste
         variation = ((i * 17) % 100 - 50) * 1000
         balance = max(500000, balance - variation)
         

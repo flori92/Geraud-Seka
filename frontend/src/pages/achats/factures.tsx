@@ -72,7 +72,7 @@ export default function FacturesFournisseurs() {
             emission: date ? new Date(date).toLocaleDateString("fr-FR") : "-",
             tiers: supplierName || "",
             numeroFacture: referenceNumber,
-            numeroCompte: "6288", // Default account
+            numeroCompte: "6288",
             tauxTVA: determineTVARate(amountVAT, amountHT),
             ajout: new Date(doc.created_at).toLocaleDateString("fr-FR"),
             statutDirigeant: doc.status === "validated" ? "Validée" : "Import comp...",

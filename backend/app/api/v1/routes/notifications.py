@@ -18,7 +18,6 @@ from app.models.notifications import Notification, NotificationType
 router = APIRouter()
 
 
-# ==================== SCHEMAS ====================
 
 class NotificationCreate(BaseModel):
     user_id: str
@@ -31,7 +30,6 @@ class NotificationCreate(BaseModel):
     data: Optional[dict] = None
 
 
-# ==================== WEBSOCKET MANAGER ====================
 
 class ConnectionManager:
     """Gestionnaire de connexions WebSocket"""
@@ -60,7 +58,6 @@ class ConnectionManager:
                     pass
     
     async def broadcast_to_tenant(self, tenant_id: str, message: dict, db: Session):
-        # Récupérer tous les utilisateurs du tenant
         from app.models.user import User
         users = db.query(User).filter(User.tenant_id == tenant_id).all()
         for user in users:
@@ -70,7 +67,6 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 
-# ==================== WEBSOCKET ENDPOINT ====================
 
 @router.websocket("/ws/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, user_id: str):
@@ -80,16 +76,13 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
     await manager.connect(websocket, user_id)
     try:
         while True:
-            # Garder la connexion ouverte
             data = await websocket.receive_text()
-            # Peut être utilisé pour des commandes (ping, etc.)
             if data == "ping":
                 await websocket.send_text("pong")
     except WebSocketDisconnect:
         manager.disconnect(websocket, user_id)
 
 
-# ==================== ROUTES ====================
 
 @router.get("/")
 async def list_notifications(
@@ -170,7 +163,6 @@ async def create_notification(
     db.commit()
     db.refresh(notification)
     
-    # Envoyer via WebSocket
     await manager.send_to_user(data.user_id, {
         "type": "notification",
         "data": {
@@ -275,7 +267,6 @@ async def clear_notifications(
     return {"message": "Notifications lues supprimées"}
 
 
-# ==================== HELPER FUNCTIONS ====================
 
 async def send_notification(
     db: Session,
@@ -309,7 +300,6 @@ async def send_notification(
     db.commit()
     db.refresh(notification)
     
-    # Envoyer via WebSocket
     await manager.send_to_user(user_id, {
         "type": "notification",
         "data": {

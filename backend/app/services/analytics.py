@@ -14,7 +14,6 @@ from app.models.client import Client
 from app.models.product import Product
 from app.models.sales_invoice import SalesInvoice
 from app.models.accounting import AccountingEntry
-# from app.models.crm import Lead, Opportunity, CRMActivity  # CRM models removed
 from app.db.session import SessionLocal
 from app.services.monitoring import monitoring_service
 
@@ -37,11 +36,9 @@ class AnalyticsService:
             Dict avec toutes les métriques calculées
         """
         try:
-            # Définir les dates selon la période
             end_date = datetime.now(timezone.utc)
             start_date = self._get_period_start_date(end_date, period)
             
-            # Calcul parallèle des métriques
             metrics_tasks = [
                 self._calculate_revenue_metrics(tenant_id, start_date, end_date),
                 self._calculate_sales_metrics(tenant_id, start_date, end_date),
@@ -53,15 +50,12 @@ class AnalyticsService:
             
             results = await asyncio.gather(*metrics_tasks)
             
-            # Combiner tous les résultats
             all_metrics = {}
             for result in results:
                 all_metrics |= result
             
-            # Sauvegarder les métriques en base
             await self._save_metrics_to_db(tenant_id, all_metrics, period)
             
-            # Log business event
             self.monitoring.log_business_event(
                 event_type="metrics_calculated",
                 description=f"Métriques {period} calculées: {len(all_metrics)} indicateurs",
@@ -82,7 +76,6 @@ class AnalyticsService:
         """Calcule les métriques de chiffre d'affaires"""
         db = SessionLocal()
         try:
-            # CA total
             total_revenue = db.query(func.sum(SalesInvoice.total_amount)).filter(
                 and_(
                     SalesInvoice.tenant_id == tenant_id,
@@ -91,7 +84,6 @@ class AnalyticsService:
                 )
             ).scalar() or 0
 
-            # CA période précédente pour comparaison
             previous_start = start_date - (end_date - start_date)
             previous_revenue = db.query(func.sum(SalesInvoice.total_amount)).filter(
                 and_(
@@ -101,12 +93,10 @@ class AnalyticsService:
                 )
             ).scalar() or 0
 
-            # Croissance
             growth_rate = 0
             if previous_revenue > 0:
                 growth_rate = ((total_revenue - previous_revenue) / previous_revenue) * 100
 
-            # CA moyen par facture
             invoice_count = db.query(func.count(SalesInvoice.id)).filter(
                 and_(
                     SalesInvoice.tenant_id == tenant_id,
@@ -146,7 +136,6 @@ class AnalyticsService:
         """Calcule les métriques de vente"""
         db = SessionLocal()
         try:
-            # Nombre de ventes
             sales_count = db.query(func.count(SalesInvoice.id)).filter(
                 and_(
                     SalesInvoice.tenant_id == tenant_id,
@@ -155,7 +144,6 @@ class AnalyticsService:
                 )
             ).scalar() or 0
 
-            # CRM metrics disabled - models removed
             leads_created = 0
             conversion_rate = 0
 
@@ -183,7 +171,6 @@ class AnalyticsService:
         """Calcule les métriques client"""
         db = SessionLocal()
         try:
-            # Clients actifs (qui ont acheté dans la période)
             active_clients = db.query(func.count(func.distinct(SalesInvoice.client_id))).filter(
                 and_(
                     SalesInvoice.tenant_id == tenant_id,
@@ -192,7 +179,6 @@ class AnalyticsService:
                 )
             ).scalar() or 0
 
-            # Nouveaux clients
             new_clients = db.query(func.count(Client.id)).filter(
                 and_(
                     Client.tenant_id == tenant_id,
@@ -201,7 +187,6 @@ class AnalyticsService:
                 )
             ).scalar() or 0
 
-            # Total clients
             total_clients = db.query(func.count(Client.id)).filter(
                 Client.tenant_id == tenant_id
             ).scalar() or 0
@@ -230,12 +215,10 @@ class AnalyticsService:
         """Calcule les métriques de stock"""
         db = SessionLocal()
         try:
-            # Valeur totale du stock
             total_stock_value = db.query(
                 func.sum(Product.price * Product.stock_quantity)
             ).filter(Product.tenant_id == tenant_id).scalar() or 0
 
-            # Produits en rupture de stock
             out_of_stock = db.query(func.count(Product.id)).filter(
                 and_(
                     Product.tenant_id == tenant_id,
@@ -243,7 +226,6 @@ class AnalyticsService:
                 )
             ).scalar() or 0
 
-            # Produits en alerte stock bas
             low_stock = db.query(func.count(Product.id)).filter(
                 and_(
                     Product.tenant_id == tenant_id,
@@ -252,7 +234,6 @@ class AnalyticsService:
                 )
             ).scalar() or 0
 
-            # Nombre total de produits
             total_products = db.query(func.count(Product.id)).filter(
                 Product.tenant_id == tenant_id
             ).scalar() or 0
@@ -286,7 +267,6 @@ class AnalyticsService:
         """Calcule les métriques de trésorerie"""
         db = SessionLocal()
         try:
-            # Entrées de trésorerie
             cash_in = db.query(func.sum(AccountingEntry.credit)).filter(
                 and_(
                     AccountingEntry.tenant_id == tenant_id,
@@ -296,7 +276,6 @@ class AnalyticsService:
                 )
             ).scalar() or 0
 
-            # Sorties de trésorerie
             cash_out = db.query(func.sum(AccountingEntry.debit)).filter(
                 and_(
                     AccountingEntry.tenant_id == tenant_id,
@@ -306,7 +285,6 @@ class AnalyticsService:
                 )
             ).scalar() or 0
 
-            # Flux de trésorerie net
             net_cash_flow = cash_in - cash_out
 
             return {
@@ -355,10 +333,8 @@ class AnalyticsService:
         """
         insights = []
         
-        # Récupérer les métriques récentes
         metrics = await self.calculate_real_time_metrics(tenant_id)
         
-        # Analyse croissance du chiffre d'affaires
         revenue_growth = metrics.get("revenue_growth_rate", {}).get("value", 0)
         if revenue_growth < -10:
             insights.append({
@@ -389,7 +365,6 @@ class AnalyticsService:
                 "confidence_score": 0.95
             })
         
-        # Analyse stock
         low_stock = metrics.get("low_stock_products", {}).get("value", 0)
         out_of_stock = metrics.get("out_of_stock_products", {}).get("value", 0)
         
@@ -422,7 +397,6 @@ class AnalyticsService:
                 "confidence_score": 0.8
             })
         
-        # Analyse CRM
         conversion_rate = metrics.get("conversion_rate", {}).get("value", 0)
         if conversion_rate < 5 and conversion_rate > 0:
             insights.append({
@@ -439,7 +413,6 @@ class AnalyticsService:
                 "confidence_score": 0.7
             })
         
-        # Sauvegarder les insights en base
         await self._save_insights_to_db(tenant_id, insights)
         
         return insights
@@ -448,10 +421,8 @@ class AnalyticsService:
         """Génère des alertes automatiques basées sur les seuils"""
         alerts = []
         
-        # Récupérer les métriques actuelles
         metrics = await self.calculate_real_time_metrics(tenant_id)
         
-        # Alerte cash flow négatif
         cash_flow = metrics.get("net_cash_flow", {}).get("value", 0)
         if cash_flow < -100000:  # Seuil configurable
             alerts.append(await self._create_alert(
@@ -464,7 +435,6 @@ class AnalyticsService:
                 threshold_value=-100000
             ))
         
-        # Alerte croissance négative
         growth_rate = metrics.get("revenue_growth_rate", {}).get("value", 0)
         if growth_rate < -15:
             alerts.append(await self._create_alert(
@@ -562,5 +532,4 @@ class AnalyticsService:
             db.close()
 
 
-# Instance singleton
 analytics_service = AnalyticsService()

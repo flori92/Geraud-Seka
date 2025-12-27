@@ -33,7 +33,6 @@ def list_quotes(
     Retrieve quotes for the current tenant.
     """
     try:
-        # Validate tenant_id exists
         if not current_user.tenant_id:
             print("❌ Error: User has no tenant_id")
             return {"items": [], "total": 0, "message": "No tenant associated with user"}
@@ -48,12 +47,10 @@ def list_quotes(
         )
         return {"items": quotes, "total": len(quotes)}
     except (ProgrammingError, OperationalError) as e:
-        # Table doesn't exist yet - rollback and return empty list
         db.rollback()
         print(f"Quotes table error: {str(e)}")
         return {"items": [], "total": 0, "message": "Quotes table not available"}
     except Exception as e:
-        # Return empty list on error but log full trace
         db.rollback()
         import traceback
         traceback.print_exc()

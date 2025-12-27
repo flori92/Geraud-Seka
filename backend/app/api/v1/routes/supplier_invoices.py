@@ -16,7 +16,6 @@ from app.models.user import User
 router = APIRouter()
 
 
-# Pydantic Models
 class SupplierInvoiceBase(BaseModel):
     """Base model for supplier invoices."""
     supplier_id: UUID
@@ -76,8 +75,6 @@ class SupplierInvoiceStatsResponse(BaseModel):
     inbox_count: int  # Inbox invoices count
 
 
-# Mock data store (replace with actual database queries)
-# In production, this would use SQLAlchemy models
 _supplier_invoices_store = []
 
 
@@ -101,11 +98,8 @@ def list_supplier_invoices(
     - paid: Invoices that have been paid
     - rejected: Rejected invoices
     """
-    # For now, return mock data
-    # In production, replace with actual database queries
     invoices = []
 
-    # Mock invoice for demo
     if len(_supplier_invoices_store) == 0:
         mock_invoice = {
             "id": "550e8400-e29b-41d4-a716-446655440000",
@@ -129,7 +123,6 @@ def list_supplier_invoices(
     else:
         invoices = _supplier_invoices_store
 
-    # Apply filters
     if workflow_status:
         invoices = [inv for inv in invoices if inv.workflow_status == workflow_status]
 
@@ -157,8 +150,6 @@ def create_supplier_invoice(
     Create a new supplier invoice.
     Initial workflow_status is 'inbox'.
     """
-    # In production, create in database
-    # For now, add to mock store
     new_invoice = SupplierInvoice(
         id=UUID("550e8400-e29b-41d4-a716-446655440000"),
         **invoice_in.dict(),
@@ -190,46 +181,34 @@ def get_supplier_invoice_stats(
     today = date.today()
 
     try:
-        # For mock data, calculate from store
         invoices = _supplier_invoices_store if _supplier_invoices_store else []
 
-        # In production, use database queries like this:
-        # base_query = db.query(SupplierInvoiceModel).filter(
-        #     SupplierInvoiceModel.tenant_id == current_user.tenant_id,
-        #     SupplierInvoiceModel.workflow_status != 'rejected'
-        # )
 
-        # Amount to pay (workflow_status = 'to_pay')
         a_payer = sum(
             inv.total_amount for inv in invoices
             if inv.workflow_status == 'to_pay'
         )
 
-        # Amount paid (workflow_status = 'paid')
         paye = sum(
             inv.total_amount for inv in invoices
             if inv.workflow_status == 'paid'
         )
 
-        # Overdue invoices count
         factures_retard = len([
             inv for inv in invoices
             if inv.due_date < today and inv.workflow_status not in ['paid', 'rejected']
         ])
 
-        # Awaiting approval count
         en_attente_approbation = len([
             inv for inv in invoices
             if inv.workflow_status == 'to_approve'
         ])
 
-        # Total invoices
         total_factures = len([
             inv for inv in invoices
             if inv.workflow_status != 'rejected'
         ])
 
-        # Inbox count
         inbox_count = len([
             inv for inv in invoices
             if inv.workflow_status == 'inbox'
@@ -244,7 +223,6 @@ def get_supplier_invoice_stats(
             inbox_count=inbox_count
         )
     except Exception as e:
-        # Return zeros on error
         return SupplierInvoiceStatsResponse(
             a_payer=Decimal('0'),
             paye=Decimal('0'),
@@ -265,7 +243,6 @@ def get_supplier_invoice(
     """
     Get supplier invoice by ID.
     """
-    # In production, fetch from database
     for inv in _supplier_invoices_store:
         if str(inv.id) == str(invoice_id):
             return inv
@@ -283,10 +260,8 @@ def update_supplier_invoice(
     """
     Update a supplier invoice.
     """
-    # In production, update in database
     for idx, inv in enumerate(_supplier_invoices_store):
         if str(inv.id) == str(invoice_id):
-            # Update fields
             update_data = invoice_in.dict(exclude_unset=True)
             for field, value in update_data.items():
                 setattr(inv, field, value)
@@ -388,7 +363,6 @@ def record_supplier_payment(
             inv.payment_date = payment.payment_date
             inv.workflow_status = 'paid'
 
-            # Determine payment_status
             if payment.amount >= inv.total_amount:
                 inv.payment_status = 'paid'
             elif payment.amount > 0:
@@ -410,7 +384,6 @@ async def upload_supplier_invoice(
     Triggers OCR processing to extract invoice data.
     Creates invoice with workflow_status='inbox'.
     """
-    # Validate file type
     allowed_types = ['application/pdf', 'image/png', 'image/jpeg']
     if file.content_type not in allowed_types:
         raise HTTPException(
@@ -418,13 +391,7 @@ async def upload_supplier_invoice(
             detail=f"Invalid file type. Allowed types: PDF, PNG, JPG"
         )
 
-    # In production:
-    # 1. Save file to storage
-    # 2. Trigger OCR processing
-    # 3. Extract invoice data
-    # 4. Create invoice record
 
-    # Mock OCR-extracted data
     new_invoice = SupplierInvoice(
         id=UUID("550e8400-e29b-41d4-a716-446655440099"),
         supplier_id=UUID("550e8400-e29b-41d4-a716-446655440001"),

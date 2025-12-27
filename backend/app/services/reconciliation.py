@@ -38,8 +38,6 @@ class ReconciliationService:
         line_number = 1
         for row in reader:
             try:
-                # Try to parse common CSV formats
-                # Format 1: date, description, amount, balance
                 if 'date' in row and 'amount' in row:
                     transaction_date = self._parse_date(row['date'])
                     amount = Decimal(row['amount'].replace(',', '').replace(' ', ''))
@@ -68,7 +66,6 @@ class ReconciliationService:
         try:
             return parser.parse(date_str, dayfirst=True).date()
         except:
-            # Fallback to ISO format
             return date.fromisoformat(date_str)
 
     def match_transactions(
@@ -78,7 +75,6 @@ class ReconciliationService:
         bank_lines: List[BankStatementLine]
     ) -> List[BankReconciliationMatch]:
         """Match bank statement lines with system transactions."""
-        # Get unreconciled transactions
         system_transactions = bt_crud.get_unreconciled(
             self.db,
             tenant_id=tenant_id,
@@ -123,24 +119,20 @@ class ReconciliationService:
         """Calculate match score between bank line and transaction."""
         score = 0.0
 
-        # Date match (40% weight)
         if bank_line.transaction_date == transaction.transaction_date:
             score += 0.4
         elif abs((bank_line.transaction_date - transaction.transaction_date).days) <= 2:
             score += 0.2  # Close date
 
-        # Amount match (40% weight)
         if abs(bank_line.amount - transaction.amount) < Decimal("0.01"):
             score += 0.4
         elif abs(bank_line.amount - transaction.amount) < Decimal("1.00"):
             score += 0.2  # Very close amount
 
-        # Reference match (10% weight)
         if bank_line.reference and transaction.reference:
             if bank_line.reference.lower() == transaction.reference.lower():
                 score += 0.1
 
-        # Description similarity (10% weight)
         if bank_line.description and transaction.description:
             similarity = self._string_similarity(
                 bank_line.description.lower(),
@@ -152,7 +144,6 @@ class ReconciliationService:
 
     def _string_similarity(self, str1: str, str2: str) -> float:
         """Calculate string similarity (simple version)."""
-        # Simple word overlap similarity
         words1 = set(str1.split())
         words2 = set(str2.split())
         

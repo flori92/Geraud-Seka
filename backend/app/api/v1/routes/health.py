@@ -27,7 +27,6 @@ async def get_health(db: Session = Depends(get_db)):
         "services": {}
     }
     
-    # Test Base de données
     try:
         db.execute(text("SELECT 1"))
         health_status["services"]["database"] = {
@@ -41,7 +40,6 @@ async def get_health(db: Session = Depends(get_db)):
         }
         health_status["status"] = "degraded"
     
-    # Test Service de monitoring
     try:
         monitor_health = monitoring_service.health_check()
         health_status["services"]["monitoring"] = {
@@ -54,7 +52,6 @@ async def get_health(db: Session = Depends(get_db)):
             "error": str(e)
         }
     
-    # Test Service de stockage
     try:
         health_status["services"]["storage"] = {
             "status": "healthy",
@@ -67,7 +64,6 @@ async def get_health(db: Session = Depends(get_db)):
             "error": str(e)
         }
     
-    # Test Services externes (non bloquants)
     health_status["services"]["external"] = {
         "mindee_configured": bool(settings.mindee_api_key),
         "stripe_configured": bool(settings.stripe_secret_key),
@@ -76,7 +72,6 @@ async def get_health(db: Session = Depends(get_db)):
         "r2_configured": bool(settings.r2_access_key_id and settings.r2_secret_access_key)
     }
     
-    # Déterminer le statut global
     if health_status["status"] != "degraded":
         unhealthy_services = [
             name for name, service in health_status["services"].items() 
@@ -107,7 +102,6 @@ def get_tables_diagnostic(db: Session = Depends(get_db)):
         inspector = inspect(db.bind)
         tables = inspector.get_table_names()
         
-        # Tables critiques à vérifier
         critical_tables = [
             'users', 'tenants', 'clients', 'quotes', 'quote_items',
             'products', 'suppliers', 'bank_accounts', 'treasury_alerts',

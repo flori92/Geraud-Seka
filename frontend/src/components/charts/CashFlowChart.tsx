@@ -8,7 +8,6 @@ interface CashFlowChartProps {
   height?: number;
 }
 
-// Représentation simplifiée des flux de trésorerie avec des barres Entrées/Sorties
 const CashFlowChart: React.FC<CashFlowChartProps> = ({ period, height = 300 }) => {
   const [data, setData] = useState<CashFlowData[]>([]);
   const [loading, setLoading] = useState(true);

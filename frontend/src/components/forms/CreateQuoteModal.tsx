@@ -38,7 +38,6 @@ export function CreateQuoteModal({ isOpen, onClose, onSuccess }: CreateQuoteModa
   useEffect(() => {
     if (isOpen) {
       fetchClients();
-      // Set valid_until to 30 days from now
       const validUntil = new Date();
       validUntil.setDate(validUntil.getDate() + 30);
       setFormData((prev) => ({
@@ -86,7 +85,6 @@ export function CreateQuoteModal({ isOpen, onClose, onSuccess }: CreateQuoteModa
     e.preventDefault();
     setError(null);
 
-    // Validation
     if (!formData.client_id) {
       setError("Veuillez sélectionner un client");
       return;
@@ -118,7 +116,7 @@ export function CreateQuoteModal({ isOpen, onClose, onSuccess }: CreateQuoteModa
 
       await createQuote(
         {
-          title: "Devis", // Titre par défaut
+          title: "Devis",
           client_id: formData.client_id,
           issue_date: formData.date,
           expiry_date: formData.valid_until,
@@ -131,7 +129,6 @@ export function CreateQuoteModal({ isOpen, onClose, onSuccess }: CreateQuoteModa
         token
       );
 
-      // Reset form
       setFormData({
         client_id: "",
         date: new Date().toISOString().split("T")[0],

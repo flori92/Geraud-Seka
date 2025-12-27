@@ -26,7 +26,6 @@ class FECImporterService:
             dialect = csv.Sniffer().sniff(sample, delimiters=['\t', '|', ',', ';'])
             return dialect
         except csv.Error:
-            # Fallback sur tabulation (standard FEC)
             class FECDialect(csv.Dialect):
                 delimiter = '\t'
                 quotechar = '"'
@@ -60,7 +59,6 @@ class FECImporterService:
         Traite le fichier FEC et importe les écritures.
         Gère la création automatique des comptes et journaux.
         """
-        # Décodage (tentative UTF-8 puis Latin-1/CP1252 fréquent en compta Windows)
         try:
             text_content = file_content.decode('utf-8')
         except UnicodeDecodeError:
@@ -70,12 +68,9 @@ class FECImporterService:
         f = io.StringIO(text_content)
         reader = csv.DictReader(f, dialect=dialect)
 
-        # Normalisation des en-têtes (casse, espaces)
         headers = [h.strip() for h in reader.fieldnames or []]
         reader.fieldnames = headers # Réassigne les headers propres
 
-        # Mapping des colonnes standards FEC vers nos modèles
-        # FEC Standard : JournalCode, JournalLib, EcritureNum, DateComptable, CompteNum, CompteLib, CompAuxNum, CompAuxLib, PieceRef, PieceDate, EcritureLib, Debit, Credit...
         
         entries_to_create = []
         new_accounts = set()
@@ -89,11 +84,8 @@ class FECImporterService:
             "errors": []
         }
 
-        # Cache pour éviter requêtes DB répétitives
         existing_journals = {j.code for j in self.db.query(AccountingJournal).filter(AccountingJournal.tenant_id == self.tenant_id).all()}
-        # Note: Accounts checking omitted for speed for now, or simplify
         
-        # Mapping helpers
         col_map = self._map_columns(headers)
         if not col_map['JournalCode'] or not col_map['CompteNum']:
             raise ValueError("Colonnes obligatoires manquantes (JournalCode, CompteNum). Est-ce bien un FEC ?")
@@ -101,7 +93,6 @@ class FECImporterService:
         for row in reader:
             stats["total_lines"] += 1
             try:
-                # Extraction
                 journal_code = row[col_map['JournalCode']].strip()
                 account_num = row[col_map['CompteNum']].strip()
                 label = row.get(col_map.get('EcritureLib', ''), '').strip() or row.get(col_map.get('CompteLib', ''), 'Import FEC')
@@ -114,14 +105,10 @@ class FECImporterService:
                 
                 ref = row.get(col_map.get('PieceRef', ''), '')
                 
-                # Gestion Journal
                 if journal_code not in existing_journals and journal_code not in new_journals:
-                    # Créer le journal (sera persisté avant les écritures)
                     new_journals.add(journal_code)
-                    # TODO: Persist journal properly
                     pass 
 
-                # Création Ecriture
                 entry = AccountingEntry(
                     tenant_id=self.tenant_id,
                     journal_code=journal_code,
@@ -131,7 +118,6 @@ class FECImporterService:
                     debit=debit,
                     credit=credit,
                     reference=ref[:100]
-                    # Removed invalid fields: uploaded_by, origin
                 )
                 entries_to_create.append(entry)
 
@@ -140,7 +126,6 @@ class FECImporterService:
                 if len(stats["errors"]) > 100:
                     break
 
-        # Bulk Insert
         if entries_to_create:
             try:
                 self.db.bulk_save_objects(entries_to_create)
@@ -155,7 +140,6 @@ class FECImporterService:
     def _map_columns(self, headers: List[str]) -> Dict[str, str]:
         """Tente de trouver les noms de colonnes correspondants dans le fichier"""
         mapping = {}
-        # Dictionnaire des synonymes possibles
         synonyms = {
             'JournalCode': ['JournalCode', 'CodeJournal', 'JnlCode', 'CdeJnl'],
             'EcritureNum': ['EcritureNum', 'NumeroEcriture', 'EcrNum'],
@@ -171,7 +155,6 @@ class FECImporterService:
         for key, alternatives in synonyms.items():
             found = None
             for h in headers:
-                # Match exact ou insensible à la casse sans underscore/espace
                 h_clean = h.replace('_', '').replace(' ', '').lower()
                 for alt in alternatives:
                     if h_clean == alt.lower():

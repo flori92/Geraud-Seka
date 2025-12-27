@@ -8,7 +8,6 @@ from fastapi import APIRouter
 router = APIRouter()
 
 
-# ==================== SCHEMAS ====================
 
 class TemplateCreate(BaseModel):
     name: str
@@ -56,7 +55,6 @@ class CampaignUpdate(BaseModel):
     status: Optional[str] = None
 
 
-# ==================== HELPERS ====================
 
 def render_template(html: str, variables: dict) -> str:
     """Remplace les variables {{var}} dans le template"""
@@ -109,7 +107,6 @@ def get_entity_variables(entity, entity_type: str) -> dict:
     return {}
 
 
-# ==================== TEMPLATES ====================
 
 @router.get("/templates")
 async def list_templates(
@@ -157,7 +154,6 @@ async def create_template(
     db: Session = Depends(get_db)
 ):
     """Créer un nouveau template email"""
-    # Extraire automatiquement les variables si non fournies
     variables = data.available_variables or extract_variables(data.html_content)
     
     template = EmailTemplate(
@@ -246,7 +242,6 @@ async def update_template(
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(template, field, value)
     
-    # Re-extraire les variables si le contenu a changé
     if data.html_content:
         template.available_variables = extract_variables(data.html_content)
     
@@ -301,7 +296,6 @@ async def preview_template(
     if not template:
         raise HTTPException(status_code=404, detail="Template non trouvé")
     
-    # Variables de test par défaut
     test_vars = {
         "first_name": "Jean",
         "last_name": "Dupont",
@@ -326,7 +320,6 @@ async def preview_template(
     }
 
 
-# ==================== CAMPAGNES ====================
 
 @router.get("/")
 async def list_campaigns(
@@ -384,7 +377,6 @@ async def create_campaign(
     db: Session = Depends(get_db)
 ):
     """Créer une nouvelle campagne"""
-    # Vérifier le template si fourni
     if data.template_id:
         template = db.query(EmailTemplate).filter(
             and_(
@@ -395,7 +387,6 @@ async def create_campaign(
         if not template:
             raise HTTPException(status_code=404, detail="Template non trouvé")
     
-    # Vérifier le segment si fourni
     if data.segment_id:
         segment = db.query(Segment).filter(
             and_(
@@ -554,7 +545,6 @@ async def delete_campaign(
     return {"message": "Campagne supprimée"}
 
 
-# ==================== ENVOI ====================
 
 @router.post("/{campaign_id}/prepare")
 async def prepare_campaign(
@@ -577,16 +567,13 @@ async def prepare_campaign(
     if campaign.status not in [CampaignStatus.DRAFT, CampaignStatus.SCHEDULED]:
         raise HTTPException(status_code=400, detail="La campagne ne peut pas être préparée dans cet état")
     
-    # Supprimer les anciens destinataires
     db.query(CampaignRecipient).filter(
         CampaignRecipient.campaign_id == campaign_id
     ).delete()
     
     recipients = []
     
-    # Récupérer les destinataires selon le segment ou tous
     if campaign.segment_id:
-        # Depuis le segment
         memberships = db.query(SegmentMembership).filter(
             SegmentMembership.segment_id == campaign.segment_id
         ).all()
@@ -614,7 +601,6 @@ async def prepare_campaign(
                         "email": client.email
                     })
     else:
-        # Tous les leads/contacts/clients du tenant
         if campaign.target_entity_type == "lead":
             leads = db.query(Lead).filter(Lead.tenant_id == current_tenant.id).all()
             for lead in leads:
@@ -636,7 +622,6 @@ async def prepare_campaign(
                 if client.email:
                     recipients.append({"client_id": client.id, "email": client.email})
     
-    # Dédupliquer par email
     seen_emails = set()
     unique_recipients = []
     for r in recipients:
@@ -644,7 +629,6 @@ async def prepare_campaign(
             seen_emails.add(r["email"].lower())
             unique_recipients.append(r)
     
-    # Créer les entrées CampaignRecipient
     for r in unique_recipients:
         recipient = CampaignRecipient(
             campaign_id=campaign.id,
@@ -690,7 +674,6 @@ async def send_campaign(
     if campaign.total_recipients == 0:
         raise HTTPException(status_code=400, detail="Aucun destinataire. Préparez d'abord la campagne.")
     
-    # Vérifier qu'on a un sujet et du contenu
     subject = campaign.subject
     html_content = campaign.html_content
     
@@ -701,12 +684,10 @@ async def send_campaign(
     if not subject or not html_content:
         raise HTTPException(status_code=400, detail="Sujet et contenu HTML requis")
     
-    # Mettre à jour le statut
     campaign.status = CampaignStatus.SENDING
     campaign.started_at = datetime.utcnow()
     db.commit()
     
-    # Lancer l'envoi en arrière-plan
     background_tasks.add_task(
         send_campaign_emails,
         campaign_id=str(campaign.id),
@@ -732,11 +713,9 @@ async def send_campaign_emails(campaign_id: str, tenant_id: str):
         if not campaign:
             return
         
-        # Récupérer le contenu
         subject = campaign.subject or (campaign.template.subject if campaign.template else "")
         html_content = campaign.html_content or (campaign.template.html_content if campaign.template else "")
         
-        # Récupérer les destinataires en attente
         recipients = db.query(CampaignRecipient).filter(
             and_(
                 CampaignRecipient.campaign_id == campaign_id,
@@ -748,7 +727,6 @@ async def send_campaign_emails(campaign_id: str, tenant_id: str):
         
         for recipient in recipients:
             try:
-                # Récupérer l'entité pour les variables
                 entity = None
                 entity_type = campaign.target_entity_type
                 
@@ -759,15 +737,12 @@ async def send_campaign_emails(campaign_id: str, tenant_id: str):
                 elif recipient.client_id:
                     entity = db.query(Client).get(recipient.client_id)
                 
-                # Préparer les variables
                 variables = get_entity_variables(entity, entity_type) if entity else {}
                 variables["unsubscribe_link"] = f"https://www.sekagestion.com/unsubscribe/{recipient.id}"
                 
-                # Rendre le template
                 rendered_subject = render_template(subject, variables)
                 rendered_html = render_template(html_content, variables)
                 
-                # Envoyer avec tracking
                 result = await email_service.send_tracked_email(
                     db=db,
                     to=recipient.email,
@@ -781,7 +756,6 @@ async def send_campaign_emails(campaign_id: str, tenant_id: str):
                     sent_by=str(campaign.created_by) if campaign.created_by else None
                 )
                 
-                # Mettre à jour le statut du destinataire
                 recipient.status = "sent"
                 recipient.sent_at = datetime.utcnow()
                 if "tracking_id" in result:
@@ -795,7 +769,6 @@ async def send_campaign_emails(campaign_id: str, tenant_id: str):
             
             db.commit()
         
-        # Mettre à jour les stats de la campagne
         campaign.sent_count = sent_count
         campaign.status = CampaignStatus.SENT
         campaign.completed_at = datetime.utcnow()
@@ -834,7 +807,6 @@ async def pause_campaign(
     return {"message": "Campagne mise en pause"}
 
 
-# ==================== STATISTIQUES ====================
 
 @router.get("/{campaign_id}/stats")
 async def get_campaign_stats(
@@ -854,7 +826,6 @@ async def get_campaign_stats(
     if not campaign:
         raise HTTPException(status_code=404, detail="Campagne non trouvée")
     
-    # Récupérer les stats par statut
     status_counts = db.query(
         CampaignRecipient.status,
         func.count(CampaignRecipient.id)
@@ -864,8 +835,6 @@ async def get_campaign_stats(
     
     status_dict = {s: c for s, c in status_counts}
     
-    # Top liens cliqués (si tracking disponible)
-    # TODO: Ajouter quand les liens trackés seront liés aux campagnes
     
     return {
         "campaign_id": campaign_id,

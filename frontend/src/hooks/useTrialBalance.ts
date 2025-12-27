@@ -7,7 +7,7 @@ import {
   SortField, SortOrder 
 } from '@/types/trial-balance';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http:
 
 interface UseTrialBalanceOptions {
   period?: { start: string; end: string };
@@ -49,8 +49,7 @@ export function useTrialBalance(options: UseTrialBalanceOptions = {}): UseTrialB
   const [error, setError] = useState<string | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set());
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _ = expandedAccounts; // Used in toggleAccount
+  const _ = expandedAccounts;
   const [sortField, setSortField] = useState<SortField>('number');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
@@ -79,7 +78,6 @@ export function useTrialBalance(options: UseTrialBalanceOptions = {}): UseTrialB
 
       const data = await response.json();
       
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const formattedAccounts: Account[] = (data.accounts || []).map((acc: any) => ({
         id: acc.id || acc.account_number,
         number: acc.account_number || acc.number,

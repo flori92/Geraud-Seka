@@ -20,7 +20,6 @@ from app.services.storage import storage_service
 router = APIRouter()
 
 
-# Schemas
 class RuleCondition(BaseModel):
     type: str
     operator: str
@@ -60,7 +59,6 @@ class AccountingRuleResponse(BaseModel):
         from_attributes = True
 
 
-# ==================== RÈGLES ====================
 
 @router.get("/rules", response_model=List[AccountingRuleResponse])
 async def list_rules(
@@ -156,7 +154,6 @@ async def delete_rule(
     return {"message": "Règle supprimée"}
 
 
-# ==================== SAISIE AVEC OCR ====================
 
 @router.post("/entries/from-document")
 async def create_entry_from_document(
@@ -169,15 +166,12 @@ async def create_entry_from_document(
     Upload un document (facture PDF/image), extrait les données par OCR,
     applique les règles comptables et suggère une écriture
     """
-    # 1. Lire le contenu pour OCR
     file_content = await file.read()
     await file.seek(0)
 
-    # 1bis. Upload le fichier
     upload_result = await storage_service.upload_file(file, tenant_id=str(current_tenant.id))
     file_path = upload_result.get('key') or upload_result.get('path')
 
-    # 1ter. Créer un enregistrement Document pour lier l'OCR et la classification
     doc = Document(
         filename=upload_result.get('key') or upload_result.get('path') or file.filename,
         original_filename=file.filename,
@@ -194,11 +188,9 @@ async def create_entry_from_document(
     db.commit()
     db.refresh(doc)
     
-    # 2. Traiter avec OCR (support multi-pages)
     try:
         ocr_data = await ocr_service.process_invoice(file_path, file_content=file_content, extract_all_pages=True)
     except Exception as e:
-        # En cas d'échec OCR (ex: extraction vide), marquer le document et renvoyer une erreur contrôlée
         try:
             doc.status = DocumentStatus.REJECTED
             doc.ocr_data = {"error": str(e)}
@@ -207,14 +199,11 @@ async def create_entry_from_document(
             db.rollback()
         raise HTTPException(status_code=422, detail=f"OCR failed: {str(e)}")
     
-    # 3. Appliquer les règles comptables
     engine = AccountingRulesEngine(db, str(current_tenant.id))
     suggestions = engine.apply_rules(ocr_data)
     
-    # 4. Préparer les lignes d'écriture suggérées
     lines = []
     
-    # Ligne débit (charge ou actif)
     if suggestions.get("suggested_debit_account"):
         lines.append({
             "account_code": suggestions["suggested_debit_account"],
@@ -223,7 +212,6 @@ async def create_entry_from_document(
             "credit": 0.0
         })
     
-    # Ligne TVA (si applicable)
     if ocr_data.get("amount_vat", 0) > 0:
         lines.append({
             "account_code": "445620",  # TVA déductible
@@ -232,7 +220,6 @@ async def create_entry_from_document(
             "credit": 0.0
         })
     
-    # Ligne crédit (fournisseur)
     if suggestions.get("suggested_credit_account"):
         lines.append({
             "account_code": suggestions["suggested_credit_account"],
@@ -241,7 +228,6 @@ async def create_entry_from_document(
             "credit": ocr_data.get("amount_ttc", 0.0)
         })
     
-    # 3bis. Enregistrer le score de confiance et données OCR sur le Document
     try:
         from datetime import datetime
 

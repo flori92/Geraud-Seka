@@ -25,7 +25,6 @@ def get_alerts(db: Session, tenant_id: str) -> List[dict]:
     try:
         alerts = []
         
-        # Check for pending documents
         try:
             pending_docs = db.query(Document).filter(
                 Document.tenant_id == tenant_id,
@@ -41,7 +40,6 @@ def get_alerts(db: Session, tenant_id: str) -> List[dict]:
         except Exception:
             pass
         
-        # Check for clients without recent activity
         try:
             thirty_days_ago = datetime.utcnow() - timedelta(days=30)
             inactive_clients = db.query(Client).filter(
@@ -68,7 +66,6 @@ def get_recent_activities(db: Session, tenant_id: str, limit: int = 5) -> List[d
     try:
         activities = []
         
-        # Get recent documents
         try:
             recent_docs = db.query(Document).filter(
                 Document.tenant_id == tenant_id
@@ -92,7 +89,6 @@ def get_recent_activities(db: Session, tenant_id: str, limit: int = 5) -> List[d
         except Exception:
             pass
         
-        # Get recent clients
         try:
             recent_clients = db.query(Client).filter(
                 Client.tenant_id == tenant_id
@@ -116,7 +112,6 @@ def get_recent_activities(db: Session, tenant_id: str, limit: int = 5) -> List[d
         except Exception:
             pass
         
-        # Sort by most recent first and limit
         return activities[:limit]
     except Exception:
         return []
@@ -135,7 +130,6 @@ def get_dashboard_stats(
     try:
         tenant_id = str(current_user.tenant_id) if current_user.tenant_id else None
         
-        # Defaults
         total_clients = 0
         active_clients = 0
         documents_pending = 0
@@ -143,7 +137,6 @@ def get_dashboard_stats(
         total_revenue = 0
         
         if tenant_id:
-            # Count clients
             try:
                 client_query = db.query(Client).filter(Client.tenant_id == tenant_id)
                 total_clients = client_query.count()
@@ -151,7 +144,6 @@ def get_dashboard_stats(
             except Exception:
                 pass
             
-            # Count documents
             try:
                 doc_query = db.query(Document).filter(Document.tenant_id == tenant_id)
                 
@@ -159,14 +151,12 @@ def get_dashboard_stats(
                     Document.status.in_([DocumentStatus.UPLOADED, DocumentStatus.OCR_PROCESSING])
                 ).count()
                 
-                # Documents processed this month
                 first_day_of_month = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
                 documents_processed = doc_query.filter(
                     Document.status == DocumentStatus.VALIDATED,
                     Document.updated_at >= first_day_of_month
                 ).count()
                 
-                # Calculate revenue from validated documents
                 revenue_result = doc_query.filter(
                     Document.status == DocumentStatus.VALIDATED
                 ).with_entities(func.sum(Document.amount_ttc)).scalar()
@@ -174,7 +164,6 @@ def get_dashboard_stats(
             except Exception:
                 pass
         
-        # Get alerts and activities
         alerts = get_alerts(db, tenant_id) if tenant_id else []
         recent_activities = get_recent_activities(db, tenant_id) if tenant_id else []
         
@@ -192,7 +181,6 @@ def get_dashboard_stats(
             "recent_activities": recent_activities
         }
     except Exception as e:
-        # Fallback to empty stats on critical failure
         return {
             "total_clients": 0,
             "active_clients": 0,
@@ -221,10 +209,8 @@ def get_dashboard_stats_extended(
     try:
         tenant_id = str(current_user.tenant_id) if current_user.tenant_id else None
         
-        # Get base stats first
         base_stats = get_dashboard_stats(db, current_user)
         
-        # Initialize extended stats
         solde_comptes = 0.0
         encaissements = 0.0
         decaissements = 0.0
@@ -234,21 +220,17 @@ def get_dashboard_stats_extended(
         factures_en_retard = 0
         
         if tenant_id:
-            # Try to get bank account balances
             try:
                 from app.models.treasury import BankAccount, BankTransaction
                 
-                # Sum of all bank account balances
                 balance_result = db.query(func.sum(BankAccount.current_balance)).filter(
                     BankAccount.tenant_id == tenant_id,
                     BankAccount.is_active == True
                 ).scalar()
                 solde_comptes = float(balance_result or 0)
                 
-                # Get transactions for this year
                 year_start = datetime.utcnow().replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
                 
-                # Encaissements (credits)
                 credits_result = db.query(func.sum(BankTransaction.amount)).filter(
                     BankTransaction.tenant_id == tenant_id,
                     BankTransaction.transaction_type == "credit",
@@ -256,7 +238,6 @@ def get_dashboard_stats_extended(
                 ).scalar()
                 encaissements = float(credits_result or 0)
                 
-                # Décaissements (debits)
                 debits_result = db.query(func.sum(BankTransaction.amount)).filter(
                     BankTransaction.tenant_id == tenant_id,
                     BankTransaction.transaction_type == "debit",
@@ -264,7 +245,6 @@ def get_dashboard_stats_extended(
                 ).scalar()
                 decaissements = float(debits_result or 0)
                 
-                # Transactions to justify (pending status)
                 transactions_a_justifier = db.query(BankTransaction).filter(
                     BankTransaction.tenant_id == tenant_id,
                     BankTransaction.status == "pending"
@@ -272,16 +252,13 @@ def get_dashboard_stats_extended(
             except Exception as e:
                 print(f"Error fetching bank data: {e}")
             
-            # Try to get invoice totals from documents
             try:
-                # Total invoiced (HT) from validated documents
                 invoiced_result = db.query(func.sum(Document.amount_ht)).filter(
                     Document.tenant_id == tenant_id,
                     Document.status == DocumentStatus.VALIDATED
                 ).scalar()
                 total_facture_ht = float(invoiced_result or 0)
                 
-                # Overdue documents (past due date and not validated)
                 factures_en_retard = db.query(Document).filter(
                     Document.tenant_id == tenant_id,
                     Document.due_date < datetime.utcnow(),
@@ -290,9 +267,7 @@ def get_dashboard_stats_extended(
             except Exception as e:
                 print(f"Error fetching invoice data: {e}")
             
-            # Try to get purchase totals
             try:
-                # Total purchases (TTC) from documents
                 purchases_result = db.query(func.sum(Document.amount_ttc)).filter(
                     Document.tenant_id == tenant_id,
                     Document.status == DocumentStatus.VALIDATED
@@ -344,7 +319,6 @@ def get_dashboard_overview(
     """
     tenant_id = str(current_user.tenant_id) if current_user.tenant_id else None
     
-    # Base stats
     stats = get_dashboard_stats(db, current_user)
     
     return {

@@ -1,7 +1,7 @@
 "use client";
 
 interface ConfidenceBadgeProps {
-    confidence: number; // 0-1
+    confidence: number;
     label?: string;
     showPercentage?: boolean;
     size?: "sm" | "md";
@@ -15,7 +15,6 @@ export default function ConfidenceBadge({
 }: ConfidenceBadgeProps) {
     const percentage = Math.round(confidence * 100);
 
-    // Determine color based on confidence level
     const getColorClasses = () => {
         if (confidence >= 0.9) {
             return "bg-green-100 text-green-700 border-green-200";

@@ -67,12 +67,10 @@ def create(
     """Create a new bank transaction and update account balance."""
     from app.crud import bank_account as ba_crud
 
-    # Get the bank account
     bank_account = ba_crud.get(db, obj_in.bank_account_id)
     if not bank_account:
         raise ValueError(f"Bank account {obj_in.bank_account_id} not found")
 
-    # Calculate balance after transaction
     balance_after = bank_account.balance + obj_in.amount
 
     db_transaction = BankTransaction(
@@ -83,7 +81,6 @@ def create(
 
     db.add(db_transaction)
 
-    # Update account balance if transaction is cleared
     if obj_in.status == "cleared":
         ba_crud.update_balance(db, account_id=obj_in.bank_account_id, amount=obj_in.amount)
 
@@ -98,25 +95,19 @@ def update(db: Session, *, db_obj: BankTransaction, obj_in: BankTransactionUpdat
 
     update_data = obj_in.model_dump(exclude_unset=True)
 
-    # If amount changed and transaction is cleared, adjust account balance
     old_amount = db_obj.amount
     old_status = db_obj.status
     new_amount = update_data.get("amount", old_amount)
     new_status = update_data.get("status", old_status)
 
-    # Handle status changes
     if old_status != "cleared" and new_status == "cleared":
-        # Transaction is being cleared, update balance
         ba_crud.update_balance(db, account_id=db_obj.bank_account_id, amount=new_amount)
     elif old_status == "cleared" and new_status != "cleared":
-        # Transaction is being uncleared, reverse balance update
         ba_crud.update_balance(db, account_id=db_obj.bank_account_id, amount=-old_amount)
     elif old_status == "cleared" and new_status == "cleared" and old_amount != new_amount:
-        # Amount changed on cleared transaction
         difference = new_amount - old_amount
         ba_crud.update_balance(db, account_id=db_obj.bank_account_id, amount=difference)
 
-    # Recalculate balance_after if amount changed
     if "amount" in update_data:
         bank_account = ba_crud.get(db, db_obj.bank_account_id)
         db_obj.balance_after = bank_account.balance
@@ -136,7 +127,6 @@ def delete(db: Session, *, transaction_id: UUID) -> bool:
 
     transaction = db.query(BankTransaction).filter(BankTransaction.id == transaction_id).first()
     if transaction:
-        # If transaction was cleared, reverse the balance update
         if transaction.status == "cleared":
             ba_crud.update_balance(db, account_id=transaction.bank_account_id, amount=-transaction.amount)
 

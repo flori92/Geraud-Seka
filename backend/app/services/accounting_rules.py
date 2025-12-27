@@ -30,7 +30,6 @@ class AccountingRulesEngine:
         Returns:
             Dict avec suggestions d'imputation
         """
-        # Récupérer les règles actives, triées par priorité
         rules = self.db.query(AccountingRule).filter(
             and_(
                 AccountingRule.tenant_id == self.tenant_id,
@@ -50,7 +49,6 @@ class AccountingRulesEngine:
         if best_match:
             return self._apply_actions(best_match, document_data, best_confidence)
 
-        # Aucune règle ne correspond, suggestions par défaut
         return self._default_suggestions(document_data)
 
     def _evaluate_rule(self, rule: AccountingRule, data: Dict[str, Any]) -> float:
@@ -86,7 +84,6 @@ class AccountingRulesEngine:
     ) -> bool:
         """Vérifie une condition individuelle"""
         
-        # Extraire la valeur réelle du document
         actual_value = None
         
         if condition_type == RuleConditionType.SUPPLIER_NAME:
@@ -107,7 +104,6 @@ class AccountingRulesEngine:
 
         expected_value = str(expected_value).lower() if isinstance(expected_value, str) else expected_value
 
-        # Appliquer l'opérateur
         if operator == RuleOperator.EQUALS:
             return actual_value == expected_value
         elif operator == RuleOperator.CONTAINS:
@@ -168,10 +164,8 @@ class AccountingRulesEngine:
     def _default_suggestions(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Suggestions par défaut basées sur le type de document"""
         
-        # Heuristique simple basée sur le nom du fournisseur
         supplier = data.get("supplier_name", "").lower()
         
-        # Électricité / Eau / Gaz
         if any(keyword in supplier for keyword in ["edf", "energie", "water", "gaz", "sonede", "steg"]):
             return {
                 "confidence": 0.5,
@@ -182,7 +176,6 @@ class AccountingRulesEngine:
                 "source": "heuristic"
             }
         
-        # Télécom
         if any(keyword in supplier for keyword in ["orange", "mtn", "moov", "telecom"]):
             return {
                 "confidence": 0.5,
@@ -193,7 +186,6 @@ class AccountingRulesEngine:
                 "source": "heuristic"
             }
 
-        # Par défaut : achat générique
         return {
             "confidence": 0.3,
             "auto_apply": False,

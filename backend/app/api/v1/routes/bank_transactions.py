@@ -247,7 +247,6 @@ async def sync_mobile_money(
     duplicates = 0
     errors = 0
 
-    # Mode mock si clés absentes
     if not settings.kkiapay_private_key:
         mock = [
             {

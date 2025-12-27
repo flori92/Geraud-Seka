@@ -30,7 +30,6 @@ class UserRead(UserBase, IDSchema, TimestampSchema):
     pass
 
 
-# Alias pour compatibilité
 User = UserRead
 
 

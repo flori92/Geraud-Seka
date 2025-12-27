@@ -108,7 +108,6 @@ def create_bank_account(
     """
     Create new bank account.
     """
-    # Check if account number already exists
     existing = ba_crud.get_by_account_number(
         db, account_number=account_in.account_number, tenant_id=current_user.tenant_id
     )

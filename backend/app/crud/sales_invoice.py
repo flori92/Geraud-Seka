@@ -111,7 +111,6 @@ def create(
     """Create a new sales invoice with items."""
     invoice_number = generate_invoice_number(db, tenant_id)
 
-    # Create the invoice (without items first)
     invoice_data = obj_in.model_dump(exclude={"items"})
     db_invoice = SalesInvoice(
         **invoice_data,
@@ -121,7 +120,6 @@ def create(
         payment_status=PaymentStatus.UNPAID,
     )
 
-    # Create invoice items
     for item_in in obj_in.items:
         item_totals = calculate_item_totals(item_in)
         db_item = SalesInvoiceItem(
@@ -130,7 +128,6 @@ def create(
         )
         db_invoice.items.append(db_item)
 
-    # Calculate invoice totals
     db.add(db_invoice)
     db.flush()
 
@@ -138,7 +135,6 @@ def create(
     for field, value in invoice_totals.items():
         setattr(db_invoice, field, value)
 
-    # Set balance_due
     db_invoice.balance_due = db_invoice.total_ttc
 
     db.commit()
@@ -153,7 +149,6 @@ def convert_from_quote(db: Session, *, quote_id: UUID, due_days: int = 30) -> Op
     if not quote or quote.status != QuoteStatus.ACCEPTED:
         return None
 
-    # Create invoice from quote
     invoice_data = {
         "title": quote.title,
         "description": quote.description,
@@ -179,7 +174,6 @@ def convert_from_quote(db: Session, *, quote_id: UUID, due_days: int = 30) -> Op
         payment_status=PaymentStatus.UNPAID,
     )
 
-    # Copy quote items to invoice items
     for quote_item in quote.items:
         db_item = SalesInvoiceItem(
             description=quote_item.description,
@@ -200,14 +194,12 @@ def convert_from_quote(db: Session, *, quote_id: UUID, due_days: int = 30) -> Op
     db.add(db_invoice)
     db.flush()
 
-    # Set invoice totals
     db_invoice.subtotal_ht = quote.subtotal_ht
     db_invoice.total_ht = quote.total_ht
     db_invoice.total_vat = quote.total_vat
     db_invoice.total_ttc = quote.total_ttc
     db_invoice.balance_due = quote.total_ttc
 
-    # Update quote status
     quote.status = QuoteStatus.CONVERTED
     quote.sales_invoice_id = db_invoice.id
     db.add(quote)
@@ -224,7 +216,6 @@ def update(db: Session, *, db_obj: SalesInvoice, obj_in: SalesInvoiceUpdate) -> 
     for field, value in update_data.items():
         setattr(db_obj, field, value)
 
-    # Recalculate totals if needed
     if db_obj.items:
         invoice_totals = calculate_invoice_totals(db_obj.items)
         for field, value in invoice_totals.items():
@@ -246,7 +237,6 @@ def delete(db: Session, *, invoice_id: UUID) -> bool:
     return False
 
 
-# ========== Payment Operations ==========
 
 def record_payment(
     db: Session,
@@ -260,7 +250,6 @@ def record_payment(
     if not invoice:
         return None
 
-    # Create the payment
     db_payment = Payment(
         **payment_in.model_dump(exclude={"sales_invoice_id"}),
         sales_invoice_id=invoice_id,
@@ -269,11 +258,9 @@ def record_payment(
     db.add(db_payment)
     db.flush()
 
-    # Update invoice paid amount and balance
     invoice.paid_amount += payment_in.amount
     invoice.balance_due = invoice.total_ttc - invoice.paid_amount
 
-    # Update payment status
     if invoice.balance_due <= Decimal("0"):
         invoice.payment_status = PaymentStatus.PAID
         invoice.payment_date = date.today()
@@ -319,7 +306,6 @@ def mark_overdue_invoices(db: Session, *, tenant_id: UUID) -> int:
     for invoice in overdue_invoices:
         invoice.payment_status = PaymentStatus.OVERDUE
 
-        # Calculate late fee if enabled
         if invoice.late_fee_enabled and invoice.late_fee_percentage > 0:
             days_overdue = (date.today() - invoice.due_date).days
             if days_overdue > 0:

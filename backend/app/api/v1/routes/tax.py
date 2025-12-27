@@ -31,7 +31,6 @@ async def get_liasse_fiscale(
     income_statement = service.get_income_statement(year)
     sig = service.get_sig(year)
 
-    # Liasse minimale: structure + indicateurs
     items: List[Dict[str, Any]] = [
         {"code": "CR", "label": "Compte de résultat", "status": "prêt" if (income_statement.get("revenue") or 0) != 0 else "à préparer"},
         {"code": "SIG", "label": "SIG", "status": "prêt" if (sig.get("lines") or []) else "à préparer"},

@@ -15,49 +15,42 @@ class AccountingAnalyticsService:
         start_date = date(year, 1, 1)
         end_date = date(year, 12, 31)
 
-        # Chiffre d'affaires: comptes 70* (approx)
         revenue = self.db.query(func.sum(AccountingEntry.credit - AccountingEntry.debit)).filter(
             AccountingEntry.tenant_id == self.tenant_id,
             AccountingEntry.account_number.like("70%"),
             AccountingEntry.date.between(start_date, end_date)
         ).scalar() or 0.0
 
-        # Achats consommés: comptes 60* (approx)
         purchases = self.db.query(func.sum(AccountingEntry.debit - AccountingEntry.credit)).filter(
             AccountingEntry.tenant_id == self.tenant_id,
             AccountingEntry.account_number.like("60%"),
             AccountingEntry.date.between(start_date, end_date)
         ).scalar() or 0.0
 
-        # Charges externes: 61/62*
         external_charges = self.db.query(func.sum(AccountingEntry.debit - AccountingEntry.credit)).filter(
             AccountingEntry.tenant_id == self.tenant_id,
             or_(AccountingEntry.account_number.like("61%"), AccountingEntry.account_number.like("62%")),
             AccountingEntry.date.between(start_date, end_date)
         ).scalar() or 0.0
 
-        # Impôts & taxes: 63*
         taxes = self.db.query(func.sum(AccountingEntry.debit - AccountingEntry.credit)).filter(
             AccountingEntry.tenant_id == self.tenant_id,
             AccountingEntry.account_number.like("63%"),
             AccountingEntry.date.between(start_date, end_date)
         ).scalar() or 0.0
 
-        # Charges de personnel: 64*
         payroll = self.db.query(func.sum(AccountingEntry.debit - AccountingEntry.credit)).filter(
             AccountingEntry.tenant_id == self.tenant_id,
             AccountingEntry.account_number.like("64%"),
             AccountingEntry.date.between(start_date, end_date)
         ).scalar() or 0.0
 
-        # Dotations: 68*
         depreciation = self.db.query(func.sum(AccountingEntry.debit - AccountingEntry.credit)).filter(
             AccountingEntry.tenant_id == self.tenant_id,
             AccountingEntry.account_number.like("68%"),
             AccountingEntry.date.between(start_date, end_date)
         ).scalar() or 0.0
 
-        # Produits/charges financiers: 76* / 66*
         financial_products = self.db.query(func.sum(AccountingEntry.credit - AccountingEntry.debit)).filter(
             AccountingEntry.tenant_id == self.tenant_id,
             AccountingEntry.account_number.like("76%"),
@@ -77,7 +70,6 @@ class AccountingAnalyticsService:
         resultat_financier = financial_products - financial_charges
         resultat_courant = resultat_exploitation + resultat_financier
 
-        # Résultat net: revenus classe 7 - charges classe 6
         income_stmt = self.get_income_statement(year)
 
         lines = [
@@ -97,14 +89,12 @@ class AccountingAnalyticsService:
         start_date = date(year, 1, 1)
         end_date = date(year, 12, 31)
 
-        # Approximation: variation trésorerie = solde classe 5 (débit - crédit)
         cash = self.db.query(func.sum(AccountingEntry.debit - AccountingEntry.credit)).filter(
             AccountingEntry.tenant_id == self.tenant_id,
             AccountingEntry.account_number.like("5%"),
             AccountingEntry.date.between(start_date, end_date)
         ).scalar() or 0.0
 
-        # On renvoie une structure simple (lignes) consommable par le front
         return {
             "year": year,
             "lines": [
@@ -116,7 +106,6 @@ class AccountingAnalyticsService:
         income_stmt = self.get_income_statement(year)
         result = float(income_stmt.get("net_income") or 0.0)
 
-        # Base simplifiée = résultat net (à affiner ensuite)
         base = max(0.0, result)
         rate = 0.0
         amount = base * rate
@@ -132,7 +121,6 @@ class AccountingAnalyticsService:
         start_date = date(year, 1, 1)
         end_date = date(year, 12, 31)
 
-        # Taxes diverses: classe 63* (impôts & taxes)
         total = self.db.query(func.sum(AccountingEntry.debit - AccountingEntry.credit)).filter(
             AccountingEntry.tenant_id == self.tenant_id,
             AccountingEntry.account_number.like("63%"),
@@ -148,8 +136,6 @@ class AccountingAnalyticsService:
 
     def get_account_balance(self, account_number: str, start_date: Optional[date] = None, end_date: Optional[date] = None) -> float:
         """Calcule le solde d'un compte (Crédit - Débit pour passif/pdts, Débit - Crédit pour actif/charges)"""
-        # Note: Pour simplifier, on retourne solde algébrique (Crédit - Débit)
-        # Positif = Créditeur, Négatif = Débiteur
         query = self.db.query(
             func.sum(AccountingEntry.credit - AccountingEntry.debit)
         ).filter(
@@ -170,14 +156,12 @@ class AccountingAnalyticsService:
         start_date = date(year, 1, 1)
         end_date = date(year, 12, 31)
 
-        # Revenus (Classe 7)
         revenue = self.db.query(func.sum(AccountingEntry.credit - AccountingEntry.debit)).filter(
             AccountingEntry.tenant_id == self.tenant_id,
             AccountingEntry.account_number.like("7%"),
             AccountingEntry.date.between(start_date, end_date)
         ).scalar() or 0.0
 
-        # Charges (Classe 6) - On veut la valeur positive pour l'affichage
         expenses = self.db.query(func.sum(AccountingEntry.debit - AccountingEntry.credit)).filter(
             AccountingEntry.tenant_id == self.tenant_id,
             AccountingEntry.account_number.like("6%"),
@@ -195,30 +179,21 @@ class AccountingAnalyticsService:
 
     def get_balance_sheet_summary(self) -> Dict[str, Any]:
         """Génère les agrégats principaux du Bilan"""
-        # Actif: Classes 2 (Immo), 3 (Stocks), 4 (Tiers Actif), 5 (Trésorerie)
-        # Note: Simplification majeure, normalement il faut trier les comptes de tiers débiteurs vs créditeurs
 
-        # Total Actif (Approximation: Solde débiteur des classes 2, 3, 4, 5)
-        # On somme (Debit - Credit) pour les comptes d'actif
         total_assets = 0.0
         for classe in ["2", "3", "4", "5"]:
              balance = self.db.query(func.sum(AccountingEntry.debit - AccountingEntry.credit)).filter(
                 AccountingEntry.tenant_id == self.tenant_id,
                 AccountingEntry.account_number.like(f"{classe}%")
             ).scalar() or 0.0
-             # Si globalement débiteur, c'est un actif
              if balance > 0:
                  total_assets += balance
 
-        # Passif & Capitaux Propres: Classes 1 (Capitaux), 4 (Tiers Passif)
-        # Capitaux Propres (Classe 1)
         equity = self.db.query(func.sum(AccountingEntry.credit - AccountingEntry.debit)).filter(
             AccountingEntry.tenant_id == self.tenant_id,
             AccountingEntry.account_number.like("1%")
         ).scalar() or 0.0
 
-        # Dettes (Passif - Capitaux)
-        # On approxime avec les soldes créditeurs des classes 4 et 1 (hors resultats)
         total_liabilities = 0.0
         for classe in ["1", "4", "5"]: # 5 peut être passif (découvert)
              balance = self.db.query(func.sum(AccountingEntry.credit - AccountingEntry.debit)).filter(
@@ -228,8 +203,6 @@ class AccountingAnalyticsService:
              if balance > 0:
                  total_liabilities += balance
         
-        # Ajustement capitaux propres (Equity est une partie de Liabilities dans cette logique compta anglo-saxonne étendue)
-        # Liabilities au sens strict (Dettes) = Total Passif - Capitaux Propres
         liabilities_only = total_liabilities - equity
 
         return {
@@ -241,13 +214,11 @@ class AccountingAnalyticsService:
     
     def get_receivables_payables(self) -> Dict[str, float]:
         """Calcule Créances Clients et Dettes Fournisseurs"""
-        # Créances Clients (411)
         receivables = self.db.query(func.sum(AccountingEntry.debit - AccountingEntry.credit)).filter(
             AccountingEntry.tenant_id == self.tenant_id,
             AccountingEntry.account_number.like("411%")
         ).scalar() or 0.0
 
-        # Dettes Fournisseurs (401)
         payables = self.db.query(func.sum(AccountingEntry.credit - AccountingEntry.debit)).filter(
             AccountingEntry.tenant_id == self.tenant_id,
             AccountingEntry.account_number.like("401%")
@@ -266,7 +237,6 @@ class AccountingAnalyticsService:
 
         for month in months:
             start_dt = date(year, month, 1)
-            # Fin du mois
             if month == 12:
                 end_dt = date(year, 12, 31)
             else:
@@ -304,32 +274,25 @@ class AccountingAnalyticsService:
         """
         from calendar import monthrange
 
-        # Déterminer les dates de la période
         start_date = date(year, month, 1)
         last_day = monthrange(year, month)[1]
         end_date = date(year, month, last_day)
 
-        # TVA Collectée (4431) - Créditeur normal
         tva_collectee = self.db.query(func.sum(AccountingEntry.credit - AccountingEntry.debit)).filter(
             AccountingEntry.tenant_id == self.tenant_id,
             AccountingEntry.account_number.like("4431%"),
             AccountingEntry.date.between(start_date, end_date)
         ).scalar() or 0.0
 
-        # TVA Déductible (4451) - Débiteur normal
         tva_deductible = self.db.query(func.sum(AccountingEntry.debit - AccountingEntry.credit)).filter(
             AccountingEntry.tenant_id == self.tenant_id,
             AccountingEntry.account_number.like("4451%"),
             AccountingEntry.date.between(start_date, end_date)
         ).scalar() or 0.0
 
-        # Calcul de la base HT à partir de la TVA (base = TVA / taux)
-        # Pour 18%, base_ht = tva / 0.18
 
-        # Lignes TVA collectée (détail par taux)
         collectee_lines = []
 
-        # Ventes soumises à 18%
         if tva_collectee > 0:
             base_18 = tva_collectee / 0.18
             collectee_lines.append({
@@ -340,15 +303,12 @@ class AccountingAnalyticsService:
                 "rate": "18%"
             })
 
-        # Ventes exonérées (estimer à partir des ventes sans TVA)
-        # On peut approximer en regardant les ventes (classe 70) sans TVA correspondante
         revenue_total = self.db.query(func.sum(AccountingEntry.credit - AccountingEntry.debit)).filter(
             AccountingEntry.tenant_id == self.tenant_id,
             AccountingEntry.account_number.like("70%"),
             AccountingEntry.date.between(start_date, end_date)
         ).scalar() or 0.0
 
-        # Ventes exonérées = Revenue total - Base soumise à TVA
         base_exempt = max(0, revenue_total - (tva_collectee / 0.18 if tva_collectee > 0 else 0))
         if base_exempt > 100:  # Seuil minimal pour afficher
             collectee_lines.append({
@@ -359,28 +319,22 @@ class AccountingAnalyticsService:
                 "rate": "0%"
             })
 
-        # Lignes TVA déductible (détail par nature)
         deductible_lines = []
 
         if tva_deductible > 0:
-            # Répartir la TVA déductible par nature d'achat (approximatif)
-            # On regarde les comptes de charges correspondants
 
-            # Achats de marchandises (60)
             achats_marchandises = self.db.query(func.sum(AccountingEntry.debit - AccountingEntry.credit)).filter(
                 AccountingEntry.tenant_id == self.tenant_id,
                 AccountingEntry.account_number.like("60%"),
                 AccountingEntry.date.between(start_date, end_date)
             ).scalar() or 0.0
 
-            # Services extérieurs (61/62)
             services = self.db.query(func.sum(AccountingEntry.debit - AccountingEntry.credit)).filter(
                 AccountingEntry.tenant_id == self.tenant_id,
                 or_(AccountingEntry.account_number.like("61%"), AccountingEntry.account_number.like("62%")),
                 AccountingEntry.date.between(start_date, end_date)
             ).scalar() or 0.0
 
-            # Immobilisations (2x)
             immobilisations = self.db.query(func.sum(AccountingEntry.debit - AccountingEntry.credit)).filter(
                 AccountingEntry.tenant_id == self.tenant_id,
                 AccountingEntry.account_number.like("2%"),
@@ -390,7 +344,6 @@ class AccountingAnalyticsService:
             total_charges = achats_marchandises + services + immobilisations
 
             if total_charges > 0:
-                # Répartir proportionnellement la TVA déductible
                 if achats_marchandises > 0:
                     tva_achats = tva_deductible * (achats_marchandises / total_charges)
                     deductible_lines.append({
@@ -421,7 +374,6 @@ class AccountingAnalyticsService:
                         "rate": "18%"
                     })
             else:
-                # Pas de détail, afficher juste le total
                 deductible_lines.append({
                     "code": "DD-01",
                     "label": "TVA déductible sur achats",
@@ -430,16 +382,13 @@ class AccountingAnalyticsService:
                     "rate": "18%"
                 })
 
-        # Calcul TVA à payer (ou crédit de TVA)
         tva_due = tva_collectee - tva_deductible
 
-        # Date limite de paiement (généralement 15 du mois suivant)
         if month == 12:
             due_date = date(year + 1, 1, 15)
         else:
             due_date = date(year, month + 1, 15)
 
-        # Récupérer l'historique des déclarations précédentes (3 derniers mois)
         history = []
         for i in range(1, 4):
             prev_month = month - i
@@ -502,7 +451,6 @@ class AccountingAnalyticsService:
         balance_sheet = self.get_balance_sheet_summary()
         rec_pay = self.get_receivables_payables()
 
-        # Cash = Classe 5 (Actif)
         cash_balance = self.db.query(func.sum(AccountingEntry.debit - AccountingEntry.credit)).filter(
             AccountingEntry.tenant_id == self.tenant_id,
             AccountingEntry.account_number.like("5%")

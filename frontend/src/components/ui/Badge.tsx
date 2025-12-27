@@ -27,7 +27,6 @@ export function Badge({
     success: "bg-status-success/10 text-status-success border-status-success/20",
     warning: "bg-status-warning/10 text-status-warning border-status-warning/20",
     danger: "bg-status-danger/10 text-status-danger border-status-danger/20",
-    // Backwards-compat alias
     error: "bg-status-danger/10 text-status-danger border-status-danger/20",
     info: "bg-status-info/10 text-status-info border-status-info/20",
     neutral: "bg-neutral-100 text-neutral-700 border-neutral-200",
@@ -72,7 +71,6 @@ export function Badge({
   );
 }
 
-// ========== BADGE VARIANTS PRESETS ==========
 
 /**
  * Status Badge - For displaying status like "Active", "Inactive", "Pending"

@@ -29,7 +29,6 @@ class ForecastingService:
         end_date = date.today()
         start_date = end_date - timedelta(days=months_back * 30)
 
-        # Get all transactions
         transactions = bt_crud.get_by_date_range(
             self.db,
             tenant_id=tenant_id,
@@ -40,7 +39,6 @@ class ForecastingService:
         if not transactions:
             return pd.DataFrame(columns=['ds', 'y'])
 
-        # Convert to DataFrame
         data = []
         for t in transactions:
             if t.balance_after is not None:
@@ -54,7 +52,6 @@ class ForecastingService:
         if df.empty:
             return df
 
-        # Group by date and take the last balance of each day
         df = df.groupby('ds').last().reset_index()
         df = df.sort_values('ds')
 
@@ -67,14 +64,11 @@ class ForecastingService:
         model_type: str = "auto"
     ) -> Dict:
         """Generate cash flow forecast."""
-        # Prepare data
         df = self.prepare_data_for_prophet(tenant_id)
 
         if df.empty or len(df) < 30:
-            # Not enough data, use simple linear projection
             return self._generate_simple_forecast(tenant_id, horizon_days)
 
-        # Determine model type
         if model_type == "auto":
             if len(df) < 90:
                 model_type = "linear"
@@ -98,7 +92,6 @@ class ForecastingService:
         try:
             from prophet import Prophet
 
-            # Train Prophet model
             model = Prophet(
                 yearly_seasonality=True,
                 weekly_seasonality=False,
@@ -107,21 +100,16 @@ class ForecastingService:
             )
             model.fit(df)
 
-            # Generate future dates
             future = model.make_future_dataframe(periods=horizon_days)
             forecast = model.predict(future)
 
-            # Extract forecasts (only future dates)
             today = date.today()
             future_forecast = forecast[forecast['ds'] > pd.Timestamp(today)]
 
-            # Get payment schedules to integrate
             schedules = ps_crud.get_upcoming(self.db, tenant_id=tenant_id, days_ahead=horizon_days)
 
-            # Generate scenarios
             scenarios = self._generate_scenarios(future_forecast, schedules)
 
-            # Detect risks
             risks = self._detect_risks(scenarios['realistic'])
 
             return {
@@ -132,10 +120,8 @@ class ForecastingService:
             }
 
         except ImportError:
-            # Prophet not installed, fallback to simple forecast
             return self._generate_simple_forecast(tenant_id, horizon_days)
         except Exception as e:
-            # Error in Prophet, fallback
             print(f"Prophet error: {e}")
             return self._generate_simple_forecast(tenant_id, horizon_days)
 
@@ -147,10 +133,8 @@ class ForecastingService:
         """Generate simple linear forecast."""
         from app.crud import bank_account as ba_crud
 
-        # Get current balance
         current_balance = ba_crud.get_total_balance(self.db, tenant_id=tenant_id)
 
-        # Calculate average daily change over last 30 days
         end_date = date.today()
         start_date = end_date - timedelta(days=30)
 
@@ -167,10 +151,8 @@ class ForecastingService:
         else:
             avg_daily_change = Decimal("0")
 
-        # Get payment schedules
         schedules = ps_crud.get_upcoming(self.db, tenant_id=tenant_id, days_ahead=horizon_days)
 
-        # Generate forecast
         forecasts = []
         current_date = date.today()
         balance = current_balance
@@ -178,10 +160,8 @@ class ForecastingService:
         for i in range(horizon_days):
             current_date += timedelta(days=1)
             
-            # Add daily trend
             balance += avg_daily_change
 
-            # Add scheduled payments for this date
             for schedule in schedules:
                 if schedule.due_date == current_date:
                     if schedule.is_income:
@@ -200,14 +180,12 @@ class ForecastingService:
                 "model_type": "linear",
             })
 
-        # Generate scenarios
         scenarios = {
             "realistic": forecasts,
             "optimistic": self._adjust_scenario(forecasts, 1.1),
             "pessimistic": self._adjust_scenario(forecasts, 0.9),
         }
 
-        # Detect risks
         risks = self._detect_risks(forecasts)
 
         return {
@@ -232,7 +210,6 @@ class ForecastingService:
                 forecast_date = row['ds'].date()
                 predicted_balance = Decimal(str(row['yhat'])) * Decimal(str(multiplier))
                 
-                # Add scheduled payments
                 for schedule in schedules:
                     if schedule.due_date == forecast_date:
                         if schedule.is_income:
@@ -272,7 +249,6 @@ class ForecastingService:
         """Detect cash flow risks from forecasts."""
         risks = []
 
-        # Check for negative balance
         negative_dates = [
             f for f in forecasts
             if f["predicted_balance"] < 0
@@ -286,7 +262,6 @@ class ForecastingService:
                 f"(le {first_negative['forecast_date'].strftime('%d/%m/%Y')})"
             )
 
-        # Check for low balance (< 100k)
         low_balance_dates = [
             f for f in forecasts
             if 0 < f["predicted_balance"] < 100000

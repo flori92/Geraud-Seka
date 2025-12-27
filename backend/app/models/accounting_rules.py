@@ -52,25 +52,18 @@ class AccountingRule(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
 
-    # Identification
     name = Column(String(255), nullable=False)
     description = Column(Text)
     priority = Column(Float, default=0)  # Plus élevé = exécuté en premier
     is_active = Column(Boolean, default=True)
 
-    # Conditions (JSON array)
-    # Format: [{"type": "supplier_name", "operator": "contains", "value": "EDF"}]
     conditions = Column(JSON, nullable=False)
     
-    # Actions (JSON array)
-    # Format: [{"type": "assign_account", "debit_account": "606100", "credit_account": "401000"}]
     actions = Column(JSON, nullable=False)
 
-    # Configuration
     auto_apply = Column(Boolean, default=False)  # Appliquer automatiquement ou suggérer
     confidence_threshold = Column(Float, default=0.8)  # Seuil de confiance pour auto-apply
 
-    # Relations
     tenant = relationship("Tenant", back_populates="accounting_rules")
 
 
@@ -85,26 +78,21 @@ class DocumentClassification(Base):
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False)
     document_id = Column(UUID(as_uuid=True), ForeignKey("documents.id"), nullable=False)
     
-    # Classification
     suggested_debit_account = Column(String(20))
     suggested_credit_account = Column(String(20))
     suggested_label = Column(String(500))
     suggested_vat_rate = Column(Float)
     suggested_analytic_code = Column(String(50))
     
-    # Confiance et source
     confidence_score = Column(Float)  # 0.0 à 1.0
     rule_id = Column(UUID(as_uuid=True), ForeignKey("accounting_rules.id"))  # Règle appliquée
     source = Column(String(50))  # "rule", "ml", "manual"
     
-    # Validation
     validated = Column(Boolean, default=False)
     validated_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     
-    # Feedback pour ML
     user_corrections = Column(JSON)  # Corrections faites par l'utilisateur
     
-    # Relations
     document = relationship("Document", back_populates="classifications")
     rule = relationship("AccountingRule")
     tenant = relationship("Tenant")

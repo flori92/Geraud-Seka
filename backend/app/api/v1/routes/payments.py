@@ -12,7 +12,6 @@ from app.core.config import get_settings
 router = APIRouter()
 settings = get_settings()
 
-# --- STRIPE ---
 
 @router.post("/stripe/customer")
 async def create_stripe_customer(
@@ -21,7 +20,6 @@ async def create_stripe_customer(
     db: Session = Depends(get_db)
 ):
     """Create a Stripe customer and link it to the tenant."""
-    # Check if tenant already has a stripe customer id
     tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
@@ -29,7 +27,6 @@ async def create_stripe_customer(
     if tenant.stripe_customer_id:
         return {"id": tenant.stripe_customer_id, "email": data.email, "name": data.name}
 
-    # Add tenant_id to metadata
     metadata = data.metadata or {}
     metadata["tenant_id"] = str(tenant.id)
 
@@ -39,7 +36,6 @@ async def create_stripe_customer(
         metadata=metadata
     )
     
-    # Update tenant with stripe customer id
     if customer.get("id"):
         tenant.stripe_customer_id = customer["id"]
         db.commit()
@@ -59,10 +55,8 @@ async def create_stripe_subscription(
         trial_days=data.trial_days
     )
     
-    # Update tenant plan based on price_id (simplified logic)
     tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
     if tenant and subscription.get("status") == "active":
-        # Map price_id to plan name
         plan_map = {
             "price_starter": "starter",
             "price_business": "business",
@@ -80,19 +74,14 @@ async def stripe_webhook(request: Request, background_tasks: BackgroundTasks, db
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature")
     
-    # In a real implementation, verify signature using stripe library
-    # event = stripe.Webhook.construct_event(payload, sig_header, settings.stripe_webhook_secret)
     
-    # For now, just log the event
     event = await request.json()
     print(f"Received Stripe webhook: {event.get('type')}")
     
     if event.get("type") == "invoice.payment_succeeded":
-        # Handle successful payment
         data = event["data"]["object"]
         customer_id = data.get("customer")
         
-        # Find tenant by stripe_customer_id
         tenant = db.query(Tenant).filter(Tenant.stripe_customer_id == customer_id).first()
         if tenant:
             tenant.subscription_status = "active"
@@ -101,7 +90,6 @@ async def stripe_webhook(request: Request, background_tasks: BackgroundTasks, db
         
     return {"status": "success"}
 
-# --- KKIAPAY ---
 
 @router.post("/kkiapay/link")
 async def create_kkiapay_link(
@@ -109,7 +97,6 @@ async def create_kkiapay_link(
     current_user: User = Depends(get_current_user)
 ):
     """Create a KKiaPay payment link."""
-    # In a real app, we would store a pending transaction reference here
     return await kkiapay_service.create_payment_link(
         amount=data.amount,
         reason=data.reason,
@@ -126,11 +113,9 @@ async def verify_kkiapay_transaction(
     verification = await kkiapay_service.verify_payment(data.transaction_id)
     
     if verification.get("status") == "SUCCESS":
-        # Update tenant plan (simplified, assuming amount maps to a plan)
         tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
         if tenant:
             tenant.subscription_status = "active"
-            # Logic to determine plan based on amount could go here
             db.commit()
             
     return verification
@@ -141,10 +126,7 @@ async def kkiapay_webhook(request: Request):
     event = await request.json()
     print(f"Received KKiaPay webhook: {event}")
     
-    # Verify transaction status and update tenant
     if event.get("status") == "SUCCESS":
-        # Update tenant subscription status
-        # Need a way to link transaction to tenant (e.g. custom field in payment link)
         pass
         
     return {"status": "success"}

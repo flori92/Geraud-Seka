@@ -48,7 +48,6 @@ def generate_quote_number(db: Session, tenant_id: UUID) -> str:
     current_year = date.today().year
     prefix = f"QUOTE-{current_year}-"
 
-    # Get the last quote number for this year
     last_quote = db.query(Quote).filter(
         and_(
             Quote.tenant_id == tenant_id,
@@ -57,7 +56,6 @@ def generate_quote_number(db: Session, tenant_id: UUID) -> str:
     ).order_by(Quote.quote_number.desc()).first()
 
     if last_quote:
-        # Extract the number and increment
         last_number = int(last_quote.quote_number.split("-")[-1])
         new_number = last_number + 1
     else:
@@ -100,13 +98,10 @@ def calculate_quote_totals(items: List[QuoteItem]) -> dict:
 
 def create(db: Session, *, obj_in: QuoteCreate, tenant_id: UUID, user_id: Optional[UUID] = None) -> Quote:
     """Create a new quote with items."""
-    # Generate quote number
     quote_number = generate_quote_number(db, tenant_id)
 
-    # Calculate expiry date
     expiry_date = obj_in.expiry_date or (obj_in.issue_date + timedelta(days=obj_in.validity_days))
 
-    # Create the quote (without items first)
     quote_data = obj_in.model_dump(exclude={"items"})
     db_quote = Quote(
         **quote_data,
@@ -117,7 +112,6 @@ def create(db: Session, *, obj_in: QuoteCreate, tenant_id: UUID, user_id: Option
         status=QuoteStatus.DRAFT,
     )
 
-    # Create quote items
     for item_in in obj_in.items:
         item_totals = calculate_item_totals(item_in)
         db_item = QuoteItem(
@@ -126,7 +120,6 @@ def create(db: Session, *, obj_in: QuoteCreate, tenant_id: UUID, user_id: Option
         )
         db_quote.items.append(db_item)
 
-    # Calculate quote totals
     db.add(db_quote)
     db.flush()  # Flush to get the items with calculated totals
 
@@ -146,7 +139,6 @@ def update(db: Session, *, db_obj: Quote, obj_in: QuoteUpdate) -> Quote:
     for field, value in update_data.items():
         setattr(db_obj, field, value)
 
-    # Recalculate totals if items were modified
     if db_obj.items:
         quote_totals = calculate_quote_totals(db_obj.items)
         for field, value in quote_totals.items():

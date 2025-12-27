@@ -31,7 +31,6 @@ from sqlalchemy.orm import relationship
 from app.db.base import Base, TimestampMixin
 
 
-# ========== Enums (petites valeurs) ==========
 class AutomationTriggerType(Enum):
     MANUAL = "manual"
     SCHEDULE = "schedule"
@@ -51,7 +50,6 @@ class AutomationStatus(Enum):
     DISABLED = "disabled"
 
 
-# ========== Minimal ORM models ==========
 class Automation:
     """Placeholder pour compatibilité d'import.
 

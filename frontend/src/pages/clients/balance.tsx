@@ -40,10 +40,10 @@ interface ClientBalance {
 }
 
 interface ClientBalanceStats {
-  total_a_recevoir: number;    // Total to receive
-  en_retard: number;           // Overdue amount
-  a_recevoir_30j: number;      // To receive within 30 days
-  clients_actifs: number;      // Active clients count
+  total_a_recevoir: number;
+  en_retard: number;
+  a_recevoir_30j: number;
+  clients_actifs: number;
 }
 
 interface FilterChip {

@@ -26,13 +26,10 @@ class TreasuryService:
 
     def get_dashboard_data(self, tenant_id: UUID) -> TreasuryDashboardResponse:
         """Get complete dashboard data for treasury."""
-        # Get all accounts
         accounts = ba_crud.get_multi(self.db, tenant_id=tenant_id, is_active=True)
 
-        # Calculate total balance
         total_balance = ba_crud.get_total_balance(self.db, tenant_id=tenant_id)
 
-        # Get total balance by currency
         total_balance_by_currency = {}
         for account in accounts:
             currency = account.currency
@@ -40,19 +37,14 @@ class TreasuryService:
                 total_balance_by_currency[currency] = Decimal("0.00")
             total_balance_by_currency[currency] += account.balance
 
-        # Get recent transactions
         recent_transactions = bt_crud.get_recent(self.db, tenant_id=tenant_id, limit=10)
 
-        # Get upcoming payments
         upcoming_payments = ps_crud.get_upcoming(self.db, tenant_id=tenant_id, days_ahead=30)
 
-        # Calculate cash runway
         cash_runway_days = self.calculate_cash_runway(tenant_id)
 
-        # Get active alerts
         alerts = self._get_active_alerts(tenant_id)
 
-        # Get cash flow summary for current month
         today = date.today()
         month_start = date(today.year, today.month, 1)
         cash_flow_summary = self.get_cash_flow_summary(
@@ -94,7 +86,6 @@ class TreasuryService:
             bank_account_id=bank_account_id,
         )
 
-        # Group by month and calculate balance
         history = []
         current_date = start_date
         
@@ -102,7 +93,6 @@ class TreasuryService:
             month_end = date(current_date.year, current_date.month, 1) + timedelta(days=32)
             month_end = date(month_end.year, month_end.month, 1) - timedelta(days=1)
 
-            # Get transactions up to this month
             month_transactions = [
                 t for t in transactions
                 if t.transaction_date <= month_end and t.status == "cleared"
@@ -118,7 +108,6 @@ class TreasuryService:
                 "balance": float(balance),
             })
 
-            # Move to next month
             current_date = month_end + timedelta(days=1)
 
         return history
@@ -131,14 +120,12 @@ class TreasuryService:
         bank_account_id: Optional[UUID] = None,
     ) -> CashFlowSummary:
         """Get cash flow summary for a period."""
-        # Get opening balance
         if bank_account_id:
             account = ba_crud.get(self.db, bank_account_id)
             opening_balance = account.initial_balance if account else Decimal("0.00")
         else:
             opening_balance = ba_crud.get_total_balance(self.db, tenant_id=tenant_id)
 
-        # Get transactions for the period
         transactions = bt_crud.get_by_date_range(
             self.db,
             tenant_id=tenant_id,
@@ -147,7 +134,6 @@ class TreasuryService:
             bank_account_id=bank_account_id,
         )
 
-        # Calculate income and expenses
         total_income = sum(
             t.amount for t in transactions
             if t.amount > 0 and t.status == "cleared"
@@ -172,13 +158,11 @@ class TreasuryService:
 
     def calculate_cash_runway(self, tenant_id: UUID) -> int:
         """Calculate days of cash runway available."""
-        # Get current balance
         total_balance = ba_crud.get_total_balance(self.db, tenant_id=tenant_id)
 
         if total_balance <= 0:
             return 0
 
-        # Calculate average daily expenses over last 30 days
         end_date = date.today()
         start_date = end_date - timedelta(days=30)
 
@@ -189,7 +173,6 @@ class TreasuryService:
             end_date=end_date,
         )
 
-        # Sum expenses (negative amounts)
         total_expenses = sum(
             abs(t.amount) for t in transactions
             if t.amount < 0 and t.status == "cleared"
@@ -198,10 +181,8 @@ class TreasuryService:
         if total_expenses == 0:
             return 999  # No expenses, runway is indefinite
 
-        # Calculate average daily expense
         avg_daily_expense = total_expenses / 30
 
-        # Calculate runway days
         runway_days = int(total_balance / avg_daily_expense)
 
         return runway_days
@@ -210,7 +191,6 @@ class TreasuryService:
         """Generate treasury alerts based on current state."""
         alerts = []
 
-        # Check for low balance accounts
         accounts = ba_crud.get_multi(self.db, tenant_id=tenant_id, is_active=True)
         for account in accounts:
             threshold = account.overdraft_limit or Decimal("100000")  # Default 100k XOF
@@ -228,7 +208,6 @@ class TreasuryService:
                 self.db.add(alert)
                 alerts.append(alert)
 
-        # Check for overdue payments
         overdue_schedules = ps_crud.get_overdue(self.db, tenant_id=tenant_id)
         if overdue_schedules:
             total_overdue = sum(s.remaining_amount for s in overdue_schedules)
@@ -242,7 +221,6 @@ class TreasuryService:
             self.db.add(alert)
             alerts.append(alert)
 
-        # Check cash runway
         runway_days = self.calculate_cash_runway(tenant_id)
         if runway_days < 30:
             severity = "critical" if runway_days < 7 else "warning"
@@ -271,10 +249,8 @@ class TreasuryService:
 
     def get_kpis(self, tenant_id: UUID) -> TreasuryKPIs:
         """Get key performance indicators for treasury."""
-        # Total balance
         total_balance = ba_crud.get_total_balance(self.db, tenant_id=tenant_id)
 
-        # Monthly income and expenses
         today = date.today()
         month_start = date(today.year, today.month, 1)
         
@@ -284,10 +260,8 @@ class TreasuryService:
             end_date=today
         )
 
-        # Cash runway
         cash_runway_days = self.calculate_cash_runway(tenant_id)
 
-        # Counts
         accounts_count = len(ba_crud.get_multi(self.db, tenant_id=tenant_id, is_active=True))
         pending_payments_count = ps_crud.get_count(
             self.db,

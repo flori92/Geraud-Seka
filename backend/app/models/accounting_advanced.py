@@ -14,7 +14,6 @@ from sqlalchemy.orm import relationship
 from app.db.base import Base, TimestampMixin
 
 
-# ==================== ENUMS ====================
 
 class AccountType(str, enum.Enum):
     """Types de comptes selon OHADA"""
@@ -71,7 +70,6 @@ class ReconciliationStatus(str, enum.Enum):
     RECONCILED = "reconciled"
 
 
-# ==================== PLAN COMPTABLE ====================
 
 class ChartOfAccounts(Base, TimestampMixin):
     """
@@ -82,41 +80,33 @@ class ChartOfAccounts(Base, TimestampMixin):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     
-    # Identification
     account_number = Column(String(20), nullable=False, index=True)
     name = Column(String(255), nullable=False)
     description = Column(Text)
     
-    # Classification OHADA
     account_class = Column(String(1), nullable=False)  # 1-8
     account_type = Column(String(20), nullable=False)  # asset, liability, etc.
     
-    # Hiérarchie
     parent_id = Column(UUID(as_uuid=True), ForeignKey("chart_of_accounts.id"), nullable=True)
     level = Column(Integer, default=1)  # Niveau dans la hiérarchie
     is_group = Column(Boolean, default=False)  # Compte de regroupement
     is_detail = Column(Boolean, default=True)  # Compte de détail (mouvementé)
     
-    # Configuration
     is_active = Column(Boolean, default=True)
     is_reconcilable = Column(Boolean, default=False)  # Lettrable
     is_bank_account = Column(Boolean, default=False)
     is_cash_account = Column(Boolean, default=False)
     
-    # Soldes (calculés)
     opening_debit = Column(Numeric(18, 2), default=0)
     opening_credit = Column(Numeric(18, 2), default=0)
     current_debit = Column(Numeric(18, 2), default=0)
     current_credit = Column(Numeric(18, 2), default=0)
     
-    # Métadonnées
     notes = Column(Text)
     tags = Column(JSON)
     
-    # Relations
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
     
-    # Relations inverses
     parent = relationship("ChartOfAccounts", remote_side=[id], backref="children")
     tenant = relationship("Tenant")
     entries = relationship("JournalEntryLine", back_populates="account")
@@ -133,7 +123,6 @@ class ChartOfAccounts(Base, TimestampMixin):
         return (self.current_credit or 0) - (self.current_debit or 0)
 
 
-# ==================== EXERCICE FISCAL ====================
 
 class FiscalYear(Base, TimestampMixin):
     """
@@ -143,28 +132,22 @@ class FiscalYear(Base, TimestampMixin):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     
-    # Identification
     name = Column(String(100), nullable=False)  # Ex: "Exercice 2024"
     code = Column(String(10), nullable=False)   # Ex: "2024"
     
-    # Période
     start_date = Column(Date, nullable=False)
     end_date = Column(Date, nullable=False)
     
-    # Statut
     status = Column(String(20), default=FiscalYearStatus.OPEN)
     is_current = Column(Boolean, default=False)
     
-    # Clôture
     closed_at = Column(DateTime)
     closed_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     
-    # Résultats (calculés à la clôture)
     total_revenue = Column(Numeric(18, 2), default=0)
     total_expense = Column(Numeric(18, 2), default=0)
     net_result = Column(Numeric(18, 2), default=0)
     
-    # Relations
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
     
     tenant = relationship("Tenant")
@@ -193,7 +176,6 @@ class AccountingPeriod(Base, TimestampMixin):
     fiscal_year = relationship("FiscalYear", back_populates="periods")
 
 
-# ==================== JOURNAUX COMPTABLES ====================
 
 class AccountingJournal(Base, TimestampMixin):
     """
@@ -207,16 +189,13 @@ class AccountingJournal(Base, TimestampMixin):
     name = Column(String(100), nullable=False)
     journal_type = Column(String(10), nullable=False)
     
-    # Configuration
     is_active = Column(Boolean, default=True)
     default_debit_account_id = Column(UUID(as_uuid=True), ForeignKey("chart_of_accounts.id"))
     default_credit_account_id = Column(UUID(as_uuid=True), ForeignKey("chart_of_accounts.id"))
     
-    # Numérotation
     sequence_prefix = Column(String(10))
     next_sequence = Column(Integer, default=1)
     
-    # Relations
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
     
     tenant = relationship("Tenant")
@@ -227,7 +206,6 @@ class AccountingJournal(Base, TimestampMixin):
     )
 
 
-# ==================== ÉCRITURES COMPTABLES ====================
 
 class JournalEntry(Base, TimestampMixin):
     """
@@ -237,38 +215,30 @@ class JournalEntry(Base, TimestampMixin):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     
-    # Identification
     entry_number = Column(String(50), nullable=False, index=True)
     reference = Column(String(100))  # Référence externe (facture, etc.)
     
-    # Journal et période
     journal_id = Column(UUID(as_uuid=True), ForeignKey("accounting_journals.id"), nullable=False)
     fiscal_year_id = Column(UUID(as_uuid=True), ForeignKey("fiscal_years.id"), nullable=False)
     period_id = Column(UUID(as_uuid=True), ForeignKey("accounting_periods.id"))
     
-    # Dates
     entry_date = Column(Date, nullable=False, index=True)
     accounting_date = Column(Date, nullable=False)
     
-    # Description
     label = Column(String(255), nullable=False)
     notes = Column(Text)
     
-    # Totaux (calculés)
     total_debit = Column(Numeric(18, 2), default=0)
     total_credit = Column(Numeric(18, 2), default=0)
     
-    # Statut
     status = Column(String(20), default=EntryStatus.DRAFT)
     validated_at = Column(DateTime)
     validated_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     posted_at = Column(DateTime)
     
-    # Document source
     source_type = Column(String(50))  # invoice, payment, etc.
     source_id = Column(UUID(as_uuid=True))
     
-    # Relations
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     
@@ -299,37 +269,29 @@ class JournalEntryLine(Base, TimestampMixin):
     entry_id = Column(UUID(as_uuid=True), ForeignKey("journal_entries.id", ondelete="CASCADE"), nullable=False)
     account_id = Column(UUID(as_uuid=True), ForeignKey("chart_of_accounts.id"), nullable=False)
     
-    # Montants
     debit = Column(Numeric(18, 2), default=0)
     credit = Column(Numeric(18, 2), default=0)
     
-    # Description
     label = Column(String(255))
     
-    # Analytique (optionnel)
     cost_center_id = Column(UUID(as_uuid=True), ForeignKey("cost_centers.id"))
     project_id = Column(UUID(as_uuid=True))
     
-    # Tiers (optionnel)
     partner_type = Column(String(20))  # client, supplier
     partner_id = Column(UUID(as_uuid=True))
     
-    # Échéance
     due_date = Column(Date)
     
-    # Lettrage
     reconciliation_id = Column(UUID(as_uuid=True), ForeignKey("reconciliations.id"))
     reconciliation_code = Column(String(20))
     is_reconciled = Column(Boolean, default=False)
     
-    # Relations
     entry = relationship("JournalEntry", back_populates="lines")
     account = relationship("ChartOfAccounts", back_populates="entries")
     cost_center = relationship("CostCenter")
     reconciliation = relationship("Reconciliation", back_populates="lines")
 
 
-# ==================== CENTRES DE COÛTS (ANALYTIQUE) ====================
 
 class CostCenter(Base, TimestampMixin):
     """
@@ -346,7 +308,6 @@ class CostCenter(Base, TimestampMixin):
     parent_id = Column(UUID(as_uuid=True), ForeignKey("cost_centers.id"))
     is_active = Column(Boolean, default=True)
     
-    # Budget
     annual_budget = Column(Numeric(18, 2), default=0)
     
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
@@ -355,7 +316,6 @@ class CostCenter(Base, TimestampMixin):
     tenant = relationship("Tenant")
 
 
-# ==================== LETTRAGE / RAPPROCHEMENT ====================
 
 class Reconciliation(Base, TimestampMixin):
     """
@@ -368,12 +328,10 @@ class Reconciliation(Base, TimestampMixin):
     code = Column(String(20), nullable=False)  # Code de lettrage (AA, AB, etc.)
     account_id = Column(UUID(as_uuid=True), ForeignKey("chart_of_accounts.id"), nullable=False)
     
-    # Montants
     total_debit = Column(Numeric(18, 2), default=0)
     total_credit = Column(Numeric(18, 2), default=0)
     balance = Column(Numeric(18, 2), default=0)
     
-    # Statut
     status = Column(String(20), default=ReconciliationStatus.PENDING)
     reconciled_at = Column(DateTime)
     reconciled_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
@@ -384,7 +342,6 @@ class Reconciliation(Base, TimestampMixin):
     lines = relationship("JournalEntryLine", back_populates="reconciliation")
 
 
-# ==================== RAPPROCHEMENT BANCAIRE ====================
 
 class BankReconciliation(Base, TimestampMixin):
     """
@@ -396,24 +353,20 @@ class BankReconciliation(Base, TimestampMixin):
     
     bank_account_id = Column(UUID(as_uuid=True), ForeignKey("bank_accounts.id"), nullable=False)
     
-    # Période
     statement_date = Column(Date, nullable=False)
     period_start = Column(Date, nullable=False)
     period_end = Column(Date, nullable=False)
     
-    # Soldes
     statement_opening_balance = Column(Numeric(18, 2), nullable=False)
     statement_closing_balance = Column(Numeric(18, 2), nullable=False)
     
     book_opening_balance = Column(Numeric(18, 2), nullable=False)
     book_closing_balance = Column(Numeric(18, 2), nullable=False)
     
-    # Écarts
     unreconciled_deposits = Column(Numeric(18, 2), default=0)
     unreconciled_withdrawals = Column(Numeric(18, 2), default=0)
     difference = Column(Numeric(18, 2), default=0)
     
-    # Statut
     is_reconciled = Column(Boolean, default=False)
     reconciled_at = Column(DateTime)
     reconciled_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
@@ -436,21 +389,17 @@ class BankReconciliationItem(Base):
     
     reconciliation_id = Column(UUID(as_uuid=True), ForeignKey("bank_reconciliations.id", ondelete="CASCADE"), nullable=False)
     
-    # Transaction bancaire ou écriture comptable
     transaction_id = Column(UUID(as_uuid=True), ForeignKey("bank_transactions.id"))
     entry_line_id = Column(UUID(as_uuid=True), ForeignKey("journal_entry_lines.id"))
     
-    # Montant
     amount = Column(Numeric(18, 2), nullable=False)
     
-    # Statut
     is_matched = Column(Boolean, default=False)
     matched_at = Column(DateTime)
     
     reconciliation = relationship("BankReconciliation", back_populates="items")
 
 
-# ==================== BUDGETS ====================
 
 class Budget(Base, TimestampMixin):
     """
@@ -463,16 +412,13 @@ class Budget(Base, TimestampMixin):
     name = Column(String(100), nullable=False)
     fiscal_year_id = Column(UUID(as_uuid=True), ForeignKey("fiscal_years.id"), nullable=False)
     
-    # Type
     budget_type = Column(String(20), default="expense")  # expense, revenue
     
-    # Statut
     is_active = Column(Boolean, default=True)
     is_approved = Column(Boolean, default=False)
     approved_at = Column(DateTime)
     approved_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     
-    # Totaux
     total_budget = Column(Numeric(18, 2), default=0)
     total_actual = Column(Numeric(18, 2), default=0)
     variance = Column(Numeric(18, 2), default=0)
@@ -496,7 +442,6 @@ class BudgetLine(Base, TimestampMixin):
     period_id = Column(UUID(as_uuid=True), ForeignKey("accounting_periods.id"))
     cost_center_id = Column(UUID(as_uuid=True), ForeignKey("cost_centers.id"))
     
-    # Montants
     budget_amount = Column(Numeric(18, 2), default=0)
     actual_amount = Column(Numeric(18, 2), default=0)
     variance = Column(Numeric(18, 2), default=0)
@@ -510,7 +455,6 @@ class BudgetLine(Base, TimestampMixin):
     cost_center = relationship("CostCenter")
 
 
-# ==================== TVA ====================
 
 class VATDeclaration(Base, TimestampMixin):
     """
@@ -520,22 +464,18 @@ class VATDeclaration(Base, TimestampMixin):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     
-    # Période
     period_start = Column(Date, nullable=False)
     period_end = Column(Date, nullable=False)
     declaration_type = Column(String(20), default="monthly")  # monthly, quarterly
     
-    # Montants
     vat_collected = Column(Numeric(18, 2), default=0)  # TVA collectée
     vat_deductible = Column(Numeric(18, 2), default=0)  # TVA déductible
     vat_due = Column(Numeric(18, 2), default=0)  # TVA à payer
     vat_credit = Column(Numeric(18, 2), default=0)  # Crédit de TVA
     
-    # Détails
     sales_amount = Column(Numeric(18, 2), default=0)
     purchases_amount = Column(Numeric(18, 2), default=0)
     
-    # Statut
     status = Column(String(20), default="draft")  # draft, submitted, paid
     submitted_at = Column(DateTime)
     paid_at = Column(DateTime)

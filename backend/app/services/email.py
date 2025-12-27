@@ -30,7 +30,6 @@ class EmailService:
         pixel_url = f"{self.tracking_base_url}/open/{tracking_token}.png"
         pixel_tag = f'<img src="{pixel_url}" width="1" height="1" style="display:none;" alt="" />'
         
-        # Injecter avant </body> si présent, sinon à la fin
         if "</body>" in html.lower():
             html = re.sub(
                 r'(</body>)',
@@ -46,7 +45,6 @@ class EmailService:
     def rewrite_links_for_tracking(self, html: str, links_mapping: Dict[str, str]) -> str:
         """Réécrit les liens dans le HTML pour le tracking"""
         for original_url, tracked_url in links_mapping.items():
-            # Remplacer les href
             html = html.replace(f'href="{original_url}"', f'href="{tracked_url}"')
             html = html.replace(f"href='{original_url}'", f"href='{tracked_url}'")
         return html
@@ -71,7 +69,6 @@ class EmailService:
             reply_to: Email de réponse (optionnel)
             tracking_token: Token de tracking (optionnel, pour injection du pixel)
         """
-        # Injecter le pixel de tracking si un token est fourni
         if tracking_token:
             html = self.inject_tracking_pixel(html, tracking_token)
         
@@ -145,7 +142,6 @@ class EmailService:
             text: Contenu texte (optionnel)
             reply_to: Email de réponse (optionnel)
         """
-        # CRM tracking removed: fallback to sending without DB tracking.
         tracking_token = generate_tracking_token()
 
         result = await self.send_email(
@@ -241,5 +237,4 @@ class EmailService:
         )
 
 
-# Instance singleton
 email_service = EmailService()

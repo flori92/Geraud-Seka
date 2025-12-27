@@ -39,7 +39,6 @@ class Settings(BaseSettings):
     mindee_api_key: Optional[str] = None
     sentry_dsn: Optional[str] = None
     
-    # Payment Providers
     stripe_api_key: Optional[str] = None
     stripe_secret_key: Optional[str] = None
     stripe_webhook_secret: Optional[str] = None
@@ -48,12 +47,10 @@ class Settings(BaseSettings):
     kkiapay_private_key: Optional[str] = None
     kkiapay_secret: Optional[str] = None
     
-    # Email
     resend_api_key: Optional[str] = None
     resend_from_email: str = "noreply@sekagestion.com"
     resend_from_name: str = "SEKA"
     
-    # Domain
     domain: str = "sekagestion.com"
     frontend_url: str = "https://www.sekagestion.com"
 
@@ -72,12 +69,10 @@ class Settings(BaseSettings):
         """Parse CORS origins from environment variable (can be JSON string or list)."""
         if isinstance(v, str):
             try:
-                # Try to parse as JSON array
                 parsed = json.loads(v)
                 if isinstance(parsed, list):
                     return parsed
             except json.JSONDecodeError:
-                # If not JSON, treat as comma-separated string
                 return [origin.strip() for origin in v.split(",") if origin.strip()]
         return v
 

@@ -35,7 +35,6 @@ export function CreateClientModal({ isOpen, onClose, onSuccess }: CreateClientMo
 
       await createClient(formData, token);
 
-      // Reset form
       setFormData({ name: "", slug: "", sector: "" });
       onSuccess();
       onClose();

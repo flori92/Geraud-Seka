@@ -6,7 +6,7 @@ const theme = createTheme({
   palette: {
     mode: 'light',
     primary: {
-      main: '#9155FD', // Couleur violette signature du template
+      main: '#9155FD',
     },
     secondary: {
       main: '#8A8D93',

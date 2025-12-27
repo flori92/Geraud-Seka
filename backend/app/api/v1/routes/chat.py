@@ -17,7 +17,6 @@ from app.models.tenant import Tenant
 
 router = APIRouter()
 
-# Lazy import to avoid errors if Gemini not configured
 _gemini_service = None
 
 
@@ -59,7 +58,6 @@ async def send_chat_message(
     This endpoint uses Google Gemini AI if configured, otherwise falls back to rule-based responses.
     Works for both authenticated and anonymous users.
     """
-    # Try Gemini AI first
     gemini = get_gemini()
     if gemini:
         try:
@@ -75,7 +73,6 @@ async def send_chat_message(
         except Exception as e:
             print(f"Gemini failed, falling back to rules: {e}")
     
-    # Fallback to rule-based responses
     user_message = request.message.lower().strip()
 
     if any(word in user_message for word in ["bonjour", "salut", "hello", "hi"]):
@@ -165,7 +162,6 @@ async def send_chat_message(
                   "Je suis là pour vous aider à découvrir SEKA et à optimiser la gestion de votre entreprise !"
 
     else:
-        # Default response for unrecognized questions
         response = "Je comprends que vous avez une question sur SEKA. Voici quelques sujets sur lesquels je peux vous aider :\n\n" \
                   "• Tarifs et plans d'abonnement\n" \
                   "• Fonctionnalités et modules\n" \

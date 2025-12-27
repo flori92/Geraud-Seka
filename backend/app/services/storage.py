@@ -21,7 +21,6 @@ class StorageService:
         self.local_upload_dir = "uploads"
         self.use_r2 = self._init_r2_client()
         
-        # Créer le dossier local si nécessaire
         if not os.path.exists(self.local_upload_dir):
             os.makedirs(self.local_upload_dir)
     
@@ -45,7 +44,6 @@ class StorageService:
                 region_name='auto'
             )
             
-            # Test de connexion
             self.r2_client.head_bucket(Bucket=settings.r2_bucket_name)
             print("✅ Connexion Cloudflare R2 réussie")
             return True
@@ -74,24 +72,20 @@ class StorageService:
         Returns:
             dict avec url, key, size, etc.
         """
-        # Validation du fichier
         if not file.filename:
             raise HTTPException(status_code=400, detail="Nom de fichier manquant")
         
-        # Générer le nom de fichier unique
         file_ext = Path(file.filename).suffix.lower()
         if not file_ext:
             file_ext = ".bin"
             
         unique_filename = f"{uuid4()}{file_ext}"
         
-        # Chemin avec tenant pour isolation
         if tenant_id:
             object_key = f"{folder}/{tenant_id}/{unique_filename}"
         else:
             object_key = f"{folder}/{unique_filename}"
         
-        # Lire le contenu du fichier
         file_content = await file.read()
         await file.seek(0)  # Reset pour réutilisation
         
@@ -114,7 +108,6 @@ class StorageService:
                 }
             )
             
-            # URL publique si configurée
             if settings.r2_public_base_url:
                 public_url = f"{settings.r2_public_base_url}/{object_key}"
             else:
@@ -131,16 +124,13 @@ class StorageService:
             
         except ClientError as e:
             print(f"Erreur upload R2: {e}")
-            # Fallback vers stockage local
             return await self._upload_locally(object_key, content, file)
     
     async def _upload_locally(self, object_key: str, content: bytes, file: UploadFile) -> dict:
         """Upload vers stockage local."""
-        # Créer les dossiers si nécessaire
         file_path = os.path.join(self.local_upload_dir, object_key)
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
         
-        # Sauvegarder le fichier
         with open(file_path, "wb") as f:
             f.write(content)
         
@@ -165,7 +155,6 @@ class StorageService:
             except ClientError:
                 pass
         
-        # Suppression locale
         local_path = os.path.join(self.local_upload_dir, key)
         if os.path.exists(local_path):
             os.remove(local_path)
@@ -180,5 +169,4 @@ class StorageService:
         else:
             return f"/uploads/{key}"
 
-# Instance singleton
 storage_service = StorageService()

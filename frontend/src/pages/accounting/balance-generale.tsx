@@ -22,17 +22,17 @@ interface AccountBalance {
   debit: number;
   credit: number;
   balance: number;
-  balance_n1: number;  // Balance from previous year (N-1)
-  variance_amount: number;  // Variance N vs N-1 in amount
-  variance_percent: number;  // Variance N vs N-1 in percentage
+  balance_n1: number;
+  variance_amount: number;
+  variance_percent: number;
   parent_account?: string;
-  level: number;  // Account hierarchy level (1=parent, 2=child, etc.)
+  level: number;
 }
 
 interface BalanceFilters {
-  account_type?: string;  // Par compte: Tous, Actif, Passif, Charges, Produits
-  period?: string;  // Période complète, Personnalisée
-  lettrage?: string;  // Lettrage du compte
+  account_type?: string;
+  period?: string;
+  lettrage?: string;
   show_debit?: boolean;
   show_credit?: boolean;
   show_balance?: boolean;

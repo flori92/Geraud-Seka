@@ -23,7 +23,6 @@ from app.services.accounting_analytics import AccountingAnalyticsService
 router = APIRouter()
 
 
-# ==================== SCHEMAS ====================
 
 class ReportRequest(BaseModel):
     name: str
@@ -49,7 +48,6 @@ async def get_sales_report(
     """
     Rapport des ventes avec métriques clés
     """
-    # Mock sales data
     return {
         "report_type": "sales",
         "period": period,
@@ -90,7 +88,6 @@ async def get_accounting_report(
     """
     Rapport comptable avec bilan et compte de résultat
     """
-    # Mock accounting data
     return {
         "report_type": "accounting",
         "period": period,
@@ -145,7 +142,6 @@ async def get_hr_report(
     """
     Rapport RH: effectifs, paie, congés, recrutement
     """
-    # Mock HR data
     return {
         "report_type": "hr",
         "period": period,
@@ -191,7 +187,6 @@ async def get_hr_report(
     }
 
 
-# CRM reports removed (CRM module deprecated)
 
 
 @router.get("/balance-sheet")
@@ -261,7 +256,6 @@ async def get_income_statement(
         return {"report_type": "income_statement", "year": year, "period_type": period_type, "revenue": 0.0, "cost_of_goods_sold": 0.0, "gross_profit": 0.0, "operating_expenses": 0.0, "operating_income": 0.0, "other_income": 0.0, "other_expenses": 0.0, "net_income": 0.0, "margins": {"gross_profit_margin": 0.0, "operating_margin": 0.0, "net_profit_margin": 0.0}, "generated_at": datetime.now().isoformat()}
 
 
-# ==================== GÉNÉRATION PDF ====================
 
 @router.post("/generate")
 async def generate_report(

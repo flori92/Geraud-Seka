@@ -39,14 +39,12 @@ export function DocumentViewer({ isOpen, onClose, documentData }: DocumentViewer
       setRotation(0);
       setCurrentPage(1);
       
-      // Construire l'URL du fichier
       const token = localStorage.getItem("seka_access_token");
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       
       if (documentData.file_url) {
         setFileUrl(documentData.file_url);
       } else {
-        // URL de téléchargement via l'API
         setFileUrl(`${API_BASE_URL}/api/v1/ged/documents/${documentData.id}/download?token=${token}`);
       }
       

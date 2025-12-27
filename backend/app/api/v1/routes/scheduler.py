@@ -19,7 +19,6 @@ from app.models.notifications import ScheduledTask, ScheduledTaskStatus, Schedul
 router = APIRouter()
 
 
-# ==================== SCHEMAS ====================
 
 class TaskCreate(BaseModel):
     name: str
@@ -40,7 +39,6 @@ class TaskUpdate(BaseModel):
     config: Optional[dict] = None
 
 
-# ==================== ROUTES ====================
 
 @router.get("/")
 async def list_tasks(
@@ -96,12 +94,10 @@ async def create_task(
     db: Session = Depends(get_db)
 ):
     """Créer une tâche planifiée"""
-    # Valider le type de tâche
     valid_types = [t.value for t in ScheduledTaskType]
     if data.task_type not in valid_types:
         raise HTTPException(status_code=400, detail=f"Type invalide. Valeurs: {valid_types}")
     
-    # Valider l'expression cron si récurrente
     next_run = None
     if data.is_recurring and data.cron_expression:
         try:
@@ -200,7 +196,6 @@ async def update_task(
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(task, field, value)
     
-    # Recalculer next_run si cron modifié
     if data.cron_expression and task.is_recurring:
         try:
             cron = croniter(data.cron_expression, datetime.utcnow())
@@ -315,7 +310,6 @@ async def get_task_types(
     }
 
 
-# ==================== WORKER (à appeler périodiquement) ====================
 
 async def process_pending_tasks():
     """
@@ -327,7 +321,6 @@ async def process_pending_tasks():
     db = SessionLocal()
     
     try:
-        # Récupérer les tâches à exécuter
         now = datetime.utcnow()
         tasks = db.query(ScheduledTask).filter(
             and_(
@@ -341,14 +334,12 @@ async def process_pending_tasks():
                 task.status = ScheduledTaskStatus.RUNNING
                 db.commit()
                 
-                # Exécuter la tâche selon son type
                 result = await execute_task(db, task)
                 
                 task.status = ScheduledTaskStatus.COMPLETED
                 task.executed_at = datetime.utcnow()
                 task.result = result
                 
-                # Si récurrente, planifier la prochaine exécution
                 if task.is_recurring and task.cron_expression:
                     cron = croniter(task.cron_expression, datetime.utcnow())
                     task.next_run_at = cron.get_next(datetime)
@@ -360,7 +351,6 @@ async def process_pending_tasks():
                 task.error_message = str(e)
                 task.retry_count += 1
                 
-                # Réessayer si possible
                 if task.retry_count < task.max_retries:
                     task.status = ScheduledTaskStatus.PENDING
                     task.scheduled_at = datetime.utcnow() + timedelta(minutes=5 * task.retry_count)
@@ -376,42 +366,30 @@ async def execute_task(db: Session, task: ScheduledTask) -> dict:
     config = task.config or {}
     
     if task.task_type == "send_campaign":
-        # Envoyer une campagne
         campaign_id = config.get("campaign_id")
-        # TODO: Appeler la logique d'envoi de campagne
         return {"campaign_id": campaign_id, "status": "sent"}
     
     elif task.task_type == "run_automation":
-        # Exécuter une automatisation
         automation_id = config.get("automation_id")
         entity_type = config.get("entity_type")
         entity_id = config.get("entity_id")
-        # TODO: Appeler la logique d'automatisation
         return {"automation_id": automation_id, "status": "executed"}
     
     elif task.task_type == "generate_report":
-        # Générer un rapport
         report_type = config.get("report_type")
-        # TODO: Appeler la logique de génération de rapport
         return {"report_type": report_type, "status": "generated"}
     
     elif task.task_type == "send_reminder":
-        # Envoyer un rappel
         user_id = config.get("user_id")
         message = config.get("message")
-        # TODO: Créer une notification
         return {"user_id": user_id, "status": "sent"}
     
     elif task.task_type == "cleanup":
-        # Nettoyage
         target = config.get("target")
-        # TODO: Logique de nettoyage
         return {"target": target, "status": "cleaned"}
     
     elif task.task_type == "sync":
-        # Synchronisation
         integration_id = config.get("integration_id")
-        # TODO: Logique de synchronisation
         return {"integration_id": integration_id, "status": "synced"}
     
     return {"status": "unknown_task_type"}

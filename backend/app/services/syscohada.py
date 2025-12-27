@@ -8,10 +8,8 @@ from decimal import Decimal
 from sqlalchemy.orm import Session
 from uuid import UUID
 
-# ==================== PLAN COMPTABLE SYSCOHADA ====================
 
 SYSCOHADA_ACCOUNTS = [
-    # CLASSE 1 - COMPTES DE RESSOURCES DURABLES
     {"number": "10", "name": "Capital", "class": "1", "type": "equity", "group": True},
     {"number": "101", "name": "Capital social", "class": "1", "type": "equity"},
     {"number": "1011", "name": "Capital souscrit, non appelé", "class": "1", "type": "equity"},
@@ -51,7 +49,6 @@ SYSCOHADA_ACCOUNTS = [
     {"number": "18", "name": "Dettes liées à des participations", "class": "1", "type": "liability", "group": True},
     {"number": "19", "name": "Provisions financières pour risques et charges", "class": "1", "type": "liability", "group": True},
     
-    # CLASSE 2 - COMPTES D'ACTIF IMMOBILISÉ
     {"number": "20", "name": "Charges immobilisées", "class": "2", "type": "asset", "group": True},
     {"number": "201", "name": "Frais d'établissement", "class": "2", "type": "asset"},
     {"number": "202", "name": "Charges à répartir sur plusieurs exercices", "class": "2", "type": "asset"},
@@ -109,7 +106,6 @@ SYSCOHADA_ACCOUNTS = [
     {"number": "284", "name": "Amortissements du matériel", "class": "2", "type": "contra"},
     {"number": "29", "name": "Provisions pour dépréciation", "class": "2", "type": "contra", "group": True},
     
-    # CLASSE 3 - COMPTES DE STOCKS
     {"number": "31", "name": "Marchandises", "class": "3", "type": "asset", "group": True},
     {"number": "311", "name": "Marchandises A", "class": "3", "type": "asset"},
     {"number": "312", "name": "Marchandises B", "class": "3", "type": "asset"},
@@ -127,7 +123,6 @@ SYSCOHADA_ACCOUNTS = [
     {"number": "38", "name": "Stocks en cours de route, en consignation ou en dépôt", "class": "3", "type": "asset", "group": True},
     {"number": "39", "name": "Dépréciations des stocks", "class": "3", "type": "contra", "group": True},
     
-    # CLASSE 4 - COMPTES DE TIERS
     {"number": "40", "name": "Fournisseurs et comptes rattachés", "class": "4", "type": "liability", "group": True},
     {"number": "401", "name": "Fournisseurs", "class": "4", "type": "liability", "reconcilable": True},
     {"number": "402", "name": "Fournisseurs, effets à payer", "class": "4", "type": "liability"},
@@ -186,7 +181,6 @@ SYSCOHADA_ACCOUNTS = [
     {"number": "48", "name": "Créances et dettes hors activités ordinaires", "class": "4", "type": "liability", "group": True},
     {"number": "49", "name": "Dépréciations et risques provisionnés", "class": "4", "type": "contra", "group": True},
     
-    # CLASSE 5 - COMPTES DE TRÉSORERIE
     {"number": "50", "name": "Titres de placement", "class": "5", "type": "asset", "group": True},
     {"number": "51", "name": "Valeurs à encaisser", "class": "5", "type": "asset", "group": True},
     {"number": "52", "name": "Banques", "class": "5", "type": "asset", "group": True, "bank": True},
@@ -215,7 +209,6 @@ SYSCOHADA_ACCOUNTS = [
     {"number": "58", "name": "Régies d'avances, accréditifs et virements internes", "class": "5", "type": "asset", "group": True},
     {"number": "59", "name": "Dépréciations et risques provisionnés", "class": "5", "type": "contra", "group": True},
     
-    # CLASSE 6 - COMPTES DE CHARGES DES ACTIVITÉS ORDINAIRES
     {"number": "60", "name": "Achats et variations de stocks", "class": "6", "type": "expense", "group": True},
     {"number": "601", "name": "Achats de marchandises", "class": "6", "type": "expense"},
     {"number": "602", "name": "Achats de matières premières et fournitures liées", "class": "6", "type": "expense"},
@@ -293,7 +286,6 @@ SYSCOHADA_ACCOUNTS = [
     {"number": "691", "name": "Dotations aux provisions d'exploitation", "class": "6", "type": "expense"},
     {"number": "697", "name": "Dotations aux provisions financières", "class": "6", "type": "expense"},
     
-    # CLASSE 7 - COMPTES DE PRODUITS DES ACTIVITÉS ORDINAIRES
     {"number": "70", "name": "Ventes", "class": "7", "type": "revenue", "group": True},
     {"number": "701", "name": "Ventes de marchandises", "class": "7", "type": "revenue"},
     {"number": "702", "name": "Ventes de produits finis", "class": "7", "type": "revenue"},
@@ -333,7 +325,6 @@ SYSCOHADA_ACCOUNTS = [
     {"number": "791", "name": "Reprises de provisions d'exploitation", "class": "7", "type": "revenue"},
     {"number": "797", "name": "Reprises de provisions financières", "class": "7", "type": "revenue"},
     
-    # CLASSE 8 - COMPTES DES AUTRES CHARGES ET DES AUTRES PRODUITS
     {"number": "81", "name": "Valeurs comptables des cessions d'immobilisations", "class": "8", "type": "expense", "group": True},
     {"number": "82", "name": "Produits des cessions d'immobilisations", "class": "8", "type": "revenue", "group": True},
     {"number": "83", "name": "Charges hors activités ordinaires", "class": "8", "type": "expense", "group": True},
@@ -349,7 +340,6 @@ SYSCOHADA_ACCOUNTS = [
 ]
 
 
-# ==================== TAUX TVA OHADA ====================
 
 TVA_RATES = {
     "XOF": {  # Zone UEMOA (Bénin, Burkina Faso, Côte d'Ivoire, Guinée-Bissau, Mali, Niger, Sénégal, Togo)
@@ -417,7 +407,6 @@ def init_syscohada_chart(db: Session, tenant_id: UUID) -> int:
     return count
 
 
-# ==================== CALCULS COMPTABLES SYSCOHADA ====================
 
 def calculate_balance_by_class(accounts: List, account_class: str) -> Dict:
     """Calculer le solde par classe de compte"""
@@ -429,9 +418,6 @@ def calculate_balance_by_class(accounts: List, account_class: str) -> Dict:
             total_debit += Decimal(str(acc.current_debit or 0))
             total_credit += Decimal(str(acc.current_credit or 0))
     
-    # Règle SYSCOHADA: 
-    # Classes 1, 4 (passif), 7 = solde créditeur normal
-    # Classes 2, 3, 4 (actif), 5, 6 = solde débiteur normal
     if account_class in ["1", "7"]:
         balance = total_credit - total_debit
     else:
@@ -447,9 +433,7 @@ def calculate_balance_by_class(accounts: List, account_class: str) -> Dict:
 
 def calculate_result(accounts: List) -> Dict:
     """Calculer le résultat selon SYSCOHADA"""
-    # Produits (classe 7 + classe 8 produits)
     revenues = Decimal("0")
-    # Charges (classe 6 + classe 8 charges)
     expenses = Decimal("0")
     
     for acc in accounts:
@@ -480,5 +464,4 @@ def validate_entry_balance(lines: List[Dict]) -> bool:
     total_debit = sum(Decimal(str(l.get("debit", 0))) for l in lines)
     total_credit = sum(Decimal(str(l.get("credit", 0))) for l in lines)
     
-    # Tolérance de 0.01 pour les arrondis
     return abs(total_debit - total_credit) < Decimal("0.01")

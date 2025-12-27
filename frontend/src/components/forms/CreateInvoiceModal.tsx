@@ -63,7 +63,7 @@ export function CreateInvoiceModal({ isOpen, onClose, onSuccess }: CreateInvoice
       }
 
       const data: InvoiceCreate = {
-        title: "Facture", // Titre par défaut requis
+        title: "Facture",
         client_id: formData.client_id,
         issue_date: formData.date,
         due_date: formData.due_date,
@@ -76,7 +76,6 @@ export function CreateInvoiceModal({ isOpen, onClose, onSuccess }: CreateInvoice
 
       await createInvoice(data, token);
 
-      // Reset form
       setFormData({
         client_id: "",
         date: new Date().toISOString().split("T")[0],

@@ -8,7 +8,6 @@ from pydantic import BaseModel, Field
 from uuid import UUID
 
 
-# ==================== DOSSIERS ====================
 
 class DocumentFolderBase(BaseModel):
     """Schéma de base pour un dossier"""
@@ -55,7 +54,6 @@ class DocumentFolderWithStats(DocumentFolder):
     total_size: int = 0
 
 
-# ==================== DOCUMENTS ====================
 
 class DocumentBase(BaseModel):
     """Schéma de base pour un document"""

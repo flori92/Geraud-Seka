@@ -12,7 +12,6 @@ from app.models.tenant import Tenant
 
 router = APIRouter()
 
-# Mock data for inventory items
 MOCK_INVENTORY = [
     {
         "id": "inv-001",
@@ -83,7 +82,6 @@ MOCK_INVENTORY = [
     }
 ]
 
-# Mock data for stock movements
 MOCK_MOVEMENTS = [
     {
         "id": "mov-001",
@@ -182,18 +180,15 @@ async def get_inventory(
     """
     inventory = MOCK_INVENTORY.copy()
 
-    # Apply filters
     if status:
         inventory = [item for item in inventory if item["status"] == status]
 
     if location:
         inventory = [item for item in inventory if location.lower() in item["location"].lower()]
 
-    # Pagination
     total_count = len(inventory)
     inventory = inventory[offset:offset + limit]
 
-    # Calculate summary
     total_value = sum(item["total_value"] for item in MOCK_INVENTORY)
     low_stock_count = sum(1 for item in MOCK_INVENTORY if item["status"] == "low_stock")
     out_of_stock_count = sum(1 for item in MOCK_INVENTORY if item["status"] == "out_of_stock")
@@ -236,14 +231,12 @@ async def get_stock_movements(
     """
     movements = MOCK_MOVEMENTS.copy()
 
-    # Filter by date range
     cutoff_date = datetime.now() - timedelta(days=days_back)
     movements = [
         mov for mov in movements
         if datetime.fromisoformat(mov["created_at"]) >= cutoff_date
     ]
 
-    # Apply filters
     if product_id:
         movements = [mov for mov in movements if mov.get("product_id") == product_id]
 
@@ -253,11 +246,9 @@ async def get_stock_movements(
     if reason:
         movements = [mov for mov in movements if mov["reason"] == reason]
 
-    # Pagination
     total_count = len(movements)
     movements = movements[offset:offset + limit]
 
-    # Calculate summary
     total_in = sum(mov["quantity"] for mov in MOCK_MOVEMENTS if mov["type"] == "in")
     total_out = sum(mov["quantity"] for mov in MOCK_MOVEMENTS if mov["type"] == "out")
     total_value_in = sum(mov["total_cost"] for mov in MOCK_MOVEMENTS if mov["type"] == "in")

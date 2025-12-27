@@ -18,7 +18,6 @@ from app.schemas.invoices import InvoiceResponse, InvoiceListResponse, InvoiceSt
 router = APIRouter(tags=["Invoices - Public"])
 
 
-# Simulated in-memory database for demonstration
 MOCK_INVOICES = {
     "inv-001": {
         "id": "inv-001",

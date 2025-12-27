@@ -1,9 +1,7 @@
 'use client'
 
-// Next Imports
 import dynamic from 'next/dynamic'
 
-// MUI Imports
 import Card from '@mui/material/Card'
 import Button from '@mui/material/Button'
 import { useTheme } from '@mui/material/styles'
@@ -13,19 +11,16 @@ import CardContent from '@mui/material/CardContent'
 import IconButton from '@mui/material/IconButton'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
 
-// Third Party Imports
 import type { ApexOptions } from 'apexcharts'
 
-// Styled Component Imports
 const ReactApexCharts = dynamic(() => import('react-apexcharts'), { ssr: false })
 
 interface WeeklyOverviewProps {
-  series: number[]; // Array of 7 numbers (activities per day)
+  series: number[];
   percentageGrowth?: number;
 }
 
 const WeeklyOverview = ({ series, percentageGrowth = 0 }: WeeklyOverviewProps) => {
-  // Hooks
   const theme = useTheme()
 
   const options: ApexOptions = {
@@ -70,7 +65,7 @@ const WeeklyOverview = ({ series, percentageGrowth = 0 }: WeeklyOverviewProps) =
       }
     },
     xaxis: {
-      categories: ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'], // Could be dynamic based on current day
+      categories: ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'],
       tickPlacement: 'on',
       labels: { show: false },
       axisTicks: { show: false },

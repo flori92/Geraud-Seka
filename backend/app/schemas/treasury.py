@@ -7,27 +7,22 @@ from uuid import UUID
 from pydantic import BaseModel, Field, ConfigDict
 
 
-# ========== Bank Account Schemas ==========
 
 class BankAccountBase(BaseModel):
     """Base schema for bank account."""
-    # Informations de base
     name: str = Field(..., max_length=255, description="Libellé du compte")
     bank_name: str = Field(..., max_length=255, description="Nom de la banque")
     branch: Optional[str] = Field(None, max_length=255, description="Nom de l'agence")
     account_type: str = Field(default="checking", description="Type de compte")
     
-    # Informations RIB (format UEMOA/France)
     bank_code: Optional[str] = Field(None, max_length=5, description="Code banque (5 chiffres)")
     branch_code: Optional[str] = Field(None, max_length=5, description="Code guichet (5 chiffres)")
     account_number: str = Field(..., max_length=20, description="Numéro de compte")
     rib_key: Optional[str] = Field(None, max_length=2, description="Clé RIB (2 chiffres)")
     
-    # Informations internationales
     iban: Optional[str] = Field(None, max_length=34, description="IBAN")
     swift_bic: Optional[str] = Field(None, max_length=11, description="Code SWIFT/BIC")
     
-    # Autres informations
     currency: str = Field(default="XOF", max_length=3)
     is_active: bool = Field(default=True)
     is_default: bool = Field(default=False)
@@ -52,15 +47,12 @@ class BankAccountUpdate(BaseModel):
     bank_name: Optional[str] = Field(None, max_length=255)
     branch: Optional[str] = Field(None, max_length=255)
     account_type: Optional[str] = None
-    # RIB fields
     bank_code: Optional[str] = Field(None, max_length=5)
     branch_code: Optional[str] = Field(None, max_length=5)
     account_number: Optional[str] = Field(None, max_length=20)
     rib_key: Optional[str] = Field(None, max_length=2)
-    # International
     iban: Optional[str] = Field(None, max_length=34)
     swift_bic: Optional[str] = Field(None, max_length=11)
-    # Other
     is_active: Optional[bool] = None
     is_default: Optional[bool] = None
     overdraft_limit: Optional[Decimal] = None
@@ -82,7 +74,6 @@ class BankAccount(BankAccountBase):
     created_at: date
     updated_at: date
     
-    # Computed RIB display
     @property
     def rib_display(self) -> str:
         """Return formatted RIB string."""
@@ -97,7 +88,6 @@ class BankAccount(BankAccountBase):
     model_config = ConfigDict(from_attributes=True)
 
 
-# ========== Mobile Money (KKiaPay) Schemas ==========
 
 class MobileMoneyConnectRequest(BaseModel):
     provider: str
@@ -117,7 +107,6 @@ class MobileMoneySyncResult(BaseModel):
     errors: int
 
 
-# ========== Bank Transaction Schemas ==========
 
 class BankTransactionBase(BaseModel):
     """Base schema for bank transaction."""
@@ -183,7 +172,6 @@ class BankTransactionWithAccount(BankTransaction):
     model_config = ConfigDict(from_attributes=True)
 
 
-# ========== Payment Schedule Schemas ==========
 
 class PaymentScheduleBase(BaseModel):
     """Base schema for payment schedule."""
@@ -258,7 +246,6 @@ class PaymentScheduleWithDetails(PaymentSchedule):
     model_config = ConfigDict(from_attributes=True)
 
 
-# ========== Cash Flow Schemas ==========
 
 class CashFlowSummary(BaseModel):
     """Summary of cash flow for a period."""
@@ -290,7 +277,6 @@ class CashFlowForecast(BaseModel):
     confidence_level: float  # 0.0 to 1.0
 
 
-# ========== Bank Reconciliation Schemas ==========
 
 class ReconciliationItem(BaseModel):
     """Item for bank reconciliation."""
@@ -311,7 +297,6 @@ class BankReconciliation(BaseModel):
     difference: Decimal
 
 
-# ========== Cash Flow Forecast Schemas (ML) ==========
 
 class CashFlowForecastCreate(BaseModel):
     """Schema for creating a cash flow forecast request."""
@@ -346,7 +331,6 @@ class CashFlowForecastSummary(BaseModel):
     recommendations: List[str]
 
 
-# ========== Bank Reconciliation Match Schemas ==========
 
 class BankReconciliationMatch(BaseModel):
     """Schema for a reconciliation match suggestion."""
@@ -389,7 +373,6 @@ class BankStatementImportResponse(BaseModel):
     status: str  # pending, processing, completed, failed
 
 
-# ========== Treasury Dashboard Schemas ==========
 
 class TreasuryAlert(BaseModel):
     """Schema for treasury alert."""
@@ -432,7 +415,6 @@ class TreasuryKPIs(BaseModel):
     alerts_count: int
 
 
-# ========== Currency Exchange Schemas ==========
 
 class ExchangeRateRequest(BaseModel):
     """Request for exchange rate."""

@@ -30,7 +30,6 @@ def generate_forecast(
     Generate cash flow forecast (async).
     Returns immediately with task info.
     """
-    # Start forecast generation in background
     background_tasks.add_task(
         _generate_forecast_task,
         db,
@@ -61,7 +60,6 @@ def _generate_forecast_task(
             model_type=model_type
         )
 
-        # Save forecasts to database
         forecasting_service.save_forecasts(tenant_id, forecast_data)
 
     except Exception as e:
@@ -140,11 +138,9 @@ def get_forecast_risks(
             detail="No forecast found. Please generate a forecast first."
         )
 
-    # Detect risks
     risks = []
     recommendations = []
 
-    # Check for negative balance
     negative_forecasts = [f for f in forecasts if f.predicted_balance < 0]
     if negative_forecasts:
         first_negative = negative_forecasts[0]
@@ -153,7 +149,6 @@ def get_forecast_risks(
         risks.append(f"Trésorerie négative prévue dans {days_until} jours")
         recommendations.append("Réduire les dépenses ou chercher un financement")
 
-    # Check for low balance
     low_balance_forecasts = [
         f for f in forecasts
         if 0 < f.predicted_balance < 100000

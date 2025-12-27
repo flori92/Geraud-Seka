@@ -4,7 +4,6 @@ from datetime import date
 from decimal import Decimal
 from pydantic import BaseModel, ConfigDict
 
-# Legacy Payment schemas (for backward compatibility)
 class PaymentBase(BaseModel):
     amount: Decimal
     payment_date: date
@@ -27,7 +26,6 @@ class Payment(PaymentBase):
     
     model_config = ConfigDict(from_attributes=True)
 
-# Stripe/KKiaPay schemas
 class StripeCustomerCreate(BaseModel):
     email: str
     name: str

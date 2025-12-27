@@ -24,7 +24,6 @@ from app.models.accounting_advanced import (
 router = APIRouter()
 
 
-# ==================== PLAN COMPTABLE ====================
 
 @router.get("/accounts")
 async def list_accounts(
@@ -92,7 +91,6 @@ async def create_account(
     return {"id": str(account.id), "message": "Compte créé"}
 
 
-# ==================== JOURNAUX ====================
 
 @router.get("/journals")
 async def list_journals(
@@ -108,7 +106,6 @@ async def list_journals(
     return [{"id": str(j.id), "code": j.code, "name": j.name, "journal_type": j.journal_type} for j in journals]
 
 
-# ==================== ÉCRITURES ====================
 
 @router.get("/entries")
 async def list_entries(
@@ -221,7 +218,6 @@ async def create_entry(
     return {"id": str(entry.id), "entry_number": entry_number}
 
 
-# ==================== GRAND LIVRE ====================
 
 @router.get("/ledger")
 async def get_general_ledger(
@@ -246,7 +242,6 @@ async def get_general_ledger(
     
     lines = query.order_by(JournalEntry.entry_date, JournalEntry.entry_number).all()
     
-    # Grouper par compte
     ledger = {}
     for line in lines:
         acc_id = str(line.account_id)
@@ -272,7 +267,6 @@ async def get_general_ledger(
     return {"accounts": list(ledger.values())}
 
 
-# ==================== BALANCE ====================
 
 @router.get("/balance")
 async def get_trial_balance(
@@ -319,7 +313,6 @@ async def get_trial_balance(
     }
 
 
-# ==================== BILAN ====================
 
 @router.get("/balance-sheet")
 async def get_balance_sheet(
@@ -375,7 +368,6 @@ async def get_balance_sheet(
     }
 
 
-# ==================== COMPTE DE RÉSULTAT ====================
 
 @router.get("/income-statement")
 async def get_income_statement(
@@ -421,7 +413,6 @@ async def get_income_statement(
     }
 
 
-# ==================== STATISTIQUES ====================
 
 @router.get("/stats")
 async def get_accounting_stats(
@@ -434,7 +425,6 @@ async def get_accounting_stats(
         ChartOfAccounts.tenant_id == current_tenant.id
     ).all()
 
-    # Calculer les totaux par classe
     class_totals = {}
     for acc in accounts:
         cls = acc.account_class
@@ -444,22 +434,18 @@ async def get_accounting_stats(
         class_totals[cls]["credit"] += float(acc.current_credit or 0)
         class_totals[cls]["balance"] += float(acc.balance)
 
-    # Revenus et dépenses
     revenue = class_totals.get("7", {}).get("balance", 0)
     expenses = class_totals.get("6", {}).get("balance", 0)
     net_income = abs(revenue) - abs(expenses)
 
-    # Trésorerie
     cash = class_totals.get("5", {}).get("balance", 0)
 
-    # Actifs et passifs - Détaillés pour le bilan
     fixed_assets = class_totals.get("2", {}).get("balance", 0)  # Immobilisations
     inventory = class_totals.get("3", {}).get("balance", 0)     # Stocks
     accounts_receivable = sum(float(acc.balance) for acc in accounts if acc.account_number.startswith("411"))
 
     assets = abs(fixed_assets) + abs(inventory) + abs(accounts_receivable) + abs(cash)
 
-    # Passif
     equity = class_totals.get("1", {}).get("balance", 0)
     loans = sum(float(acc.balance) for acc in accounts if acc.account_number.startswith("16"))
     accounts_payable = sum(float(acc.balance) for acc in accounts if acc.account_number.startswith("401"))
@@ -467,15 +453,12 @@ async def get_accounting_stats(
 
     liabilities = abs(loans) + abs(accounts_payable) + abs(other_liabilities)
 
-    # Ratios financiers
     net_margin = (net_income / abs(revenue) * 100) if revenue != 0 else 0
 
-    # Calcul du ratio de liquidité (Actif CT / Passif CT)
     current_assets = abs(inventory) + abs(accounts_receivable) + abs(cash)
     current_liabilities = abs(accounts_payable) + abs(other_liabilities)
     liquidity_ratio = (current_assets / current_liabilities) if current_liabilities > 0 else 0
 
-    # DSO - Days Sales Outstanding (approximatif)
     dso = int((abs(accounts_receivable) / (abs(revenue) / 365))) if revenue != 0 else 0
 
     return {
@@ -487,24 +470,20 @@ async def get_accounting_stats(
         "total_liabilities": liabilities,
         "equity": abs(equity),
 
-        # Détails actif
         "fixed_assets": abs(fixed_assets),
         "inventory": abs(inventory),
         "accounts_receivable": abs(accounts_receivable),
 
-        # Détails passif
         "loans": abs(loans),
         "accounts_payable": abs(accounts_payable),
         "other_liabilities": abs(other_liabilities),
 
-        # Ratios et indicateurs
         "net_margin": round(net_margin, 1),
         "net_margin_trend": 2.1,  # À calculer dynamiquement avec historique
         "liquidity_ratio": round(liquidity_ratio, 2),
         "dso": dso,
         "dso_trend": -3,  # À calculer dynamiquement avec historique
 
-        # Données graphiques (6 derniers mois)
         "monthly_revenue": [0, 0, 0, 0, 0, abs(revenue)],
         "monthly_expenses": [0, 0, 0, 0, 0, abs(expenses)],
 
@@ -512,7 +491,6 @@ async def get_accounting_stats(
     }
 
 
-# ==================== EXERCICES FISCAUX ====================
 
 @router.get("/fiscal-years")
 async def list_fiscal_years(
@@ -560,7 +538,6 @@ async def create_fiscal_year(
         tenant_id=current_tenant.id
     )
     
-    # Désactiver l'exercice courant précédent
     db.query(FiscalYear).filter(
         FiscalYear.tenant_id == current_tenant.id,
         FiscalYear.is_current == True
@@ -572,7 +549,6 @@ async def create_fiscal_year(
     return {"id": str(fiscal_year.id), "message": "Exercice créé"}
 
 
-# ==================== PLAN COMPTABLE SYSCOHADA ====================
 
 @router.post("/init-syscohada")
 async def init_syscohada_chart_of_accounts(

@@ -31,7 +31,6 @@ export function CreateOpportunityModal({ isOpen, onClose, onSuccess }: CreateOpp
     e.preventDefault();
     setError(null);
 
-    // Validation
     if (!formData.title.trim()) {
       setError("Le titre est requis");
       return;
@@ -70,7 +69,6 @@ export function CreateOpportunityModal({ isOpen, onClose, onSuccess }: CreateOpp
         token
       );
 
-      // Reset form
       setFormData({
         title: "",
         description: "",
@@ -97,7 +95,6 @@ export function CreateOpportunityModal({ isOpen, onClose, onSuccess }: CreateOpp
     }
   };
 
-  // Update probability based on stage
   const handleStageChange = (stage: string) => {
     let probability = "25";
     switch (stage) {

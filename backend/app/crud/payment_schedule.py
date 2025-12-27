@@ -69,7 +69,6 @@ def update(db: Session, *, db_obj: PaymentSchedule, obj_in: PaymentScheduleUpdat
     """Update a payment schedule."""
     update_data = obj_in.model_dump(exclude_unset=True)
 
-    # Recalculate remaining_amount if total_amount or paid_amount changed
     new_total = update_data.get("total_amount", db_obj.total_amount)
     new_paid = db_obj.paid_amount  # paid_amount can only be updated via record_payment
 
@@ -108,11 +107,9 @@ def record_payment(
     if not schedule:
         return None
 
-    # Update paid amount
     schedule.paid_amount += amount
     schedule.remaining_amount = schedule.total_amount - schedule.paid_amount
 
-    # Update payment info
     if payment_date:
         schedule.payment_date = payment_date
     if payment_method:
@@ -120,7 +117,6 @@ def record_payment(
     if reference:
         schedule.reference = reference
 
-    # Update status based on payment
     if schedule.remaining_amount <= 0:
         schedule.status = "paid"
     elif schedule.paid_amount > 0:
@@ -176,7 +172,6 @@ def get_overdue(db: Session, *, tenant_id: UUID) -> List[PaymentSchedule]:
     """Get overdue payment schedules."""
     today = date.today()
 
-    # Update status to overdue for unpaid schedules past due date
     db.query(PaymentSchedule).filter(
         and_(
             PaymentSchedule.tenant_id == tenant_id,
@@ -262,7 +257,6 @@ def create_recurring_schedules(db: Session, *, template_schedule_id: UUID) -> Li
     created_schedules = []
     current_due_date = template.due_date
 
-    # Determine increment based on recurrence pattern
     if template.recurrence_pattern == "monthly":
         increment = timedelta(days=30)
     elif template.recurrence_pattern == "quarterly":
@@ -272,14 +266,12 @@ def create_recurring_schedules(db: Session, *, template_schedule_id: UUID) -> Li
     else:
         return []
 
-    # Create schedules until recurrence end date
     while current_due_date <= template.recurrence_end_date:
         current_due_date += increment
 
         if current_due_date > template.recurrence_end_date:
             break
 
-        # Create new schedule based on template
         new_schedule_data = PaymentScheduleCreate(
             description=template.description,
             is_income=template.is_income,
@@ -325,7 +317,6 @@ def update_remaining_amount(db: Session, *, schedule: PaymentSchedule) -> Paymen
     """Recalculate and update the remaining_amount field."""
     schedule.remaining_amount = schedule.total_amount - schedule.paid_amount
 
-    # Update status based on remaining amount
     if schedule.remaining_amount <= 0:
         schedule.status = "paid"
     elif schedule.paid_amount > 0:
@@ -346,7 +337,6 @@ def generate_recurring(db: Session, *, schedule_id: UUID, periods: int = 12) -> 
     created_schedules = []
     current_due_date = template.due_date
 
-    # Determine increment based on recurrence pattern
     increment_days = {
         "weekly": 7,
         "biweekly": 14,
@@ -358,15 +348,12 @@ def generate_recurring(db: Session, *, schedule_id: UUID, periods: int = 12) -> 
 
     days = increment_days.get(template.recurrence_pattern, 30)
 
-    # Create schedules for N periods
     for i in range(periods):
         current_due_date += timedelta(days=days)
 
-        # Stop if we exceed the recurrence end date
         if template.recurrence_end_date and current_due_date > template.recurrence_end_date:
             break
 
-        # Create new schedule based on template
         new_schedule_data = PaymentScheduleCreate(
             description=f"{template.description} (Period {i+1})",
             is_income=template.is_income,
