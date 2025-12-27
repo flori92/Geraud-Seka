@@ -48,8 +48,8 @@ export function useTrialBalance(options: UseTrialBalanceOptions = {}): UseTrialB
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set());
-  const _ = expandedAccounts;
   const [sortField, setSortField] = useState<SortField>('number');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
@@ -78,6 +78,7 @@ export function useTrialBalance(options: UseTrialBalanceOptions = {}): UseTrialB
 
       const data = await response.json();
       
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const formattedAccounts: Account[] = (data.accounts || []).map((acc: any) => ({
         id: acc.id || acc.account_number,
         number: acc.account_number || acc.number,
