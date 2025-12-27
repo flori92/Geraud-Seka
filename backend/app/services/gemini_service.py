@@ -19,7 +19,7 @@ class GeminiService:
         
         genai.configure(api_key=api_key)
         
-        self.model = genai.GenerativeModel('gemini-pro')
+        self.model = genai.GenerativeModel('gemini-1.5-flash')
         
         self.system_context = """
 Tu es l'assistant virtuel de SEKA, un ERP/CRM moderne pour les PME africaines.
