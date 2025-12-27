@@ -48,7 +48,7 @@ export default function BalanceGeneralePage() {
 
   const handleExport = async (format: ExportFormat) => {
     const token = localStorage.getItem('seka_access_token');
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http:
     
     try {
       const response = await fetch(

@@ -3,23 +3,20 @@ import { NextRequest, NextResponse } from 'next/server'
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
-  // CRM supprimé : bloquer toutes les routes /crm/*
   if (pathname === '/crm' || pathname.startsWith('/crm/')) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)
   }
 
-  // Force HTTPS in production
   if (process.env.NODE_ENV === 'production') {
     const protocol = request.headers.get('x-forwarded-proto')
     
     if (protocol === 'http') {
-      const url = request.url.replace('http://', 'https://')
+      const url = request.url.replace('http:
       return NextResponse.redirect(url, 301)
     }
     
-    // Ensure correct domain for production
     const host = request.headers.get('host')
     if (host && !host.includes('www.sekagestion.com') && !host.includes('localhost')) {
       const url = new URL(request.url)

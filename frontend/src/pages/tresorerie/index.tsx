@@ -54,7 +54,7 @@ export default function TresoreriePage() {
   const [kpis, setKpis] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http:
 
   useEffect(() => {
     fetchData();

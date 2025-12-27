@@ -38,7 +38,7 @@ interface TaxSummary {
   is_estime: number;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http:
 
 const declarationTypes = [
   { type: "tva", name: "TVA", description: "Taxe sur la Valeur Ajoutée" },

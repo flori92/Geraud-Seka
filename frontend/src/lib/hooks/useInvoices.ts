@@ -6,7 +6,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { InvoiceResponse, InvoiceStats, InvoiceListResponse, InvoiceStatus } from "@/lib/api/invoices.types";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000/api/v1";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http:
 
 /**
  * Hook pour récupérer la liste des factures avec pagination

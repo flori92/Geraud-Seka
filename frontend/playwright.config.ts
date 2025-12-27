@@ -7,14 +7,14 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? "github" : [["list"], ["html", { open: "never" }]],
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: "http:
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
   },
   webServer: {
     command: "npm run dev -- -p 3000",
-    url: "http://localhost:3000",
+    url: "http:
     reuseExistingServer: true,
     timeout: 120_000,
   },

@@ -31,7 +31,7 @@ export default function ComptabilitePage() {
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState("month");
 
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http:
 
   const fetchStats = useCallback(async () => {
     const token = localStorage.getItem("seka_access_token");

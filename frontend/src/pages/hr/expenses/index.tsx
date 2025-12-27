@@ -30,7 +30,7 @@ interface Expense {
   approved_by: string | null;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http:
 
 const expenseCategories = [
   "Transport", "Repas", "Hébergement", "Fournitures", "Communication", "Divers"
