@@ -13,7 +13,7 @@ export function middleware(request: NextRequest) {
     const protocol = request.headers.get('x-forwarded-proto')
     
     if (protocol === 'http') {
-      const url = request.url.replace('http:
+      const url = request.url.replace('http://', 'https://')
       return NextResponse.redirect(url, 301)
     }
     
