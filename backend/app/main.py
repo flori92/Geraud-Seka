@@ -195,6 +195,14 @@ def create_application() -> FastAPI:
                     with engine.begin() as conn:
                         conn.execute(text("ALTER TABLE bank_accounts ADD COLUMN IF NOT EXISTS metadata JSONB"))
                     logger.info("✅ Added bank_accounts.metadata")
+                
+                if "bank_code" not in bank_account_cols:
+                    logger.info("🔧 Adding missing bank_accounts.bank_code column...")
+                    with engine.begin() as conn:
+                        conn.execute(text("ALTER TABLE bank_accounts ADD COLUMN IF NOT EXISTS bank_code VARCHAR(5)"))
+                        conn.execute(text("ALTER TABLE bank_accounts ADD COLUMN IF NOT EXISTS branch_code VARCHAR(5)"))
+                        conn.execute(text("ALTER TABLE bank_accounts ADD COLUMN IF NOT EXISTS rib_key VARCHAR(2)"))
+                    logger.info("✅ Added bank_accounts.bank_code, branch_code, rib_key")
 
             if "bank_transactions" in existing_tables:
                 bank_tx_cols = {col["name"]: col for col in inspector.get_columns("bank_transactions")}
