@@ -68,7 +68,6 @@ export default function KPIDashboardPage() {
 
   useEffect(() => {
     fetchKPIs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPeriod]);
 
   const exportKPIs = async () => {

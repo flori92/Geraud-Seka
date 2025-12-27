@@ -49,7 +49,6 @@ export default function OtherTaxesPage() {
 
   useEffect(() => {
     fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleExport = () => {

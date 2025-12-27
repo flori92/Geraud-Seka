@@ -23,7 +23,6 @@ import {
   Building2
 } from "lucide-react";
 
-// Types
 interface VATDeclaration {
   id: string;
   period_start: string;
@@ -88,7 +87,6 @@ export default function VATDeclarationsPage() {
         params.append(filter.type, filter.value);
       });
 
-      // Fetch VAT declarations
       const declarationsResponse = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/v1/tax/vat-declarations?${params.toString()}`,
         { headers: { Authorization: `Bearer ${token}` } }
@@ -99,7 +97,6 @@ export default function VATDeclarationsPage() {
         setDeclarations(Array.isArray(data) ? data : []);
       }
 
-      // Fetch stats
       const statsResponse = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/v1/tax/vat-declarations/stats`,
         { headers: { Authorization: `Bearer ${token}` } }

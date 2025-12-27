@@ -46,7 +46,6 @@ export default function JournalsPage() {
                     getJournalEntries(token),
                 ]);
 
-                // If journals API doesn't exist, create default journals structure
                 if (journalsData.length === 0) {
                     setJournals([
                         { id: "1", code: "AC", name: "Journal des Achats", type: "purchases", is_active: true, entries_count: 0, total_debit: 0, total_credit: 0 },

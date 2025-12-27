@@ -77,7 +77,6 @@ export default function BankStatementImportPage() {
         const ext = selectedFile.name.split(".").pop()?.toLowerCase();
         setFileType(ext === "csv" ? "csv" : ext === "ofx" || ext === "qfx" ? "ofx" : "");
 
-        // Parse file
         await parseFile(selectedFile);
     };
 
@@ -85,10 +84,8 @@ export default function BankStatementImportPage() {
         void _file;
         setParsing(true);
 
-        // Simulate parsing
         await new Promise(resolve => setTimeout(resolve, 1500));
 
-        // Mock parsed data
         const mockTransactions: ParsedTransaction[] = [
             { id: "1", date: "2024-12-10", description: "VIREMENT ENTRANT - CLIENT ABC SARL", amount: 1250000, type: "credit", reference: "VIR2024001", balance: 5750000, isValid: true },
             { id: "2", date: "2024-12-09", description: "PAIEMENT FOURNISSEUR XYZ", amount: 450000, type: "debit", reference: "CHQ789456", balance: 4500000, isValid: true },

@@ -11,7 +11,6 @@ import Link from "next/link";
 type TabType = "general" | "comptable" | "fiscal" | "capital" | "filiales" | "risques" | "actions";
 
 interface CompanyInfo {
-  // Général
   raisonSociale: string;
   nomCommercial: string;
   siren: string;
@@ -24,19 +23,15 @@ interface CompanyInfo {
   pays: string;
   dateCreation: string;
   activite: string;
-  // Personnalisation
   couleurDocuments: string;
   logoUrl: string;
-  // Tenue comptable
   regimeComptable: string;
   exerciceDebut: string;
   exerciceFin: string;
   planComptable: string;
-  // Fiscal
   regimeTva: string;
   regimeImposition: string;
   cfe: string;
-  // Capital
   capitalLibere: number;
   nombreActions: number;
   valeurNominale: number;

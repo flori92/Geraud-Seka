@@ -24,13 +24,11 @@ export default function SentryTestPage() {
             },
             async (span) => {
                 try {
-                    // Simulate async operation
                     await new Promise((resolve) => setTimeout(resolve, 1000));
 
                     const value = "test-config";
                     const metric = "performance-metric";
 
-                    // Metrics can be added to the span
                     span.setAttribute("config", value);
                     span.setAttribute("metric", metric);
 
@@ -44,7 +42,6 @@ export default function SentryTestPage() {
     };
 
     const handleLogClick = () => {
-        // Sentry.consoleLoggingIntegration captures these automatically
         console.log("Test Log Message", { context: "sentry-test" });
         console.warn("Test Warning Message", { context: "sentry-test" });
         console.error("Test Error Message", { context: "sentry-test" });

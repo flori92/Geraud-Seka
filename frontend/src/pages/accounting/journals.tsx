@@ -110,7 +110,6 @@ export default function JournalsPage() {
   useEffect(() => {
     if (!router.isReady) return;
     fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.isReady, selectedJournal, filters.status, filters.date, filters.search]);
 
   const filterConfig: FilterConfig[] = [

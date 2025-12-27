@@ -49,12 +49,10 @@ export default function ChartOfAccountsPage() {
   const filterAccounts = () => {
     let filtered = accounts;
 
-    // Filter by type
     if (filterType !== "all") {
       filtered = filtered.filter((acc) => acc.account_type === filterType);
     }
 
-    // Filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(

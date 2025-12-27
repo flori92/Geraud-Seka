@@ -26,7 +26,6 @@ import {
   XCircle
 } from "lucide-react";
 
-// Types
 interface Invoice {
   id: string;
   number: string;
@@ -94,7 +93,6 @@ export default function FacturesClientsPage() {
 
     setLoading(true);
     try {
-      // Build query params
       const params = new URLSearchParams();
       if (activeTab !== 'all') {
         params.append('filter', activeTab);
@@ -106,7 +104,6 @@ export default function FacturesClientsPage() {
         params.append(filter.type, filter.value);
       });
 
-      // Fetch invoices
       const invoicesResponse = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/v1/sales-invoices?${params.toString()}`,
         { headers: { Authorization: `Bearer ${token}` } }
@@ -117,7 +114,6 @@ export default function FacturesClientsPage() {
         setInvoices(Array.isArray(data) ? data : []);
       }
 
-      // Fetch stats
       const statsResponse = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/v1/sales-invoices/stats`,
         { headers: { Authorization: `Bearer ${token}` } }
@@ -134,7 +130,6 @@ export default function FacturesClientsPage() {
     }
   };
 
-  // Calculate status automatically based on dates and payment
   const calculateInvoiceStatus = (invoice: Invoice): InvoiceStatus => {
     if (invoice.status === 'cancelled') return 'cancelled';
     if (invoice.payment_date) return 'paid';
@@ -219,7 +214,6 @@ export default function FacturesClientsPage() {
 
   const handleBulkAction = (action: string) => {
     console.log(`Bulk action: ${action} on invoices:`, selectedInvoices);
-    // Implement bulk actions
   };
 
   return (

@@ -47,7 +47,6 @@ export default function ContactsPage() {
 
   useEffect(() => {
     void fetchContacts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken]);
 
   const onCreate = async () => {

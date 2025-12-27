@@ -29,7 +29,6 @@ export const getStaticProps: GetStaticProps<ScreenshotsProps> = async () => {
   const publicPennylane = path.join(publicRoot, 'pennylane');
   const publicCaptures = path.join(publicRoot, 'captures');
 
-  // Ensure public dirs
   ensureDir(publicPennylane);
   ensureDir(publicCaptures);
 
@@ -40,7 +39,6 @@ export const getStaticProps: GetStaticProps<ScreenshotsProps> = async () => {
     ? fs.readdirSync(docsCaptures).filter(f => /\.(png|jpe?g|webp)$/i.test(f))
     : [];
 
-  // Copy into public if missing
   for (const f of pennylaneFiles) {
     const src = path.join(docsPennylane, f);
     const dest = path.join(publicPennylane, f);

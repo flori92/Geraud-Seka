@@ -13,7 +13,6 @@ import { initProductionSecurity } from "@/lib/security";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
-// Pages qui n'ont pas besoin de sidebar
 const noSidebarPages = ['/login', '/register', '/landing', '/pricing', '/about', '/blog', '/faq', '/privacy', '/terms'];
 
 export default function App({ Component, pageProps }: AppProps) {
@@ -23,7 +22,6 @@ export default function App({ Component, pageProps }: AppProps) {
 
   useEffect(() => {
     setIsMounted(true);
-    // Initialiser la sécurité en production (masque les logs console, etc.)
     initProductionSecurity();
   }, []);
 

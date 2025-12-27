@@ -66,7 +66,6 @@ export default function TreasuryForecastsPage() {
 
   useEffect(() => {
     fetchForecasts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [horizon]);
 
   const exportForecasts = async () => {

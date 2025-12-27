@@ -26,7 +26,6 @@ interface Rule {
   isActive: boolean;
 }
 
-// Comptes comptables courants
 const accountOptions = [
   { value: "", label: "-- Sélectionner --" },
   { value: "401", label: "401 - Fournisseurs" },
@@ -63,21 +62,17 @@ export default function RulesCenter() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Data states
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   
-  // Rules state (stockées localement pour démo, à connecter au backend)
   const [rules, setRules] = useState<Rule[]>([]);
   
-  // Modal states
   const [showRuleModal, setShowRuleModal] = useState(false);
   const [showCustomizeModal, setShowCustomizeModal] = useState(false);
   const [editingRule, setEditingRule] = useState<Rule | null>(null);
   const [selectedEntity, setSelectedEntity] = useState<{id: string; name: string; type: TabType} | null>(null);
   
-  // Form state for rule
   const [ruleForm, setRuleForm] = useState({
     defaultAccount: "",
     defaultTaxRate: "",
@@ -85,7 +80,6 @@ export default function RulesCenter() {
     isActive: true,
   });
 
-  // Colonnes visibles
   const [visibleColumns, setVisibleColumns] = useState({
     name: true,
     account: true,
@@ -114,7 +108,6 @@ export default function RulesCenter() {
         setClients(clientsData);
         setProducts(productsData);
         
-        // Charger les règles sauvegardées
         const savedRules = localStorage.getItem("seka_rules");
         if (savedRules) {
           setRules(JSON.parse(savedRules));
@@ -130,13 +123,11 @@ export default function RulesCenter() {
     fetchData();
   }, [router]);
 
-  // Sauvegarder les règles
   const saveRules = (newRules: Rule[]) => {
     setRules(newRules);
     localStorage.setItem("seka_rules", JSON.stringify(newRules));
   };
 
-  // Ouvrir modal pour définir une règle
   const openRuleModal = (entity: {id: string; name: string; type: TabType}) => {
     setSelectedEntity(entity);
     const existingRule = rules.find(r => r.entityId === entity.id && r.entityType === entity.type);
@@ -155,7 +146,6 @@ export default function RulesCenter() {
     setShowRuleModal(true);
   };
 
-  // Sauvegarder une règle
   const handleSaveRule = () => {
     if (!selectedEntity) return;
     
@@ -180,13 +170,11 @@ export default function RulesCenter() {
     setEditingRule(null);
   };
 
-  // Supprimer une règle
   const handleDeleteRule = (ruleId: string) => {
     const updatedRules = rules.filter(r => r.id !== ruleId);
     saveRules(updatedRules);
   };
 
-  // Obtenir la règle pour une entité
   const getRuleForEntity = (entityId: string, entityType: TabType) => {
     return rules.find(r => r.entityId === entityId && r.entityType === entityType);
   };
@@ -197,7 +185,6 @@ export default function RulesCenter() {
     { id: "produits" as TabType, label: "Produits", count: products.length },
   ];
 
-  // Filter data
   const filteredSuppliers = suppliers.filter(s => 
     s.name.toLowerCase().includes(searchQuery.toLowerCase())
   );

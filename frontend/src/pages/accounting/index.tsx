@@ -145,7 +145,6 @@ export default function AccountingDashboardPage() {
     }
   };
 
-  // Calculs des statistiques
   const stats = useMemo(() => {
     const entriesList = Array.isArray(journalEntries) ? journalEntries : [];
     const accountsList = Array.isArray(ledgerAccounts) ? ledgerAccounts : [];
@@ -178,7 +177,6 @@ export default function AccountingDashboardPage() {
     };
   }, [journalEntries, ledgerAccounts]);
 
-  // Dernières écritures
   const recentEntries = useMemo(() => {
     const entriesList = Array.isArray(journalEntries) ? journalEntries : [];
     return entriesList

@@ -131,7 +131,6 @@ export default function TreasuryDashboard() {
     }
   };
 
-  // Stats calculées
   const stats = useMemo(() => {
     if (!dashboardData) return null;
     

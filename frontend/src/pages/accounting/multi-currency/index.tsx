@@ -69,7 +69,6 @@ export default function MultiCurrencyPage() {
 
   useEffect(() => {
     fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const updateRates = async () => {

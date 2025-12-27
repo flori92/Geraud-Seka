@@ -17,7 +17,6 @@ import {
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
-// Types simulés
 interface BankTransaction {
     id: string;
     date: string;
@@ -83,7 +82,6 @@ export default function BankReconciliationPage() {
 
         setLoading(true);
         try {
-            // 1. Fetch Bank Accounts
             const accounts = (await getBankAccounts(token)) as BankAccountLite[];
             setBankAccounts(accounts);
 
@@ -91,8 +89,6 @@ export default function BankReconciliationPage() {
                 setSelectedAccountId(accounts[0].id);
             }
 
-            // 2. Fetch Documents (e.g. Invoices to reconcile)
-            // Using getDocuments for now, ideally fetching supplier invoices specifically
             const docsData = (await getDocuments(token)) as ApiDocument[];
             const formattedDocs: Document[] = docsData.map((d) => ({
                 id: d.id,
@@ -123,7 +119,6 @@ export default function BankReconciliationPage() {
 
             try {
                 const txs = (await getBankTransactions(token, { bank_account_id: selectedAccountId })) as ApiBankTransaction[];
-                // Filter unreconciled client side or ensure API filtering
                 const unreconciledTxs: BankTransaction[] = txs
                     .filter((t) => !t.is_reconciled)
                     .map((t) => ({
@@ -142,7 +137,6 @@ export default function BankReconciliationPage() {
         fetchTransactions();
     }, [selectedAccountId]);
 
-    // Suggestions automatiques (Montant exact)
     const getSuggestions = (tx: BankTransaction) => {
         return documents.filter(d => Math.abs(d.amount_ttc - Math.abs(tx.amount)) < 0.01);
     };

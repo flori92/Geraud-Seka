@@ -42,7 +42,6 @@ export default function AILearningPage() {
             const token = localStorage.getItem("seka_access_token");
             if (token) {
                 await submitAIFeedback(token, modelId, isCorrect);
-                // Refresh stats after feedback
                 await fetchStats();
             }
         } catch (error) {

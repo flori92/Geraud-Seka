@@ -89,14 +89,12 @@ export default function AccountingEntryFromOCR() {
     file_info?: { url?: string; key?: string; page_count?: number; is_multi_page?: boolean; document_id?: string };
   };
 
-  // Configure PDF.js worker
   useEffect(() => {
     if (typeof window !== 'undefined') {
       pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
     }
   }, []);
 
-  // Fetch accounts for autocomplete
   useEffect(() => {
     const fetchAccounts = async () => {
       try {
@@ -142,7 +140,6 @@ export default function AccountingEntryFromOCR() {
         }
       } catch (error) {
         console.error("Failed to fetch accounts:", error);
-        // Fallback accounts
         setAccounts([
           { code: "401000", name: "Fournisseurs" },
           { code: "411000", name: "Clients" },
@@ -162,7 +159,6 @@ export default function AccountingEntryFromOCR() {
     fetchAccounts();
   }, [apiPrefix]);
 
-  // Convert PDF to images for OCR processing
   const convertPdfToImages = async (file: File, maxPages?: number): Promise<string[]> => {
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -222,12 +218,10 @@ export default function AccountingEntryFromOCR() {
 
       console.log("Local OCR Text:", allText);
 
-      // Regex Patterns
       const dateRegex = /(\d{2}[/.-]\d{2}[/.-]\d{4})|(\d{1,2}\s(?:janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\s(?:\d{4}|N))/i;
       const amountRegex = /(\d{1,3}(?:[\s.]\d{3})*(?:,\d{2})?)/g;
       const referenceRegex = /(?:facture|invoice)\s*(?:n[°o]?\s*)?([a-z0-9-/]+)/i;
 
-      // Find Date
       const dateMatch = allText.match(dateRegex);
       let date = new Date().toISOString().split('T')[0];
       if (dateMatch) {
@@ -272,10 +266,8 @@ export default function AccountingEntryFromOCR() {
         }
       }
 
-      // Find Amounts
       const amounts = [];
       let match;
-      // Need to reset regex lastIndex if global
       while ((match = amountRegex.exec(allText)) !== null) {
         const raw = match[1];
         const looksLikeAmount = raw.includes(',') || /\d{1,3}[\s.]\d{3}/.test(raw);
@@ -292,11 +284,9 @@ export default function AccountingEntryFromOCR() {
       const amountHT = amountTTC > 0 ? round2(amountTTC / (1 + vatRate)) : 0;
       const amountVAT = amountTTC > 0 ? round2(amountTTC - amountHT) : 0;
 
-      // Find Reference
       const refMatch = allText.match(referenceRegex);
       const reference = refMatch ? refMatch[1] : `DOC-${Date.now()}`;
 
-      // Try to extract supplier name
       const lines = allText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
       const supplierCandidate = lines.find(l => {
         if (l.length < 3 || l.length > 60) return false;
@@ -336,7 +326,6 @@ export default function AccountingEntryFromOCR() {
         auto_apply: false,
       };
 
-      // Update State
       setOcrData(fallbackOcrData);
       setSuggestions(fallbackSuggestions);
       setEntryLines(

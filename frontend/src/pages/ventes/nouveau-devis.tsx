@@ -40,7 +40,6 @@ export default function NouveauDevis() {
     }
     fetchClients();
 
-    // Set expiry_date to 30 days from now
     const expiryDate = new Date();
     expiryDate.setDate(expiryDate.getDate() + 30);
     setFormData((prev) => ({

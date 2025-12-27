@@ -7,29 +7,21 @@ type ApiErrorPayload = {
 
 type UnknownRecord = Record<string, unknown>;
 
-// Force HTTPS in production, never fall back to HTTP
 const getApiBaseUrl = () => {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL;
 
-  // En développement:
-  // - si une base URL est fournie (ex: http://localhost:8000), on l'utilise.
-  // - sinon, on passe en same-origin (/api/v1) et Next.js proxy via rewrites (évite le CORS).
   if (process.env.NODE_ENV !== "production") {
     if (!baseUrl) return "";
   }
 
-  // If no env var, use production API with HTTPS
   if (!baseUrl) {
     return "https://api.sekagestion.com";
   }
 
-  // ALWAYS force HTTPS for api.sekagestion.com (never use HTTP)
-  // This prevents Mixed Content errors in production
   if (baseUrl.includes("api.sekagestion.com") && baseUrl.startsWith("http://")) {
     return baseUrl.replace("http://", "https://");
   }
 
-  // Force HTTPS in production environment
   if (baseUrl.startsWith("http://") && process.env.NODE_ENV === "production") {
     return baseUrl.replace("http://", "https://");
   }
@@ -39,14 +31,9 @@ const getApiBaseUrl = () => {
 
 export const API_BASE_URL = getApiBaseUrl();
 
-// Log the API URL in development for debugging
-if (process.env.NODE_ENV === "development") {
-  console.log("[API] Using API Base URL:", API_BASE_URL);
-}
-
 const api = axios.create({
   baseURL: API_BASE_URL ? `${API_BASE_URL}/api/v1` : "/api/v1",
-  timeout: 30000, // Augmenté pour les connexions lentes
+  timeout: 30000,
   headers: {
     "Content-Type": "application/json",
     "X-Requested-With": "XMLHttpRequest",
@@ -80,7 +67,6 @@ export function getApiErrorMessage(error: unknown): string | null {
   return null;
 }
 
-// Intercepteur pour gérer automatiquement les erreurs 401 (token invalide/expiré)
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -88,8 +74,6 @@ api.interceptors.response.use(
     const url = error.config?.url || "";
     const data = error.response?.data as ApiErrorPayload | undefined;
 
-    // Cas particulier: token invalide (souvent après switch prod -> local).
-    // On purge et on renvoie vers /login une seule fois pour éviter un spam infini de 401.
     if (status === 401 && typeof window !== "undefined") {
       const detail = typeof data?.detail === "string" ? data.detail : "";
       const message = typeof data?.message === "string" ? data.message : "";
@@ -110,8 +94,6 @@ api.interceptors.response.use(
       }
     }
 
-    // En production uniquement: si le token est invalide/expiré (401), déconnecter l'utilisateur
-    // En dev local, on évite la redirection auto pour ne pas bloquer les tests (proxy/rewrite)
     if (
       process.env.NODE_ENV === "production" &&
       error.response?.status === 401 &&
@@ -122,21 +104,12 @@ api.interceptors.response.use(
       localStorage.removeItem("user");
 
       if (window.location.pathname !== "/login" && window.location.pathname !== "/") {
-        console.log("[API] Token invalide - redirection vers login");
         window.location.href = "/login";
       }
     }
     
-    // Filtrer les erreurs non critiques pour éviter de polluer la console
-    // Les erreurs 404/500 sont souvent attendues si l'endpoint n'existe pas encore
-    // Ne pas logger les erreurs Sentry (adblocker) - elles sont normales
     if (error.message?.includes("sentry") || url.includes("sentry")) {
       return Promise.reject(error);
-    }
-    
-    // Logger seulement les erreurs critiques (pas les 404/500 silencieux)
-    if (status && status !== 404 && status !== 500) {
-      console.error(`[API Error] ${status} ${error.config?.method?.toUpperCase()} ${url}:`, error.response?.data || error.message);
     }
     
     return Promise.reject(error);

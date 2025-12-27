@@ -126,14 +126,12 @@ export default function NewAccountingEntry() {
     }
   };
 
-  // Filtrer les comptes en fonction de la recherche (code ou libellé)
   const filteredAccounts = accounts.filter(
     (a) =>
       a.account_code.toLowerCase().includes(accountSearch.toLowerCase()) ||
       a.account_name.toLowerCase().includes(accountSearch.toLowerCase())
   );
 
-  // Templates rapides (exemples simples)
   const applyTemplate = (type: "vente" | "achat") => {
     if (type === "vente") {
       setJournalType("VTE");

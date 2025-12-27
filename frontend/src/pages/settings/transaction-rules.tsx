@@ -113,7 +113,6 @@ export default function TransactionRulesPage() {
         }
     };
 
-    // Helper to determine rule type from conditions/actions
     const getRuleType = (rule: AccountingRule): keyof typeof typeLabels => {
         if (rule.actions?.some(a => a.debit_account && a.credit_account)) return "accounting";
         if (rule.auto_apply) return "automation";

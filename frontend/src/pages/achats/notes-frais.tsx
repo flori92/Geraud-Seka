@@ -6,7 +6,6 @@ import { Plus, Search, Filter, Download, FileText, CheckCircle, XCircle, Clock }
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
-// Types mock
 interface ExpenseReport {
     id: string;
     employee: string;

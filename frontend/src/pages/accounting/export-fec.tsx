@@ -63,7 +63,6 @@ export default function ExportFECPage() {
         setExporting(true);
         await new Promise(resolve => setTimeout(resolve, 3000));
 
-        // Simulate download
         const blob = new Blob(["FEC Export Data"], { type: "text/plain" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");

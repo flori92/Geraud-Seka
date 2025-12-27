@@ -59,7 +59,6 @@ export default function DashboardSimple() {
 
   useEffect(() => {
     fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const totalRevenue = invoices?.reduce((sum, inv) => sum + (inv?.paid || 0), 0) || 0;
@@ -131,7 +130,6 @@ export default function DashboardSimple() {
   );
 }
 
-// Composants simples
 
 function StatCard({ 
   label, 

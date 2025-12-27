@@ -52,7 +52,6 @@ export default function FiscalYearPage() {
   const [closingSteps, setClosingSteps] = useState<ClosingStep[]>([]);
   const [closingInProgress, setClosingInProgress] = useState(false);
 
-  // Form state
   const [newYear, setNewYear] = useState({
     name: "",
     start_date: "",
@@ -88,7 +87,6 @@ export default function FiscalYearPage() {
 
   useEffect(() => {
     fetchFiscalYears();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleCreateYear = async () => {
@@ -123,7 +121,6 @@ export default function FiscalYearPage() {
     setShowCloseModal(true);
     setClosingInProgress(true);
 
-    // Récupérer les étapes de clôture
     try {
       const res = await fetch(`${API_BASE_URL}/api/v1/accounting/fiscal-years/${year.id}/closing-steps`, {
         headers: { Authorization: `Bearer ${token}` },

@@ -37,13 +37,11 @@ export default function QuickAccountingEntry() {
     const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "";
     const apiPrefix = API_BASE_URL ? `${API_BASE_URL}/api/v1` : "/api/v1";
 
-    // État pour les lignes de l'écriture en cours
     const [lines, setLines] = useState<EntryLine[]>([
         { account_id: "", label: "", debit: "0", credit: "0" },
         { account_id: "", label: "", debit: "0", credit: "0" }
     ]);
 
-    // Historique de la session
     const [recentEntries, setRecentEntries] = useState<SavedEntry[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -136,7 +134,6 @@ export default function QuickAccountingEntry() {
             if (response.ok) {
                 const savedEntry = await response.json();
 
-                // Ajouter à l'historique local
                 setRecentEntries([
                     {
                         id: savedEntry.id,
@@ -149,14 +146,12 @@ export default function QuickAccountingEntry() {
                 ]);
 
                 if (continueEntry) {
-                    // Reset form but keep journal and date
                     setReference("");
                     setDescription("");
                     setLines([
                         { account_id: "", label: "", debit: "0", credit: "0" },
                         { account_id: "", label: "", debit: "0", credit: "0" }
                     ]);
-                    // Focus logic could satisfy "Quick Entry" by focusing first field
                 } else {
                     router.push("/accounting/entries");
                 }
@@ -300,7 +295,6 @@ export default function QuickAccountingEntry() {
                                                                 type="number"
                                                                 value={line.debit}
                                                                 onChange={(e) => updateLine(index, "debit", e.target.value)}
-                                                                // onFocus={(e) => e.target.select()}
                                                                 className={`w-full px-2 py-1.5 text-sm text-right border rounded focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] ${parseFloat(line.debit) > 0 ? 'border-gray-300 font-medium' : 'border-gray-200 text-gray-400'}`}
                                                             />
                                                         </td>
@@ -309,7 +303,6 @@ export default function QuickAccountingEntry() {
                                                                 type="number"
                                                                 value={line.credit}
                                                                 onChange={(e) => updateLine(index, "credit", e.target.value)}
-                                                                // onFocus={(e) => e.target.select()}
                                                                 className={`w-full px-2 py-1.5 text-sm text-right border rounded focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] ${parseFloat(line.credit) > 0 ? 'border-gray-300 font-medium' : 'border-gray-200 text-gray-400'}`}
                                                             />
                                                         </td>

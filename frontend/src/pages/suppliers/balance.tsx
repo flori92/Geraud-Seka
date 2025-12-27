@@ -21,7 +21,6 @@ import {
   Building2
 } from "lucide-react";
 
-// Types
 interface SupplierBalance {
   id: string;
   supplier_name: string;
@@ -89,7 +88,6 @@ export default function SupplierBalancePage() {
         params.append(filter.type, filter.value);
       });
 
-      // Fetch supplier balances
       const suppliersResponse = await fetch(
         `${apiPrefix}/suppliers/balance?${params.toString()}`,
         { headers: { Authorization: `Bearer ${token}` } }
@@ -100,7 +98,6 @@ export default function SupplierBalancePage() {
         setSuppliers(Array.isArray(data) ? data : []);
       }
 
-      // Fetch stats
       const statsResponse = await fetch(
         `${apiPrefix}/suppliers/balance/stats`,
         { headers: { Authorization: `Bearer ${token}` } }

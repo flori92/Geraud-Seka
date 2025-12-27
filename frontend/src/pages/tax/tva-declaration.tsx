@@ -45,7 +45,6 @@ export default function TVADeclarationPage() {
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
-            // Parse year and month from selectedPeriod (format: "YYYY-MM")
             const [year, month] = selectedPeriod.split("-").map(Number);
 
             const response = await fetch(`${apiPrefix}/tax/tva-declaration?year=${year}&month=${month}`, {
@@ -60,7 +59,6 @@ export default function TVADeclarationPage() {
 
             const data = await response.json();
 
-            // Map API response to frontend state
             setDeclaration({
                 id: "1",
                 period: data.period,
@@ -72,15 +70,12 @@ export default function TVADeclarationPage() {
                 credit_report: data.tva_due < 0 ? Math.abs(data.tva_due) : 0
             });
 
-            // Set collectee and deductible lines from API
             setCollecteeLines(data.collectee_lines || []);
             setDeductibleLines(data.deductible_lines || []);
 
-            // Set history from API
             setHistory(data.history || []);
         } catch (error) {
             console.error("Failed to fetch TVA declaration:", error);
-            // Keep empty state on error
             setDeclaration(null);
             setCollecteeLines([]);
             setDeductibleLines([]);

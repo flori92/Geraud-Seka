@@ -30,7 +30,6 @@ export default function PurchaseOrdersPage() {
         return;
       }
       const data = await getPurchaseOrders(token);
-      // Ensure data is an array
       setPurchaseOrders(Array.isArray(data) ? data : []);
       setError(null);
     } catch (err: any) {
@@ -41,7 +40,6 @@ export default function PurchaseOrdersPage() {
     }
   };
 
-  // Ensure we always work with an array
   const orderList = Array.isArray(purchaseOrders) ? purchaseOrders : [];
 
   const stats = [

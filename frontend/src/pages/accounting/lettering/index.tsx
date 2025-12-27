@@ -106,14 +106,12 @@ export default function LetteringPage() {
 
   useEffect(() => {
     fetchAccounts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (selectedAccount) {
       fetchEntries(selectedAccount.id);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedAccount, filterUnlettered]);
 
   const handleSelectEntry = (entryId: string) => {

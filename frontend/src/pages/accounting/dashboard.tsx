@@ -66,7 +66,6 @@ export default function AccountingDashboardPage() {
         setLoading(true);
         try {
             const year = parseInt(period) || 2024;
-            // Fetch real accounting data from backend Analytics Engine
             const [statsData, trendsData, transactions] = await Promise.all([
                 getAccountingAnalyticsStats(token, year),
                 getAccountingMonthlyTrends(token, year),
@@ -83,7 +82,6 @@ export default function AccountingDashboardPage() {
                 });
             }
 
-            // Generate simple forecasts (empty for now to avoid fake data)
             const months = ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"];
             const currentMonthIdx = new Date().getMonth();
             const forecastData = months.slice(currentMonthIdx, currentMonthIdx + 6).map((month) => ({
@@ -103,11 +101,8 @@ export default function AccountingDashboardPage() {
         }
     };
 
-    // Expense breakdown - will be calculated from accounting data
-    // For now showing empty state until backend provides expense breakdown by category
     const expenseBreakdown: Array<{ label: string; value: number; color: string }> = [];
 
-    // Cash flow forecast - calculated from actual data
     const cashFlowForecast = forecasts.map(f => ({
         label: f.month,
         actual: f.projected_balance > 0 ? f.projected_balance / 1000000 : null,

@@ -26,11 +26,9 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import { useInvoices, useInvoiceStats } from "@/lib/hooks/useInvoices";
 import { InvoiceResponse } from "@/lib/api/invoices.types";
 
-// ========== TYPES ==========
 
 type InvoiceStatus = "draft" | "pending" | "paid" | "overdue";
 
-// ========== COMPONENTS ==========
 
 interface StatCardProps {
   title: string;
@@ -129,13 +127,11 @@ function InvoiceRow({ invoice, onView, onEdit, onDelete }: InvoiceRowProps) {
   );
 }
 
-// ========== MAIN PAGE ==========
 
 export default function InvoicesPage() {
   const router = useRouter();
   const [filterStatus, setFilterStatus] = useState<InvoiceStatus | "all">("all");
 
-  // Récupérer les données de l'API
   const { invoices, loading } = useInvoices(
     0,
     20,
@@ -143,7 +139,6 @@ export default function InvoicesPage() {
   );
   const { stats: statsData } = useInvoiceStats();
 
-  // Handlers
   const handleView = (id: string) => {
     router.push(`/invoices/${id}`);
   };
@@ -153,7 +148,6 @@ export default function InvoicesPage() {
   };
 
   const handleDelete = (id: string) => {
-    // TODO: Implémenter la suppression
     console.log("Delete:", id);
   };
 

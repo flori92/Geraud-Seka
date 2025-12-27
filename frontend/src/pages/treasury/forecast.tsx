@@ -79,7 +79,6 @@ export default function CashFlowForecast() {
         model_type: 'auto'
       }, { headers });
       
-      // Wait a bit for generation to complete
       setTimeout(async () => {
         await fetchForecasts();
         await fetchRisks();

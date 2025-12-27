@@ -423,7 +423,6 @@ function AccountDrawer({
   formatCurrency,
 }: {
   accountId: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   detail: any;
   loading: boolean;
   onClose: () => void;
@@ -487,7 +486,6 @@ function AccountDrawer({
             {entries.length === 0 ? (
               <p className="text-gray-500 text-center py-8">Aucune écriture</p>
             ) : (
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               entries.slice(0, 20).map((entry: any, idx: number) => (
                 <div key={idx} className="p-3 bg-gray-50 rounded-lg text-sm">
                   <div className="flex items-center justify-between mb-1">

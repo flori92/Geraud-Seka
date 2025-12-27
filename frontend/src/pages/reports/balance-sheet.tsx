@@ -15,7 +15,6 @@ import {
   FileText,
 } from "lucide-react";
 
-// Types
 interface BalanceSheetLine {
   code: string;
   label: string;

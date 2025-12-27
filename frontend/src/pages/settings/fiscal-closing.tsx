@@ -109,7 +109,6 @@ export default function FiscalClosingSettingsPage() {
 
   useEffect(() => {
     fetchConfig();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const saveConfig = async () => {

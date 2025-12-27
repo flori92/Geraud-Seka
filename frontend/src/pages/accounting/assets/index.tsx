@@ -91,7 +91,6 @@ export default function AssetsPage() {
 
   useEffect(() => {
     fetchAssets();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const calculateDepreciation = async () => {
@@ -187,7 +186,6 @@ export default function AssetsPage() {
     }
   };
 
-  // Calculs globaux
   const totals = {
     acquisition: filteredAssets.reduce((sum, a) => sum + a.acquisition_value, 0),
     depreciation: filteredAssets.reduce((sum, a) => sum + a.cumulated_depreciation, 0),
@@ -401,7 +399,6 @@ export default function AssetsPage() {
   );
 }
 
-// Modal de création
 function CreateAssetModal({
   onClose,
   onCreated,

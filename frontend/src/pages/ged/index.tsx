@@ -132,7 +132,6 @@ export default function GEDPage() {
     setDragOver(false);
     const files = e.dataTransfer.files;
     if (files.length > 0) {
-      // TODO: Implement file upload
       console.log("Files dropped:", files);
     }
   };

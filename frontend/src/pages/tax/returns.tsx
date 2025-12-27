@@ -21,7 +21,6 @@ import {
   ChevronRight
 } from "lucide-react";
 
-// Types
 interface TaxReturn {
   id: string;
   fiscal_year: string;
@@ -72,7 +71,6 @@ export default function TaxReturnsPage() {
 
     setLoading(true);
     try {
-      // Fetch tax returns
       const returnsResponse = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/v1/tax/returns`,
         { headers: { Authorization: `Bearer ${token}` } }
@@ -87,7 +85,6 @@ export default function TaxReturnsPage() {
         }
       }
 
-      // Fetch stats
       const statsResponse = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/v1/tax/returns/stats`,
         { headers: { Authorization: `Bearer ${token}` } }

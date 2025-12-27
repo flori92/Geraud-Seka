@@ -84,7 +84,6 @@ export default function AdvancedFeaturesPage() {
       return;
     }
     
-    // Charger les préférences sauvegardées
     const savedFeatures = localStorage.getItem("seka_advanced_features");
     if (savedFeatures) {
       setFeatures(JSON.parse(savedFeatures));

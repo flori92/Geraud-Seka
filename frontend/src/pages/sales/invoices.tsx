@@ -33,7 +33,6 @@ export default function InvoicesPage() {
         return;
       }
       const data = await getInvoices(token);
-      // Ensure data is an array
       setInvoices(Array.isArray(data) ? data : []);
       setError(null);
     } catch (err: any) {
@@ -44,7 +43,6 @@ export default function InvoicesPage() {
     }
   };
 
-  // Ensure we always work with an array
   const invoiceList = Array.isArray(invoices) ? invoices : [];
 
   const stats = [

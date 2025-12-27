@@ -32,15 +32,12 @@ export default function BankAccounts() {
     bank_name: '',
     branch: '',
     account_type: 'checking',
-    // RIB
     bank_code: '',
     branch_code: '',
     account_number: '',
     rib_key: '',
-    // International
     iban: '',
     swift_bic: '',
-    // Other
     currency: 'XOF',
     initial_balance: 0,
     is_default: false,

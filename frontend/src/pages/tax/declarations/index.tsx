@@ -88,7 +88,6 @@ export default function TaxDeclarationsPage() {
 
   useEffect(() => {
     fetchDeclarations();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedYear, selectedType]);
 
   const calculateDeclaration = async (declarationId: string) => {
@@ -420,7 +419,6 @@ export default function TaxDeclarationsPage() {
   );
 }
 
-// Modal de création
 function CreateDeclarationModal({
   onClose,
   onCreated,

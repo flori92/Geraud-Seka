@@ -38,7 +38,6 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Charger les données depuis l'API
   const fetchHistory = async () => {
     const token = localStorage.getItem("seka_access_token");
     if (!token) {
@@ -50,12 +49,10 @@ export default function HistoryPage() {
     setError(null);
 
     try {
-      // Récupérer l'historique des imports
       const importsRes = await fetch(`${API_BASE_URL}/api/v1/history/imports`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      // Récupérer l'historique des exports
       const exportsRes = await fetch(`${API_BASE_URL}/api/v1/history/exports`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -79,7 +76,6 @@ export default function HistoryPage() {
 
   useEffect(() => {
     fetchHistory();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const currentData = activeTab === "imports" ? imports : exports;
@@ -131,7 +127,6 @@ export default function HistoryPage() {
     pending: currentData.filter(i => i.status === "pending").length,
   };
 
-  // Affichage du loader
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">

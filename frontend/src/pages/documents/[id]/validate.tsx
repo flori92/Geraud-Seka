@@ -17,7 +17,6 @@ export default function ValidateDocumentPage() {
     const [error, setError] = useState<string | null>(null);
     const [document, setDocument] = useState<Document | null>(null);
 
-    // Form state
     const [referenceNumber, setReferenceNumber] = useState("");
     const [date, setDate] = useState("");
     const [dueDate, setDueDate] = useState("");
@@ -58,7 +57,6 @@ export default function ValidateDocumentPage() {
                     return undefined;
                 };
 
-                // Pre-fill form with OCR extracted data
                 setReferenceNumber(data.reference_number || ocrStr("reference_number") || "");
                 setDate(data.date || ocrStr("date") || "");
                 setDueDate(data.due_date || ocrStr("due_date") || "");

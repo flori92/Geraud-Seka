@@ -16,7 +16,6 @@ import {
   PieChart
 } from "lucide-react";
 
-// Types
 interface IncomeStatementLine {
   code: string;
   label: string;

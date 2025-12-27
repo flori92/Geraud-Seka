@@ -77,7 +77,6 @@ export default function AuditTrailPage() {
 
   useEffect(() => {
     fetchLogs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterAction, filterEntity, dateFrom, dateTo]);
 
   const exportLogs = async () => {

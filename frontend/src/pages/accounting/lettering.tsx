@@ -32,7 +32,6 @@ export default function LetteringPage() {
 
   useEffect(() => {
     fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filtered = items.filter((i) => {

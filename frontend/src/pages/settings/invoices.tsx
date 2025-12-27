@@ -11,29 +11,23 @@ import Link from "next/link";
 type TabType = "configuration" | "personnalisation" | "paiements" | "emails" | "relances";
 
 interface InvoiceSettings {
-  // Numérotation
   prefix: string;
   nextNumber: number;
   format: string;
-  // Infos entreprise
   companyName: string;
   address: string;
   siret: string;
   vatNumber: string;
-  // Design
   logoUrl: string;
   primaryColor: string;
   showLogo: boolean;
-  // Paiements
   defaultPaymentTerms: number;
   bankName: string;
   iban: string;
   bic: string;
-  // Emails
   emailSubject: string;
   emailBody: string;
   sendCopy: boolean;
-  // Relances
   enableReminders: boolean;
   firstReminderDays: number;
   secondReminderDays: number;
@@ -443,7 +437,6 @@ export default function InvoiceSettingsPage() {
   );
 }
 
-// Composant Section
 function Section({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
   const [expanded, setExpanded] = useState(true);
   

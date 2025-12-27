@@ -27,7 +27,6 @@ export default function PaymentCallbackPage() {
                     setVerificationStatus('success');
                     setMessage('Paiement confirmé avec succès ! Votre abonnement est maintenant actif.');
 
-                    // Redirect to dashboard after 3 seconds
                     setTimeout(() => {
                         router.push('/dashboard');
                     }, 3000);

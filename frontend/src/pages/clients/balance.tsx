@@ -22,7 +22,6 @@ import {
   Users
 } from "lucide-react";
 
-// Types
 interface ClientBalance {
   id: string;
   client_name: string;
@@ -88,7 +87,6 @@ export default function ClientBalancePage() {
         params.append(filter.type, filter.value);
       });
 
-      // Fetch client balances
       const clientsResponse = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/v1/clients/balance?${params.toString()}`,
         { headers: { Authorization: `Bearer ${token}` } }
@@ -99,7 +97,6 @@ export default function ClientBalancePage() {
         setClients(Array.isArray(data) ? data : []);
       }
 
-      // Fetch stats
       const statsResponse = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/v1/clients/balance/stats`,
         { headers: { Authorization: `Bearer ${token}` } }

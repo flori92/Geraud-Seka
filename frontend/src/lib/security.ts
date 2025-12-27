@@ -1,9 +1,3 @@
-/**
- * SEKA Security Utilities
- * Gestion sécurisée des erreurs et protection des données sensibles
- */
-
-// Messages d'erreur génériques pour l'utilisateur final
 export const ERROR_MESSAGES = {
   NETWORK: "Problème de connexion. Vérifiez votre connexion internet.",
   SERVER: "Le serveur est temporairement indisponible. Réessayez dans quelques instants.",
@@ -15,7 +9,6 @@ export const ERROR_MESSAGES = {
   UNKNOWN: "Une erreur inattendue s'est produite.",
 };
 
-// Types d'erreurs
 export type ErrorType = keyof typeof ERROR_MESSAGES;
 
 interface SecureError {
@@ -25,14 +18,9 @@ interface SecureError {
   retryable: boolean;
 }
 
-/**
- * Transforme une erreur technique en message utilisateur sécurisé
- * Ne révèle jamais les détails techniques en production
- */
 export function getSecureErrorMessage(error: unknown): SecureError {
   const isProduction = process.env.NODE_ENV === "production";
   
-  // Axios error
   if (error && typeof error === "object" && "isAxiosError" in error) {
     const axiosError = error as {
       response?: {
@@ -45,7 +33,6 @@ export function getSecureErrorMessage(error: unknown): SecureError {
     const status = axiosError.response?.status;
     const errorId = axiosError.response?.data?.error_id;
     
-    // Network errors
     if (axiosError.code === "ERR_NETWORK" || axiosError.code === "ECONNABORTED") {
       return {
         type: "NETWORK",
@@ -54,7 +41,6 @@ export function getSecureErrorMessage(error: unknown): SecureError {
       };
     }
     
-    // HTTP status codes
     switch (status) {
       case 401:
         return {
@@ -110,7 +96,6 @@ export function getSecureErrorMessage(error: unknown): SecureError {
     }
   }
   
-  // Generic error
   return {
     type: "UNKNOWN",
     message: isProduction ? ERROR_MESSAGES.UNKNOWN : String(error),
@@ -118,24 +103,16 @@ export function getSecureErrorMessage(error: unknown): SecureError {
   };
 }
 
-/**
- * Désactive les logs console en production
- * Empêche l'affichage des URLs API et données sensibles
- */
 export function initProductionSecurity(): void {
   if (typeof window === "undefined") return;
   if (process.env.NODE_ENV !== "production") return;
   
-  // Sauvegarder les fonctions originales pour les erreurs critiques
   const originalError = console.error;
-  
-  // Remplacer console.log et console.debug
   console.log = () => {};
   console.debug = () => {};
   console.info = () => {};
   console.trace = () => {};
   
-  // Garder console.warn et console.error mais filtrer les données sensibles
   console.warn = (...args: unknown[]) => {
     const filtered = args.map(arg => filterSensitiveData(arg));
     originalError.apply(console, ["[WARN]", ...filtered]);
@@ -146,8 +123,6 @@ export function initProductionSecurity(): void {
     originalError.apply(console, ["[ERROR]", ...filtered]);
   };
   
-  // Bloquer les outils de développement (optionnel - peut être contourné)
-  // Détection basique des DevTools
   let devtoolsOpen = false;
   const threshold = 160;
   
@@ -158,43 +133,30 @@ export function initProductionSecurity(): void {
     if (widthThreshold || heightThreshold) {
       if (!devtoolsOpen) {
         devtoolsOpen = true;
-        // Log minimal - pas d'action bloquante
-        originalError("[Security] DevTools detected");
       }
     } else {
       devtoolsOpen = false;
     }
   };
   
-  // Vérifier périodiquement (discret)
   setInterval(checkDevTools, 1000);
 }
 
-/**
- * Filtre les données sensibles des logs
- */
 function filterSensitiveData(data: unknown): unknown {
   if (typeof data === "string") {
-    // Masquer les tokens
     let filtered = data.replace(/Bearer\s+[A-Za-z0-9\-._~+/]+=*/gi, "Bearer [REDACTED]");
-    // Masquer les URLs API complètes
     filtered = filtered.replace(/https?:\/\/api\.[^\/\s]+\/api\/v1\/[^\s]*/gi, "[API_CALL]");
-    // Masquer les emails
     filtered = filtered.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, "[EMAIL]");
     return filtered;
   }
   
   if (typeof data === "object" && data !== null) {
-    // Ne pas exposer les objets complexes
     return "[Object]";
   }
   
   return data;
 }
 
-/**
- * Headers de sécurité pour les requêtes API
- */
 export function getSecurityHeaders(): Record<string, string> {
   return {
     "X-Requested-With": "XMLHttpRequest",
@@ -202,17 +164,11 @@ export function getSecurityHeaders(): Record<string, string> {
   };
 }
 
-/**
- * Vérifie si l'utilisateur est dans un environnement sécurisé (HTTPS)
- */
 export function isSecureContext(): boolean {
   if (typeof window === "undefined") return true;
   return window.isSecureContext || window.location.protocol === "https:";
 }
 
-/**
- * Nettoie les données sensibles avant de les stocker
- */
 export function sanitizeForStorage(data: Record<string, unknown>): Record<string, unknown> {
   const sensitiveKeys = ["password", "token", "secret", "key", "credential"];
   const sanitized = { ...data };

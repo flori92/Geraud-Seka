@@ -91,7 +91,6 @@ export default function FinancialStatementsPage() {
 
     setLoading(true);
     try {
-      // Récupérer les exercices
       const yearsRes = await fetch(`${API_BASE_URL}/api/v1/accounting/fiscal-years`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -104,7 +103,6 @@ export default function FinancialStatementsPage() {
         }
       }
 
-      // Récupérer les états financiers
       if (selectedYear) {
         const statementsRes = await fetch(
           `${API_BASE_URL}/api/v1/accounting/financial-statements?fiscal_year_id=${selectedYear}`,
@@ -124,7 +122,6 @@ export default function FinancialStatementsPage() {
 
   useEffect(() => {
     fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedYear]);
 
   const generateStatement = async (type: string) => {

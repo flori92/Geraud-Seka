@@ -99,7 +99,6 @@ export default function AccountingEntryDetailPage() {
   useEffect(() => {
     if (!router.isReady) return;
     fetchEntry();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router.isReady, id]);
 
   const totals = useMemo(() => {

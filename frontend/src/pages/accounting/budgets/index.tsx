@@ -73,7 +73,6 @@ export default function BudgetsPage() {
 
   useEffect(() => {
     fetchBudgets();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const deleteBudget = async (id: string) => {

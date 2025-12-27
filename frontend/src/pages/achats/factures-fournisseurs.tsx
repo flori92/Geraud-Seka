@@ -27,7 +27,6 @@ import {
   Bot
 } from "lucide-react";
 
-// Types
 interface SupplierInvoice {
   id: string;
   number: string;
@@ -92,7 +91,6 @@ export default function FacturesFournisseursPage() {
 
     setLoading(true);
     try {
-      // Build query params
       const params = new URLSearchParams();
       if (activeTab !== 'all') {
         params.append('workflow_status', activeTab);
@@ -104,7 +102,6 @@ export default function FacturesFournisseursPage() {
         params.append(filter.type, filter.value);
       });
 
-      // Fetch supplier invoices
       const invoicesResponse = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/v1/supplier-invoices?${params.toString()}`,
         { headers: { Authorization: `Bearer ${token}` } }
@@ -115,7 +112,6 @@ export default function FacturesFournisseursPage() {
         setInvoices(Array.isArray(data) ? data : []);
       }
 
-      // Fetch stats
       const statsResponse = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/v1/supplier-invoices/stats`,
         { headers: { Authorization: `Bearer ${token}` } }

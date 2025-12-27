@@ -1,26 +1,16 @@
-/**
- * SEKA Design System
- * Bleu Nuit - Interface épurée et soft
- * Central configuration for colors, spacing, typography, and components
- */
-
-// ========== COLOR PALETTE ==========
 export const COLORS = {
-  // Bleu Nuit SEKA - Couleur principale
   primary: {
-    50: '#eef2ff',   // Très clair - backgrounds subtils
-    100: '#e0e7ff',  // Clair - hover backgrounds
-    200: '#c7d2fe',  // Léger - borders soft
-    300: '#a5b4fc',  // Soft - accents légers
-    400: '#818cf8',  // Medium - liens secondaires
-    500: '#1e3a5f',  // Bleu Nuit SEKA - couleur principale
-    600: '#172e4d',  // Hover state
-    700: '#11233b',  // Active/pressed
-    800: '#0b1829',  // Dark variant
-    900: '#050d17',  // Très dark
+    50: '#eef2ff',
+    100: '#e0e7ff',
+    200: '#c7d2fe',
+    300: '#a5b4fc',
+    400: '#818cf8',
+    500: '#1e3a5f',
+    600: '#172e4d',
+    700: '#11233b',
+    800: '#0b1829',
+    900: '#050d17',
   },
-  
-  // Accent colors for secondary actions
   accent: {
     cyan: '#06b6d4',
     blue: '#3b82f6',
@@ -29,7 +19,6 @@ export const COLORS = {
     teal: '#14b8a6',
   },
 
-  // Status colors for feedback
   status: {
     success: '#10b981',
     warning: '#f59e0b',
@@ -37,7 +26,6 @@ export const COLORS = {
     info: '#3b82f6',
   },
 
-  // Neutral colors for backgrounds and text
   neutral: {
     50: '#f9fafb',
     100: '#f3f4f6',
@@ -52,28 +40,25 @@ export const COLORS = {
   },
 };
 
-// ========== SPACING ==========
 export const SPACING = {
-  xs: '0.25rem',   // 4px
-  sm: '0.5rem',    // 8px
-  md: '1rem',      // 16px
-  lg: '1.5rem',    // 24px
-  xl: '2rem',      // 32px
-  '2xl': '2.5rem', // 40px
-  '3xl': '3rem',   // 48px
+  xs: '0.25rem',
+  sm: '0.5rem',
+  md: '1rem',
+  lg: '1.5rem',
+  xl: '2rem',
+  '2xl': '2.5rem',
+  '3xl': '3rem',
 };
 
-// ========== BORDER RADIUS ==========
 export const BORDER_RADIUS = {
   none: '0',
-  sm: '0.375rem',   // 6px
-  md: '0.5rem',     // 8px
-  lg: '0.75rem',    // 12px
-  xl: '1rem',       // 16px
-  '2xl': '1.5rem',  // 24px
+  sm: '0.375rem',
+  md: '0.5rem',
+  lg: '0.75rem',
+  xl: '1rem',
+  '2xl': '1.5rem',
 };
 
-// ========== SHADOWS ==========
 export const SHADOWS = {
   sm: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
   md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
@@ -81,16 +66,15 @@ export const SHADOWS = {
   xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
 };
 
-// ========== TYPOGRAPHY ==========
 export const FONT_SIZES = {
-  xs: '0.75rem',    // 12px
-  sm: '0.875rem',   // 14px
-  base: '1rem',     // 16px
-  lg: '1.125rem',   // 18px
-  xl: '1.25rem',    // 20px
-  '2xl': '1.5rem',  // 24px
-  '3xl': '1.875rem', // 30px
-  '4xl': '2.25rem', // 36px
+  xs: '0.75rem',
+  sm: '0.875rem',
+  base: '1rem',
+  lg: '1.125rem',
+  xl: '1.25rem',
+  '2xl': '1.5rem',
+  '3xl': '1.875rem',
+  '4xl': '2.25rem',
 };
 
 export const FONT_WEIGHTS = {
@@ -101,7 +85,6 @@ export const FONT_WEIGHTS = {
   bold: 700,
 };
 
-// ========== BUTTON VARIANTS ==========
 export const BUTTON_VARIANTS = {
   primary: {
     bg: 'bg-primary-500',
@@ -133,14 +116,12 @@ export const BUTTON_VARIANTS = {
   },
 };
 
-// ========== FORM VARIANTS ==========
 export const INPUT_VARIANTS = {
   default: 'border-neutral-200 bg-white',
   subtle: 'border-transparent bg-neutral-100',
   error: 'border-2 border-status-danger focus:ring-status-danger/20',
 };
 
-// ========== LAYOUT BREAKPOINTS ==========
 export const BREAKPOINTS = {
   xs: '320px',
   sm: '640px',
@@ -150,7 +131,6 @@ export const BREAKPOINTS = {
   '2xl': '1536px',
 };
 
-// ========== Z-INDEX SCALE ==========
 export const Z_INDEX = {
   hide: -1,
   base: 0,
@@ -162,28 +142,22 @@ export const Z_INDEX = {
   tooltip: 60,
 };
 
-// ========== TRANSITIONS ==========
 export const TRANSITIONS = {
   fast: 'transition-all duration-150',
   normal: 'transition-all duration-200',
   slow: 'transition-all duration-300',
 };
 
-// ========== COMMON UTILITIES ==========
 export const UTILITIES = {
-  // Card containers
   card: 'bg-white border border-neutral-200 rounded-lg shadow-sm',
   cardElevated: 'bg-white border border-neutral-100 rounded-lg shadow-lg',
   cardOutlined: 'bg-transparent border border-neutral-300 rounded-lg',
 
-  // Form inputs
   inputBase: 'block w-full rounded-lg px-3 py-2 text-sm border focus:outline-none focus:ring-2 transition-colors',
   inputDefault: 'border-neutral-200 bg-white focus:ring-primary-500/20 focus:border-primary-500',
 
-  // Buttons
   buttonBase: 'inline-flex items-center justify-center gap-2 font-medium transition-all duration-200 rounded-lg border border-transparent focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed',
 
-  // Typography
   headingLg: 'text-2xl font-bold text-neutral-900',
   headingMd: 'text-xl font-semibold text-neutral-900',
   headingSm: 'text-lg font-semibold text-neutral-900',
@@ -191,7 +165,6 @@ export const UTILITIES = {
   textSm: 'text-sm text-neutral-600',
   textXs: 'text-xs text-neutral-500',
 
-  // Spacing utilities
   sectionPadding: 'px-6 py-8',
   containerPadding: 'px-4 py-4',
   gridGap: 'gap-6',

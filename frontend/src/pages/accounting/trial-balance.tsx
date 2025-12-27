@@ -16,7 +16,6 @@ export default function TrialBalancePage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Filters
     const [search, setSearch] = useState("");
     const [period, setPeriod] = useState("current_year");
     const [startDate, setStartDate] = useState("");
@@ -38,7 +37,6 @@ export default function TrialBalancePage() {
                 return;
             }
 
-            // Calculate dates based on period if not custom
             let start = startDate;
             let end = endDate;
 
@@ -74,7 +72,6 @@ export default function TrialBalancePage() {
     }) || [];
 
     const handleExport = () => {
-        // TODO: Implement export functionality
         console.log("Exporting trial balance...");
     };
 

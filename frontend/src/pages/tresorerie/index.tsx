@@ -29,7 +29,6 @@ interface TreasuryDashboard {
   };
   alerts: Array<{ type: string; message: string; amount: number }>;
   bank_accounts: Array<{ name: string; bank: string; balance: number; currency: string }>;
-  // Données graphiques
   weekly_balances?: number[];
   weekly_inflows?: number[];
   weekly_outflows?: number[];
@@ -92,7 +91,6 @@ export default function TresoreriePage() {
     }).format(amount);
   };
 
-  // Chart options
   const forecastChartOptions: ApexCharts.ApexOptions = {
     chart: { type: "area", toolbar: { show: false }, zoom: { enabled: false } },
     dataLabels: { enabled: false },

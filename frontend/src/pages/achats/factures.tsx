@@ -47,7 +47,6 @@ export default function FacturesFournisseurs() {
       setLoading(true);
       try {
         const documents = await getDocuments(token);
-        // Transform documents to display format
         const displayInvoices: DisplayInvoice[] = documents.map((doc: Document) => {
           const ocr = (doc.ocr_data ?? {}) as Record<string, unknown>;
           const ocrStr = (key: string) => (typeof ocr[key] === "string" ? (ocr[key] as string) : "");
@@ -134,7 +133,6 @@ export default function FacturesFournisseurs() {
     }
   };
 
-  // Helper to determine TVA rate from amounts
   const determineTVARate = (vat?: number, ht?: number): InvoiceStatus => {
     if (!vat || !ht || ht === 0) return "aucune";
     const rate = (vat / ht) * 100;

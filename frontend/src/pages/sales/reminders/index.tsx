@@ -91,7 +91,6 @@ export default function RemindersPage() {
 
   useEffect(() => {
     fetchReminders();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const sendReminder = async (reminderId: string) => {
@@ -203,7 +202,6 @@ export default function RemindersPage() {
     }
   };
 
-  // Stats
   const stats = {
     total: reminders.length,
     pending: reminders.filter((r) => r.status === "pending").length,
@@ -401,7 +399,6 @@ export default function RemindersPage() {
   );
 }
 
-// Modal paramètres
 function ReminderSettingsModal({
   settings,
   onClose,

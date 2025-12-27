@@ -16,7 +16,6 @@ import {
   Settings
 } from "lucide-react";
 
-// Types
 interface AccountBalance {
   account_number: string;
   account_name: string;
@@ -151,7 +150,6 @@ export default function BalanceGeneralePage() {
   const totalPages = Math.ceil(filteredAccounts.length / perPage);
 
   const exportToExcel = () => {
-    // In production, implement Excel export
     console.log('Exporting balance to Excel...');
   };
 

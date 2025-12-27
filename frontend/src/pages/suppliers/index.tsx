@@ -62,7 +62,6 @@ export default function SuppliersPage() {
       });
       if (response.ok) {
         const data = await response.json();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         setSuppliers(data.map((s: any) => ({
           id: s.id,
           name: s.name || s.company_name,

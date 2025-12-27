@@ -20,7 +20,6 @@ import {
   ArrowRight
 } from "lucide-react";
 
-// Types
 interface BankTransaction {
   id: string;
   date: string;
@@ -85,7 +84,6 @@ export default function ReconciliationPage() {
         params.append(filter.type, filter.value);
       });
 
-      // Fetch transactions
       const transactionsResponse = await fetch(
         `${apiPrefix}/accounting/reconciliation/transactions?${params.toString()}`,
         { headers: { Authorization: `Bearer ${token}` } }
@@ -96,7 +94,6 @@ export default function ReconciliationPage() {
         setTransactions(Array.isArray(data) ? data : []);
       }
 
-      // Fetch stats
       const statsResponse = await fetch(
         `${apiPrefix}/accounting/reconciliation/stats`,
         { headers: { Authorization: `Bearer ${token}` } }

@@ -12,8 +12,6 @@ import {
   getClients,
   getInvoices,
   getQuotes,
-  // getOpportunities,    // CRM module removed
-  // getCRMActivities,    // CRM module removed
   type DashboardStats,
   type DashboardStatsExtended,
   type Client,
@@ -64,7 +62,6 @@ import dynamic from "next/dynamic";
 
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
-// ========== COMPOSANTS DE DASHBOARD ==========
 
 interface StatCardProps {
   title: string;
@@ -232,7 +229,6 @@ function ActivityItem({ icon: Icon, iconBg, title, subtitle, time, amount }: Act
   );
 }
 
-// ========== COMPOSANT PRINCIPAL ==========
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -259,24 +255,18 @@ export default function DashboardPage() {
         return;
       }
 
-      // Fetch all data en parallèle (statistiques générales + vues Pennylane-like)
-      // Note: CRM endpoints (opportunities, activities) sont désactivés car module CRM supprimé
       const [
         statsData,
         extendedData,
         clientsData,
         invoicesData,
         quotesData,
-        // oppsData,        // CRM module removed
-        // activitiesData   // CRM module removed
       ] = await Promise.allSettled([
         getDashboardStats(token),
         getDashboardStatsExtended(token),
         getClients(token),
         getInvoices(token),
         getQuotes(token),
-        // getOpportunities(token),  // CRM module removed
-        // getCRMActivities(token)   // CRM module removed
       ]);
 
       if (statsData.status === "fulfilled") setStats(statsData.value);
@@ -284,10 +274,7 @@ export default function DashboardPage() {
       if (clientsData.status === "fulfilled") setClients(clientsData.value);
       if (invoicesData.status === "fulfilled") setInvoices(invoicesData.value);
       if (quotesData.status === "fulfilled") setQuotes(quotesData.value);
-      // if (oppsData.status === "fulfilled") setOpportunities(oppsData.value);         // CRM module removed - stays as empty []
-      // if (activitiesData.status === "fulfilled") setActivities(activitiesData.value); // CRM module removed - stays as empty []
 
-      // Fetch accounting and treasury data
       try {
         const [accRes, treasRes] = await Promise.all([
           fetch(`${API_BASE_URL}/api/v1/accounting/advanced/stats`, { headers: { Authorization: `Bearer ${token}` } }),
@@ -323,7 +310,6 @@ export default function DashboardPage() {
     fetchAllData();
   };
 
-  // Calculs des métriques
   const calculatedStats = useMemo(() => {
     const totalRevenue = invoices?.reduce((sum, inv) => sum + (inv?.paid || 0), 0) || 0;
     const pendingInvoices = invoices?.filter(inv => inv?.status === "Impayée" || inv?.status === "unpaid")?.length || 0;

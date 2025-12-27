@@ -49,7 +49,6 @@ export default function ConsistencyChecksPage() {
 
   useEffect(() => {
     fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleExport = () => {
