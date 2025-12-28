@@ -1,25 +1,34 @@
 """
 Gemini AI Service
 Integration with Google's Gemini API for intelligent chat responses
+Avec fallback vers Groq (Llama) en cas de quota dépassé
 """
 import os
+import httpx
 from typing import Optional, List, Dict
 import google.generativeai as genai
 from datetime import datetime
 
 
 class GeminiService:
-    """Service for interacting with Google Gemini AI"""
+    """Service for interacting with Google Gemini AI with Groq fallback"""
     
     def __init__(self):
         """Initialize Gemini with API key from environment"""
-        api_key = os.getenv("GEMINI_API_KEY")
-        if not api_key:
-            raise ValueError("GEMINI_API_KEY not found in environment variables")
+        self.gemini_api_key = os.getenv("GEMINI_API_KEY")
+        self.groq_api_key = os.getenv("GROQ_API_KEY")
         
-        genai.configure(api_key=api_key)
+        if not self.gemini_api_key:
+            print("⚠️ GEMINI_API_KEY non trouvée - utilisation de Groq uniquement")
+        else:
+            genai.configure(api_key=self.gemini_api_key)
+            # Initialiser le modèle Gemini
+            self.model = genai.GenerativeModel('gemini-1.5-flash')
         
-        self.model = genai.GenerativeModel('gemini-2.0-flash')
+        if not self.groq_api_key:
+            print("⚠️ GROQ_API_KEY non trouvée - pas de fallback disponible")
+        
+        self.use_groq_fallback = False  # Flag pour basculer vers Groq après quota exceeded
         
         self.system_context = """
 Tu es l'assistant virtuel de SEKA, un ERP/CRM moderne pour les PME africaines.
@@ -66,13 +75,55 @@ INSTRUCTIONS:
 - Mets en avant les avantages pour les PME africaines
 """
     
+    def _build_prompt(
+        self,
+        user_message: str,
+        conversation_history: Optional[List[Dict[str, str]]] = None
+    ) -> str:
+        """Build the full prompt with context and history"""
+        full_prompt = self.system_context + "\n\n"
+        
+        if conversation_history:
+            for msg in conversation_history[-5:]:  # Last 5 messages for context
+                role = "Utilisateur" if msg["role"] == "user" else "Assistant"
+                full_prompt += f"{role}: {msg['content']}\n"
+        
+        full_prompt += f"\nUtilisateur: {user_message}\nAssistant:"
+        return full_prompt
+    
+    def _call_groq(self, prompt: str) -> str:
+        """Call Groq API (Llama) as fallback"""
+        if not self.groq_api_key:
+            raise ValueError("GROQ_API_KEY non configurée")
+        
+        with httpx.Client(timeout=30.0) as client:
+            response = client.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {self.groq_api_key}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": "llama-3.1-8b-instant",
+                    "messages": [
+                        {"role": "system", "content": self.system_context},
+                        {"role": "user", "content": prompt}
+                    ],
+                    "max_tokens": 1024,
+                    "temperature": 0.7
+                }
+            )
+            response.raise_for_status()
+            data = response.json()
+            return data["choices"][0]["message"]["content"].strip()
+    
     def generate_response(
         self,
         user_message: str,
         conversation_history: Optional[List[Dict[str, str]]] = None
     ) -> str:
         """
-        Generate AI response using Gemini
+        Generate AI response using Gemini with Groq fallback
         
         Args:
             user_message: The user's message
@@ -82,23 +133,49 @@ INSTRUCTIONS:
         Returns:
             AI-generated response
         """
-        try:
-            full_prompt = self.system_context + "\n\n"
-            
-            if conversation_history:
-                for msg in conversation_history[-5:]:  # Last 5 messages for context
-                    role = "Utilisateur" if msg["role"] == "user" else "Assistant"
-                    full_prompt += f"{role}: {msg['content']}\n"
-            
-            full_prompt += f"\nUtilisateur: {user_message}\nAssistant:"
-            
-            response = self.model.generate_content(full_prompt)
-            
-            return response.text.strip()
-            
-        except Exception as e:
-            print(f"Gemini API Error: {str(e)}")
-            return self._get_fallback_response(user_message)
+        full_prompt = self._build_prompt(user_message, conversation_history)
+        
+        # Si Groq est activé en fallback (après quota exceeded)
+        if self.use_groq_fallback and self.groq_api_key:
+            try:
+                print("🔄 Utilisation de Groq (Llama) - Gemini quota exceeded")
+                return self._call_groq(user_message)
+            except Exception as e:
+                print(f"Groq API Error: {str(e)}")
+                return self._get_fallback_response(user_message)
+        
+        # Essayer Gemini d'abord
+        if self.gemini_api_key and hasattr(self, 'model'):
+            try:
+                response = self.model.generate_content(full_prompt)
+                return response.text.strip()
+                
+            except Exception as e:
+                error_str = str(e)
+                print(f"Gemini API Error: {error_str}")
+                
+                # Détecter erreur de quota (429)
+                if "429" in error_str or "quota" in error_str.lower() or "exceeded" in error_str.lower():
+                    print("⚠️ Quota Gemini dépassé - basculement vers Groq")
+                    self.use_groq_fallback = True
+                    
+                    # Réessayer avec Groq
+                    if self.groq_api_key:
+                        try:
+                            return self._call_groq(user_message)
+                        except Exception as groq_error:
+                            print(f"Groq API Error: {str(groq_error)}")
+                
+                return self._get_fallback_response(user_message)
+        
+        # Si pas de Gemini, essayer Groq directement
+        if self.groq_api_key:
+            try:
+                return self._call_groq(user_message)
+            except Exception as e:
+                print(f"Groq API Error: {str(e)}")
+        
+        return self._get_fallback_response(user_message)
     
     def _get_fallback_response(self, user_message: str) -> str:
         """Fallback response if Gemini fails"""
