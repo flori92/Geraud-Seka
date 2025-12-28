@@ -98,7 +98,7 @@ export function DataTable<T>({
   return (
     <div className="bg-white rounded-lg border border-neutral-200 overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full">
+        <table className="w-full min-w-[600px]">
           <thead className="bg-neutral-50 border-b border-neutral-200">
             <tr>
               {columns.map((col) => (
@@ -140,11 +140,11 @@ export function DataTable<T>({
       </div>
 
       {pagination && (
-        <div className="flex items-center justify-between px-4 py-3 border-t border-neutral-200 bg-neutral-50">
-          <p className="text-sm text-neutral-500">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-3 sm:px-4 py-3 border-t border-neutral-200 bg-neutral-50">
+          <p className="text-xs sm:text-sm text-neutral-500 text-center sm:text-left">
             {pagination.total} résultat{pagination.total !== 1 ? "s" : ""}
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             <Button
               variant="secondary"
               size="sm"
@@ -152,8 +152,8 @@ export function DataTable<T>({
               disabled={pagination.page <= 1}
               icon={<ChevronLeft className="w-4 h-4" />}
             />
-            <span className="text-sm text-neutral-500 px-2">
-              Page {pagination.page} sur {totalPages}
+            <span className="text-xs sm:text-sm text-neutral-500 px-1 sm:px-2 whitespace-nowrap">
+              {pagination.page}/{totalPages}
             </span>
             <Button
               variant="secondary"

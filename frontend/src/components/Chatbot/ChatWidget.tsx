@@ -93,15 +93,15 @@ export function ChatWidget() {
       {/* Floating Chat Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full bg-primary-600 text-white shadow-lg hover:bg-primary-700 transition-all hover:scale-110 flex items-center justify-center"
+        className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 z-50 h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-primary-600 text-white shadow-lg hover:bg-primary-700 transition-all hover:scale-110 flex items-center justify-center"
         aria-label="Ouvrir le chat"
       >
-        {isOpen ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
+        {isOpen ? <X className="h-4 w-4 sm:h-6 sm:w-6" /> : <MessageCircle className="h-4 w-4 sm:h-6 sm:w-6" />}
       </button>
 
       {/* Chat Modal */}
       {isOpen && (
-        <div className="fixed bottom-24 right-6 z-50 w-96 h-[600px] bg-white rounded-lg shadow-2xl border border-gray-200 flex flex-col">
+        <div className="fixed bottom-20 sm:bottom-24 right-2 sm:right-6 z-50 w-[calc(100vw-16px)] sm:w-96 h-[70vh] sm:h-[600px] bg-white rounded-lg shadow-2xl border border-gray-200 flex flex-col">
           {/* Header */}
           <div className="bg-primary-600 text-white p-4 rounded-t-lg flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
@@ -171,7 +171,7 @@ export function ChatWidget() {
               </button>
             </div>
             <p className="text-xs text-gray-400 mt-2 text-center">
-              Alimenté par l'IA · Toujours vérifier les informations importantes
+              Alimenté par l&apos;IA · Toujours vérifier les informations importantes
             </p>
           </div>
         </div>

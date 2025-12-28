@@ -100,7 +100,7 @@ export function DataTable<T extends object>({
 
   return (
     <div className="w-full overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
-      <table className="w-full text-sm">
+      <table className="w-full text-sm min-w-[600px]">
         <thead className="bg-gray-50 border-b border-gray-200">
           <tr>
             {selectable && (
