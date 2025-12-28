@@ -34,7 +34,7 @@ function HelpPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
     <div className="fixed inset-0 z-50" onClick={onClose}>
       <div className="absolute inset-0 bg-black/20" />
       <div 
-        className="absolute right-4 top-16 w-80 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden"
+        className="absolute right-2 sm:right-4 top-16 w-72 sm:w-80 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden max-h-[80vh]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-4 border-b border-gray-100 flex items-center justify-between">
@@ -198,7 +198,7 @@ function NotificationsPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () 
     <div className="fixed inset-0 z-50" onClick={onClose}>
       <div className="absolute inset-0 bg-black/20" />
       <div 
-        className="absolute right-4 top-16 w-96 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden max-h-[70vh] flex flex-col"
+        className="absolute right-2 sm:right-4 top-16 w-80 sm:w-96 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden max-h-[70vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-4 border-b border-gray-100 flex items-center justify-between">
@@ -270,10 +270,11 @@ export function DashboardLayout({ title, children }: DashboardLayoutProps) {
     <>
       <Head>
         <title>{pageTitle}</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       </Head>
       {/* Main Content - Sidebar et Header sont dans _app.tsx */}
       <div className="min-h-screen bg-neutral-50">
-        <div className="mx-auto max-w-6xl p-6">
+        <div className="mx-auto max-w-full lg:max-w-6xl p-4 sm:p-6">
           {children}
         </div>
       </div>
