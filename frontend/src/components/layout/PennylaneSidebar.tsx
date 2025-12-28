@@ -303,7 +303,12 @@ const badgeStyles: Record<string, string> = {
   included: "bg-blue-500 text-white text-[10px] px-1.5 py-0.5 rounded font-medium",
 };
 
-export function PennylaneSidebar() {
+interface PennylaneSidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export function PennylaneSidebar({ isOpen = true, onClose }: PennylaneSidebarProps) {
   const [viewMode, setViewMode] = useState<"management" | "accounting">("management");
   const [openMenus, setOpenMenus] = useState<string[]>([]);
   const [user, setUser] = useState<User | null>(null);
@@ -387,7 +392,15 @@ export function PennylaneSidebar() {
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
   return (
-    <div className="sidebar fixed left-0 top-0 h-full w-[240px] flex flex-col bg-[#0f172a] border-r border-[#1e293b] z-40 overflow-hidden">
+    <>
+      {/* Overlay pour mobile */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-30 lg:hidden" 
+          onClick={onClose}
+        />
+      )}
+      <div className={`sidebar fixed left-0 top-0 h-full w-[240px] flex flex-col bg-[#0f172a] border-r border-[#1e293b] z-40 overflow-hidden transition-transform duration-300 lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
       {/* Header avec toggle Comptabilité/Gestion */}
       <div className="p-3 border-b border-[#1e293b]">
         {/* Toggle Switch */}
@@ -526,5 +539,6 @@ export function PennylaneSidebar() {
         </div>
       </div>
     </div>
+    </>
   );
 }

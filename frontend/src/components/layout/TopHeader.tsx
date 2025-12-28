@@ -67,7 +67,7 @@ export default function TopHeader({ onClientChange, onMenuToggle }: TopHeaderPro
 
     return (
         <>
-        <header className="fixed top-0 left-[220px] right-0 h-14 bg-white border-b border-gray-200 z-30 flex items-center justify-between px-4 shadow-sm">
+        <header className="fixed top-0 left-0 lg:left-[240px] right-0 h-14 bg-white border-b border-gray-200 z-30 flex items-center justify-between px-4 pl-14 lg:pl-4 shadow-sm">
             {/* Left side - Client Selector */}
             <div className="flex items-center gap-4">
                 <button
