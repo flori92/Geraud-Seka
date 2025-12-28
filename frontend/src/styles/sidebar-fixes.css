@@ -1,28 +1,3 @@
-/* Corrections pour la sidebar et le contenu */
-
-/* Assurer que le contenu principal ne soit pas caché par la sidebar */
-.main-content {
-  margin-left: 220px;
-  min-height: 100vh;
-  transition: margin-left 0.3s ease;
-}
-
-/* Sidebar responsive */
-@media (max-width: 768px) {
-  .main-content {
-    margin-left: 0;
-  }
-  
-  .sidebar {
-    transform: translateX(-100%);
-    transition: transform 0.3s ease;
-  }
-  
-  .sidebar.open {
-    transform: translateX(0);
-  }
-}
-
 /* Scrollbar personnalisée pour la sidebar */
 .sidebar::-webkit-scrollbar {
   width: 4px;
