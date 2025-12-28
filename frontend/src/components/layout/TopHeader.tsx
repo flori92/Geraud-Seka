@@ -67,12 +67,13 @@ export default function TopHeader({ onClientChange, onMenuToggle }: TopHeaderPro
 
     return (
         <>
-        <header className="fixed top-0 left-0 lg:left-[240px] right-0 h-14 bg-white border-b border-gray-200 z-30 flex items-center justify-between px-4 pl-14 lg:pl-4 shadow-sm">
+        <header className="fixed top-0 left-0 lg:left-[240px] right-0 h-14 bg-white border-b border-gray-200 z-30 flex items-center justify-between px-3 sm:px-4 shadow-sm">
             {/* Left side - Client Selector */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
                 <button
                     onClick={onMenuToggle}
                     className="lg:hidden p-2 hover:bg-gray-100 rounded-lg"
+                    aria-label="Ouvrir le menu"
                 >
                     <Menu className="h-5 w-5 text-gray-600" />
                 </button>
@@ -85,7 +86,7 @@ export default function TopHeader({ onClientChange, onMenuToggle }: TopHeaderPro
                     <input
                         type="text"
                         placeholder="Recherche rapide (Cmd+K)"
-                        className="pl-9 pr-4 py-2 w-64 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-blue-500 focus:bg-white transition-colors"
+                        className="pl-9 pr-4 py-2 w-48 lg:w-64 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-blue-500 focus:bg-white transition-colors"
                     />
                     <kbd className="absolute right-3 hidden lg:inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium text-gray-400 bg-gray-100 rounded">
                         <span>Cmd</span>

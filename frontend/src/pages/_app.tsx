@@ -40,6 +40,10 @@ export default function App({ Component, pageProps }: AppProps) {
     return <TopHeader onClientChange={handleClientChange} />;
   }
 
+  const mainClass = showSidebar
+    ? "lg:ml-[240px] transition-all duration-300 pt-14 px-3 sm:px-4"
+    : "px-3 sm:px-4";
+
   return (
     <ToastProvider>
       <ClientProvider>
@@ -63,7 +67,7 @@ export default function App({ Component, pageProps }: AppProps) {
             </button>
           )}
           
-          <main className={showSidebar ? "lg:ml-[240px] ml-0 transition-all duration-300 pt-14" : ""}>
+          <main className={mainClass}>
             <Component {...pageProps} />
           </main>
         </div>
