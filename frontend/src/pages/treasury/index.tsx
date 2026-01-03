@@ -23,7 +23,6 @@ import {
   Building2,
   BarChart3,
   ChevronRight,
-  RefreshCw,
   AlertTriangle,
   Calendar,
   Landmark
@@ -103,7 +102,6 @@ function QuickAction({ icon: Icon, label, href, color }: QuickActionProps) {
 }
 
 export default function TreasuryDashboard() {
-  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState<TreasuryDashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -123,7 +121,7 @@ export default function TreasuryDashboard() {
       const data = await getTreasuryDashboard(token);
       setDashboardData(data);
       setError(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError('Erreur lors du chargement du dashboard');
       console.error('Error fetching dashboard:', err);
     } finally {
