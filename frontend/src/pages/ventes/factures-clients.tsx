@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -12,9 +12,6 @@ import {
   X,
   Download,
   Send,
-  Eye,
-  Edit,
-  Trash2,
   MoreHorizontal,
   Calendar,
   User,
@@ -80,11 +77,7 @@ export default function FacturesClientsPage() {
   const [showFiltersMenu, setShowFiltersMenu] = useState(false);
   const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
 
-  useEffect(() => {
-    fetchData();
-  }, [activeTab, filters]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     const token = localStorage.getItem("seka_access_token");
     if (!token) {
       router.push("/login");
@@ -128,7 +121,11 @@ export default function FacturesClientsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router, activeTab, searchQuery, filters]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const calculateInvoiceStatus = (invoice: Invoice): InvoiceStatus => {
     if (invoice.status === 'cancelled') return 'cancelled';
@@ -223,91 +220,93 @@ export default function FacturesClientsPage() {
       </Head>
       <div className="min-h-screen bg-gray-50">
         <PennylaneSidebar />
-        <main className="ml-[220px]">
+        <main className="lg:ml-[220px]">
           {/* Header */}
-          <div className="bg-white border-b border-gray-200 px-6 py-4">
-            <div className="flex items-center justify-between">
+          <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
-                <h1 className="text-xl font-semibold text-gray-900">Factures clients</h1>
-                <p className="text-sm text-gray-600 mt-0.5">
+                <h1 className="text-lg sm:text-xl font-semibold text-gray-900">Factures clients</h1>
+                <p className="text-xs sm:text-sm text-gray-600 mt-0.5">
                   Gérez vos factures de vente et suivez vos paiements
                 </p>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <Link
                   href="/ventes/nouveau-devis"
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium"
+                  className="px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-xs sm:text-sm font-medium"
                 >
-                  Nouveau devis
+                  <span className="hidden sm:inline">Nouveau devis</span>
+                  <span className="sm:hidden">Devis</span>
                 </Link>
                 <Link
                   href="/ventes/nouvelle-facture"
-                  className="px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#172e4d] flex items-center gap-2 text-sm font-medium"
+                  className="px-3 sm:px-4 py-1.5 sm:py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#172e4d] flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium"
                 >
                   <Plus className="h-4 w-4" />
-                  Nouvelle facture
+                  <span className="hidden sm:inline">Nouvelle facture</span>
+                  <span className="sm:hidden">Facture</span>
                 </Link>
               </div>
             </div>
           </div>
 
           {/* Stats Cards */}
-          <div className="px-6 py-6">
-            <div className="grid grid-cols-4 gap-4 mb-6">
-              <div className="bg-white rounded-lg border border-gray-200 p-5">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-600">CA facturé</span>
+          <div className="px-4 sm:px-6 py-4 sm:py-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
+              <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-5">
+                <div className="flex items-center justify-between mb-1 sm:mb-2">
+                  <span className="text-xs sm:text-sm text-gray-600">CA facturé</span>
                   <TrendingUp className="h-4 w-4 text-blue-600" />
                 </div>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-lg sm:text-2xl font-bold text-gray-900">
                   {formatCurrency(stats?.ca_facture || 0)}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">Total facturé</p>
+                <p className="text-xs text-gray-500 mt-1 hidden sm:block">Total facturé</p>
               </div>
 
-              <div className="bg-white rounded-lg border border-gray-200 p-5">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-600">CA payé</span>
+              <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-5">
+                <div className="flex items-center justify-between mb-1 sm:mb-2">
+                  <span className="text-xs sm:text-sm text-gray-600">CA payé</span>
                   <CheckCircle2 className="h-4 w-4 text-green-600" />
                 </div>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-lg sm:text-2xl font-bold text-gray-900">
                   {formatCurrency(stats?.ca_paye || 0)}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">Encaissements</p>
+                <p className="text-xs text-gray-500 mt-1 hidden sm:block">Encaissements</p>
               </div>
 
-              <div className="bg-white rounded-lg border border-gray-200 p-5">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-600">Factures en retard</span>
+              <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-5">
+                <div className="flex items-center justify-between mb-1 sm:mb-2">
+                  <span className="text-xs sm:text-sm text-gray-600">En retard</span>
                   <AlertCircle className="h-4 w-4 text-red-600" />
                 </div>
-                <p className="text-2xl font-bold text-red-600">
+                <p className="text-lg sm:text-2xl font-bold text-red-600">
                   {stats?.factures_retard || 0}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">À relancer</p>
+                <p className="text-xs text-gray-500 mt-1 hidden sm:block">À relancer</p>
               </div>
 
-              <div className="bg-white rounded-lg border border-gray-200 p-5">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-600">Factures non envoyées</span>
+              <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-5">
+                <div className="flex items-center justify-between mb-1 sm:mb-2">
+                  <span className="text-xs sm:text-sm text-gray-600">Non envoyées</span>
                   <Mail className="h-4 w-4 text-orange-600" />
                 </div>
-                <p className="text-2xl font-bold text-orange-600">
+                <p className="text-lg sm:text-2xl font-bold text-orange-600">
                   {stats?.factures_non_envoyees || 0}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">En attente d'envoi</p>
+                <p className="text-xs text-gray-500 mt-1 hidden sm:block">En attente d&apos;envoi</p>
               </div>
             </div>
 
             {/* Tabs */}
             <div className="bg-white rounded-lg border border-gray-200">
               <div className="border-b border-gray-200">
-                <div className="flex items-center px-6">
+                <div className="flex items-center px-2 sm:px-6 overflow-x-auto">
                   {tabOptions.map((tab) => (
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id as TabFilter)}
-                      className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                      className={`px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                         activeTab === tab.id
                           ? 'border-[#1e3a5f] text-[#1e3a5f]'
                           : 'border-transparent text-gray-600 hover:text-gray-900'
@@ -315,7 +314,7 @@ export default function FacturesClientsPage() {
                     >
                       {tab.label}
                       {tab.count > 0 && (
-                        <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-700">
+                        <span className="ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-700">
                           {tab.count}
                         </span>
                       )}
@@ -469,7 +468,7 @@ export default function FacturesClientsPage() {
                           Client
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Date d'émission
+                          Date d&apos;émission
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Échéance

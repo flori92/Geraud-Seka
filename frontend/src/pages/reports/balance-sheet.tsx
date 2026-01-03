@@ -182,46 +182,46 @@ export default function BalanceSheetPage() {
       </Head>
       <div className="min-h-screen bg-gray-50">
         <PennylaneSidebar />
-        <main className="ml-[220px]">
+        <main className="lg:ml-[220px]">
           {/* Header */}
-          <div className="bg-white border-b border-gray-200 px-6 py-4">
-            <div className="flex items-center justify-between">
+          <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
-                <h1 className="text-xl font-semibold text-gray-900">Bilan comptable</h1>
-                <p className="text-sm text-gray-600 mt-0.5">
+                <h1 className="text-lg sm:text-xl font-semibold text-gray-900">Bilan comptable</h1>
+                <p className="text-xs sm:text-sm text-gray-600 mt-0.5">
                   Visualisez votre bilan actif et passif
                 </p>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <button
                   onClick={exportToExcel}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium flex items-center gap-2"
+                  className="px-3 sm:px-4 py-1.5 sm:py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-xs sm:text-sm font-medium flex items-center gap-1.5 sm:gap-2"
                 >
                   <FileSpreadsheet className="h-4 w-4" />
-                  Excel
+                  <span className="hidden sm:inline">Excel</span>
                 </button>
                 <button
                   onClick={exportToPDF}
-                  className="px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#172e4d] flex items-center gap-2 text-sm font-medium"
+                  className="px-3 sm:px-4 py-1.5 sm:py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#172e4d] flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium"
                 >
                   <Download className="h-4 w-4" />
-                  Télécharger PDF
+                  <span className="hidden sm:inline">Télécharger PDF</span>
                 </button>
               </div>
             </div>
           </div>
 
           {/* Period Selector */}
-          <div className="px-6 py-4 bg-white border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
+          <div className="px-4 sm:px-6 py-3 sm:py-4 bg-white border-b border-gray-200">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                 <div className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-gray-400" />
-                  <span className="text-sm font-medium text-gray-700">Exercice:</span>
+                  <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
+                  <span className="text-xs sm:text-sm font-medium text-gray-700">Exercice:</span>
                   <select
                     value={selectedYear}
                     onChange={(e) => setSelectedYear(e.target.value)}
-                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] focus:border-transparent"
+                    className="px-2 sm:px-3 py-1 sm:py-1.5 border border-gray-300 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] focus:border-transparent"
                   >
                     {years.map(year => (
                       <option key={year.value} value={year.value}>{year.label}</option>
@@ -229,15 +229,15 @@ export default function BalanceSheetPage() {
                   </select>
                 </div>
                 {balanceSheet && (
-                  <div className="text-sm text-gray-600">
+                  <div className="text-xs sm:text-sm text-gray-600">
                     Comparaison: <span className="font-medium">{balanceSheet.period_n}</span> vs{' '}
                     <span className="font-medium">{balanceSheet.period_n1}</span>
                   </div>
                 )}
               </div>
-              <button className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 flex items-center gap-2">
+              <button className="px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1.5 sm:gap-2">
                 <Settings className="h-4 w-4" />
-                Paramètres d&apos;affichage
+                <span className="hidden sm:inline">Paramètres d&apos;affichage</span>
               </button>
             </div>
           </div>
@@ -253,26 +253,26 @@ export default function BalanceSheetPage() {
               <p className="text-gray-600">Aucune donnée de bilan disponible</p>
             </div>
           ) : (
-            <div className="px-6 py-6">
+            <div className="px-4 sm:px-6 py-4 sm:py-6">
               {/* Summary Cards */}
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="bg-white rounded-lg border border-gray-200 p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-12 w-12 rounded-lg bg-blue-100 flex items-center justify-center">
-                        <Building2 className="h-6 w-6 text-blue-600" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
+                <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+                  <div className="flex items-center justify-between mb-3 sm:mb-4">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-blue-100 flex items-center justify-center">
+                        <Building2 className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
                       </div>
                       <div>
-                        <h3 className="text-sm font-medium text-gray-600">Total ACTIF</h3>
-                        <p className="text-2xl font-bold text-gray-900">{formatCurrency(balanceSheet.total_actif_n)}</p>
+                        <h3 className="text-xs sm:text-sm font-medium text-gray-600">Total ACTIF</h3>
+                        <p className="text-lg sm:text-2xl font-bold text-gray-900">{formatCurrency(balanceSheet.total_actif_n)}</p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="text-xs text-gray-500">N-1</p>
-                      <p className="text-sm font-semibold text-gray-600">{formatCurrency(balanceSheet.total_actif_n1)}</p>
+                      <p className="text-xs sm:text-sm font-semibold text-gray-600">{formatCurrency(balanceSheet.total_actif_n1)}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 text-sm">
+                  <div className="flex items-center gap-2 text-xs sm:text-sm">
                     {balanceSheet.total_actif_n > balanceSheet.total_actif_n1 ? (
                       <TrendingUp className="h-4 w-4 text-green-600" />
                     ) : (
@@ -287,23 +287,23 @@ export default function BalanceSheetPage() {
                   </div>
                 </div>
 
-                <div className="bg-white rounded-lg border border-gray-200 p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-12 w-12 rounded-lg bg-purple-100 flex items-center justify-center">
-                        <Wallet className="h-6 w-6 text-purple-600" />
+                <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
+                  <div className="flex items-center justify-between mb-3 sm:mb-4">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-purple-100 flex items-center justify-center">
+                        <Wallet className="h-5 w-5 sm:h-6 sm:w-6 text-purple-600" />
                       </div>
                       <div>
-                        <h3 className="text-sm font-medium text-gray-600">Total PASSIF</h3>
-                        <p className="text-2xl font-bold text-gray-900">{formatCurrency(balanceSheet.total_passif_n)}</p>
+                        <h3 className="text-xs sm:text-sm font-medium text-gray-600">Total PASSIF</h3>
+                        <p className="text-lg sm:text-2xl font-bold text-gray-900">{formatCurrency(balanceSheet.total_passif_n)}</p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="text-xs text-gray-500">N-1</p>
-                      <p className="text-sm font-semibold text-gray-600">{formatCurrency(balanceSheet.total_passif_n1)}</p>
+                      <p className="text-xs sm:text-sm font-semibold text-gray-600">{formatCurrency(balanceSheet.total_passif_n1)}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 text-sm">
+                  <div className="flex items-center gap-2 text-xs sm:text-sm">
                     {balanceSheet.total_passif_n > balanceSheet.total_passif_n1 ? (
                       <TrendingUp className="h-4 w-4 text-green-600" />
                     ) : (
@@ -320,25 +320,25 @@ export default function BalanceSheetPage() {
               </div>
 
               {/* Balance Sheet Table */}
-              <div className="bg-white rounded-lg border border-gray-200">
+              <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto">
                 {/* Table Header */}
-                <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 bg-gray-50 min-w-[600px]">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <span className="text-xs font-semibold text-gray-600 uppercase">Libellé</span>
                     </div>
-                    <div className="flex items-center gap-8">
-                      <div className="w-32 text-right">
+                    <div className="flex items-center gap-4 sm:gap-8">
+                      <div className="w-24 sm:w-32 text-right">
                         <span className="text-xs font-semibold text-gray-600 uppercase">
                           {balanceSheet.period_n}
                         </span>
                       </div>
-                      <div className="w-32 text-right">
+                      <div className="w-24 sm:w-32 text-right">
                         <span className="text-xs font-semibold text-gray-600 uppercase">
                           {balanceSheet.period_n1}
                         </span>
                       </div>
-                      <div className="w-32 text-right">
+                      <div className="w-20 sm:w-32 text-right">
                         <span className="text-xs font-semibold text-gray-600 uppercase">Variation</span>
                       </div>
                     </div>

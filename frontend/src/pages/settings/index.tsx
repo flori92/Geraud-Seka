@@ -110,22 +110,22 @@ export default function SettingsPage() {
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
         <div className="bg-white border-b border-gray-200">
-          <div className="max-w-5xl mx-auto px-6 py-6">
-            <h1 className="text-xl font-semibold text-gray-900">Paramètres</h1>
-            <p className="text-sm text-gray-500 mt-1">Configurez votre espace SEKA</p>
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+            <h1 className="text-lg sm:text-xl font-semibold text-gray-900">Paramètres</h1>
+            <p className="text-xs sm:text-sm text-gray-500 mt-1">Configurez votre espace SEKA</p>
           </div>
         </div>
 
-        <div className="max-w-5xl mx-auto px-6 py-6">
-          <div className="flex gap-8">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+          <div className="flex flex-col lg:flex-row gap-4 lg:gap-8">
             {/* Sidebar catégories */}
-            <div className="w-48 shrink-0">
-              <nav className="space-y-1">
+            <div className="w-full lg:w-48 shrink-0">
+              <nav className="flex lg:flex-col gap-1 overflow-x-auto pb-2 lg:pb-0 -mx-1 px-1">
                 {categories.map((cat) => (
                   <button
                     key={cat.id}
                     onClick={() => setActiveCategory(cat.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    className={`flex items-center gap-2 lg:gap-3 px-3 py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                       activeCategory === cat.id
                         ? "bg-primary-50 text-primary-700"
                         : "text-gray-600 hover:bg-gray-100"
@@ -139,39 +139,39 @@ export default function SettingsPage() {
             </div>
 
             {/* Contenu */}
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <div className="bg-white rounded-lg border border-gray-200">
-                <div className="px-5 py-4 border-b border-gray-200">
-                  <h2 className="text-base font-medium text-gray-900">
+                <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-200">
+                  <h2 className="text-sm sm:text-base font-medium text-gray-900">
                     {settingsCategories[activeCategory].label}
                   </h2>
                 </div>
                 <div className="divide-y divide-gray-100">
                   {settingsCategories[activeCategory].items.map((item) => (
                     <Link key={item.id} href={item.href}>
-                      <div className="flex items-center justify-between px-5 py-4 hover:bg-gray-50 cursor-pointer transition-colors">
-                        <div className="flex items-center gap-4">
-                          <div className="p-2 bg-gray-100 rounded-lg">
-                            <item.icon className="h-5 w-5 text-gray-600" />
+                      <div className="flex items-center justify-between px-4 sm:px-5 py-3 sm:py-4 hover:bg-gray-50 cursor-pointer transition-colors">
+                        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                          <div className="p-1.5 sm:p-2 bg-gray-100 rounded-lg flex-shrink-0">
+                            <item.icon className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600" />
                           </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium text-gray-900">{item.label}</span>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                              <span className="text-xs sm:text-sm font-medium text-gray-900">{item.label}</span>
                               {item.badge && (
                                 <span className="px-1.5 py-0.5 text-[10px] font-medium bg-primary-100 text-primary-700 rounded">
                                   {item.badge}
                                 </span>
                               )}
                               {item.hasRules && (
-                                <span className="px-1.5 py-0.5 text-[10px] font-medium bg-blue-50 text-blue-600 rounded">
+                                <span className="hidden sm:inline px-1.5 py-0.5 text-[10px] font-medium bg-blue-50 text-blue-600 rounded">
                                   Règles
                                 </span>
                               )}
                             </div>
-                            <p className="text-xs text-gray-500 mt-0.5">{item.description}</p>
+                            <p className="text-xs text-gray-500 mt-0.5 truncate">{item.description}</p>
                           </div>
                         </div>
-                        <ChevronRight className="h-4 w-4 text-gray-400" />
+                        <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0 ml-2" />
                       </div>
                     </Link>
                   ))}
@@ -179,18 +179,18 @@ export default function SettingsPage() {
               </div>
 
               {/* Accès rapide aux règles */}
-              <div className="mt-6 bg-primary-50 rounded-lg p-5">
-                <div className="flex items-start gap-4">
-                  <div className="p-2 bg-primary-100 rounded-lg">
-                    <Zap className="h-5 w-5 text-primary-600" />
+              <div className="mt-4 sm:mt-6 bg-primary-50 rounded-lg p-4 sm:p-5">
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <div className="p-1.5 sm:p-2 bg-primary-100 rounded-lg flex-shrink-0">
+                    <Zap className="h-4 w-4 sm:h-5 sm:w-5 text-primary-600" />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-sm font-medium text-primary-900">Centre de règles</h3>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-xs sm:text-sm font-medium text-primary-900">Centre de règles</h3>
                     <p className="text-xs text-primary-700 mt-1">
                       Définissez des règles automatiques pour les transactions, fournisseurs, clients et produits.
                     </p>
                     <Link href="/settings/rules">
-                      <button className="mt-3 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors">
+                      <button className="mt-2 sm:mt-3 px-3 sm:px-4 py-1.5 sm:py-2 bg-primary-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors">
                         Ouvrir le centre de règles
                       </button>
                     </Link>

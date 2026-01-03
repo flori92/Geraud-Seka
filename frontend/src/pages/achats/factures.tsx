@@ -186,25 +186,26 @@ export default function FacturesFournisseurs() {
       <Head><title>Factures fournisseurs - SEKA</title></Head>
       <div className="min-h-screen bg-gray-50">
         <PennylaneSidebar />
-        <main className="ml-[220px]">
+        <main className="lg:ml-[220px]">
           {/* Top Header */}
-          <header className="sticky top-0 z-40 h-14 bg-white border-b border-gray-200 flex items-center justify-between px-6">
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-500">Exercice à clôturer</span>
-              <button className="flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-lg text-sm">
+          <header className="sticky top-0 z-40 min-h-[56px] bg-white border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 px-4 sm:px-6 py-2 sm:py-0">
+            <div className="flex items-center gap-2 sm:gap-4">
+              <span className="text-xs sm:text-sm text-gray-500 hidden sm:inline">Exercice à clôturer</span>
+              <button className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm">
                 Exercice {selectedExercice}
-                <ChevronDown className="w-4 h-4" />
+                <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4" />
               </button>
             </div>
-            <div className="flex items-center gap-3">
-              <button className="text-sm text-[#1e3a5f] hover:text-[#172e4d]">Clôturer l&apos;exercice</button>
-              <button className="flex items-center gap-2 px-4 py-2 bg-[#1e3a5f] text-white rounded-lg text-sm font-medium hover:bg-[#172e4d]">
-                Importer des factures
+            <div className="flex items-center gap-2 sm:gap-3">
+              <button className="text-xs sm:text-sm text-[#1e3a5f] hover:text-[#172e4d] hidden sm:inline">Clôturer l&apos;exercice</button>
+              <button className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-[#1e3a5f] text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-[#172e4d]">
+                <span className="hidden sm:inline">Importer des factures</span>
+                <span className="sm:hidden">Importer</span>
               </button>
             </div>
           </header>
 
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             {/* Filters Row */}
             <div className="bg-white rounded-xl border border-gray-200 mb-6">
               {selectedInvoices.length > 0 && (
@@ -230,76 +231,63 @@ export default function FacturesFournisseurs() {
                   </div>
                 </div>
               )}
-              <div className="p-4 border-b border-gray-200 space-y-3">
+              <div className="p-3 sm:p-4 border-b border-gray-200 space-y-3">
                 {/* Ligne recherche + filtres principaux */}
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="flex-1 min-w-[220px]">
+                <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-3">
+                  <div className="flex-1 min-w-0 sm:min-w-[220px]">
                     <input
                       type="text"
-                      placeholder="Rechercher une facture (tiers, n° de facture, compte)"
+                      placeholder="Rechercher une facture..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
                     />
                   </div>
-                  <select
-                    value={tvaFilter}
-                    onChange={(e) => setTvaFilter(e.target.value as InvoiceStatus | "all")}
-                    className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  >
-                    <option value="all">Toutes les TVA</option>
-                    <option value="20%">20%</option>
-                    <option value="10%">10%</option>
-                    <option value="autoliquid">Autoliquidation</option>
-                    <option value="extracom">Extracommunautaire</option>
-                  </select>
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value as "all" | "validee" | "import")}
-                    className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  >
-                    <option value="all">Tous les statuts</option>
-                    <option value="validee">Validées</option>
-                    <option value="import">À valider</option>
-                  </select>
+                  <div className="flex gap-2">
+                    <select
+                      value={tvaFilter}
+                      onChange={(e) => setTvaFilter(e.target.value as InvoiceStatus | "all")}
+                      className="flex-1 sm:flex-none px-2 sm:px-3 py-2 border border-gray-200 rounded-lg text-xs sm:text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    >
+                      <option value="all">TVA</option>
+                      <option value="20%">20%</option>
+                      <option value="10%">10%</option>
+                      <option value="autoliquid">Autoliq.</option>
+                      <option value="extracom">Extracom.</option>
+                    </select>
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value as "all" | "validee" | "import")}
+                      className="flex-1 sm:flex-none px-2 sm:px-3 py-2 border border-gray-200 rounded-lg text-xs sm:text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    >
+                      <option value="all">Statut</option>
+                      <option value="validee">Validées</option>
+                      <option value="import">À valider</option>
+                    </select>
+                  </div>
                 </div>
 
-                {/* Ligne de configuration des colonnes (statique) */}
-                <div className="flex items-center gap-3 flex-wrap">
+                {/* Ligne de configuration des colonnes (statique) - masquée sur mobile */}
+                <div className="hidden sm:flex items-center gap-2 sm:gap-3 flex-wrap overflow-x-auto pb-1">
                   <div className="flex items-center gap-2">
                     <input type="checkbox" className="rounded border-gray-300" />
-                    <span className="text-sm text-gray-600">N° compte</span>
+                    <span className="text-xs sm:text-sm text-gray-600">N° compte</span>
                   </div>
-                  <button className="flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
-                    Statut dirigeant
+                  <button className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm text-gray-600 hover:bg-gray-50 whitespace-nowrap">
+                    Statut
                   </button>
-                  <button className="flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+                  <button className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm text-gray-600 hover:bg-gray-50 whitespace-nowrap">
                     Émission
                   </button>
-                  <button className="flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+                  <button className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm text-gray-600 hover:bg-gray-50 whitespace-nowrap">
                     Fournisseurs
                   </button>
-                  <button className="flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
+                  <button className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm text-gray-600 hover:bg-gray-50 whitespace-nowrap">
                     TVA
                   </button>
-                  <button className="flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
-                    Source
-                  </button>
-                  <button className="flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
-                    Montant
-                  </button>
-                  <button className="flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
-                    Codes analytiques
-                  </button>
-                  <button className="flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
-                    Catégories
-                  </button>
-                  <button className="flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
-                    Commenté
-                  </button>
-                  <button className="ml-auto flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900">
+                  <button className="ml-auto flex items-center gap-1.5 text-xs sm:text-sm text-gray-600 hover:text-gray-900">
                     <Settings2 className="w-4 h-4" />
-                    Personnaliser
+                    <span className="hidden md:inline">Personnaliser</span>
                   </button>
                 </div>
               </div>
