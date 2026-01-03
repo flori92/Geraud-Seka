@@ -67,7 +67,7 @@ body {
 }
 
 .modal-content {
-  max-width: calc(100vw - 240px);
+  max-width: min(720px, calc(100vw - 32px));
   margin-left: auto;
   margin-right: auto;
 }

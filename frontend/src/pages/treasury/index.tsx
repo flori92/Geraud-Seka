@@ -46,10 +46,10 @@ function StatCard({ title, value, subtitle, icon: Icon, color, href, loading, tr
   
   if (loading) {
     return (
-      <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
-        <Skeleton className="h-12 w-12 rounded-xl mb-4" />
-        <Skeleton className="h-4 w-24 mb-2" />
-        <Skeleton className="h-8 w-16" />
+      <div className="bg-white rounded-xl border border-gray-100 p-4 sm:p-6 shadow-sm">
+        <Skeleton className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl mb-3 sm:mb-4" />
+        <Skeleton className="h-3 sm:h-4 w-20 sm:w-24 mb-2" />
+        <Skeleton className="h-6 sm:h-8 w-14 sm:w-16" />
       </div>
     );
   }
@@ -57,25 +57,25 @@ function StatCard({ title, value, subtitle, icon: Icon, color, href, loading, tr
   return (
     <div 
       onClick={() => href && router.push(href)}
-      className={`bg-white rounded-xl border ${alert ? 'border-orange-200 bg-orange-50/30' : 'border-gray-100'} p-6 shadow-sm transition-all duration-200 ${
+      className={`bg-white rounded-xl border ${alert ? 'border-orange-200 bg-orange-50/30' : 'border-gray-100'} p-4 sm:p-6 shadow-sm transition-all duration-200 ${
         href ? 'cursor-pointer hover:shadow-md hover:border-gray-200' : ''
       }`}
     >
       <div className="flex items-start justify-between">
-        <div className={`inline-flex rounded-xl ${color} p-3`}>
-          <Icon className="h-6 w-6 text-white" />
+        <div className={`inline-flex rounded-xl ${color} p-2 sm:p-3`}>
+          <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
         </div>
         {trend && (
-          <div className={`flex items-center text-sm font-medium ${trend === 'up' ? 'text-blue-600' : 'text-red-500'}`}>
-            {trend === 'up' ? <TrendingUp className="h-4 w-4 mr-1" /> : <TrendingDown className="h-4 w-4 mr-1" />}
+          <div className={`flex items-center text-xs sm:text-sm font-medium ${trend === 'up' ? 'text-blue-600' : 'text-red-500'}`}>
+            {trend === 'up' ? <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 mr-1" /> : <TrendingDown className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />}
           </div>
         )}
-        {alert && <AlertTriangle className="h-5 w-5 text-orange-500" />}
+        {alert && <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-orange-500" />}
       </div>
-      <p className="text-sm font-medium text-gray-500 mt-4">{title}</p>
-      <p className="text-3xl font-bold text-gray-900 mt-1">{value}</p>
+      <p className="text-xs sm:text-sm font-medium text-gray-500 mt-3 sm:mt-4">{title}</p>
+      <p className="text-xl sm:text-3xl font-bold text-gray-900 mt-1">{value}</p>
       {subtitle && (
-        <p className={`text-sm mt-1 ${alert ? 'text-orange-600 font-medium' : 'text-gray-500'}`}>{subtitle}</p>
+        <p className={`text-xs sm:text-sm mt-1 ${alert ? 'text-orange-600 font-medium' : 'text-gray-500'}`}>{subtitle}</p>
       )}
     </div>
   );
@@ -91,12 +91,12 @@ interface QuickActionProps {
 function QuickAction({ icon: Icon, label, href, color }: QuickActionProps) {
   return (
     <Link href={href}>
-      <div className="flex items-center gap-3 p-4 rounded-xl border border-gray-100 bg-white hover:shadow-md transition-all cursor-pointer">
-        <div className={`rounded-lg ${color} p-2.5`}>
-          <Icon className="h-5 w-5 text-white" />
+      <div className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 rounded-xl border border-gray-100 bg-white hover:shadow-md transition-all cursor-pointer">
+        <div className={`rounded-lg ${color} p-2 sm:p-2.5`}>
+          <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
         </div>
-        <span className="font-medium text-gray-900">{label}</span>
-        <ChevronRight className="h-5 w-5 text-gray-400 ml-auto" />
+        <span className="text-sm sm:font-medium text-gray-900 line-clamp-1">{label}</span>
+        <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 ml-auto flex-shrink-0" />
       </div>
     </Link>
   );
@@ -156,24 +156,24 @@ export default function TreasuryDashboard() {
   return (
     <DashboardLayout title="Trésorerie">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Trésorerie</h1>
-          <p className="text-gray-500 mt-1">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Trésorerie</h1>
+          <p className="text-xs sm:text-sm text-gray-500 mt-1">
             Gestion de trésorerie, comptes bancaires et prévisions
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-2 sm:gap-3">
           <Link href="/treasury/accounts">
             <Button variant="secondary" size="sm">
-              <Building2 className="h-4 w-4 mr-2" />
-              Comptes
+              <Building2 className="h-4 w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Comptes</span>
             </Button>
           </Link>
           <Link href="/treasury/transactions">
             <Button variant="primary" size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Nouvelle transaction
+              <Plus className="h-4 w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Nouvelle transaction</span>
             </Button>
           </Link>
         </div>
@@ -201,7 +201,7 @@ export default function TreasuryDashboard() {
       )}
 
       {/* KPIs */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-6 sm:mb-8">
         <StatCard
           title="Solde Total"
           value={formatCurrency(stats?.totalBalance || 0)}
@@ -242,10 +242,10 @@ export default function TreasuryDashboard() {
         />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-3">
         {/* Vue d'ensemble cash flow */}
         <div className="lg:col-span-2">
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 sm:p-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-gray-900">Flux de Trésorerie</h3>
               <Link href="/treasury/transactions" className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center">
@@ -258,27 +258,27 @@ export default function TreasuryDashboard() {
             ) : (
               <>
                 {/* Indicateurs visuels */}
-                <div className="grid grid-cols-3 gap-4 mb-6">
-                  <div className="text-center p-4 bg-blue-50 rounded-xl">
-                    <TrendingUp className="h-8 w-8 text-blue-500 mx-auto mb-2" />
-                    <p className="text-2xl font-bold text-blue-600">
+                <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-3 mb-6">
+                  <div className="text-center p-3 sm:p-4 bg-blue-50 rounded-xl">
+                    <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500 mx-auto mb-2" />
+                    <p className="text-lg sm:text-2xl font-bold text-blue-600">
                       {formatAmount(stats?.totalIncome || 0)}
                     </p>
-                    <p className="text-sm text-blue-700 font-medium">Entrées</p>
+                    <p className="text-xs sm:text-sm text-blue-700 font-medium">Entrées</p>
                   </div>
-                  <div className="text-center p-4 bg-red-50 rounded-xl">
-                    <TrendingDown className="h-8 w-8 text-red-500 mx-auto mb-2" />
-                    <p className="text-2xl font-bold text-red-600">
+                  <div className="text-center p-3 sm:p-4 bg-red-50 rounded-xl">
+                    <TrendingDown className="h-6 w-6 sm:h-8 sm:w-8 text-red-500 mx-auto mb-2" />
+                    <p className="text-lg sm:text-2xl font-bold text-red-600">
                       {formatAmount(stats?.totalExpenses || 0)}
                     </p>
-                    <p className="text-sm text-red-700 font-medium">Sorties</p>
+                    <p className="text-xs sm:text-sm text-red-700 font-medium">Sorties</p>
                   </div>
-                  <div className={`text-center p-4 rounded-xl ${(stats?.netCashFlow || 0) >= 0 ? 'bg-blue-50' : 'bg-orange-50'}`}>
-                    <Wallet className={`h-8 w-8 mx-auto mb-2 ${(stats?.netCashFlow || 0) >= 0 ? 'text-blue-500' : 'text-orange-500'}`} />
-                    <p className={`text-2xl font-bold ${(stats?.netCashFlow || 0) >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
+                  <div className={`text-center p-3 sm:p-4 rounded-xl ${(stats?.netCashFlow || 0) >= 0 ? 'bg-blue-50' : 'bg-orange-50'}`}>
+                    <Wallet className={`h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-2 ${(stats?.netCashFlow || 0) >= 0 ? 'text-blue-500' : 'text-orange-500'}`} />
+                    <p className={`text-lg sm:text-2xl font-bold ${(stats?.netCashFlow || 0) >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
                       {(stats?.netCashFlow || 0) >= 0 ? '+' : ''}{formatAmount(stats?.netCashFlow || 0)}
                     </p>
-                    <p className={`text-sm font-medium ${(stats?.netCashFlow || 0) >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>Solde Net</p>
+                    <p className={`text-xs sm:text-sm font-medium ${(stats?.netCashFlow || 0) >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>Solde Net</p>
                   </div>
                 </div>
 
@@ -320,51 +320,55 @@ export default function TreasuryDashboard() {
         </div>
 
         {/* Actions rapides */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900">Actions rapides</h3>
-          <QuickAction icon={Building2} label="Comptes bancaires" href="/treasury/accounts" color="bg-blue-500" />
-          <QuickAction icon={CreditCard} label="Transactions" href="/treasury/transactions" color="bg-primary-500" />
-          <QuickAction icon={Calendar} label="Échéances" href="/treasury/forecast" color="bg-blue-500" />
-          <QuickAction icon={BarChart3} label="Prévisions" href="/treasury/forecast" color="bg-orange-500" />
-          <QuickAction icon={Landmark} label="Rapprochement" href="/treasury/reconciliation" color="bg-pink-500" />
+        <div className="space-y-3 sm:space-y-4">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900">Actions rapides</h3>
+          <div className="space-y-2 sm:space-y-3">
+            <QuickAction icon={Building2} label="Comptes bancaires" href="/treasury/accounts" color="bg-blue-500" />
+            <QuickAction icon={CreditCard} label="Transactions" href="/treasury/transactions" color="bg-primary-500" />
+            <QuickAction icon={Calendar} label="Échéances" href="/treasury/forecast" color="bg-blue-500" />
+            <QuickAction icon={BarChart3} label="Prévisions" href="/treasury/forecast" color="bg-orange-500" />
+            <QuickAction icon={Landmark} label="Rapprochement" href="/treasury/reconciliation" color="bg-pink-500" />
+          </div>
         </div>
       </div>
 
       {/* Échéances à venir */}
       {dashboardData?.upcoming_payments && dashboardData.upcoming_payments.length > 0 && (
-        <div className="mt-8">
+        <div className="mt-6 sm:mt-8">
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
-            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Échéances à venir</h3>
-              <Link href="/treasury/forecast" className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center">
-                Voir tout <ArrowRight className="h-4 w-4 ml-1" />
+            <div className="p-4 sm:p-6 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900">Échéances à venir</h3>
+              <Link href="/treasury/forecast" className="text-xs sm:text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center">
+                Voir tout <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 ml-1" />
               </Link>
             </div>
-            <div className="p-6">
-              <div className="space-y-3">
+            <div className="p-4 sm:p-6">
+              <div className="space-y-2 sm:space-y-3">
                 {dashboardData.upcoming_payments.slice(0, 5).map((payment, idx) => (
-                  <div key={idx} className="flex items-center gap-4 py-3 border-b border-gray-50 last:border-0">
-                    <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
+                  <div key={idx} className="flex items-center gap-2 sm:gap-4 py-2 sm:py-3 border-b border-gray-50 last:border-0">
+                    <div className={`h-8 w-8 sm:h-10 sm:w-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
                       payment.is_income ? 'bg-blue-100' : 'bg-red-100'
                     }`}>
                       {payment.is_income ? (
-                        <TrendingUp className="h-5 w-5 text-blue-500" />
+                        <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500" />
                       ) : (
-                        <TrendingDown className="h-5 w-5 text-red-500" />
+                        <TrendingDown className="h-4 w-4 sm:h-5 sm:w-5 text-red-500" />
                       )}
                     </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">{payment.description}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs sm:text-sm font-medium text-gray-900 truncate">{payment.description}</p>
                       <p className="text-xs text-gray-500">
                         Échéance: {new Date(payment.due_date).toLocaleDateString('fr-FR')}
                       </p>
                     </div>
-                    <Badge variant={payment.is_income ? 'success' : 'error'}>
-                      {payment.is_income ? 'À recevoir' : 'À payer'}
-                    </Badge>
-                    <p className={`text-sm font-semibold ${payment.is_income ? 'text-blue-600' : 'text-red-600'}`}>
-                      {formatCurrency(payment.remaining_amount)}
-                    </p>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 flex-shrink-0">
+                      <Badge variant={payment.is_income ? 'success' : 'error'} className="text-xs">
+                        {payment.is_income ? 'À recevoir' : 'À payer'}
+                      </Badge>
+                      <p className={`text-xs sm:text-sm font-semibold ${payment.is_income ? 'text-blue-600' : 'text-red-600'}`}>
+                        {formatCurrency(payment.remaining_amount)}
+                      </p>
+                    </div>
                   </div>
                 ))}
               </div>

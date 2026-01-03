@@ -1,25 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Head from "next/head";
-import Link from "next/link";
 import { useRouter } from "next/router";
+import Link from "next/link";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
-import {
-  getBankTransactions,
-  getBankAccounts,
-  getTreasuryDashboard,
-  type BankTransaction,
-  type BankAccount
-} from "@/lib/api";
+import { getBankTransactions, getBankAccounts, type BankTransaction, type BankAccount } from "@/lib/api";
 import { formatCurrency } from "@/lib/formatters";
 import {
-  Search, Filter, ArrowLeftRight, CheckCircle2, TrendingUp, TrendingDown,
-  RefreshCw, X, Settings2, Clock, AlertCircle, Wallet, Plus
+  Search, ArrowLeftRight, RefreshCw, Clock, AlertCircle, Wallet, Plus
 } from "lucide-react";
 
-type TransactionStatus = "pending" | "validated" | "reconciled";
 
 export default function TransactionsPage() {
   const router = useRouter();
@@ -39,11 +31,7 @@ export default function TransactionsPage() {
     rapprochementsSuggeres: 0,
   });
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     const token = localStorage.getItem("seka_access_token");
     if (!token) {
       router.push("/login");
@@ -75,7 +63,11 @@ export default function TransactionsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const categoryOptions = Array.from(
     new Set(transactions.map((tx) => tx.category).filter((c): c is string => Boolean(c)))
@@ -123,22 +115,22 @@ export default function TransactionsPage() {
 
       <DashboardLayout title="Transactions">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Transactions</h1>
-            <p className="text-gray-500 mt-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Transactions</h1>
+            <p className="text-xs sm:text-sm text-gray-500 mt-1">
               Gérez et rapprochez vos transactions bancaires
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-2 sm:gap-3">
             <Button variant="secondary" size="sm" onClick={fetchData}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-              Synchroniser
+              <RefreshCw className={`h-4 w-4 mr-1 sm:mr-2 ${loading ? "animate-spin" : ""}`} />
+              <span className="hidden sm:inline">Synchroniser</span>
             </Button>
             <Link href="/accounting/bank-reconciliation">
               <Button variant="primary" size="sm">
-                <ArrowLeftRight className="h-4 w-4 mr-2" />
-                Rapprochement IA
+                <ArrowLeftRight className="h-4 w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Rapprochement IA</span>
               </Button>
             </Link>
           </div>
@@ -152,57 +144,57 @@ export default function TransactionsPage() {
         )}
 
         {/* KPIs */}
-        <div className="grid gap-6 md:grid-cols-3 mb-8">
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white shadow-lg">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 mb-6 sm:mb-8">
+          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 sm:p-6 text-white shadow-lg">
             <div className="flex items-start justify-between">
-              <div className="rounded-xl bg-white/20 p-3">
-                <Wallet className="h-6 w-6 text-white" />
+              <div className="rounded-xl bg-white/20 p-2 sm:p-3">
+                <Wallet className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
             </div>
-            <p className="text-sm font-medium text-white/80 mt-4">Solde total</p>
+            <p className="text-xs sm:text-sm font-medium text-white/80 mt-3 sm:mt-4">Solde total</p>
             {loading ? (
-              <Skeleton className="h-8 w-32 mt-1 bg-white/20" />
+              <Skeleton className="h-6 sm:h-8 w-24 sm:w-32 mt-1 bg-white/20" />
             ) : (
-              <p className="text-3xl font-bold text-white mt-1">{formatCurrency(stats.solde)}</p>
+              <p className="text-xl sm:text-3xl font-bold text-white mt-1">{formatCurrency(stats.solde)}</p>
             )}
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
+          <div className="bg-white rounded-xl border border-gray-100 p-4 sm:p-6 shadow-sm">
             <div className="flex items-start justify-between">
-              <div className="rounded-xl bg-orange-500 p-3">
-                <Clock className="h-6 w-6 text-white" />
+              <div className="rounded-xl bg-orange-500 p-2 sm:p-3">
+                <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
             </div>
-            <p className="text-sm font-medium text-gray-500 mt-4">À justifier</p>
+            <p className="text-xs sm:text-sm font-medium text-gray-500 mt-3 sm:mt-4">À justifier</p>
             {loading ? (
-              <Skeleton className="h-8 w-20 mt-1" />
+              <Skeleton className="h-6 sm:h-8 w-16 sm:w-20 mt-1" />
             ) : (
-              <p className="text-3xl font-bold text-orange-600 mt-1">{stats.demandesComptables}</p>
+              <p className="text-xl sm:text-3xl font-bold text-orange-600 mt-1">{stats.demandesComptables}</p>
             )}
-            <p className="text-sm text-gray-500 mt-2">Transactions en attente</p>
+            <p className="text-xs sm:text-sm text-gray-500 mt-2">Transactions en attente</p>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
+          <div className="bg-white rounded-xl border border-gray-100 p-4 sm:p-6 shadow-sm">
             <div className="flex items-start justify-between">
-              <div className="rounded-xl bg-blue-500 p-3">
-                <ArrowLeftRight className="h-6 w-6 text-white" />
+              <div className="rounded-xl bg-blue-500 p-2 sm:p-3">
+                <ArrowLeftRight className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
             </div>
-            <p className="text-sm font-medium text-gray-500 mt-4">Non rapprochées</p>
+            <p className="text-xs sm:text-sm font-medium text-gray-500 mt-3 sm:mt-4">Non rapprochées</p>
             {loading ? (
-              <Skeleton className="h-8 w-20 mt-1" />
+              <Skeleton className="h-6 sm:h-8 w-16 sm:w-20 mt-1" />
             ) : (
-              <p className="text-3xl font-bold text-blue-600 mt-1">{stats.rapprochementsSuggeres}</p>
+              <p className="text-xl sm:text-3xl font-bold text-blue-600 mt-1">{stats.rapprochementsSuggeres}</p>
             )}
-            <p className="text-sm text-gray-500 mt-2">À rapprocher</p>
+            <p className="text-xs sm:text-sm text-gray-500 mt-2">À rapprocher</p>
           </div>
         </div>
 
         {/* Filters & Table */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
-          <div className="p-4 border-b border-gray-100">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="relative flex-1 min-w-[200px] max-w-md">
+          <div className="p-3 sm:p-4 border-b border-gray-100">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-3">
+              <div className="relative w-full sm:flex-1 sm:min-w-[200px] sm:max-w-md">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="text"
@@ -284,21 +276,21 @@ export default function TransactionsPage() {
           {/* Table */}
           <div className="overflow-x-auto">
             {loading ? (
-              <div className="p-8 space-y-4">
+              <div className="p-4 sm:p-8 space-y-3 sm:space-y-4">
                 {[1, 2, 3, 4, 5].map((i) => (
-                  <Skeleton key={i} className="h-14 w-full" />
+                  <Skeleton key={i} className="h-12 sm:h-14 w-full" />
                 ))}
               </div>
             ) : (
-              <table className="w-full">
+              <table className="w-full min-w-[600px]">
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50">
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Statut</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Date</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Libellé</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Montant</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Catégorie</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Tiers</th>
+                    <th className="px-3 sm:px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Statut</th>
+                    <th className="px-3 sm:px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Date</th>
+                    <th className="px-3 sm:px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Libellé</th>
+                    <th className="px-3 sm:px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Montant</th>
+                    <th className="px-3 sm:px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Catégorie</th>
+                    <th className="px-3 sm:px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Tiers</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -340,10 +332,10 @@ export default function TransactionsPage() {
           </div>
 
           {/* Pagination */}
-          <div className="flex items-center justify-between px-4 py-4 border-t border-gray-100">
-            <span className="text-sm text-gray-500">{filteredTransactions.length} transactions</span>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-3 sm:px-4 py-3 sm:py-4 border-t border-gray-100">
+            <span className="text-xs sm:text-sm text-gray-500 text-center sm:text-left">{filteredTransactions.length} transactions</span>
             <div className="flex items-center gap-2">
-              <Link href="/accounting/bank-reconciliation" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+              <Link href="/accounting/bank-reconciliation" className="text-xs sm:text-sm text-blue-600 hover:text-blue-700 font-medium">
                 Rapprocher avec l&apos;IA →
               </Link>
             </div>
