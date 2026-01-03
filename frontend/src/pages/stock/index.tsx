@@ -20,33 +20,33 @@ function StatCard({ title, value, subtitle, icon: Icon, color, href, loading, al
   const router = useRouter();
   if (loading) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6 animate-pulse">
-        <div className="h-12 w-12 rounded-lg bg-gray-200 mb-4" />
-        <div className="h-4 w-24 bg-gray-200 rounded mb-2" />
-        <div className="h-8 w-16 bg-gray-200 rounded" />
+      <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6 animate-pulse">
+        <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-gray-200 mb-3 sm:mb-4" />
+        <div className="h-4 w-20 sm:w-24 bg-gray-200 rounded mb-2" />
+        <div className="h-6 sm:h-8 w-14 sm:w-16 bg-gray-200 rounded" />
       </div>
     );
   }
   return (
     <div onClick={() => href && router.push(href)}
-      className={`bg-white rounded-lg border ${alert ? "border-red-200 bg-red-50/50" : "border-gray-200"} p-6 transition-all ${href ? "cursor-pointer hover:shadow-md" : ""}`}>
+      className={`bg-white rounded-lg border ${alert ? "border-red-200 bg-red-50/50" : "border-gray-200"} p-4 sm:p-6 transition-all ${href ? "cursor-pointer hover:shadow-md" : ""}`}>
       <div className="flex items-start justify-between">
-        <div className={`inline-flex rounded-lg ${color} p-3`}><Icon className="h-6 w-6 text-white" /></div>
-        {alert && <AlertTriangle className="h-5 w-5 text-red-500" />}
+        <div className={`inline-flex rounded-lg ${color} p-2 sm:p-3`}><Icon className="h-5 w-5 sm:h-6 sm:w-6 text-white" /></div>
+        {alert && <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-red-500" />}
       </div>
-      <p className="text-sm font-medium text-gray-500 mt-4">{title}</p>
-      <p className="text-3xl font-bold text-gray-900 mt-1">{value}</p>
-      {subtitle && <p className={`text-sm mt-1 ${alert ? "text-red-600 font-medium" : "text-gray-500"}`}>{subtitle}</p>}
+      <p className="text-xs sm:text-sm font-medium text-gray-500 mt-3 sm:mt-4">{title}</p>
+      <p className="text-xl sm:text-3xl font-bold text-gray-900 mt-1">{value}</p>
+      {subtitle && <p className={`text-xs sm:text-sm mt-1 ${alert ? "text-red-600 font-medium" : "text-gray-500"}`}>{subtitle}</p>}
     </div>
   );
 }
 
 function QuickAction({ icon: Icon, label, href, color }: { icon: React.ElementType; label: string; href: string; color: string }) {
   return (
-    <Link href={href} className="flex items-center gap-3 p-4 rounded-lg border border-gray-200 bg-white hover:shadow-md transition-all">
-      <div className={`rounded-lg ${color} p-2.5`}><Icon className="h-5 w-5 text-white" /></div>
-      <span className="font-medium text-gray-900">{label}</span>
-      <ChevronRight className="h-5 w-5 text-gray-400 ml-auto" />
+    <Link href={href} className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 rounded-lg border border-gray-200 bg-white hover:shadow-md transition-all">
+      <div className={`rounded-lg ${color} p-2 sm:p-2.5`}><Icon className="h-4 w-4 sm:h-5 sm:w-5 text-white" /></div>
+      <span className="text-sm sm:text-base font-medium text-gray-900">{label}</span>
+      <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 ml-auto" />
     </Link>
   );
 }
@@ -88,28 +88,30 @@ export default function StockDashboardPage() {
       <Head><title>Gestion des Stocks - SEKA</title></Head>
       <div className="min-h-screen bg-gray-50">
         <PennylaneSidebar />
-        <main className="ml-[220px]">
-          <div className="bg-white border-b border-gray-200 px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-gray-100"><Package className="h-5 w-5 text-gray-600" /></div>
+        <main className="lg:ml-[220px]">
+          <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 rounded-lg bg-gray-100"><Package className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600" /></div>
                 <div>
-                  <h1 className="text-xl font-semibold text-gray-900">Gestion des Stocks</h1>
-                  <p className="text-sm text-gray-600 mt-0.5">Inventaire, mouvements et alertes</p>
+                  <h1 className="text-lg sm:text-xl font-semibold text-gray-900">Gestion des Stocks</h1>
+                  <p className="text-xs sm:text-sm text-gray-600 mt-0.5">Inventaire, mouvements et alertes</p>
                 </div>
               </div>
-              <div className="flex gap-3">
-                <Link href="/stock/movements" className="flex items-center gap-2 px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">
-                  <RefreshCw className="h-4 w-4" /> Mouvements
+              <div className="flex gap-2 sm:gap-3">
+                <Link href="/stock/movements" className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">
+                  <RefreshCw className="h-4 w-4" />
+                  <span className="hidden sm:inline">Mouvements</span>
                 </Link>
-                <Link href="/products" className="flex items-center gap-2 px-4 py-2 bg-[#1e3a5f] text-white text-sm font-medium rounded-lg hover:bg-[#172e4d]">
-                  <Plus className="h-4 w-4" /> Nouveau produit
+                <Link href="/products" className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-[#1e3a5f] text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-[#172e4d]">
+                  <Plus className="h-4 w-4" />
+                  <span className="hidden sm:inline">Nouveau produit</span>
                 </Link>
               </div>
             </div>
           </div>
 
-          <div className="px-6 py-6">
+          <div className="px-4 sm:px-6 py-4 sm:py-6">
             {error && <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{error}</div>}
 
             {(stats.lowStockCount > 0 || stats.outOfStockCount > 0) && (
@@ -131,7 +133,7 @@ export default function StockDashboardPage() {
               </div>
             )}
 
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
+            <div className="grid gap-3 sm:gap-6 grid-cols-2 lg:grid-cols-4 mb-6 sm:mb-8">
               <StatCard title="Total Produits" value={stats.totalProducts} subtitle={`${formatAmount(stats.totalQuantity)} unités`} icon={Package} color="bg-blue-500" href="/products" loading={loading} />
               <StatCard title="Valeur du Stock" value={formatAmount(stats.totalValue) + " FCFA"} subtitle="Valeur totale" icon={BarChart3} color="bg-[#1e3a5f]" href="/stock/inventory" loading={loading} />
               <StatCard title="Stock Faible" value={stats.lowStockCount} subtitle={stats.lowStockCount > 0 ? "À réapprovisionner" : "Niveaux OK"} icon={AlertTriangle} color={stats.lowStockCount > 0 ? "bg-orange-500" : "bg-gray-400"} href="/stock/inventory" loading={loading} alert={stats.lowStockCount > 0} />
