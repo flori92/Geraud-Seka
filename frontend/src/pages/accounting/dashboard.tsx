@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -7,14 +7,14 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { getTreasuryDashboard, getInvoices, getBankTransactions, getAccountingAnalyticsStats, getAccountingMonthlyTrends } from "@/lib/api";
+import { getBankTransactions, getAccountingAnalyticsStats, getAccountingMonthlyTrends } from "@/lib/api";
 import { formatCurrency } from "@/lib/formatters";
 import {
-    Calculator, TrendingUp, TrendingDown, FileText, BarChart3, PieChart,
-    Wallet, Receipt, ArrowUpRight, ArrowDownRight, RefreshCw,
-    Calendar, Clock, AlertCircle, CheckCircle, Target, DollarSign,
-    BookOpen, Scale, ChevronRight, Download, ArrowLeftRight,
-    Zap, Building2, CreditCard, Eye
+    TrendingUp, TrendingDown, FileText, BarChart3, PieChart,
+    Wallet, Receipt, ArrowUpRight, RefreshCw,
+    Clock, AlertCircle, Target, DollarSign,
+    Scale, ChevronRight, Download, ArrowLeftRight,
+    Zap, Building2, CreditCard
 } from "lucide-react";
 
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
@@ -45,18 +45,13 @@ export default function AccountingDashboardPage() {
     const [stats, setStats] = useState<AccountingStats | null>(null);
     const [forecasts, setForecasts] = useState<Forecast[]>([]);
     const [pendingTasks, setPendingTasks] = useState<number>(0);
-    const [recentEntries, setRecentEntries] = useState<any[]>([]);
     const [monthlyData, setMonthlyData] = useState({
         categories: ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"],
         revenue: [] as number[],
         expenses: [] as number[]
     });
 
-    useEffect(() => {
-        fetchData();
-    }, [period]);
-
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         const token = localStorage.getItem("seka_access_token");
         if (!token) {
             router.push("/login");
@@ -76,7 +71,7 @@ export default function AccountingDashboardPage() {
 
             if (trendsData) {
                 setMonthlyData({
-                    categories: trendsData.labels || monthlyData.categories,
+                    categories: trendsData.labels || ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"],
                     revenue: trendsData.revenue || [],
                     expenses: trendsData.expenses || []
                 });
@@ -92,22 +87,17 @@ export default function AccountingDashboardPage() {
             }));
             setForecasts(forecastData);
 
-            setPendingTasks(transactions.filter((t: any) => !t.is_reconciled).length);
-            setRecentEntries(transactions.slice(0, 5));
+            setPendingTasks(transactions.filter((t: { is_reconciled?: boolean }) => !t.is_reconciled).length);
         } catch (error) {
             console.error("Error fetching data:", error);
         } finally {
             setLoading(false);
         }
-    };
+    }, [router, period]);
 
-    const expenseBreakdown: Array<{ label: string; value: number; color: string }> = [];
-
-    const cashFlowForecast = forecasts.map(f => ({
-        label: f.month,
-        actual: f.projected_balance > 0 ? f.projected_balance / 1000000 : null,
-        forecast: null
-    }));
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
 
     return (
         <>
@@ -117,30 +107,30 @@ export default function AccountingDashboardPage() {
 
             <DashboardLayout title="Tableau de Bord Comptable">
                 {/* Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Tableau de Bord Comptable</h1>
-                        <p className="text-gray-500 mt-1">Vue d&apos;ensemble de votre comptabilité et prévisions</p>
+                        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Tableau de Bord Comptable</h1>
+                        <p className="text-xs sm:text-sm text-gray-500 mt-1">Vue d&apos;ensemble de votre comptabilité et prévisions</p>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                         <select
                             value={period}
                             onChange={(e) => setPeriod(e.target.value)}
-                            className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
+                            className="px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500"
                         >
                             {Array.from({ length: 6 }, (_, i) => new Date().getFullYear() + 1 - i).map(year => (
                                 <option key={year} value={year.toString()}>
-                                    Exercice {year}
+                                    {year}
                                 </option>
                             ))}
                         </select>
                         <Button variant="secondary" size="sm" onClick={fetchData}>
-                            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-                            Actualiser
+                            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+                            <span className="hidden sm:inline ml-2">Actualiser</span>
                         </Button>
                         <Button variant="primary" size="sm">
-                            <Download className="h-4 w-4 mr-2" />
-                            Exporter
+                            <Download className="h-4 w-4" />
+                            <span className="hidden sm:inline ml-2">Exporter</span>
                         </Button>
                     </div>
                 </div>
@@ -161,83 +151,83 @@ export default function AccountingDashboardPage() {
                 )}
 
                 {/* Key Metrics - Row 1 */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white shadow-lg">
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="p-2 bg-white/20 rounded-lg">
-                                <TrendingUp className="h-5 w-5" />
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
+                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 sm:p-6 text-white shadow-lg">
+                        <div className="flex items-center justify-between mb-2 sm:mb-3">
+                            <div className="p-1.5 sm:p-2 bg-white/20 rounded-lg">
+                                <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
                             </div>
-                            <span className="flex items-center gap-1 text-xs bg-white/20 px-2 py-1 rounded-full">
+                            <span className="hidden sm:flex items-center gap-1 text-xs bg-white/20 px-2 py-1 rounded-full">
                                 <ArrowUpRight className="h-3 w-3" /> +12.5%
                             </span>
                         </div>
-                        <p className="text-sm text-white/80">Chiffre d&apos;affaires</p>
+                        <p className="text-xs sm:text-sm text-white/80">CA</p>
                         {loading ? (
-                            <Skeleton className="h-8 w-32 mt-1 bg-white/20" />
+                            <Skeleton className="h-6 sm:h-8 w-24 sm:w-32 mt-1 bg-white/20" />
                         ) : (
-                            <p className="text-2xl font-bold mt-1">{formatCurrency(stats?.revenue || 0)}</p>
+                            <p className="text-lg sm:text-2xl font-bold mt-1">{formatCurrency(stats?.revenue || 0)}</p>
                         )}
                     </div>
 
-                    <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="p-2 bg-red-100 rounded-lg">
-                                <TrendingDown className="h-5 w-5 text-red-600" />
+                    <div className="bg-white rounded-xl border border-gray-100 p-4 sm:p-6 shadow-sm">
+                        <div className="flex items-center justify-between mb-2 sm:mb-3">
+                            <div className="p-1.5 sm:p-2 bg-red-100 rounded-lg">
+                                <TrendingDown className="h-4 w-4 sm:h-5 sm:w-5 text-red-600" />
                             </div>
-                            <span className="flex items-center gap-1 text-xs bg-red-50 text-red-600 px-2 py-1 rounded-full">
+                            <span className="hidden sm:flex items-center gap-1 text-xs bg-red-50 text-red-600 px-2 py-1 rounded-full">
                                 <ArrowUpRight className="h-3 w-3" /> +8.3%
                             </span>
                         </div>
-                        <p className="text-sm text-gray-500">Charges</p>
+                        <p className="text-xs sm:text-sm text-gray-500">Charges</p>
                         {loading ? (
-                            <Skeleton className="h-8 w-32 mt-1" />
+                            <Skeleton className="h-6 sm:h-8 w-24 sm:w-32 mt-1" />
                         ) : (
-                            <p className="text-2xl font-bold text-gray-900 mt-1">{formatCurrency(stats?.expenses || 0)}</p>
+                            <p className="text-lg sm:text-2xl font-bold text-gray-900 mt-1">{formatCurrency(stats?.expenses || 0)}</p>
                         )}
                     </div>
 
-                    <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="p-2 bg-green-100 rounded-lg">
-                                <DollarSign className="h-5 w-5 text-green-600" />
+                    <div className="bg-white rounded-xl border border-gray-100 p-4 sm:p-6 shadow-sm">
+                        <div className="flex items-center justify-between mb-2 sm:mb-3">
+                            <div className="p-1.5 sm:p-2 bg-green-100 rounded-lg">
+                                <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
                             </div>
-                            <span className="flex items-center gap-1 text-xs bg-green-50 text-green-600 px-2 py-1 rounded-full">
+                            <span className="hidden sm:flex items-center gap-1 text-xs bg-green-50 text-green-600 px-2 py-1 rounded-full">
                                 <ArrowUpRight className="h-3 w-3" /> +21%
                             </span>
                         </div>
-                        <p className="text-sm text-gray-500">Résultat net</p>
+                        <p className="text-xs sm:text-sm text-gray-500">Résultat net</p>
                         {loading ? (
-                            <Skeleton className="h-8 w-32 mt-1" />
+                            <Skeleton className="h-6 sm:h-8 w-24 sm:w-32 mt-1" />
                         ) : (
-                            <p className="text-2xl font-bold text-green-600 mt-1">{formatCurrency(stats?.net_income || 0)}</p>
+                            <p className="text-lg sm:text-2xl font-bold text-green-600 mt-1">{formatCurrency(stats?.net_income || 0)}</p>
                         )}
                     </div>
 
-                    <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="p-2 bg-blue-100 rounded-lg">
-                                <Wallet className="h-5 w-5 text-blue-600" />
+                    <div className="bg-white rounded-xl border border-gray-100 p-4 sm:p-6 shadow-sm">
+                        <div className="flex items-center justify-between mb-2 sm:mb-3">
+                            <div className="p-1.5 sm:p-2 bg-blue-100 rounded-lg">
+                                <Wallet className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
                             </div>
                         </div>
-                        <p className="text-sm text-gray-500">Trésorerie</p>
+                        <p className="text-xs sm:text-sm text-gray-500">Trésorerie</p>
                         {loading ? (
-                            <Skeleton className="h-8 w-32 mt-1" />
+                            <Skeleton className="h-6 sm:h-8 w-24 sm:w-32 mt-1" />
                         ) : (
-                            <p className="text-2xl font-bold text-gray-900 mt-1">{formatCurrency(stats?.cash_balance || 0)}</p>
+                            <p className="text-lg sm:text-2xl font-bold text-gray-900 mt-1">{formatCurrency(stats?.cash_balance || 0)}</p>
                         )}
                     </div>
                 </div>
 
                 {/* Secondary Metrics */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-orange-100 rounded-lg">
-                                <Clock className="h-4 w-4 text-orange-600" />
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
+                    <div className="bg-white rounded-xl border border-gray-100 p-3 sm:p-4 shadow-sm">
+                        <div className="flex items-center gap-2 sm:gap-3">
+                            <div className="p-1.5 sm:p-2 bg-orange-100 rounded-lg">
+                                <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-orange-600" />
                             </div>
-                            <div>
-                                <p className="text-xs text-gray-500">Créances clients</p>
-                                <p className="text-lg font-bold text-gray-900">{formatCurrency(stats?.receivables || 0)}</p>
+                            <div className="min-w-0">
+                                <p className="text-xs text-gray-500 truncate">Créances</p>
+                                <p className="text-sm sm:text-lg font-bold text-gray-900">{formatCurrency(stats?.receivables || 0)}</p>
                             </div>
                         </div>
                     </div>
