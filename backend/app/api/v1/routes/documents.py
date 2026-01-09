@@ -138,16 +138,22 @@ async def upload_document(
             print(f"❌ OCR Error: {ocr_error}")
             import traceback
             traceback.print_exc()
-            db_obj.status = DocumentStatus.UPLOADED
-            db.commit()
-            db.refresh(db_obj)
+            db.rollback()  # Rollback en cas d'erreur OCR
+            # Recharger le document et mettre à jour son statut
+            db_obj = db.query(Document).filter(Document.id == db_obj.id).first()
+            if db_obj:
+                db_obj.status = DocumentStatus.UPLOADED
+                db.commit()
+                db.refresh(db_obj)
             print(f"⚠️  Document saved with UPLOADED status (OCR failed)")
 
         return db_obj
         
     except HTTPException:
+        db.rollback()
         raise
     except Exception as e:
+        db.rollback()
         print(f"Upload error: {str(e)}")
         import traceback
         traceback.print_exc()
