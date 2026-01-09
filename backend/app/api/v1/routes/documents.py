@@ -630,40 +630,18 @@ from pydantic import BaseModel
 
 class ValidationData(BaseModel):
     reference_number: Optional[str] = None
-    date: Optional[str] = None  # Format YYYY-MM-DD ou vide
+    date: Optional[str] = None
     due_date: Optional[str] = None
     supplier_name: Optional[str] = None
-
     amount_ht: Optional[float] = None
     amount_vat: Optional[float] = None
     amount_ttc: Optional[float] = None
-
-    total_amount: Optional[float] = None
-    tax_amount: Optional[float] = None
-
     description: Optional[str] = None
     account_number: Optional[str] = None
     journal_code: Optional[str] = "ACH"
-
-    @model_validator(mode="after")
-    def compute_amounts(self):
-        if self.total_amount is None:
-            if self.amount_ttc is not None:
-                self.total_amount = self.amount_ttc
-            elif self.amount_ht is not None and self.amount_vat is not None:
-                self.total_amount = self.amount_ht + self.amount_vat
-
-        if self.tax_amount is None and self.amount_vat is not None:
-            self.tax_amount = self.amount_vat
-
-        if self.amount_ttc is None and self.total_amount is not None:
-            self.amount_ttc = self.total_amount
-        if self.amount_vat is None and self.tax_amount is not None:
-            self.amount_vat = self.tax_amount
-        if self.amount_ht is None and self.total_amount is not None and self.tax_amount is not None:
-            self.amount_ht = self.total_amount - self.tax_amount
-
-        return self
+    
+    class Config:
+        extra = "ignore"  # Ignorer les champs inconnus
 
 @router.post("/{document_id}/validate", response_model=DocumentSchema)
 def validate_document(
