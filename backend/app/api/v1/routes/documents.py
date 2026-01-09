@@ -714,13 +714,20 @@ def validate_document(
                 raise HTTPException(status_code=500, detail=f"Impossible de créer le client par défaut: {client_err}")
         document.client_id = client.id
 
-    supplier = db.query(Supplier).filter(Supplier.name == supplier_name, Supplier.client_id == document.client_id).first()
-    if not supplier:
-        supplier = Supplier(name=supplier_name, client_id=document.client_id)
-        db.add(supplier)
-        db.flush() # Get ID
-
-    document.supplier_id = supplier.id
+    try:
+        supplier = db.query(Supplier).filter(Supplier.name == supplier_name, Supplier.client_id == document.client_id).first()
+        if not supplier:
+            supplier = Supplier(name=supplier_name, client_id=document.client_id)
+            db.add(supplier)
+            db.flush() # Get ID
+            print(f"✅ Fournisseur créé: {supplier_name}")
+        else:
+            print(f"✅ Fournisseur existant: {supplier_name}")
+        document.supplier_id = supplier.id
+    except Exception as supplier_err:
+        db.rollback()
+        print(f"❌ Erreur fournisseur: {type(supplier_err).__name__}: {supplier_err}")
+        raise HTTPException(status_code=500, detail=f"Erreur fournisseur: {supplier_err}")
     
     if validation_data.account_number:
         supplier.default_account = validation_data.account_number
@@ -749,20 +756,22 @@ def validate_document(
     entry_date = document.document_date or datetime.utcnow().date()
     entry_label = validation_data.description or document.description or f"Document {document.filename}"
     
+    print(f"📊 Création écritures: HT={ht_amount}, TVA={tax_amount}, TTC={total_amount}, date={entry_date}")
     try:
         entry_expense = AccountingEntry(
-        document_id=document.id,
-        entry_type=EntryType.DEBIT,
-        account_number=expense_account,
-        label=entry_label,
-        debit=ht_amount,
-        credit=0,
-        date=entry_date,
-        client_id=document.client_id,
-        journal_code=validation_data.journal_code or "ACH",
-        tenant_id=current_user.tenant_id
+            document_id=document.id,
+            entry_type=EntryType.DEBIT,
+            account_number=expense_account,
+            label=entry_label,
+            debit=ht_amount,
+            credit=0,
+            date=entry_date,
+            client_id=document.client_id,
+            journal_code=validation_data.journal_code or "ACH",
+            tenant_id=current_user.tenant_id
         )
         db.add(entry_expense)
+        print(f"✅ Écriture dépense ajoutée")
     
         if tax_amount and tax_amount > 0:
             entry_vat = AccountingEntry(
