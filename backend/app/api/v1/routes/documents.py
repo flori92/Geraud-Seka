@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from pydantic import model_validator
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status, Query
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core import deps
@@ -624,7 +625,6 @@ async def download_document_by_key(
 
 from app.models.accounting import AccountingEntry, EntryType
 from app.models.client import Client
-from app.models.supplier import Supplier
 from datetime import date
 from pydantic import BaseModel
 
@@ -713,25 +713,84 @@ def validate_document(
                 raise HTTPException(status_code=500, detail=f"Impossible de créer le client par défaut: {client_err}")
         document.client_id = client.id
 
+    supplier_id = None
+    supplier_default_account = None
+    supplier_default_journal = None
     try:
-        supplier = db.query(Supplier).filter(Supplier.name == supplier_name, Supplier.client_id == document.client_id).first()
-        if not supplier:
-            supplier = Supplier(name=supplier_name, client_id=document.client_id)
-            db.add(supplier)
-            db.flush() # Get ID
-            print(f"✅ Fournisseur créé: {supplier_name}")
+        try:
+            row = db.execute(
+                text(
+                    """
+                    SELECT id, default_account, default_journal
+                    FROM suppliers
+                    WHERE name = :name AND client_id = :client_id
+                    LIMIT 1
+                    """
+                ),
+                {"name": supplier_name, "client_id": document.client_id},
+            ).fetchone()
+            if row:
+                supplier_id = row[0]
+                supplier_default_account = row[1]
+                supplier_default_journal = row[2]
+        except Exception:
+            row = db.execute(
+                text(
+                    """
+                    SELECT id
+                    FROM suppliers
+                    WHERE name = :name AND client_id = :client_id
+                    LIMIT 1
+                    """
+                ),
+                {"name": supplier_name, "client_id": document.client_id},
+            ).fetchone()
+            if row:
+                supplier_id = row[0]
+
+        if supplier_id is None:
+            import uuid
+
+            supplier_id = uuid.uuid4()
+            db.execute(
+                text(
+                    """
+                    INSERT INTO suppliers (id, name, client_id)
+                    VALUES (:id, :name, :client_id)
+                    """
+                ),
+                {"id": supplier_id, "name": supplier_name, "client_id": document.client_id},
+            )
+            print(f"✅ Fournisseur créé (SQL): {supplier_name}")
         else:
-            print(f"✅ Fournisseur existant: {supplier_name}")
-        document.supplier_id = supplier.id
+            print(f"✅ Fournisseur existant (SQL): {supplier_name}")
+
+        document.supplier_id = supplier_id
+
+        if validation_data.account_number:
+            try:
+                db.execute(
+                    text("UPDATE suppliers SET default_account = :acc WHERE id = :id"),
+                    {"acc": validation_data.account_number, "id": supplier_id},
+                )
+                supplier_default_account = validation_data.account_number
+            except Exception:
+                supplier_default_account = validation_data.account_number
+
+        if validation_data.journal_code:
+            try:
+                db.execute(
+                    text("UPDATE suppliers SET default_journal = :j WHERE id = :id"),
+                    {"j": validation_data.journal_code, "id": supplier_id},
+                )
+                supplier_default_journal = validation_data.journal_code
+            except Exception:
+                supplier_default_journal = validation_data.journal_code
+
     except Exception as supplier_err:
         db.rollback()
         print(f"❌ Erreur fournisseur: {type(supplier_err).__name__}: {supplier_err}")
         raise HTTPException(status_code=500, detail=f"Erreur fournisseur: {supplier_err}")
-    
-    if validation_data.account_number:
-        supplier.default_account = validation_data.account_number
-    if validation_data.journal_code:
-        supplier.default_journal = validation_data.journal_code
     
     # Calculer les montants pour la comptabilisation
     total_amount = validation_data.amount_ttc
@@ -751,7 +810,8 @@ def validate_document(
     tax_amount = tax_amount or 0
     ht_amount = ht_amount or total_amount
 
-    expense_account = validation_data.account_number or supplier.default_account or "601000"
+    journal_code = validation_data.journal_code or supplier_default_journal or "ACH"
+    expense_account = validation_data.account_number or supplier_default_account or "601000"
     entry_date = document.document_date or datetime.utcnow().date()
     entry_label = validation_data.description or document.description or f"Document {document.filename}"
     
@@ -766,7 +826,7 @@ def validate_document(
             credit=0,
             date=entry_date,
             client_id=document.client_id,
-            journal_code=validation_data.journal_code or "ACH",
+            journal_code=journal_code,
             tenant_id=current_user.tenant_id
         )
         db.add(entry_expense)
@@ -782,7 +842,7 @@ def validate_document(
                 credit=0,
                 date=entry_date,
                 client_id=document.client_id,
-                journal_code=validation_data.journal_code or "ACH",
+                journal_code=journal_code,
                 tenant_id=current_user.tenant_id
             )
             db.add(entry_vat)
@@ -796,7 +856,7 @@ def validate_document(
             credit=total_amount,
             date=entry_date,
             client_id=document.client_id,
-            journal_code=validation_data.journal_code or "ACH",
+            journal_code=journal_code,
             tenant_id=current_user.tenant_id
         )
         db.add(entry_payable)
