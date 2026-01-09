@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useToast } from "@/components/ui/ToastContainer";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -69,6 +70,7 @@ interface FilterChip {
 
 export default function FacturesClientsPage() {
   const router = useRouter();
+  const toast = useToast();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [stats, setStats] = useState<InvoiceStats | null>(null);
   const [loading, setLoading] = useState(true);
