@@ -706,27 +706,25 @@ def validate_document(
     if validation_data.journal_code:
         supplier.default_journal = validation_data.journal_code
     
-    # Calculer total_amount et tax_amount si manquants
-    if validation_data.total_amount is None:
-        if validation_data.amount_ttc is not None and validation_data.amount_ttc > 0:
-            validation_data.total_amount = validation_data.amount_ttc
-        elif validation_data.amount_ht is not None and validation_data.amount_vat is not None:
-            validation_data.total_amount = validation_data.amount_ht + validation_data.amount_vat
+    # Calculer les montants pour la comptabilisation
+    total_amount = validation_data.amount_ttc
+    tax_amount = validation_data.amount_vat
+    ht_amount = validation_data.amount_ht
     
-    if validation_data.tax_amount is None:
-        if validation_data.amount_vat is not None and validation_data.amount_vat > 0:
-            validation_data.tax_amount = validation_data.amount_vat
-        elif validation_data.total_amount is not None and validation_data.amount_ht is not None:
-            validation_data.tax_amount = validation_data.total_amount - validation_data.amount_ht
+    # Calculs de fallback
+    if total_amount is None and ht_amount is not None and tax_amount is not None:
+        total_amount = ht_amount + tax_amount
+    if tax_amount is None and total_amount is not None and ht_amount is not None:
+        tax_amount = total_amount - ht_amount
+    if ht_amount is None and total_amount is not None and tax_amount is not None:
+        ht_amount = total_amount - tax_amount
     
-    if validation_data.total_amount is None or validation_data.tax_amount is None:
-        raise HTTPException(
-            status_code=422, 
-            detail=f"Montants invalides. Total: {validation_data.total_amount}, TVA: {validation_data.tax_amount}. Veuillez renseigner au moins HT et TTC, ou TTC et TVA."
-        )
+    # Valeurs par défaut si manquantes
+    total_amount = total_amount or 0
+    tax_amount = tax_amount or 0
+    ht_amount = ht_amount or total_amount
 
     expense_account = validation_data.account_number or supplier.default_account or "601000"
-    ht_amount = validation_data.total_amount - validation_data.tax_amount
     
     entry_expense = AccountingEntry(
         document_id=document.id,
