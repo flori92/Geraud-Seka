@@ -3,10 +3,7 @@ Service de classification automatique des factures (Achat vs Vente)
 """
 from typing import Dict, Any, Optional, Tuple
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, func
-
-from app.models.client import Client
-from app.models.supplier import Supplier
+from sqlalchemy import text
 
 
 class InvoiceClassifier:
@@ -47,36 +44,32 @@ class InvoiceClassifier:
             "sale": []
         }
         
-        # 1. Vérification dans la base de données
-        if supplier_name:
-            # Chercher si c'est un fournisseur connu
-            supplier_match = self.db.query(Supplier).filter(
-                Supplier.client_id.in_(
-                    self.db.query(Client.id).filter(Client.tenant_id == self.tenant_id)
-                ),
-                or_(
-                    func.lower(Supplier.name).like(f"%{supplier_name.lower()}%"),
-                    func.lower(Supplier.name) == supplier_name.lower()
-                )
-            ).first()
+        # 1. Vérification dans la base de données (avec gestion d'erreur si colonnes manquantes)
+        try:
+            if supplier_name:
+                # Chercher si c'est un fournisseur connu (requête simplifiée)
+                supplier_match = self.db.execute(
+                    text("SELECT name FROM suppliers WHERE LOWER(name) LIKE :name LIMIT 1"),
+                    {"name": f"%{supplier_name.lower()}%"}
+                ).fetchone()
+                
+                if supplier_match:
+                    scores["purchase"] += 0.4
+                    reasons["purchase"].append(f"Fournisseur reconnu: {supplier_match[0]}")
             
-            if supplier_match:
-                scores["purchase"] += 0.4
-                reasons["purchase"].append(f"Fournisseur reconnu: {supplier_match.name}")
-        
-        if customer_name:
-            # Chercher si c'est un client connu
-            client_match = self.db.query(Client).filter(
-                Client.tenant_id == self.tenant_id,
-                or_(
-                    func.lower(Client.name).like(f"%{customer_name.lower()}%"),
-                    func.lower(Client.name) == customer_name.lower()
-                )
-            ).first()
-            
-            if client_match:
-                scores["sale"] += 0.4
-                reasons["sale"].append(f"Client reconnu: {client_match.name}")
+            if customer_name:
+                # Chercher si c'est un client connu
+                client_match = self.db.execute(
+                    text("SELECT name FROM clients WHERE tenant_id = :tenant_id AND LOWER(name) LIKE :name LIMIT 1"),
+                    {"tenant_id": self.tenant_id, "name": f"%{customer_name.lower()}%"}
+                ).fetchone()
+                
+                if client_match:
+                    scores["sale"] += 0.4
+                    reasons["sale"].append(f"Client reconnu: {client_match[0]}")
+        except Exception as db_err:
+            print(f"⚠️  Erreur DB classification (ignorée): {db_err}")
+            self.db.rollback()
         
         # 2. Analyse des mots-clés dans le texte
         purchase_keywords = [
