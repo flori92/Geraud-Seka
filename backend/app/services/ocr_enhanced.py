@@ -270,6 +270,82 @@ JSON:"""
         
         return data
 
+    def get_pdf_page_count(self, file_content: bytes) -> int:
+        """Retourne le nombre de pages d'un PDF."""
+        if not PDF_SUPPORT:
+            return 1
+        try:
+            from pdf2image.pdf2image import pdfinfo_from_bytes
+            info = pdfinfo_from_bytes(file_content)
+            return info.get("Pages", 1)
+        except Exception as e:
+            print(f"⚠️  Erreur comptage pages PDF: {e}")
+            return 1
+
+    async def process_single_page(
+        self,
+        file_content: bytes,
+        page_number: int = 1,
+        file_path: str = ""
+    ) -> Dict[str, Any]:
+        """Traite une seule page d'un PDF."""
+        if not self.api_key:
+            raise RuntimeError("GROQ_API_KEY non configurée")
+        
+        try:
+            print(f"📄 Processing page {page_number}")
+            
+            if file_content.startswith(b'%PDF'):
+                if not PDF_SUPPORT:
+                    raise RuntimeError("Support PDF non disponible")
+                
+                images = convert_from_bytes(
+                    file_content, 
+                    first_page=page_number, 
+                    last_page=page_number, 
+                    dpi=200
+                )
+                if not images:
+                    raise ValueError(f"PDF page {page_number} conversion failed")
+                image = images[0]
+            else:
+                image = Image.open(io.BytesIO(file_content))
+                image = image.convert("RGB")
+            
+            if self.enable_striping and image.size[1] >= self.min_height_for_striping:
+                stripes = self.split_image_into_stripes(image)
+            else:
+                stripes = [image]
+            
+            tasks = [
+                self.extract_text_from_stripe(stripe, i, len(stripes), VISION_MODEL)
+                for i, stripe in enumerate(stripes)
+            ]
+            
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            stripe_texts = [r for r in results if isinstance(r, str) and r]
+            
+            if not stripe_texts:
+                fallback = await self.extract_text_from_stripe(image, 0, 1, VISION_FALLBACK)
+                if fallback:
+                    stripe_texts = [fallback]
+            
+            if not stripe_texts:
+                raise RuntimeError(f"Échec OCR page {page_number}")
+            
+            structured = await self.consolidate_and_structure(stripe_texts)
+            
+            if not structured:
+                raise RuntimeError(f"Échec structuration page {page_number}")
+            
+            result = self._format_response(structured, len(stripes))
+            result["page_number"] = page_number
+            return result
+        
+        except Exception as e:
+            print(f"❌ Page {page_number} error: {e}")
+            raise RuntimeError(f"Erreur OCR page {page_number}: {e}") from e
+
     async def process_invoice(
         self,
         file_path: str,
