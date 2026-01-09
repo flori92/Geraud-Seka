@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/Button";
 import { 
   X, Download, ZoomIn, ZoomOut, RotateCw, Maximize2, Minimize2,
-  ChevronLeft, ChevronRight, FileText, Image, File, Loader2
+  ChevronLeft, ChevronRight, FileText, File, Loader2
 } from "lucide-react";
 
 interface DocumentData {
@@ -27,7 +27,7 @@ export function DocumentViewer({ isOpen, onClose, documentData }: DocumentViewer
   const [rotation, setRotation] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [totalPages] = useState(1);
   const containerRef = useRef<HTMLDivElement>(null);
   const [fileUrl, setFileUrl] = useState<string | null>(null);
 
@@ -78,7 +78,7 @@ export function DocumentViewer({ isOpen, onClose, documentData }: DocumentViewer
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, currentPage, totalPages]);
+  }, [isOpen, currentPage, totalPages, onClose]);
 
   const handleZoomIn = () => setZoom(z => Math.min(z + 25, 300));
   const handleZoomOut = () => setZoom(z => Math.max(z - 25, 25));
@@ -119,7 +119,7 @@ export function DocumentViewer({ isOpen, onClose, documentData }: DocumentViewer
           {isPdf ? (
             <FileText className="h-5 w-5 text-red-400" />
           ) : isImage ? (
-            <Image className="h-5 w-5 text-blue-400" />
+            <File className="h-5 w-5 text-blue-400" />
           ) : (
             <File className="h-5 w-5 text-gray-400" />
           )}
