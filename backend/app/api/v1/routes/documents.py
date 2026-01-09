@@ -691,7 +691,6 @@ def validate_document(
         client = db.query(Client).filter(Client.tenant_id == current_user.tenant_id).first()
         if not client:
             from app.models.tenant import Tenant
-            import uuid as uuid_module
 
             tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
             tenant_name = (tenant.name if tenant else "Client") or "Client"

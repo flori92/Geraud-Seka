@@ -287,6 +287,91 @@ def create_application() -> FastAPI:
                         """))
                     logger.info("✅ Added accounting_entries.entry_type")
 
+            if 'suppliers' in existing_tables:
+                supplier_columns = {col['name']: col for col in inspector.get_columns('suppliers')}
+
+                from sqlalchemy import text
+                with engine.begin() as conn:
+                    if 'contact_name' not in supplier_columns:
+                        logger.info("🔧 Adding missing suppliers.contact_name column...")
+                        conn.execute(text("""
+                            ALTER TABLE suppliers
+                            ADD COLUMN IF NOT EXISTS contact_name VARCHAR(255)
+                        """))
+                        logger.info("✅ Added suppliers.contact_name")
+
+                    if 'email' not in supplier_columns:
+                        logger.info("🔧 Adding missing suppliers.email column...")
+                        conn.execute(text("""
+                            ALTER TABLE suppliers
+                            ADD COLUMN IF NOT EXISTS email VARCHAR(255)
+                        """))
+                        logger.info("✅ Added suppliers.email")
+
+                    if 'phone' not in supplier_columns:
+                        logger.info("🔧 Adding missing suppliers.phone column...")
+                        conn.execute(text("""
+                            ALTER TABLE suppliers
+                            ADD COLUMN IF NOT EXISTS phone VARCHAR(50)
+                        """))
+                        logger.info("✅ Added suppliers.phone")
+
+                    if 'address' not in supplier_columns:
+                        logger.info("🔧 Adding missing suppliers.address column...")
+                        conn.execute(text("""
+                            ALTER TABLE suppliers
+                            ADD COLUMN IF NOT EXISTS address TEXT
+                        """))
+                        logger.info("✅ Added suppliers.address")
+
+                    if 'country' not in supplier_columns:
+                        logger.info("🔧 Adding missing suppliers.country column...")
+                        conn.execute(text("""
+                            ALTER TABLE suppliers
+                            ADD COLUMN IF NOT EXISTS country VARCHAR(100) DEFAULT 'Bénin'
+                        """))
+                        logger.info("✅ Added suppliers.country")
+
+                    if 'nif' not in supplier_columns:
+                        logger.info("🔧 Adding missing suppliers.nif column...")
+                        conn.execute(text("""
+                            ALTER TABLE suppliers
+                            ADD COLUMN IF NOT EXISTS nif VARCHAR(50)
+                        """))
+                        logger.info("✅ Added suppliers.nif")
+
+                    if 'default_account' not in supplier_columns:
+                        logger.info("🔧 Adding missing suppliers.default_account column...")
+                        conn.execute(text("""
+                            ALTER TABLE suppliers
+                            ADD COLUMN IF NOT EXISTS default_account VARCHAR(20)
+                        """))
+                        logger.info("✅ Added suppliers.default_account")
+
+                    if 'default_tax_rate' not in supplier_columns:
+                        logger.info("🔧 Adding missing suppliers.default_tax_rate column...")
+                        conn.execute(text("""
+                            ALTER TABLE suppliers
+                            ADD COLUMN IF NOT EXISTS default_tax_rate NUMERIC(5, 2)
+                        """))
+                        logger.info("✅ Added suppliers.default_tax_rate")
+
+                    if 'default_journal' not in supplier_columns:
+                        logger.info("🔧 Adding missing suppliers.default_journal column...")
+                        conn.execute(text("""
+                            ALTER TABLE suppliers
+                            ADD COLUMN IF NOT EXISTS default_journal VARCHAR(10)
+                        """))
+                        logger.info("✅ Added suppliers.default_journal")
+
+                    if 'default_description' not in supplier_columns:
+                        logger.info("🔧 Adding missing suppliers.default_description column...")
+                        conn.execute(text("""
+                            ALTER TABLE suppliers
+                            ADD COLUMN IF NOT EXISTS default_description VARCHAR(255)
+                        """))
+                        logger.info("✅ Added suppliers.default_description")
+
         except Exception as e:
             logger.error(f"❌ Error during startup database check: {e}")
         
