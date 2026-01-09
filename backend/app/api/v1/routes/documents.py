@@ -690,7 +690,20 @@ def validate_document(
     if document.client_id is None:
         client = db.query(Client).filter(Client.tenant_id == current_user.tenant_id).first()
         if not client:
-            raise HTTPException(status_code=422, detail="Aucun client n'est configuré pour ce tenant")
+            from app.models.tenant import Tenant
+
+            tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
+            tenant_name = (tenant.name if tenant else "Client") or "Client"
+            default_slug = "default"
+
+            client = Client(
+                name=tenant_name,
+                slug=default_slug,
+                sector=None,
+                tenant_id=current_user.tenant_id,
+            )
+            db.add(client)
+            db.flush()
         document.client_id = client.id
 
     supplier = db.query(Supplier).filter(Supplier.name == supplier_name, Supplier.client_id == document.client_id).first()
@@ -725,50 +738,57 @@ def validate_document(
     ht_amount = ht_amount or total_amount
 
     expense_account = validation_data.account_number or supplier.default_account or "601000"
+    entry_date = document.document_date or datetime.utcnow().date()
+    entry_label = validation_data.description or document.description or f"Document {document.filename}"
     
-    entry_expense = AccountingEntry(
+    try:
+        entry_expense = AccountingEntry(
         document_id=document.id,
         entry_type=EntryType.DEBIT,
         account_number=expense_account,
-        label=validation_data.description,
+        label=entry_label,
         debit=ht_amount,
         credit=0,
-        date=validation_data.date,
+        date=entry_date,
         client_id=document.client_id,
         journal_code=validation_data.journal_code or "ACH",
         tenant_id=current_user.tenant_id
-    )
-    db.add(entry_expense)
+        )
+        db.add(entry_expense)
     
-    if tax_amount and tax_amount > 0:
-        entry_vat = AccountingEntry(
+        if tax_amount and tax_amount > 0:
+            entry_vat = AccountingEntry(
+                document_id=document.id,
+                entry_type=EntryType.DEBIT,
+                account_number="445200", # TVA Récupérable
+                label=f"TVA sur {entry_label}",
+                debit=tax_amount,
+                credit=0,
+                date=entry_date,
+                client_id=document.client_id,
+                journal_code=validation_data.journal_code or "ACH",
+                tenant_id=current_user.tenant_id
+            )
+            db.add(entry_vat)
+        
+        entry_payable = AccountingEntry(
             document_id=document.id,
-            entry_type=EntryType.DEBIT,
-            account_number="445200", # TVA Récupérable
-            label=f"TVA sur {validation_data.description}",
-            debit=tax_amount,
-            credit=0,
-            date=validation_data.date,
+            entry_type=EntryType.CREDIT,
+            account_number="401100", # Fournisseurs
+            label=f"Facture {supplier_name}",
+            debit=0,
+            credit=total_amount,
+            date=entry_date,
             client_id=document.client_id,
             journal_code=validation_data.journal_code or "ACH",
             tenant_id=current_user.tenant_id
         )
-        db.add(entry_vat)
-        
-    entry_payable = AccountingEntry(
-        document_id=document.id,
-        entry_type=EntryType.CREDIT,
-        account_number="401100", # Fournisseurs
-        label=f"Facture {supplier_name}",
-        debit=0,
-        credit=total_amount,
-        date=validation_data.date,
-        client_id=document.client_id,
-        journal_code=validation_data.journal_code or "ACH",
-        tenant_id=current_user.tenant_id
-    )
-    db.add(entry_payable)
+        db.add(entry_payable)
 
-    db.commit()
-    db.refresh(document)
-    return document
+        db.commit()
+        db.refresh(document)
+        return document
+    except Exception as e:
+        db.rollback()
+        print(f"❌ Erreur validation/comptabilisation: {type(e).__name__}: {e}")
+        raise
