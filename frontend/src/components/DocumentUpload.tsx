@@ -136,7 +136,7 @@ export function DocumentUpload({ onUploadSuccess }: DocumentUploadProps) {
                     </span>{" "}
                     ou glissez-déposez
                 </p>
-                <p className="mt-1 text-xs text-slate-500">PDF, PNG, JPG jusqu'à 10MB</p>
+                <p className="mt-1 text-xs text-slate-500">PDF, PNG, JPG (max 10MB)</p>
                 {uploadStatus && <p className="mt-2 text-sm font-medium">{uploadStatus}</p>}
             </div>
 
