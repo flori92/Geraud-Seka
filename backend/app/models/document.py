@@ -95,7 +95,7 @@ class Document(Base, TimestampMixin):
     content_type = Column(String(100), nullable=True)
     file_size = Column(Integer, nullable=True)  # En bytes
     file_extension = Column(String(10))  # .pdf, .docx, etc.
-    # file_hash = Column(String(64), nullable=True, index=True)  # TODO: Activer après migration
+    file_hash = Column(String(64), nullable=True, index=True)  # SHA256 pour détecter doublons
     
     title = Column(String(500))  # Titre du document
     description = Column(Text)  # Description

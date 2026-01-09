@@ -43,9 +43,20 @@ async def upload_document(
         if file_size > 50 * 1024 * 1024:  # 50MB
             raise HTTPException(status_code=413, detail="Fichier trop volumineux (max 50MB)")
         
-        # TODO: Activer la détection des doublons après migration
-        # import hashlib
-        # file_hash = hashlib.sha256(file_content).hexdigest()
+        # Vérifier si un fichier identique existe déjà (basé sur le hash)
+        import hashlib
+        file_hash = hashlib.sha256(file_content).hexdigest()
+        
+        existing_doc = db.query(Document).filter(
+            Document.tenant_id == current_user.tenant_id,
+            Document.file_hash == file_hash
+        ).first()
+        
+        if existing_doc:
+            raise HTTPException(
+                status_code=409,
+                detail=f"Ce fichier existe déjà : {existing_doc.filename} (uploadé le {existing_doc.created_at.strftime('%d/%m/%Y')})"
+            )
         
         # Remettre le curseur au début pour l'upload
         from io import BytesIO
@@ -69,6 +80,7 @@ async def upload_document(
             "content_type": file.content_type or "application/octet-stream",
             "file_size": file_size,
             "file_extension": f".{file.filename.split('.')[-1]}" if '.' in file.filename else "",
+            "file_hash": file_hash,
             "status": DocumentStatus.OCR_PROCESSING,
             "tenant_id": current_user.tenant_id,
             "uploaded_by": current_user.id,

@@ -6,6 +6,27 @@ set -e  # Exit on error
 
 echo "🔄 Starting database migrations..."
 
+# Migration manuelle: ajouter file_hash si absent
+echo "📦 Vérification colonne file_hash..."
+python -c "
+from sqlalchemy import create_engine, text, inspect
+import os
+
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if DATABASE_URL:
+    engine = create_engine(DATABASE_URL)
+    with engine.connect() as conn:
+        inspector = inspect(engine)
+        columns = [c['name'] for c in inspector.get_columns('documents')]
+        if 'file_hash' not in columns:
+            conn.execute(text('ALTER TABLE documents ADD COLUMN file_hash VARCHAR(64)'))
+            conn.execute(text('CREATE INDEX IF NOT EXISTS ix_documents_file_hash ON documents(file_hash)'))
+            conn.commit()
+            print('✅ Colonne file_hash ajoutée')
+        else:
+            print('ℹ️  Colonne file_hash existe déjà')
+" 2>/dev/null || echo "⚠️  Migration file_hash ignorée"
+
 # Some environments (macOS, minimal containers) do not provide `timeout`.
 # Fall back to running alembic directly and tolerate failures (safe runner).
 if command -v timeout >/dev/null 2>&1; then
