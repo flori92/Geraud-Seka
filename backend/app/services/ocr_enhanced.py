@@ -153,12 +153,15 @@ Be extremely accurate. Preserve structure."""
                 
                 if response.status_code == 200:
                     result = response.json()
-                    return result['choices'][0]['message']['content'].strip()
+                    content = result['choices'][0]['message']['content'].strip()
+                    print(f"✅ Stripe {stripe_index} extracted: {len(content)} chars")
+                    return content
                 else:
                     body_preview = response.text
                     if body_preview and len(body_preview) > 800:
                         body_preview = body_preview[:800] + "…"
-                    print(f"❌ Groq error {stripe_index}: {response.status_code} - {body_preview}")
+                    print(f"❌ Groq API error stripe {stripe_index}: HTTP {response.status_code}")
+                    print(f"❌ Response: {body_preview}")
                     return None
         
         except Exception as e:
