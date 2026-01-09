@@ -50,22 +50,33 @@ export function DocumentUpload({ onUploadSuccess }: DocumentUploadProps) {
             const formData = new FormData();
             formData.append("file", file);
 
-            const response = await fetch(
-                `${API_BASE_URL}/api/v1/documents/`,
-                {
-                    method: "POST",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                    body: formData,
-                }
-            );
+            // Utiliser l'endpoint multipage pour les PDFs
+            const isPdf = file.name.toLowerCase().endsWith('.pdf');
+            const endpoint = isPdf 
+                ? `${API_BASE_URL}/api/v1/documents/upload-multipage`
+                : `${API_BASE_URL}/api/v1/documents/`;
+
+            const response = await fetch(endpoint, {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+                body: formData,
+            });
 
             if (!response.ok) {
                 throw new Error("Upload failed");
             }
 
-            setUploadStatus(`${file.name} téléchargé avec succès`);
+            const result = await response.json();
+            
+            // Afficher le résultat selon le type de réponse
+            if (result.documents_created !== undefined) {
+                // Réponse multipage
+                setUploadStatus(`${result.documents_created} factures extraites de ${file.name}`);
+            } else {
+                setUploadStatus(`${file.name} téléchargé avec succès`);
+            }
 
             if (onUploadSuccess) {
                 setTimeout(() => onUploadSuccess(), 500);
@@ -75,7 +86,7 @@ export function DocumentUpload({ onUploadSuccess }: DocumentUploadProps) {
             setUploadStatus(`Erreur lors de l'upload de ${file.name}`);
         } finally {
             setUploading(false);
-            setTimeout(() => setUploadStatus(""), 3000);
+            setTimeout(() => setUploadStatus(""), 5000);
         }
     };
 
