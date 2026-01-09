@@ -420,16 +420,36 @@ def delete_supplier_invoice(
     *,
     db: Session = Depends(deps.get_db_session),
     invoice_id: UUID,
+    force: bool = Query(False, description="Forcer la suppression même si la facture est approuvée/payée"),
     current_user: User = Depends(deps.get_current_user),
 ) -> None:
     """
-    Delete a supplier invoice.
+    Supprime une facture fournisseur.
+    
+    - Les factures en attente peuvent être supprimées directement
+    - Les factures approuvées/payées nécessitent force=true pour être supprimées
     """
+    invoice = None
+    invoice_idx = None
+    
     for idx, inv in enumerate(_supplier_invoices_store):
         if str(inv.id) == str(invoice_id):
-            _supplier_invoices_store.pop(idx)
-            return
-    raise HTTPException(status_code=404, detail="Supplier invoice not found")
+            invoice = inv
+            invoice_idx = idx
+            break
+    
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Facture fournisseur non trouvée")
+    
+    # Vérification des restrictions
+    if invoice.workflow_status in ["approved", "paid"] and not force:
+        raise HTTPException(
+            status_code=400,
+            detail="Cette facture est approuvée ou payée. Utilisez force=true pour confirmer la suppression."
+        )
+    
+    # Suppression
+    _supplier_invoices_store.pop(invoice_idx)
 
 
 class DuplicateInvoice(BaseModel):

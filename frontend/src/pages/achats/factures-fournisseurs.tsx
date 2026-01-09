@@ -233,6 +233,41 @@ export default function FacturesFournisseursPage() {
     }
   };
 
+  const handleDelete = async (invoiceId: string, force: boolean = false) => {
+    const token = localStorage.getItem("seka_access_token");
+    const invoice = invoices.find(inv => inv.id === invoiceId);
+    const needsForce = invoice?.workflow_status === 'approved' || invoice?.workflow_status === 'paid';
+    
+    if (needsForce && !force) {
+      const confirmed = window.confirm(
+        "Cette facture est approuvée ou payée. Êtes-vous sûr de vouloir la supprimer ? Cette action est irréversible."
+      );
+      if (!confirmed) return;
+      force = true;
+    } else {
+      const confirmed = window.confirm("Êtes-vous sûr de vouloir supprimer cette facture ? Cette action est irréversible.");
+      if (!confirmed) return;
+    }
+
+    try {
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/api/v1/supplier-invoices/${invoiceId}${force ? '?force=true' : ''}`;
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (response.ok || response.status === 204) {
+        fetchData();
+      } else {
+        const error = await response.json().catch(() => ({ detail: 'Erreur lors de la suppression' }));
+        alert(error.detail || 'Erreur lors de la suppression');
+      }
+    } catch (error) {
+      console.error("Error deleting invoice:", error);
+      alert("Erreur lors de la suppression de la facture");
+    }
+  };
+
   const handleBulkApprove = async () => {
     const token = localStorage.getItem("seka_access_token");
     try {
@@ -581,6 +616,13 @@ export default function FacturesFournisseursPage() {
                                     <Check className="h-4 w-4" />
                                   </button>
                                 )}
+                                <button
+                                  onClick={() => handleDelete(invoice.id)}
+                                  className="p-1 hover:bg-red-50 rounded text-red-600"
+                                  title="Supprimer"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
                                 <button className="p-1 hover:bg-gray-100 rounded">
                                   <MoreHorizontal className="h-5 w-5 text-gray-400" />
                                 </button>

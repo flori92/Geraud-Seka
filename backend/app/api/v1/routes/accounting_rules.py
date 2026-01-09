@@ -199,6 +199,26 @@ async def create_entry_from_document(
             db.rollback()
         raise HTTPException(status_code=422, detail=f"OCR failed: {str(e)}")
     
+    # Classification automatique Achat/Vente
+    from app.services.invoice_classifier import InvoiceClassifier
+    classifier = InvoiceClassifier(db, str(current_tenant.id))
+    invoice_type, classification_confidence, classification_metadata = classifier.classify_invoice(
+        ocr_data,
+        tenant_name=current_tenant.name if hasattr(current_tenant, 'name') else None
+    )
+    
+    # Mise à jour du type de document
+    from app.models.document import DocumentType
+    if invoice_type == "PURCHASE":
+        doc.type = DocumentType.INVOICE_PURCHASE
+    elif invoice_type == "SALE":
+        doc.type = DocumentType.INVOICE_SALES
+    
+    # Stocker les métadonnées de classification
+    if not doc.ai_extracted_data:
+        doc.ai_extracted_data = {}
+    doc.ai_extracted_data["classification"] = classification_metadata
+    
     engine = AccountingRulesEngine(db, str(current_tenant.id))
     suggestions = engine.apply_rules(ocr_data)
     
@@ -267,6 +287,9 @@ async def create_entry_from_document(
 
     return {
         "ocr_data": ocr_data,
+        "invoice_type": invoice_type,
+        "classification_confidence": classification_confidence,
+        "classification_metadata": classification_metadata,
         "suggestions": suggestions,
         "proposed_entry": {
             "date": ocr_data.get("date"),

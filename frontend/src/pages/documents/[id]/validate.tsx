@@ -145,7 +145,7 @@ export default function ValidateDocumentPage() {
                     <div className="flex h-full items-center justify-center p-4">
                         {document.file_path ? (
                             <iframe
-                                src={`${API_BASE_URL}${document.file_path}`}
+                                src={`${API_BASE_URL}/api/v1/documents/download/${encodeURIComponent(document.file_path)}`}
                                 className="h-full w-full rounded border border-accents-2"
                                 title={document.filename}
                             />

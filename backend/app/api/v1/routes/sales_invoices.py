@@ -317,15 +317,20 @@ async def update_invoice(
     "/{invoice_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Supprimer une facture",
-    description="Supprime une facture (brouillon uniquement)",
+    description="Supprime une facture. Les factures payées nécessitent une confirmation.",
 )
 async def delete_invoice(
     invoice_id: str,
+    force: bool = Query(False, description="Forcer la suppression même si la facture est payée"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> None:
     """
-    Supprime une facture en brouillon du tenant.
+    Supprime une facture du tenant.
+    
+    - Les factures en brouillon peuvent être supprimées directement
+    - Les factures envoyées/impayées peuvent être supprimées avec confirmation
+    - Les factures payées nécessitent force=True pour être supprimées
     """
     invoice = db.query(SalesInvoice).filter(
         and_(
@@ -340,12 +345,14 @@ async def delete_invoice(
             detail="Facture non trouvée",
         )
     
-    if invoice.status != "draft":
+    # Vérification des restrictions
+    if invoice.payment_status == "paid" and not force:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Seules les factures en brouillon peuvent être supprimées",
+            detail="Cette facture est payée. Utilisez force=true pour confirmer la suppression.",
         )
     
+    # Suppression
     db.delete(invoice)
     db.commit()
 

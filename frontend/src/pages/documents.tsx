@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
 import { PennylaneSidebar } from "@/components/layout/PennylaneSidebar";
@@ -11,7 +11,7 @@ export default function DocumentsPage() {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchDocuments = async () => {
+  const fetchDocuments = useCallback(async () => {
     const token = localStorage.getItem("seka_access_token");
     if (token) {
       try {
@@ -22,11 +22,31 @@ export default function DocumentsPage() {
       }
     }
     setLoading(false);
+  }, []);
+
+  useEffect(() => { 
+    fetchDocuments(); 
+  }, [fetchDocuments]);
+
+  // Polling automatique pour les documents en cours de traitement OCR
+  useEffect(() => {
+    const hasProcessingDocs = documents.some(
+      doc => doc.status === "OCR_PROCESSING" || doc.status === "UPLOADED"
+    );
+    
+    if (!hasProcessingDocs) return;
+    
+    const interval = setInterval(() => {
+      fetchDocuments();
+    }, 3000); // Vérifie toutes les 3 secondes
+    
+    return () => clearInterval(interval);
+  }, [documents, fetchDocuments]);
+
+  const handleUploadSuccess = () => { 
+    // Attendre un peu pour que le backend commence le traitement
+    setTimeout(() => fetchDocuments(), 1000);
   };
-
-  useEffect(() => { fetchDocuments(); }, []);
-
-  const handleUploadSuccess = () => { fetchDocuments(); };
 
   const getStatusBadge = (status: string) => {
     const config: Record<string, { bg: string; text: string; label: string }> = {

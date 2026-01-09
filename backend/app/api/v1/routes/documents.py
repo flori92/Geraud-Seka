@@ -78,6 +78,24 @@ async def upload_document(
             ocr_data = await ocr_service.process_invoice(file_path)
             print(f"✅ OCR completed. Extracted data: {ocr_data}")
 
+            # Classification automatique Achat/Vente
+            from app.services.invoice_classifier import InvoiceClassifier
+            from app.models.document import DocumentType
+            classifier = InvoiceClassifier(db, str(current_user.tenant_id))
+            invoice_type, classification_confidence, classification_metadata = classifier.classify_invoice(ocr_data)
+            
+            # Mise à jour du type de document
+            if invoice_type == "PURCHASE":
+                db_obj.type = DocumentType.INVOICE_PURCHASE
+            elif invoice_type == "SALE":
+                db_obj.type = DocumentType.INVOICE_SALES
+            
+            # Stocker les métadonnées de classification
+            if not db_obj.ai_extracted_data:
+                db_obj.ai_extracted_data = {}
+            db_obj.ai_extracted_data["classification"] = classification_metadata
+            print(f"📋 Classification: {invoice_type} (confiance: {classification_confidence:.2f})")
+
             db_obj.reference_number = ocr_data.get("reference_number")
 
             from datetime import datetime
