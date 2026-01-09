@@ -203,6 +203,43 @@ def update_document(
     return document
 
 
+@router.get("/download/{file_key:path}")
+async def download_document_by_key(
+    file_key: str,
+    current_user: User = Depends(deps.get_current_user),
+):
+    """
+    Télécharge un document par sa clé de stockage.
+    Sert de proxy pour les fichiers R2 non accessibles publiquement.
+    """
+    from fastapi.responses import StreamingResponse
+    import io
+    
+    try:
+        content = await storage_service.get_file_content(file_key)
+        
+        content_type = "application/octet-stream"
+        if file_key.lower().endswith('.pdf'):
+            content_type = "application/pdf"
+        elif file_key.lower().endswith(('.jpg', '.jpeg')):
+            content_type = "image/jpeg"
+        elif file_key.lower().endswith('.png'):
+            content_type = "image/png"
+        
+        return StreamingResponse(
+            io.BytesIO(content),
+            media_type=content_type,
+            headers={
+                "Content-Disposition": f"inline; filename={file_key.split('/')[-1]}"
+            }
+        )
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Document non trouvé")
+    except Exception as e:
+        print(f"Erreur téléchargement: {e}")
+        raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
+
+
 from app.models.accounting import AccountingEntry, EntryType
 from app.models.client import Client
 from app.models.supplier import Supplier

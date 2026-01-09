@@ -162,11 +162,50 @@ class StorageService:
         
         return False
     
-    def get_file_url(self, key: str) -> str:
-        """Retourne l'URL d'accès à un fichier."""
-        if self.use_r2 and settings.r2_public_base_url:
-            return f"{settings.r2_public_base_url}/{key}"
+    def get_file_url(self, key: str, use_presigned: bool = True) -> str:
+        """Retourne l'URL d'accès à un fichier.
+        
+        Args:
+            key: Clé du fichier dans le stockage
+            use_presigned: Si True, génère une URL signée pour R2 (valide 1h)
+        """
+        if self.use_r2:
+            if use_presigned:
+                try:
+                    presigned_url = self.r2_client.generate_presigned_url(
+                        'get_object',
+                        Params={
+                            'Bucket': settings.r2_bucket_name,
+                            'Key': key
+                        },
+                        ExpiresIn=3600  # 1 heure
+                    )
+                    return presigned_url
+                except Exception as e:
+                    print(f"Erreur génération URL signée: {e}")
+                    return f"/api/v1/documents/download/{key}"
+            elif settings.r2_public_base_url:
+                return f"{settings.r2_public_base_url}/{key}"
+        
+        return f"/api/v1/documents/download/{key}"
+    
+    async def get_file_content(self, key: str) -> bytes:
+        """Récupère le contenu d'un fichier."""
+        if self.use_r2:
+            try:
+                response = self.r2_client.get_object(
+                    Bucket=settings.r2_bucket_name,
+                    Key=key
+                )
+                return response['Body'].read()
+            except ClientError as e:
+                print(f"Erreur lecture R2: {e}")
+                raise
         else:
-            return f"/uploads/{key}"
+            local_path = os.path.join(self.local_upload_dir, key)
+            if os.path.exists(local_path):
+                with open(local_path, 'rb') as f:
+                    return f.read()
+            raise FileNotFoundError(f"Fichier non trouvé: {key}")
 
 storage_service = StorageService()
