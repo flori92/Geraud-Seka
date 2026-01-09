@@ -630,18 +630,18 @@ from pydantic import BaseModel
 
 class ValidationData(BaseModel):
     reference_number: Optional[str] = None
-    date: date
-    due_date: Optional[date] = None
+    date: Optional[str] = None  # Format YYYY-MM-DD ou vide
+    due_date: Optional[str] = None
     supplier_name: Optional[str] = None
 
-    amount_ht: Optional[Decimal] = None
-    amount_vat: Optional[Decimal] = None
-    amount_ttc: Optional[Decimal] = None
+    amount_ht: Optional[float] = None
+    amount_vat: Optional[float] = None
+    amount_ttc: Optional[float] = None
 
-    total_amount: Optional[Decimal] = None
-    tax_amount: Optional[Decimal] = None
+    total_amount: Optional[float] = None
+    tax_amount: Optional[float] = None
 
-    description: str
+    description: Optional[str] = None
     account_number: Optional[str] = None
     journal_code: Optional[str] = "ACH"
 
@@ -682,8 +682,19 @@ def validate_document(
 
     document.status = DocumentStatus.VALIDATED
     document.reference_number = validation_data.reference_number or document.reference_number
-    document.document_date = validation_data.date
-    document.due_date = validation_data.due_date
+    
+    # Parser les dates string en objets date
+    from datetime import datetime
+    if validation_data.date:
+        try:
+            document.document_date = datetime.strptime(validation_data.date, "%Y-%m-%d").date()
+        except ValueError:
+            pass
+    if validation_data.due_date:
+        try:
+            document.due_date = datetime.strptime(validation_data.due_date, "%Y-%m-%d").date()
+        except ValueError:
+            pass
     document.amount_ht = float(validation_data.amount_ht) if validation_data.amount_ht is not None else document.amount_ht
     document.amount_vat = float(validation_data.amount_vat) if validation_data.amount_vat is not None else document.amount_vat
     document.amount_ttc = float(validation_data.amount_ttc) if validation_data.amount_ttc is not None else document.amount_ttc
