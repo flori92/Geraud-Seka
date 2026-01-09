@@ -42,21 +42,22 @@ export default function ValidateDocumentPage() {
                 const data = await getDocument(id as string, token);
                 setDocument(data);
                 
-                // Générer une URL signée pour l'iframe
+                // Charger le document via fetch et créer un blob URL
                 if (data.file_path) {
                     try {
-                        const viewUrlResponse = await fetch(
-                            `${API_BASE_URL}/api/v1/documents/${id}/view-url`,
+                        const fileResponse = await fetch(
+                            `${API_BASE_URL}/api/v1/documents/download/${encodeURIComponent(data.file_path)}`,
                             {
                                 headers: { Authorization: `Bearer ${token}` }
                             }
                         );
-                        if (viewUrlResponse.ok) {
-                            const viewUrlData = await viewUrlResponse.json();
-                            setDocumentViewUrl(viewUrlData.view_url);
+                        if (fileResponse.ok) {
+                            const blob = await fileResponse.blob();
+                            const blobUrl = URL.createObjectURL(blob);
+                            setDocumentViewUrl(blobUrl);
                         }
                     } catch (e) {
-                        console.warn("Impossible de générer l'URL signée, utilisation de l'URL directe", e);
+                        console.warn("Impossible de charger le document", e);
                     }
                 }
 
@@ -191,11 +192,10 @@ export default function ValidateDocumentPage() {
                                     title={document.filename}
                                 />
                             ) : (
-                                <iframe
-                                    src={`${API_BASE_URL}/api/v1/documents/download/${encodeURIComponent(document.file_path)}`}
-                                    className="h-full w-full rounded border border-accents-2"
-                                    title={document.filename}
-                                />
+                                <div className="flex flex-col items-center justify-center text-accents-5">
+                                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-accents-2 border-t-foreground mb-4"></div>
+                                    <p>Chargement du document...</p>
+                                </div>
                             )
                         ) : (
                             <div className="text-center text-accents-5">
