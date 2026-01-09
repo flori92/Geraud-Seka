@@ -236,7 +236,7 @@ export default function FacturesFournisseursPage() {
   const handleDelete = async (invoiceId: string, force: boolean = false) => {
     const token = localStorage.getItem("seka_access_token");
     const invoice = invoices.find(inv => inv.id === invoiceId);
-    const needsForce = invoice?.workflow_status === 'approved' || invoice?.workflow_status === 'paid';
+    const needsForce = invoice?.workflow_status === 'to_pay' || invoice?.workflow_status === 'paid';
     
     if (needsForce && !force) {
       const confirmed = window.confirm(

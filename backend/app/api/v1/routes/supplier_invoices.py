@@ -442,7 +442,7 @@ def delete_supplier_invoice(
         raise HTTPException(status_code=404, detail="Facture fournisseur non trouvée")
     
     # Vérification des restrictions
-    if invoice.workflow_status in ["approved", "paid"] and not force:
+    if invoice.workflow_status in ["to_pay", "paid"] and not force:
         raise HTTPException(
             status_code=400,
             detail="Cette facture est approuvée ou payée. Utilisez force=true pour confirmer la suppression."
