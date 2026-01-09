@@ -72,33 +72,49 @@ class InvoiceClassifier:
             self.db.rollback()
         
         # 2. Analyse des mots-clés dans le texte
+        # Mots-clés forts (score élevé)
+        strong_purchase_keywords = ["achat", "purchase", "achats", "facture d'achat", "facture achat"]
+        strong_sale_keywords = ["vente", "sale", "ventes", "facture de vente", "facture vente"]
+        
+        # Vérifier les mots-clés forts en premier
+        for keyword in strong_purchase_keywords:
+            if keyword in raw_text:
+                scores["purchase"] += 0.5
+                reasons["purchase"].append(f"Mot-clé fort: '{keyword}'")
+                print(f"🏷️ Classification: mot-clé ACHAT fort détecté: '{keyword}'")
+        
+        for keyword in strong_sale_keywords:
+            if keyword in raw_text:
+                scores["sale"] += 0.5
+                reasons["sale"].append(f"Mot-clé fort: '{keyword}'")
+                print(f"🏷️ Classification: mot-clé VENTE fort détecté: '{keyword}'")
+        
+        # Mots-clés secondaires
         purchase_keywords = [
-            "facture fournisseur", "facture d'achat", "facture achat",
-            "invoice from", "facture reçue", "reçu de", "à payer",
-            "fournisseur:", "supplier:", "vendor:", "achat",
-            "bon de livraison", "doit", "notre client", "payable",
+            "facture fournisseur", "invoice from", "facture reçue", "reçu de", 
+            "à payer", "fournisseur:", "supplier:", "vendor:",
+            "bon de livraison", "doit", "payable",
             # Fournisseurs connus au Bénin
             "sbee", "soneb", "mtn", "moov", "spie", "total", "oryx",
-            "sodeco", "ceb", "canalplus", "canal+", "orange"
+            "sodeco", "ceb", "canalplus", "canal+", "orange", "maersk"
         ]
         
         sale_keywords = [
-            "facture client", "facture de vente", "facture vente",
-            "invoice to", "facture émise", "facturé à", "à recevoir",
-            "client:", "customer:", "facture n°", "facture numéro",
-            "votre facture", "montant à payer", "nous vous facturons",
-            "avoir", "crédit"
+            "facture client", "invoice to", "facture émise", "facturé à", 
+            "à recevoir", "client:", "customer:", "facture n°", "facture numéro",
+            "votre facture", "nous vous facturons", "avoir", "crédit",
+            "notre référence", "commande client"
         ]
         
         for keyword in purchase_keywords:
             if keyword in raw_text:
-                scores["purchase"] += 0.2
-                reasons["purchase"].append(f"Mot-clé détecté: '{keyword}'")
+                scores["purchase"] += 0.15
+                reasons["purchase"].append(f"Mot-clé: '{keyword}'")
         
         for keyword in sale_keywords:
             if keyword in raw_text:
-                scores["sale"] += 0.2
-                reasons["sale"].append(f"Mot-clé détecté: '{keyword}'")
+                scores["sale"] += 0.15
+                reasons["sale"].append(f"Mot-clé: '{keyword}'")
         
         # 3. Analyse de la structure (si supplier_name présent mais pas customer_name → Achat)
         if supplier_name and not customer_name:
