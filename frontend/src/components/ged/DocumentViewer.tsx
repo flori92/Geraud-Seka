@@ -247,6 +247,7 @@ export function DocumentViewer({ isOpen, onClose, documentData }: DocumentViewer
               src={`${fileUrl}#toolbar=0&navpanes=0`}
               className="w-full h-full"
               title={documentData.name}
+              sandbox="allow-same-origin allow-scripts"
               onLoad={() => setLoading(false)}
               onError={() => setError("Impossible de charger le PDF")}
             />
