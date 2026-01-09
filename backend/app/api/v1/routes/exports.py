@@ -54,6 +54,119 @@ def export_sage(
     return Response(content=output.getvalue(), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=export_sage.csv"})
 
 
+@router.get("/perfecto", response_class=Response)
+def export_perfecto(
+    db: Session = Depends(deps.get_db_session),
+    start_date: date = None,
+    end_date: date = None,
+    journal_type: Optional[str] = Query(None, description="Type de journal (ACH, VEN, BQ, OD)"),
+    status: Optional[str] = Query("validated", description="Statut des écritures (validated, all)"),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    Export accounting entries to Perfecto format (.txt).
+    Format Bénin: DatePiece;Journal;Compte;Libelle;Debit;Credit;Ref_piece;DateEcheance
+    Date format: JJ/MM/AAAA
+    Separator: ;
+    Currency: FCFA
+    """
+    query = db.query(AccountingEntry).filter(AccountingEntry.tenant_id == current_user.tenant_id)
+    
+    if status == "validated":
+        query = query.filter(AccountingEntry.status == "validated")
+    
+    if start_date:
+        query = query.filter(AccountingEntry.date >= start_date)
+    if end_date:
+        query = query.filter(AccountingEntry.date <= end_date)
+    if journal_type:
+        query = query.filter(AccountingEntry.journal_code == journal_type)
+        
+    entries = query.order_by(AccountingEntry.date, AccountingEntry.created_at).all()
+    
+    lines = []
+    for entry in entries:
+        date_piece = entry.date.strftime("%d/%m/%Y") if entry.date else ""
+        date_echeance = entry.due_date.strftime("%d/%m/%Y") if entry.due_date else ""
+        
+        debit_val = int(entry.debit) if entry.debit else 0
+        credit_val = int(entry.credit) if entry.credit else 0
+        
+        line = ";".join([
+            date_piece,
+            entry.journal_code or "ACH",
+            entry.account_number or "",
+            (entry.label or "").replace(";", ","),
+            str(debit_val),
+            str(credit_val),
+            (entry.reference or "").replace(";", ","),
+            date_echeance
+        ])
+        lines.append(line)
+    
+    content = "\n".join(lines)
+    
+    filename_date = date.today().strftime("%Y%m%d")
+    filename = f"export_perfecto_{filename_date}.txt"
+    
+    return Response(
+        content=content,
+        media_type="text/plain; charset=utf-8",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}",
+            "Content-Type": "text/plain; charset=utf-8"
+        }
+    )
+
+
+@router.get("/saari", response_class=Response)
+def export_saari(
+    db: Session = Depends(deps.get_db_session),
+    start_date: date = None,
+    end_date: date = None,
+    journal_type: Optional[str] = Query(None, description="Type de journal"),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    Export accounting entries to SAARI CSV format.
+    """
+    query = db.query(AccountingEntry).filter(AccountingEntry.tenant_id == current_user.tenant_id)
+    
+    if start_date:
+        query = query.filter(AccountingEntry.date >= start_date)
+    if end_date:
+        query = query.filter(AccountingEntry.date <= end_date)
+    if journal_type:
+        query = query.filter(AccountingEntry.journal_code == journal_type)
+        
+    entries = query.order_by(AccountingEntry.date).all()
+    
+    output = io.StringIO()
+    writer = csv.writer(output, delimiter=';', quoting=csv.QUOTE_MINIMAL)
+    
+    writer.writerow(["Date", "Journal", "Compte", "Libelle", "Debit", "Credit", "Reference", "Echeance"])
+    
+    for entry in entries:
+        writer.writerow([
+            entry.date.strftime("%d/%m/%Y") if entry.date else "",
+            entry.journal_code or "",
+            entry.account_number or "",
+            entry.label or "",
+            f"{entry.debit:.2f}" if entry.debit else "0",
+            f"{entry.credit:.2f}" if entry.credit else "0",
+            entry.reference or "",
+            entry.due_date.strftime("%d/%m/%Y") if entry.due_date else ""
+        ])
+    
+    filename = f"export_saari_{date.today().strftime('%Y%m%d')}.csv"
+    
+    return Response(
+        content=output.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
 @router.get("/fiscal-year", response_class=Response)
 def export_fiscal_year(
     db: Session = Depends(deps.get_db_session),

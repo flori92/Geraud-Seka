@@ -7,29 +7,14 @@ import { getCurrentUser, type User } from "@/lib/api";
 import {
   LayoutDashboard,
   FileText,
-  CreditCard,
-  ShoppingCart,
-  Receipt,
-  BarChart3,
   Settings,
   LogOut,
   ChevronDown,
-  Building2,
-  Calculator,
   Wallet,
   Users,
-  Search,
   HelpCircle,
-  Sparkles,
-  FolderOpen,
-  BookOpen,
-  Scale,
   Download,
-  ArrowLeftRight,
-  Eye,
-  Package,
   Zap,
-  Lock,
   type LucideIcon
 } from "lucide-react";
 
@@ -55,244 +40,77 @@ interface MenuSection {
   items: MenuItem[];
 }
 
-const managementMenu: MenuSection[] = [
+const sekaV1Menu: MenuSection[] = [
   {
     items: [
-      { id: "accueil", label: "Accueil", icon: LayoutDashboard, href: "/dashboard" },
-      { id: "contacts", label: "Contacts", icon: Users, href: "/contacts" },
+      { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
       {
-        id: "transactions",
-        label: "Transactions",
-        icon: ArrowLeftRight,
-        submenu: [
-          { label: "Toutes les transactions", href: "/transactions" },
-          { label: "Rapprochement bancaire", href: "/accounting/bank-reconciliation", badge: "IA", badgeVariant: "new" },
-          { label: "Import relevés", href: "/accounting/import-statements" },
-          { label: "Règles de catégorisation", href: "/settings/transaction-rules", badge: "IA", badgeVariant: "new" },
-        ]
-      },
-      { id: "compte-pro", label: "Compte Pro", icon: CreditCard, href: "/compte-pro", badge: "INCLUS", badgeVariant: "included" },
-      {
-        id: "tresorerie",
-        label: "Trésorerie",
-        icon: Wallet,
-        submenu: [
-          { label: "Vue d'ensemble", href: "/treasury" },
-          { label: "Comptes bancaires", href: "/treasury/accounts" },
-          { label: "Mobile Money", href: "/treasury/mobile-money", badge: "NOUVEAU", badgeVariant: "new" },
-          { label: "Prévisions", href: "/treasury/forecast", badge: "IA", badgeVariant: "new" },
-          { label: "Mouvements", href: "/treasury/transactions" },
-        ]
-      },
-      {
-        id: "achats",
-        label: "Achats",
-        icon: ShoppingCart,
-        submenu: [
-          { label: "Factures fournisseurs", href: "/achats/factures" },
-          { label: "Bons de commande", href: "/achats/bons-commande" },
-          { label: "Notes de frais", href: "/achats/notes-frais" },
-          { label: "Fournisseurs", href: "/suppliers" },
-        ]
-      },
-      {
-        id: "ventes",
-        label: "Ventes",
-        icon: Receipt,
-        submenu: [
-          { label: "Factures clients", href: "/ventes/factures-clients" },
-          { label: "Devis", href: "/ventes/nouveau-devis" },
-          { label: "Bons de livraison", href: "/ventes/bons-livraison" },
-          { label: "Avoirs", href: "/ventes/avoirs" },
-        ]
-      },
-      {
-        id: "stock",
-        label: "Stock",
-        icon: Package,
-        submenu: [
-          { label: "Produits", href: "/products" },
-          { label: "Inventaire", href: "/stock/inventory" },
-          { label: "Mouvements de stock", href: "/stock/movements" },
-          { label: "Alertes stock", href: "/coming-soon?feature=Alertes Stock" },
-        ]
-      },
-      {
-        id: "analytique",
-        label: "Analytique",
-        icon: BarChart3,
-        submenu: [
-          { label: "Tableau de bord", href: "/analytique" },
-          { label: "Rapports", href: "/rapports" },
-          { label: "Indicateurs clés", href: "/coming-soon?feature=KPIs" },
-          { label: "Intelligence IA", href: "/intelligence", badge: "IA", badgeVariant: "new" },
-        ]
-      },
-      { id: "documents", label: "Documents", icon: FolderOpen, href: "/documents" },
-    ]
-  },
-  {
-    title: "Outils",
-    items: [
-      { id: "comptassistant", label: "ComptAssistant", icon: Sparkles, href: "/assistant", badge: "IA", badgeVariant: "new" },
-      { id: "recherche", label: "Recherche rapide", icon: Search, href: "/recherche" },
-      { id: "exports", label: "Exports", icon: Download, href: "/exports" },
-      {
-        id: "integrations",
-        label: "Intégrations",
-        icon: Zap,
-        submenu: [
-          { label: "Applications connectées", href: "/settings/integrations" },
-          { label: "API & Webhooks", href: "/coming-soon?feature=API" },
-          { label: "Import de données", href: "/settings/import" },
-        ]
-      },
-      {
-        id: "parametres",
-        label: "Paramètres",
-        icon: Settings,
-        submenu: [
-          { label: "Informations entreprise", href: "/settings" },
-          { label: "Gestion de l'équipe", href: "/settings/team" },
-          { label: "Abonnement", href: "/billing" },
-          { label: "Plan comptable", href: "/accounting/chart-of-accounts" },
-          { label: "Familles analytiques", href: "/settings/analytics" },
-          { label: "Centre de règles", href: "/settings/rules" },
-          { label: "Comptes bancaires", href: "/treasury/accounts" },
-          { label: "Intégrations", href: "/settings/integrations" },
-          { label: "Imports", href: "/settings/import" },
-          { label: "Exports", href: "/exports" },
-        ]
-      },
-      { id: "aide", label: "Aide et support", icon: HelpCircle, href: "/aide" },
-    ]
-  }
-];
-
-const accountingMenu: MenuSection[] = [
-  {
-    items: [
-      { id: "dashboard-compta", label: "Tableau de bord", icon: Calculator, href: "/accounting/dashboard" },
-      {
-        id: "saisie",
-        label: "Saisie",
+        id: "factures",
+        label: "Factures",
         icon: FileText,
         submenu: [
-          { label: "Saisie avec OCR", href: "/accounting/entries/from-ocr", badge: "IA", badgeVariant: "new" },
-          { label: "Écritures comptables", href: "/accounting/entries" },
-          { label: "Nouvelle saisie", href: "/accounting/entries/new" },
-          { label: "Saisie rapide", href: "/accounting/entries/quick-entry", badge: "NEW", badgeVariant: "new" },
-          { label: "Factures fournisseurs", href: "/achats/factures" },
-          { label: "Factures clients", href: "/ventes/factures" },
-          { label: "Transactions bancaires", href: "/transactions" },
-          { label: "Rapprochement bancaire", href: "/accounting/bank-reconciliation", badge: "IA", badgeVariant: "new" },
-          { label: "Comptes bancaires", href: "/treasury/accounts" },
-          { label: "Mobile Money", href: "/treasury/mobile-money", badge: "NOUVEAU", badgeVariant: "new" },
-          { label: "Import relevés", href: "/accounting/import-statements" },
+          { label: "Upload", href: "/documents", badge: "OCR", badgeVariant: "new" },
+          { label: "En attente", href: "/accounting/entries?status=pending" },
+          { label: "Validées", href: "/accounting/entries?status=validated" },
+          { label: "Achats", href: "/achats/factures" },
+          { label: "Ventes", href: "/ventes/factures" },
         ]
       },
       {
-        id: "journaux",
-        label: "Journaux",
-        icon: BookOpen,
+        id: "tiers",
+        label: "Tiers",
+        icon: Users,
         submenu: [
-          { label: "Journal des achats", href: "/accounting/journals?type=ACH" },
-          { label: "Journal des ventes", href: "/accounting/journals?type=VTE" },
-          { label: "Journal de banque", href: "/accounting/journals?type=BQ" },
-          { label: "Journal de caisse", href: "/accounting/journals?type=CA" },
-          { label: "Journal des OD", href: "/accounting/journals?type=OD" },
-          { label: "Tous les journaux", href: "/accounting/journals" },
+          { label: "Fournisseurs", href: "/suppliers" },
+          { label: "Clients", href: "/clients" },
+          { label: "Plan comptable", href: "/accounting/chart-of-accounts" },
         ]
       },
       {
-        id: "revision",
-        label: "Révision",
-        icon: Calculator,
+        id: "regles",
+        label: "Règles",
+        icon: Zap,
         submenu: [
-          { label: "Balance générale", href: "/accounting/balance" },
-          { label: "Grand livre", href: "/accounting/ledger" },
-          { label: "Balance âgée fournisseurs", href: "/suppliers/balance" },
-          { label: "Balance âgée clients", href: "/clients/balance" },
-          { label: "Lettrage", href: "/accounting/lettering" },
-          { label: "Contrôles de cohérence", href: "/accounting/consistency-checks" },
+          { label: "Règles fournisseurs", href: "/settings/accounting-rules", badge: "IA", badgeVariant: "new" },
+          { label: "Journaux", href: "/accounting/journals" },
         ]
       },
       {
-        id: "fiscalite",
-        label: "Fiscalité",
-        icon: Building2,
+        id: "banque",
+        label: "Banque",
+        icon: Wallet,
         submenu: [
-          { label: "Déclaration TVA", href: "/tax/tva-declaration", badge: "AUTO", badgeVariant: "new" },
-          { label: "Liasse fiscale", href: "/tax/liasse-fiscale" },
-          { label: "IS / IR", href: "/tax/is-ir" },
-          { label: "Taxes diverses", href: "/tax/other-taxes" },
-          { label: "Export FEC", href: "/accounting/export-fec" },
+          { label: "Rapprochement", href: "/accounting/bank-reconciliation", badge: "PDF", badgeVariant: "new" },
+          { label: "Relevés importés", href: "/accounting/import-statements" },
         ]
       },
       {
-        id: "etats-synthese",
-        label: "États de synthèse",
-        icon: Scale,
+        id: "exports",
+        label: "Exports",
+        icon: Download,
         submenu: [
-          { label: "Bilan", href: "/reports/balance-sheet" },
-          { label: "Compte de résultat", href: "/reports/income-statement" },
-          { label: "SIG", href: "/reports/sig" },
-          { label: "Tableau de financement", href: "/reports/cash-flow" },
-          { label: "Annexes", href: "/reports/annexes" },
-        ]
-      },
-      {
-        id: "cloture",
-        label: "Clôture",
-        icon: Lock,
-        submenu: [
-          { label: "Écritures de clôture", href: "/accounting/closing-entries" },
-          { label: "Inventaire", href: "/accounting/inventory" },
-          { label: "Provisions", href: "/accounting/provisions" },
-          { label: "Amortissements", href: "/accounting/depreciations" },
-          { label: "Validation période", href: "/accounting/period-validation" },
+          { label: "Exporter", href: "/exports" },
+          { label: "Historique", href: "/exports?tab=history" },
         ]
       },
     ]
   },
   {
-    title: "Outils",
+    title: "Configuration",
     items: [
-      { id: "comptassistant", label: "ComptAssistant", icon: Sparkles, href: "/assistant", badge: "IA", badgeVariant: "new" },
-      { id: "recherche", label: "Recherche", icon: Search, href: "/recherche" },
-      {
-        id: "regles",
-        label: "Règles & IA",
-        icon: Zap,
-        submenu: [
-          { label: "Règles comptables", href: "/settings/accounting-rules", badge: "IA", badgeVariant: "new" },
-          { label: "Règles de catégorisation", href: "/settings/transaction-rules" },
-          { label: "Centre de règles", href: "/settings/rules" },
-          { label: "Apprentissage IA", href: "/settings/ai-learning" },
-        ]
-      },
-      { id: "exports", label: "Exports FEC", icon: Download, href: "/exports" },
-      { id: "point-vue", label: "Vue client", icon: Eye, href: "/point-vue-client" },
       {
         id: "parametres",
         label: "Paramètres",
         icon: Settings,
         submenu: [
-          { label: "Informations entreprise", href: "/settings" },
-          { label: "Gestion de l'équipe", href: "/settings/team" },
-          { label: "Abonnement", href: "/billing" },
-          { label: "Plan comptable", href: "/accounting/chart-of-accounts" },
-          { label: "Familles analytiques", href: "/settings/analytics" },
-          { label: "Centre de règles", href: "/settings/rules" },
-          { label: "Comptes bancaires", href: "/treasury/accounts" },
-          { label: "Intégrations", href: "/settings/integrations" },
-          { label: "Imports", href: "/settings/import" },
-          { label: "Exports", href: "/exports" },
+          { label: "Entreprise", href: "/settings" },
+          { label: "Utilisateurs", href: "/settings/team" },
+          { label: "TVA", href: "/settings/invoices" },
         ]
       },
       { id: "aide", label: "Aide", icon: HelpCircle, href: "/aide" },
     ]
-  },
+  }
 ];
 
 const badgeStyles: Record<string, string> = {
@@ -309,24 +127,10 @@ interface PennylaneSidebarProps {
 }
 
 export function PennylaneSidebar({ isOpen = true, onClose }: PennylaneSidebarProps) {
-  const [viewMode, setViewMode] = useState<"management" | "accounting">("management");
   const [openMenus, setOpenMenus] = useState<string[]>([]);
   const [user, setUser] = useState<User | null>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
   const router = useRouter();
   const pathname = router.pathname || "";
-
-  const currentMenu = viewMode === "management" ? managementMenu : accountingMenu;
-
-  useEffect(() => {
-    if (typeof window !== "undefined" && !isInitialized) {
-      const savedMode = localStorage.getItem("seka_view_mode") as "management" | "accounting" | null;
-      if (savedMode) {
-        setViewMode(savedMode);
-      }
-      setIsInitialized(true);
-    }
-  }, [isInitialized]);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -344,14 +148,14 @@ export function PennylaneSidebar({ isOpen = true, onClose }: PennylaneSidebarPro
   }, []);
 
   useEffect(() => {
-    const allMenuItems = currentMenu.flatMap(section => section.items);
+    const allMenuItems = sekaV1Menu.flatMap((section: MenuSection) => section.items);
     setOpenMenus((prev) => {
       let next = prev;
       for (const item of allMenuItems) {
         if (!item.submenu) continue;
 
         const isChildActive = item.submenu.some(
-          (sub) => pathname === sub.href || pathname.startsWith(sub.href + "/")
+          (sub: SubMenuItem) => pathname === sub.href || pathname.startsWith(sub.href + "/")
         );
 
         if (isChildActive && !next.includes(item.id)) {
@@ -360,15 +164,7 @@ export function PennylaneSidebar({ isOpen = true, onClose }: PennylaneSidebarPro
       }
       return next;
     });
-  }, [pathname, currentMenu]);
-
-  const handleModeChange = (mode: "management" | "accounting") => {
-    setViewMode(mode);
-    setOpenMenus([]);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("seka_view_mode", mode);
-    }
-  };
+  }, [pathname]);
 
   const toggleMenu = (menuId: string) => {
     setOpenMenus((prev) =>
@@ -401,45 +197,22 @@ export function PennylaneSidebar({ isOpen = true, onClose }: PennylaneSidebarPro
         />
       )}
       <div className={`sidebar fixed left-0 top-0 h-full w-[240px] flex flex-col bg-[#0f172a] border-r border-[#1e293b] z-40 overflow-hidden transition-transform duration-300 lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-      {/* Header avec toggle Comptabilité/Gestion */}
-      <div className="p-3 border-b border-[#1e293b]">
-        {/* Toggle Switch */}
-        <div className="flex bg-[#1e293b] rounded-lg p-1 mb-3">
-          <button
-            onClick={() => handleModeChange("accounting")}
-            className={`flex-1 text-xs font-medium py-2 px-3 rounded-md transition-all ${viewMode === "accounting"
-              ? "bg-white text-[#0f172a] shadow-sm"
-              : "text-white/80 hover:text-white hover:bg-white/10"
-              }`}
-          >
-            Comptabilité
-          </button>
-          <button
-            onClick={() => handleModeChange("management")}
-            className={`flex-1 text-xs font-medium py-2 px-3 rounded-md transition-all ${viewMode === "management"
-              ? "bg-white text-[#0f172a] shadow-sm"
-              : "text-white/80 hover:text-white hover:bg-white/10"
-              }`}
-          >
-            Gestion
-          </button>
-        </div>
-
-        {/* Logo SEKA */}
+      {/* Header avec Logo SEKA */}
+      <div className="p-4 border-b border-[#1e293b]">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center shadow-sm">
-            <span className="text-[#0f172a] font-bold text-lg">S</span>
+          <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm">
+            <span className="text-[#0f172a] font-bold text-xl">S</span>
           </div>
           <div>
             <span className="text-white font-bold text-lg">SEKA</span>
-            <p className="text-white/60 text-[10px] -mt-0.5">Gestion Comptable</p>
+            <p className="text-white/60 text-[10px] -mt-0.5">Automatisation Comptable</p>
           </div>
         </div>
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-3 scrollbar-thin scrollbar-thumb-[#1e293b] scrollbar-track-transparent">
-        {currentMenu.map((section, sectionIdx) => (
+        {sekaV1Menu.map((section: MenuSection, sectionIdx: number) => (
           <div key={sectionIdx} className={sectionIdx > 0 ? "mt-4 pt-4 border-t border-[#1e293b]" : ""}>
             {section.title && (
               <div className="px-4 py-2 text-[10px] font-semibold text-white/50 uppercase tracking-wider">
@@ -447,7 +220,7 @@ export function PennylaneSidebar({ isOpen = true, onClose }: PennylaneSidebarPro
               </div>
             )}
             <div className="space-y-0.5 px-2">
-              {section.items.map((item) => (
+              {section.items.map((item: MenuItem) => (
                 <div key={item.id}>
                   {item.submenu ? (
                     <>
@@ -473,7 +246,7 @@ export function PennylaneSidebar({ isOpen = true, onClose }: PennylaneSidebarPro
                           }`}
                       >
                         <div className="py-1 ml-3 border-l border-[#1e293b]/50 space-y-0.5">
-                          {item.submenu.map((subItem, idx) => (
+                          {item.submenu.map((subItem: SubMenuItem, idx: number) => (
                             <button
                               key={idx}
                               onClick={() => handleSubmenuClick(subItem.href, item.id)}

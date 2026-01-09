@@ -12,11 +12,9 @@ from app.api.v1.routes import (
     products,
     exports,
     analytics,
-    contacts,
     notifications,
     scheduler,
     integrations,
-    chat,
     payments,
     quotes,
     sales_invoices,
@@ -30,7 +28,6 @@ from app.api.v1.routes import (
     treasury_dashboard,
     treasury,
     accounting,
-    accounting_advanced,
     accounting_entries,
     accounting_rules,
     treasury_advanced,
@@ -41,14 +38,10 @@ from app.api.v1.routes import (
     suppliers,
     supplier_invoices,
     accounting_analytics,
-    tax,
     accounting_workflow,
-    accounting_assets,
     sales_reminders,
     sales_credit_notes,
     settings_audit,
-    settings_fiscal,
-    hr_expenses,
 )
 
 api_router = APIRouter()
@@ -64,11 +57,9 @@ api_router.include_router(activities.router, prefix="/activities", tags=["activi
 api_router.include_router(products.router, prefix="/products", tags=["products"])
 api_router.include_router(exports.router, prefix="/exports", tags=["exports"])
 api_router.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
-api_router.include_router(contacts.router, prefix="/contacts", tags=["contacts"])
 api_router.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
 api_router.include_router(scheduler.router, prefix="/scheduler", tags=["scheduler", "tasks"])
 api_router.include_router(integrations.router, prefix="/integrations", tags=["integrations"])
-api_router.include_router(chat.router, prefix="/chat", tags=["chat"])
 api_router.include_router(payments.router, prefix="/payments", tags=["payments"])
 
 api_router.include_router(sales.router, prefix="/sales", tags=["sales"])
@@ -91,7 +82,6 @@ api_router.include_router(treasury_forecast.router, prefix="/treasury/forecast",
 api_router.include_router(treasury_dashboard.router, prefix="/treasury/dashboard", tags=["treasury", "dashboard"])
 
 api_router.include_router(accounting.router, prefix="/accounting", tags=["accounting"])
-api_router.include_router(accounting_advanced.router, prefix="/accounting/advanced", tags=["accounting", "advanced"])
 api_router.include_router(accounting_entries.router, prefix="/accounting-entries", tags=["accounting", "entries"])
 api_router.include_router(accounting_rules.router, prefix="/accounting-rules", tags=["accounting", "rules", "ocr"])
 api_router.include_router(accounting_analytics.router, prefix="/accounting/analytics", tags=["accounting", "analytics"])
@@ -101,18 +91,11 @@ api_router.include_router(stock.router, prefix="/stock", tags=["stock", "invento
 
 api_router.include_router(reports.router, prefix="/reports", tags=["reports"])
 
-api_router.include_router(tax.router, prefix="/tax", tags=["tax"])
-
 api_router.include_router(accounting_workflow.router, prefix="/accounting/workflow", tags=["accounting", "workflow"])
 
 api_router.include_router(billing.router, prefix="/billing", tags=["billing", "subscription"])
-
-api_router.include_router(accounting_assets.router, prefix="/accounting/assets", tags=["accounting", "assets"])
 
 api_router.include_router(sales_reminders.router, prefix="/sales/reminders", tags=["sales", "reminders"])
 api_router.include_router(sales_credit_notes.router, prefix="/sales/credit-notes", tags=["sales", "credit-notes"])
 
 api_router.include_router(settings_audit.router, prefix="/settings/audit-trail", tags=["settings", "audit"])
-api_router.include_router(settings_fiscal.router, prefix="/settings/fiscal-closing", tags=["settings", "fiscal"])
-
-api_router.include_router(hr_expenses.router, prefix="/hr/expenses", tags=["hr", "expenses"])

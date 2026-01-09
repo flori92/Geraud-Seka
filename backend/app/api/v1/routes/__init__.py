@@ -1,6 +1,5 @@
 from . import (
     accounting,
-    accounting_advanced,
     accounting_entries,
     accounting_rules,
     accounting_analytics,
@@ -11,7 +10,6 @@ from . import (
     bank_accounts,
     bank_transactions,
     billing,
-    chat,
     clients,
     dashboard,
     delivery_notes,
@@ -39,12 +37,13 @@ from . import (
     treasury_advanced,
     treasury_dashboard,
     treasury_forecast,
-    tax,
+    sales_reminders,
+    sales_credit_notes,
+    settings_audit,
 )
 
 __all__ = [
     "accounting",
-    "accounting_advanced",
     "accounting_entries",
     "accounting_rules",
     "accounting_analytics",
@@ -55,7 +54,6 @@ __all__ = [
     "bank_accounts",
     "bank_transactions",
     "billing",
-    "chat",
     "clients",
     "dashboard",
     "delivery_notes",
@@ -65,6 +63,7 @@ __all__ = [
     "ged_permissions",
     "health",
     "integrations",
+    "invoices_public",
     "notifications",
     "payment_schedules",
     "payments",
@@ -82,5 +81,7 @@ __all__ = [
     "treasury_advanced",
     "treasury_dashboard",
     "treasury_forecast",
-    "tax",
+    "sales_reminders",
+    "sales_credit_notes",
+    "settings_audit",
 ]

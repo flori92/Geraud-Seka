@@ -3,7 +3,6 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import type { ReactNode } from "react";
 import { useRouter } from "next/router";
-import { ChatWidget } from "./Chatbot/ChatWidget";
 import { X, ChevronRight, Book, MessageCircle, Mail, ExternalLink, Bell } from "lucide-react";
 
 interface DashboardLayoutProps {
@@ -282,9 +281,6 @@ export function DashboardLayout({ title, children }: DashboardLayoutProps) {
       {/* Panels */}
       <HelpPanel isOpen={showHelp} onClose={() => setShowHelp(false)} />
       <NotificationsPanel isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
-
-      {/* Chatbot Widget */}
-      <ChatWidget />
     </>
   );
 }

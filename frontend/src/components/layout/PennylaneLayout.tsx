@@ -1,8 +1,6 @@
 import Head from "next/head";
 import { useState } from "react";
 import type { ReactNode } from "react";
-
-import { ChatWidget } from "../Chatbot/ChatWidget";
 import { Bell, ChevronRight } from "lucide-react";
 
 interface PennylaneLayoutProps {
@@ -69,9 +67,6 @@ export function PennylaneLayout({ title, children }: PennylaneLayoutProps) {
             {children}
           </div>
         </main>
-
-        {/* Chatbot Widget */}
-        <ChatWidget />
       </div>
     </>
   );
