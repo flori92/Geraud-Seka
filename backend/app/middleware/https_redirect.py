@@ -33,7 +33,11 @@ class HTTPSRedirectMiddleware(BaseHTTPMiddleware):
         if settings.environment == "production":
             response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
             response.headers["X-Content-Type-Options"] = "nosniff"
-            response.headers["X-Frame-Options"] = "DENY"
+            # Ne pas écraser X-Frame-Options si déjà défini (pour permettre le framing sur certains endpoints)
+            path = request.url.path
+            allow_framing = "/api/v1/documents/download/" in path or "/api/v1/documents/view/" in path
+            if not allow_framing:
+                response.headers["X-Frame-Options"] = "DENY"
             response.headers["X-XSS-Protection"] = "1; mode=block"
             response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         

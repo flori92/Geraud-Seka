@@ -68,7 +68,10 @@ class SecurityMiddleware(BaseHTTPMiddleware):
     def _add_security_headers(self, response: Response, request: Request) -> None:
         # Permettre le framing pour les endpoints de téléchargement de documents
         path = request.url.path
-        allow_framing = "/api/v1/documents/download/" in path
+        allow_framing = (
+            "/api/v1/documents/download/" in path or
+            "/api/v1/documents/view/" in path
+        )
         
         if allow_framing:
             response.headers["X-Frame-Options"] = "SAMEORIGIN"
