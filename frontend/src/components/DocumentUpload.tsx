@@ -65,7 +65,13 @@ export function DocumentUpload({ onUploadSuccess }: DocumentUploadProps) {
             });
 
             if (!response.ok) {
-                throw new Error("Upload failed");
+                const errorData = await response.json().catch(() => ({}));
+                if (response.status === 409) {
+                    // Fichier en double
+                    setUploadStatus(errorData.detail || "Ce fichier existe déjà");
+                    return;
+                }
+                throw new Error(errorData.detail || "Upload failed");
             }
 
             const result = await response.json();
