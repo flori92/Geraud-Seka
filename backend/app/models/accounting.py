@@ -17,6 +17,7 @@ class AccountingEntry(Base, TimestampMixin):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     
+    entry_type = Column(Enum(EntryType), nullable=True)  # DEBIT ou CREDIT
     journal_code = Column(String(10), nullable=False) # ACH, VTE, OD, BQ, CA
     account_number = Column(String(20), nullable=False)
     label = Column(String(255), nullable=False)

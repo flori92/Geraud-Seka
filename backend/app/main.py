@@ -275,6 +275,18 @@ def create_application() -> FastAPI:
                         """))
                     logger.info("✅ Added documents.file_extension")
 
+            if 'accounting_entries' in existing_tables:
+                ae_columns = {col['name']: col for col in inspector.get_columns('accounting_entries')}
+                if 'entry_type' not in ae_columns:
+                    logger.info("🔧 Adding missing accounting_entries.entry_type column...")
+                    from sqlalchemy import text
+                    with engine.begin() as conn:
+                        conn.execute(text("""
+                            ALTER TABLE accounting_entries
+                            ADD COLUMN IF NOT EXISTS entry_type VARCHAR(10)
+                        """))
+                    logger.info("✅ Added accounting_entries.entry_type")
+
         except Exception as e:
             logger.error(f"❌ Error during startup database check: {e}")
         
