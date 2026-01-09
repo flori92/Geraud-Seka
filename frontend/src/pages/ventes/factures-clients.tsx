@@ -217,6 +217,10 @@ export default function FacturesClientsPage() {
   const handleDelete = async (invoiceId: string, force: boolean = false) => {
     const token = localStorage.getItem("seka_access_token");
     const invoice = invoices.find(inv => inv.id === invoiceId);
+    if (!invoice) {
+      toast.error("Facture non trouvée");
+      return;
+    }
     const status = calculateInvoiceStatus(invoice);
     const needsForce = status === 'paid';
     
