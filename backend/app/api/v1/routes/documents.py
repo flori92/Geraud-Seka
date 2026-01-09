@@ -740,13 +740,13 @@ def validate_document(
     )
     db.add(entry_expense)
     
-    if validation_data.tax_amount > 0:
+    if tax_amount and tax_amount > 0:
         entry_vat = AccountingEntry(
             document_id=document.id,
             entry_type=EntryType.DEBIT,
             account_number="445200", # TVA Récupérable
             label=f"TVA sur {validation_data.description}",
-            debit=validation_data.tax_amount,
+            debit=tax_amount,
             credit=0,
             date=validation_data.date,
             client_id=document.client_id,
@@ -761,7 +761,7 @@ def validate_document(
         account_number="401100", # Fournisseurs
         label=f"Facture {supplier_name}",
         debit=0,
-        credit=validation_data.total_amount,
+        credit=total_amount,
         date=validation_data.date,
         client_id=document.client_id,
         journal_code=validation_data.journal_code or "ACH",
