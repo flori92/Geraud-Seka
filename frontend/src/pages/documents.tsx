@@ -4,7 +4,8 @@ import Head from "next/head";
 import { PennylaneSidebar } from "@/components/layout/PennylaneSidebar";
 import { DocumentUpload } from "@/components/DocumentUpload";
 import { getDocuments, type Document } from "@/lib/api";
-import { FileText, Loader2, Upload } from "lucide-react";
+import { FileText, Loader2, Upload, Trash2 } from "lucide-react";
+import { API_BASE_URL } from "@/lib/api";
 
 export default function DocumentsPage() {
   const router = useRouter();
@@ -46,6 +47,29 @@ export default function DocumentsPage() {
   const handleUploadSuccess = () => { 
     // Attendre un peu pour que le backend commence le traitement
     setTimeout(() => fetchDocuments(), 1000);
+  };
+
+  const handleDelete = async (docId: string, filename: string) => {
+    if (!confirm(`Supprimer "${filename}" ?`)) return;
+    
+    const token = localStorage.getItem("seka_access_token");
+    if (!token) return;
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/v1/documents/${docId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        setDocuments(docs => docs.filter(d => d.id !== docId));
+      } else {
+        alert("Erreur lors de la suppression");
+      }
+    } catch (error) {
+      console.error("Delete error:", error);
+      alert("Erreur lors de la suppression");
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -128,14 +152,23 @@ export default function DocumentsPage() {
                             </td>
                             <td className="px-4 py-3">{getStatusBadge(doc.status)}</td>
                             <td className="px-4 py-3">
-                              {(doc.status === "OCR_COMPLETED" || doc.status === "PENDING") && (
-                                <button onClick={() => router.push(`/documents/${doc.id}/validate`)}
-                                  className="text-sm text-[#1e3a5f] hover:underline font-medium">Valider</button>
-                              )}
-                              {doc.status === "VALIDATED" && (
-                                <button onClick={() => router.push(`/documents/${doc.id}/validate`)}
-                                  className="text-sm text-[#1e3a5f] hover:underline font-medium">Détails</button>
-                              )}
+                              <div className="flex items-center gap-2">
+                                {(doc.status === "OCR_COMPLETED" || doc.status === "PENDING") && (
+                                  <button onClick={() => router.push(`/documents/${doc.id}/validate`)}
+                                    className="text-sm text-[#1e3a5f] hover:underline font-medium">Valider</button>
+                                )}
+                                {doc.status === "VALIDATED" && (
+                                  <button onClick={() => router.push(`/documents/${doc.id}/validate`)}
+                                    className="text-sm text-[#1e3a5f] hover:underline font-medium">Détails</button>
+                                )}
+                                <button 
+                                  onClick={() => handleDelete(doc.id, doc.filename)}
+                                  className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
+                                  title="Supprimer"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))

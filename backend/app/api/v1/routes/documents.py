@@ -417,6 +417,36 @@ def update_document(
     return document
 
 
+@router.delete("/{id}", status_code=204)
+def delete_document(
+    *,
+    db: Session = Depends(deps.get_db_session),
+    id: UUID,
+    current_user: User = Depends(deps.get_current_user),
+) -> None:
+    """
+    Delete a document.
+    """
+    document = db.query(Document).filter(
+        Document.id == id,
+        Document.tenant_id == current_user.tenant_id
+    ).first()
+    
+    if not document:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+    # Optionnel: supprimer le fichier du storage
+    if document.file_path:
+        try:
+            storage_service.delete_file(document.file_path)
+        except Exception as e:
+            print(f"⚠️  Erreur suppression fichier storage: {e}")
+    
+    db.delete(document)
+    db.commit()
+    print(f"🗑️  Document {id} supprimé")
+
+
 @router.get("/{document_id}/view-url")
 async def get_document_view_url(
     document_id: UUID,
