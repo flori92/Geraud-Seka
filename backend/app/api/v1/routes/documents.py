@@ -691,19 +691,27 @@ def validate_document(
         client = db.query(Client).filter(Client.tenant_id == current_user.tenant_id).first()
         if not client:
             from app.models.tenant import Tenant
+            import uuid as uuid_module
 
             tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
             tenant_name = (tenant.name if tenant else "Client") or "Client"
-            default_slug = "default"
+            # Générer un slug unique basé sur le tenant_id pour éviter les conflits
+            unique_slug = f"default-{str(current_user.tenant_id)[:8]}"
 
-            client = Client(
-                name=tenant_name,
-                slug=default_slug,
-                sector=None,
-                tenant_id=current_user.tenant_id,
-            )
-            db.add(client)
-            db.flush()
+            try:
+                client = Client(
+                    name=tenant_name,
+                    slug=unique_slug,
+                    sector=None,
+                    tenant_id=current_user.tenant_id,
+                )
+                db.add(client)
+                db.flush()
+                print(f"✅ Client par défaut créé: {tenant_name} (slug: {unique_slug})")
+            except Exception as client_err:
+                db.rollback()
+                print(f"❌ Erreur création client: {type(client_err).__name__}: {client_err}")
+                raise HTTPException(status_code=500, detail=f"Impossible de créer le client par défaut: {client_err}")
         document.client_id = client.id
 
     supplier = db.query(Supplier).filter(Supplier.name == supplier_name, Supplier.client_id == document.client_id).first()
