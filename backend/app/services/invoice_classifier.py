@@ -82,26 +82,30 @@ class InvoiceClassifier:
         purchase_keywords = [
             "facture fournisseur", "facture d'achat", "facture achat",
             "invoice from", "facture reçue", "reçu de", "à payer",
-            "fournisseur:", "supplier:", "vendor:", "achat"
+            "fournisseur:", "supplier:", "vendor:", "achat",
+            "bon de livraison", "doit", "notre client", "payable",
+            # Fournisseurs connus au Bénin
+            "sbee", "soneb", "mtn", "moov", "spie", "total", "oryx",
+            "sodeco", "ceb", "canalplus", "canal+", "orange"
         ]
         
         sale_keywords = [
             "facture client", "facture de vente", "facture vente",
             "invoice to", "facture émise", "facturé à", "à recevoir",
-            "client:", "customer:", "facture n°", "facture numéro"
+            "client:", "customer:", "facture n°", "facture numéro",
+            "votre facture", "montant à payer", "nous vous facturons",
+            "avoir", "crédit"
         ]
         
         for keyword in purchase_keywords:
             if keyword in raw_text:
-                scores["purchase"] += 0.15
+                scores["purchase"] += 0.2
                 reasons["purchase"].append(f"Mot-clé détecté: '{keyword}'")
-                break
         
         for keyword in sale_keywords:
             if keyword in raw_text:
-                scores["sale"] += 0.15
+                scores["sale"] += 0.2
                 reasons["sale"].append(f"Mot-clé détecté: '{keyword}'")
-                break
         
         # 3. Analyse de la structure (si supplier_name présent mais pas customer_name → Achat)
         if supplier_name and not customer_name:
