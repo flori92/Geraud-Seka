@@ -43,29 +43,9 @@ async def upload_document(
         if file_size > 50 * 1024 * 1024:  # 50MB
             raise HTTPException(status_code=413, detail="Fichier trop volumineux (max 50MB)")
         
-        # Vérifier si un fichier identique existe déjà (basé sur le hash)
-        import hashlib
-        file_hash = hashlib.sha256(file_content).hexdigest()
-        
-        # Vérification doublon (seulement si la colonne file_hash existe)
-        try:
-            existing_doc = db.query(Document).filter(
-                Document.tenant_id == current_user.tenant_id,
-                Document.file_hash == file_hash
-            ).first()
-            
-            if existing_doc:
-                raise HTTPException(
-                    status_code=409,
-                    detail=f"Ce fichier existe déjà : {existing_doc.filename} (uploadé le {existing_doc.created_at.strftime('%d/%m/%Y')})"
-                )
-        except Exception as hash_err:
-            # Si la colonne n'existe pas encore, on continue sans vérification
-            if "file_hash" in str(hash_err):
-                print(f"⚠️  Colonne file_hash non disponible, vérification doublon ignorée")
-                db.rollback()
-            else:
-                raise
+        # TODO: Activer la détection des doublons après migration
+        # import hashlib
+        # file_hash = hashlib.sha256(file_content).hexdigest()
         
         # Remettre le curseur au début pour l'upload
         from io import BytesIO
@@ -98,25 +78,8 @@ async def upload_document(
             doc_data["client_id"] = client_id
 
         db_obj = Document(**doc_data)
-        
-        # Essayer d'ajouter file_hash si la colonne existe
-        try:
-            db_obj.file_hash = file_hash
-        except Exception:
-            pass
-        
         db.add(db_obj)
-        try:
-            db.commit()
-        except Exception as commit_err:
-            if "file_hash" in str(commit_err):
-                # Colonne n'existe pas, réessayer sans file_hash
-                db.rollback()
-                db_obj.file_hash = None
-                db.add(db_obj)
-                db.commit()
-            else:
-                raise
+        db.commit()
         db.refresh(db_obj)
         
         try:
