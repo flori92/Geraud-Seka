@@ -2,11 +2,12 @@ from typing import List, Optional, Any
 from uuid import UUID
 from datetime import date
 from decimal import Decimal
+import os
 
 from pydantic import BaseModel
 from pydantic import model_validator
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status, Query
 from sqlalchemy.orm import Session
 
 from app.core import deps
@@ -221,6 +222,134 @@ def update_document(
     return document
 
 
+@router.get("/{document_id}/view-url")
+async def get_document_view_url(
+    document_id: UUID,
+    current_user: User = Depends(deps.get_current_user),
+    db: Session = Depends(deps.get_db_session),
+):
+    """
+    Génère une URL signée temporaire pour afficher un document dans un iframe.
+    L'URL est valide pendant 1 heure.
+    """
+    from datetime import datetime, timedelta
+    import hashlib
+    import hmac
+    import base64
+    from app.core.config import get_settings
+    
+    document = db.query(Document).filter(
+        Document.id == document_id,
+        Document.tenant_id == current_user.tenant_id
+    ).first()
+    
+    if not document:
+        raise HTTPException(status_code=404, detail="Document non trouvé")
+    
+    if not document.file_path:
+        raise HTTPException(status_code=404, detail="Fichier non disponible")
+    
+    # Générer un token signé valide 1 heure
+    expires_at = datetime.utcnow() + timedelta(hours=1)
+    token_data = f"{document_id}:{current_user.id}:{expires_at.timestamp()}"
+    
+    # Utiliser la clé secrète depuis settings
+    settings = get_settings()
+    secret_key = settings.secret_key.encode() if hasattr(settings, 'secret_key') else os.getenv("SECRET_KEY", "default-secret-key").encode()
+    signature = hmac.new(
+        secret_key,
+        token_data.encode(),
+        hashlib.sha256
+    ).hexdigest()
+    
+    token = base64.urlsafe_b64encode(f"{token_data}:{signature}".encode()).decode()
+    
+    base_url = settings.backend_url if hasattr(settings, 'backend_url') and settings.backend_url else "https://api.sekagestion.com"
+    
+    view_url = f"{base_url}/api/v1/documents/view/{token}/{base64.urlsafe_b64encode(document.file_path.encode()).decode()}"
+    
+    return {
+        "view_url": view_url,
+        "expires_at": expires_at.isoformat(),
+        "expires_in": 3600
+    }
+
+
+@router.get("/view/{token}/{file_key_b64}")
+async def view_document_with_token(
+    token: str,
+    file_key_b64: str,
+):
+    """
+    Affiche un document avec un token signé temporaire.
+    Permet l'affichage dans un iframe sans authentification directe.
+    """
+    from fastapi.responses import StreamingResponse
+    from datetime import datetime
+    import io
+    import hashlib
+    import hmac
+    import base64
+    from app.core.config import get_settings
+    
+    try:
+        # Décoder le file_key
+        file_key = base64.urlsafe_b64decode(file_key_b64.encode()).decode()
+        
+        # Décoder et vérifier le token
+        decoded = base64.urlsafe_b64decode(token.encode()).decode()
+        parts = decoded.split(":")
+        if len(parts) < 4:
+            raise HTTPException(status_code=401, detail="Token invalide")
+        
+        document_id_str, user_id_str, expires_str, signature = parts[0], parts[1], parts[2], ":".join(parts[3:])
+        
+        # Vérifier l'expiration
+        expires_at = datetime.fromtimestamp(float(expires_str))
+        if datetime.utcnow() > expires_at:
+            raise HTTPException(status_code=401, detail="Token expiré")
+        
+        # Vérifier la signature
+        settings = get_settings()
+        secret_key = settings.secret_key.encode() if hasattr(settings, 'secret_key') else os.getenv("SECRET_KEY", "default-secret-key").encode()
+        token_data = f"{document_id_str}:{user_id_str}:{expires_str}"
+        expected_signature = hmac.new(
+            secret_key,
+            token_data.encode(),
+            hashlib.sha256
+        ).hexdigest()
+        
+        if signature != expected_signature:
+            raise HTTPException(status_code=401, detail="Token invalide")
+        
+        # Récupérer le contenu
+        content = await storage_service.get_file_content(file_key)
+        
+        content_type = "application/octet-stream"
+        if file_key.lower().endswith('.pdf'):
+            content_type = "application/pdf"
+        elif file_key.lower().endswith(('.jpg', '.jpeg')):
+            content_type = "image/jpeg"
+        elif file_key.lower().endswith('.png'):
+            content_type = "image/png"
+        
+        response = StreamingResponse(
+            io.BytesIO(content),
+            media_type=content_type,
+            headers={
+                "Content-Disposition": f"inline; filename={file_key.split('/')[-1]}",
+                "X-Frame-Options": "SAMEORIGIN",
+                "Content-Security-Policy": "frame-ancestors 'self'"
+            }
+        )
+        return response
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Erreur affichage document: {e}")
+        raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
+
+
 @router.get("/download/{file_key:path}")
 async def download_document_by_key(
     file_key: str,
@@ -229,6 +358,7 @@ async def download_document_by_key(
     """
     Télécharge un document par sa clé de stockage.
     Sert de proxy pour les fichiers R2 non accessibles publiquement.
+    Permet l'affichage dans un iframe (headers CSP ajustés).
     """
     from fastapi.responses import StreamingResponse
     import io
@@ -244,13 +374,16 @@ async def download_document_by_key(
         elif file_key.lower().endswith('.png'):
             content_type = "image/png"
         
-        return StreamingResponse(
+        response = StreamingResponse(
             io.BytesIO(content),
             media_type=content_type,
             headers={
-                "Content-Disposition": f"inline; filename={file_key.split('/')[-1]}"
+                "Content-Disposition": f"inline; filename={file_key.split('/')[-1]}",
+                "X-Frame-Options": "SAMEORIGIN",
+                "Content-Security-Policy": "frame-ancestors 'self'"
             }
         )
+        return response
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Document non trouvé")
     except Exception as e:
@@ -327,7 +460,11 @@ def validate_document(
     
     supplier_name = (validation_data.supplier_name or "").strip()
     if not supplier_name:
-        raise HTTPException(status_code=422, detail="supplier_name est requis")
+        # Essayer d'extraire depuis les données OCR si disponible
+        if document.ocr_data and isinstance(document.ocr_data, dict):
+            supplier_name = (document.ocr_data.get("supplier_name") or "").strip()
+        if not supplier_name:
+            raise HTTPException(status_code=422, detail="supplier_name est requis. Veuillez renseigner le fournisseur.")
 
     if document.client_id is None:
         client = db.query(Client).filter(Client.tenant_id == current_user.tenant_id).first()
@@ -348,8 +485,24 @@ def validate_document(
     if validation_data.journal_code:
         supplier.default_journal = validation_data.journal_code
     
+    # Calculer total_amount et tax_amount si manquants
+    if validation_data.total_amount is None:
+        if validation_data.amount_ttc is not None and validation_data.amount_ttc > 0:
+            validation_data.total_amount = validation_data.amount_ttc
+        elif validation_data.amount_ht is not None and validation_data.amount_vat is not None:
+            validation_data.total_amount = validation_data.amount_ht + validation_data.amount_vat
+    
+    if validation_data.tax_amount is None:
+        if validation_data.amount_vat is not None and validation_data.amount_vat > 0:
+            validation_data.tax_amount = validation_data.amount_vat
+        elif validation_data.total_amount is not None and validation_data.amount_ht is not None:
+            validation_data.tax_amount = validation_data.total_amount - validation_data.amount_ht
+    
     if validation_data.total_amount is None or validation_data.tax_amount is None:
-        raise HTTPException(status_code=422, detail="Montants invalides (total_amount/tax_amount) - vérifiez HT/TVA/TTC")
+        raise HTTPException(
+            status_code=422, 
+            detail=f"Montants invalides. Total: {validation_data.total_amount}, TVA: {validation_data.tax_amount}. Veuillez renseigner au moins HT et TTC, ou TTC et TVA."
+        )
 
     expense_account = validation_data.account_number or supplier.default_account or "601000"
     ht_amount = validation_data.total_amount - validation_data.tax_amount

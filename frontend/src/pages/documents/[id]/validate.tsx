@@ -16,6 +16,7 @@ export default function ValidateDocumentPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [document, setDocument] = useState<Document | null>(null);
+    const [documentViewUrl, setDocumentViewUrl] = useState<string | null>(null);
 
     const [referenceNumber, setReferenceNumber] = useState("");
     const [date, setDate] = useState("");
@@ -40,6 +41,24 @@ export default function ValidateDocumentPage() {
             try {
                 const data = await getDocument(id as string, token);
                 setDocument(data);
+                
+                // Générer une URL signée pour l'iframe
+                if (data.file_path) {
+                    try {
+                        const viewUrlResponse = await fetch(
+                            `${API_BASE_URL}/api/v1/documents/${id}/view-url`,
+                            {
+                                headers: { Authorization: `Bearer ${token}` }
+                            }
+                        );
+                        if (viewUrlResponse.ok) {
+                            const viewUrlData = await viewUrlResponse.json();
+                            setDocumentViewUrl(viewUrlData.view_url);
+                        }
+                    } catch (e) {
+                        console.warn("Impossible de générer l'URL signée, utilisation de l'URL directe", e);
+                    }
+                }
 
                 const ocr = (data.ocr_data ?? {}) as Record<string, unknown>;
                 const ocrStr = (key: string) => {
@@ -82,23 +101,44 @@ export default function ValidateDocumentPage() {
         const token = localStorage.getItem("seka_access_token");
         if (!token || !id) return;
 
+        // Validation côté client
+        if (!supplier || !supplier.trim()) {
+            showError("Le nom du fournisseur est requis");
+            return;
+        }
+
+        if (!date) {
+            showError("La date du document est requise");
+            return;
+        }
+
+        const amountHTNum = Number(amountHT) || 0;
+        const amountVATNum = Number(amountVAT) || 0;
+        const amountTTCNum = Number(amountTTC) || 0;
+
+        if (amountTTCNum <= 0 && amountHTNum <= 0) {
+            showError("Au moins un montant (HT ou TTC) doit être renseigné");
+            return;
+        }
+
         try {
             await validateDocument(id as string, {
-                reference_number: referenceNumber,
+                reference_number: referenceNumber || undefined,
                 date,
-                due_date: dueDate,
-                supplier_name: supplier,
-                amount_ht: Number(amountHT) || 0,
-                amount_vat: Number(amountVAT) || 0,
-                amount_ttc: Number(amountTTC) || 0,
-                description,
+                due_date: dueDate || undefined,
+                supplier_name: supplier.trim(),
+                amount_ht: amountHTNum > 0 ? amountHTNum : undefined,
+                amount_vat: amountVATNum > 0 ? amountVATNum : undefined,
+                amount_ttc: amountTTCNum > 0 ? amountTTCNum : undefined,
+                description: description || `Document ${document?.filename || ''}`,
             }, token);
 
             success("Document validé avec succès !");
             router.push("/documents");
         } catch (error: any) {
             console.error("Validation failed", error);
-            showError(error.response?.data?.detail || "Erreur lors de la validation");
+            const errorMessage = error.response?.data?.detail || error.message || "Erreur lors de la validation";
+            showError(errorMessage);
         }
     };
 
@@ -144,11 +184,19 @@ export default function ValidateDocumentPage() {
                 <div className="flex-1 overflow-hidden rounded-lg border border-accents-2 bg-accents-1">
                     <div className="flex h-full items-center justify-center p-4">
                         {document.file_path ? (
-                            <iframe
-                                src={`${API_BASE_URL}/api/v1/documents/download/${encodeURIComponent(document.file_path)}`}
-                                className="h-full w-full rounded border border-accents-2"
-                                title={document.filename}
-                            />
+                            documentViewUrl ? (
+                                <iframe
+                                    src={documentViewUrl}
+                                    className="h-full w-full rounded border border-accents-2"
+                                    title={document.filename}
+                                />
+                            ) : (
+                                <iframe
+                                    src={`${API_BASE_URL}/api/v1/documents/download/${encodeURIComponent(document.file_path)}`}
+                                    className="h-full w-full rounded border border-accents-2"
+                                    title={document.filename}
+                                />
+                            )
                         ) : (
                             <div className="text-center text-accents-5">
                                 <svg className="mx-auto h-16 w-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

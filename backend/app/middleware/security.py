@@ -65,13 +65,22 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         raw = f"{client_ip}:{user_agent}"
         return hashlib.sha256(raw.encode()).hexdigest()[:16]
     
-    def _add_security_headers(self, response: Response) -> None:
-        response.headers["X-Frame-Options"] = "DENY"
+    def _add_security_headers(self, response: Response, request: Request) -> None:
+        # Permettre le framing pour les endpoints de téléchargement de documents
+        path = request.url.path
+        allow_framing = "/api/v1/documents/download/" in path
+        
+        if allow_framing:
+            response.headers["X-Frame-Options"] = "SAMEORIGIN"
+            response.headers["Content-Security-Policy"] = "default-src 'self'; frame-ancestors 'self'"
+        else:
+            response.headers["X-Frame-Options"] = "DENY"
+            response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
+        
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
-        response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
         response.headers["X-Powered-By"] = ""
         response.headers["Server"] = "SEKA"
@@ -101,7 +110,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         
         if path in {"/health", "/health/live", "/health/ready", "/"}:
             response = await call_next(request)
-            self._add_security_headers(response)
+            self._add_security_headers(response, request)
             return response
         
         is_suspicious, reason = self._is_suspicious_request(request)
@@ -112,7 +121,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
                 status_code=403,
                 media_type="application/json"
             )
-            self._add_security_headers(response)
+            self._add_security_headers(response, request)
             return response
         
         if path not in self.rate_limit_exemptions:
@@ -125,7 +134,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
                     media_type="application/json"
                 )
                 response.headers["Retry-After"] = "60"
-                self._add_security_headers(response)
+                self._add_security_headers(response, request)
                 return response
         
         try:
@@ -138,7 +147,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
                 media_type="application/json"
             )
         
-        self._add_security_headers(response)
+        self._add_security_headers(response, request)
         duration = time.time() - start_time
         if duration > 5.0:
             logger.warning(f"⏱️ Slow request: {path} took {duration:.2f}s")
