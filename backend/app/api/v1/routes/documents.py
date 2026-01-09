@@ -36,12 +36,16 @@ async def upload_document(
         if not file.filename:
             raise HTTPException(status_code=400, detail="Nom de fichier manquant")
         
-        file.file.seek(0, 2)  # Seek to end
-        file_size = file.file.tell()
-        file.file.seek(0)  # Reset to start
+        # Lire le contenu du fichier AVANT l'upload (pour l'OCR)
+        file_content = await file.read()
+        file_size = len(file_content)
         
         if file_size > 50 * 1024 * 1024:  # 50MB
             raise HTTPException(status_code=413, detail="Fichier trop volumineux (max 50MB)")
+        
+        # Remettre le curseur au début pour l'upload
+        from io import BytesIO
+        file.file = BytesIO(file_content)
         
         upload_result = await storage_service.upload_file(file, tenant_id=str(current_user.tenant_id))
 
@@ -76,7 +80,7 @@ async def upload_document(
         
         try:
             print(f"🔍 Starting OCR processing for document: {file.filename}")
-            ocr_data = await ocr_service.process_invoice(file_path)
+            ocr_data = await ocr_service.process_invoice(file_path, file_content=file_content)
             print(f"✅ OCR completed. Extracted data: {ocr_data}")
 
             # Classification automatique Achat/Vente
@@ -118,9 +122,12 @@ async def upload_document(
             db_obj.amount_vat = ocr_data.get("amount_vat")
             db_obj.amount_ttc = ocr_data.get("amount_ttc")
             db_obj.currency = ocr_data.get("currency")
+            db_obj.supplier_name = ocr_data.get("supplier_name")
             db_obj.ocr_data = ocr_data  # Store full OCR data
             db_obj.ocr_confidence = ocr_data.get("confidence", 0.0)
             db_obj.status = DocumentStatus.OCR_COMPLETED
+            
+            print(f"📋 Classification: {invoice_type} | Fournisseur: {ocr_data.get('supplier_name')} | Montant: {ocr_data.get('amount_ttc')}")
 
             print(f"💾 Saving OCR data to database for document {db_obj.id}")
             db.commit()
