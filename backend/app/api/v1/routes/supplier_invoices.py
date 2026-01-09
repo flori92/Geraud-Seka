@@ -181,7 +181,7 @@ def get_supplier_invoice_stats(
     today = date.today()
 
     try:
-        invoices = _supplier_invoices_store if _supplier_invoices_store else []
+        invoices = _supplier_invoices_store or []
 
 
         a_payer = sum(
@@ -260,7 +260,7 @@ def update_supplier_invoice(
     """
     Update a supplier invoice.
     """
-    for idx, inv in enumerate(_supplier_invoices_store):
+    for inv in _supplier_invoices_store:
         if str(inv.id) == str(invoice_id):
             update_data = invoice_in.dict(exclude_unset=True)
             for field, value in update_data.items():
@@ -388,7 +388,7 @@ async def upload_supplier_invoice(
     if file.content_type not in allowed_types:
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid file type. Allowed types: PDF, PNG, JPG"
+            detail="Invalid file type. Allowed types: PDF, PNG, JPG"
         )
 
 
