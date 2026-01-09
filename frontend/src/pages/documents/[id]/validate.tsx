@@ -87,9 +87,10 @@ export default function ValidateDocumentPage() {
                 setDescription(data.description || `Document ${data.filename}`);
 
                 setError(null);
-            } catch (err: any) {
+            } catch (err: unknown) {
                 console.error("Failed to fetch document", err);
-                setError(err.response?.data?.detail || "Erreur lors du chargement du document");
+                const e = err as { response?: { data?: { detail?: string } } };
+                setError(e.response?.data?.detail || "Erreur lors du chargement du document");
             } finally {
                 setLoading(false);
             }
@@ -136,9 +137,10 @@ export default function ValidateDocumentPage() {
 
             success("Document validé avec succès !");
             router.push("/documents");
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Validation failed", error);
-            const errorMessage = error.response?.data?.detail || error.message || "Erreur lors de la validation";
+            const e = error as { response?: { data?: { detail?: string } }; message?: string };
+            const errorMessage = e.response?.data?.detail || e.message || "Erreur lors de la validation";
             showError(errorMessage);
         }
     };
