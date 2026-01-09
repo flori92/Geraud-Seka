@@ -430,3 +430,133 @@ def delete_supplier_invoice(
             _supplier_invoices_store.pop(idx)
             return
     raise HTTPException(status_code=404, detail="Supplier invoice not found")
+
+
+class DuplicateInvoice(BaseModel):
+    """Model for duplicate invoice detection result."""
+    invoice_id: UUID
+    invoice_number: str
+    supplier_name: str
+    amount: Decimal
+    invoice_date: date
+    duplicate_of_id: UUID
+    duplicate_of_number: str
+    match_score: float
+    match_reasons: List[str]
+
+
+class DuplicateCheckResult(BaseModel):
+    """Result of duplicate check."""
+    has_duplicates: bool
+    duplicates_count: int
+    duplicates: List[DuplicateInvoice]
+
+
+@router.get("/duplicates/check", response_model=DuplicateCheckResult)
+def check_duplicates(
+    db: Session = Depends(deps.get_db_session),
+    invoice_number: Optional[str] = Query(None, description="Check specific invoice number"),
+    supplier_name: Optional[str] = Query(None, description="Filter by supplier name"),
+    amount: Optional[Decimal] = Query(None, description="Filter by amount"),
+    tolerance: float = Query(0.01, description="Amount tolerance for matching (default 1%)"),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    Detect duplicate invoices based on:
+    - Same invoice number + same supplier + same amount
+    - Similar amounts within tolerance
+    
+    Returns list of potential duplicates with match score.
+    """
+    duplicates = []
+    invoices = _supplier_invoices_store.copy()
+    
+    for i, inv1 in enumerate(invoices):
+        for j, inv2 in enumerate(invoices):
+            if i >= j:
+                continue
+                
+            match_reasons = []
+            match_score = 0.0
+            
+            if inv1.number == inv2.number:
+                match_reasons.append("Même numéro de facture")
+                match_score += 0.4
+                
+            if inv1.supplier_name.lower() == inv2.supplier_name.lower():
+                match_reasons.append("Même fournisseur")
+                match_score += 0.3
+                
+            amount_diff = abs(float(inv1.total_amount) - float(inv2.total_amount))
+            amount_tolerance = float(inv1.total_amount) * tolerance
+            if amount_diff <= amount_tolerance:
+                match_reasons.append(f"Montant identique ou proche ({inv1.total_amount} vs {inv2.total_amount})")
+                match_score += 0.3
+                
+            if match_score >= 0.7:
+                duplicates.append(DuplicateInvoice(
+                    invoice_id=inv2.id,
+                    invoice_number=inv2.number,
+                    supplier_name=inv2.supplier_name,
+                    amount=inv2.total_amount,
+                    invoice_date=inv2.invoice_date,
+                    duplicate_of_id=inv1.id,
+                    duplicate_of_number=inv1.number,
+                    match_score=match_score,
+                    match_reasons=match_reasons
+                ))
+    
+    return DuplicateCheckResult(
+        has_duplicates=len(duplicates) > 0,
+        duplicates_count=len(duplicates),
+        duplicates=duplicates
+    )
+
+
+@router.post("/duplicates/check-new")
+def check_new_invoice_duplicate(
+    invoice_number: str,
+    supplier_name: str,
+    amount: Decimal,
+    db: Session = Depends(deps.get_db_session),
+    current_user: User = Depends(deps.get_current_user),
+) -> Any:
+    """
+    Check if a new invoice would be a duplicate before creating it.
+    Used during invoice upload/creation to warn user.
+    """
+    potential_duplicates = []
+    
+    for inv in _supplier_invoices_store:
+        match_reasons = []
+        match_score = 0.0
+        
+        if inv.number.lower() == invoice_number.lower():
+            match_reasons.append("Numéro de facture identique")
+            match_score += 0.4
+            
+        if inv.supplier_name.lower() == supplier_name.lower():
+            match_reasons.append("Même fournisseur")
+            match_score += 0.3
+            
+        amount_diff = abs(float(inv.total_amount) - float(amount))
+        if amount_diff < float(amount) * 0.01:
+            match_reasons.append("Montant identique")
+            match_score += 0.3
+            
+        if match_score >= 0.7:
+            potential_duplicates.append({
+                "existing_invoice_id": str(inv.id),
+                "existing_invoice_number": inv.number,
+                "existing_supplier": inv.supplier_name,
+                "existing_amount": float(inv.total_amount),
+                "existing_date": inv.invoice_date.isoformat(),
+                "match_score": match_score,
+                "match_reasons": match_reasons
+            })
+    
+    return {
+        "is_duplicate": len(potential_duplicates) > 0,
+        "potential_duplicates": potential_duplicates,
+        "warning_message": f"Cette facture pourrait être un doublon de {len(potential_duplicates)} facture(s) existante(s)." if potential_duplicates else None
+    }

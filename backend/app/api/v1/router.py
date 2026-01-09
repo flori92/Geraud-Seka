@@ -23,6 +23,7 @@ from app.api.v1.routes import (
     delivery_notes,
     bank_accounts,
     bank_transactions,
+    bank_reconciliation,
     payment_schedules,
     treasury_forecast,
     treasury_dashboard,
@@ -84,6 +85,7 @@ api_router.include_router(treasury_dashboard.router, prefix="/treasury/dashboard
 api_router.include_router(accounting.router, prefix="/accounting", tags=["accounting"])
 api_router.include_router(accounting_entries.router, prefix="/accounting-entries", tags=["accounting", "entries"])
 api_router.include_router(accounting_rules.router, prefix="/accounting-rules", tags=["accounting", "rules", "ocr"])
+api_router.include_router(bank_reconciliation.router, prefix="/bank-reconciliation", tags=["treasury", "reconciliation"])
 api_router.include_router(accounting_analytics.router, prefix="/accounting/analytics", tags=["accounting", "analytics"])
 api_router.include_router(treasury_advanced.router, prefix="/treasury/advanced", tags=["treasury", "advanced"])
 
