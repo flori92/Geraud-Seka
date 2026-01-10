@@ -8,33 +8,31 @@ import Link from "next/link";
 import Head from "next/head";
 import { PennylaneSidebar } from "@/components/layout/PennylaneSidebar";
 import {
-  getDashboardStats,
-  getClients,
-  getInvoices,
-  type DashboardStats,
-  type Client,
-  type Invoice,
+  getDocuments,
+  getPendingDocuments,
+  getValidatedDocuments,
+  type Document,
 } from "@/lib/api";
 import {
-  Users,
+  Upload,
   FileText,
-  Wallet,
-  Receipt,
+  CheckCircle,
+  Clock,
   ArrowRight,
-  TrendingUp,
-  TrendingDown,
-  AlertCircle,
+  Download,
+  Users,
   RefreshCw,
   Loader2,
+  AlertCircle,
 } from "lucide-react";
-import { formatCurrency } from "@/lib/formatters";
 
 export default function DashboardSimple() {
   const router = useRouter();
-  const [, setStats] = useState<DashboardStats | null>(null);
-  const [clients, setClients] = useState<Client[]>([]);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [allDocs, setAllDocs] = useState<Document[]>([]);
+  const [pendingDocs, setPendingDocs] = useState<Document[]>([]);
+  const [validatedDocs, setValidatedDocs] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
     const token = localStorage.getItem("seka_access_token");
@@ -42,14 +40,14 @@ export default function DashboardSimple() {
 
     setLoading(true);
     try {
-      const [statsData, clientsData, invoicesData] = await Promise.allSettled([
-        getDashboardStats(token),
-        getClients(token),
-        getInvoices(token),
+      const [allData, pendingData, validatedData] = await Promise.allSettled([
+        getDocuments(token),
+        getPendingDocuments(token),
+        getValidatedDocuments(token),
       ]);
-      if (statsData.status === "fulfilled") setStats(statsData.value);
-      if (clientsData.status === "fulfilled") setClients(clientsData.value);
-      if (invoicesData.status === "fulfilled") setInvoices(invoicesData.value);
+      if (allData.status === "fulfilled") setAllDocs(allData.value);
+      if (pendingData.status === "fulfilled") setPendingDocs(pendingData.value);
+      if (validatedData.status === "fulfilled") setValidatedDocs(validatedData.value);
     } catch (err) {
       console.error("Erreur chargement données", err);
     } finally {
@@ -60,11 +58,6 @@ export default function DashboardSimple() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
-
-  const totalRevenue = invoices?.reduce((sum, inv) => sum + (inv?.paid || 0), 0) || 0;
-  const pendingInvoices = invoices?.filter(inv => inv?.status === "Impayée" || inv?.status === "unpaid")?.length || 0;
-  const clientCount = clients?.length || 0;
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   if (loading) {
     return (
@@ -100,7 +93,7 @@ export default function DashboardSimple() {
                 </button>
                 <div>
                   <h1 className="text-lg sm:text-xl font-semibold text-gray-900">Tableau de bord</h1>
-                  <p className="text-xs sm:text-sm text-gray-600 mt-0.5">Aperçu de votre activité</p>
+                  <p className="text-xs sm:text-sm text-gray-600 mt-0.5">Automatisation des écritures comptables</p>
                 </div>
               </div>
               <button onClick={fetchData} className="p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100">
@@ -110,12 +103,12 @@ export default function DashboardSimple() {
           </div>
 
           <div className="px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
-            {/* KPIs - Responsive grid */}
+            {/* KPIs - Workflow SEKA V1 */}
             <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-              <StatCard label="Chiffre d'affaires" value={formatCurrency(totalRevenue)} icon={Wallet} />
-              <StatCard label="Clients" value={clientCount} icon={Users} />
-              <StatCard label="Factures" value={invoices.length} icon={FileText} />
-              <StatCard label="Impayées" value={pendingInvoices} icon={Receipt} alert={pendingInvoices > 0} />
+              <StatCard label="Total documents" value={allDocs.length} icon={FileText} />
+              <StatCard label="En attente" value={pendingDocs.length} icon={Clock} alert={pendingDocs.length > 0} />
+              <StatCard label="Validées" value={validatedDocs.length} icon={CheckCircle} success />
+              <StatCard label="Ce mois" value={allDocs.filter(d => new Date(d.created_at || '').getMonth() === new Date().getMonth()).length} icon={Upload} />
             </div>
 
             {/* Actions rapides - SEKA V1 */}
@@ -132,10 +125,10 @@ export default function DashboardSimple() {
             {/* Modules principaux - SEKA V1 */}
             <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               <ModuleLink href="/documents/upload" title="Upload Factures" description="Importer PDF/images" icon={FileText} />
-              <ModuleLink href="/documents/en-attente" title="En attente" description="Factures à valider" icon={Receipt} />
-              <ModuleLink href="/documents/validees" title="Validées" description="Écritures générées" icon={Wallet} />
+              <ModuleLink href="/documents/en-attente" title="En attente" description="Factures à valider" icon={Clock} />
+              <ModuleLink href="/documents/validees" title="Validées" description="Écritures générées" icon={CheckCircle} />
               <ModuleLink href="/suppliers" title="Fournisseurs" description="Règles auto-imputation" icon={Users} />
-              <ModuleLink href="/exports" title="Exports" description="Perfecto, SAARI, Sage" icon={TrendingUp} />
+              <ModuleLink href="/exports" title="Exports" description="Perfecto, SAARI, Sage" icon={Download} />
               <ModuleLink href="/settings" title="Paramètres" description="Configuration" icon={FileText} />
             </div>
           </div>
@@ -150,34 +143,29 @@ function StatCard({
   label, 
   value, 
   icon: Icon, 
-  trend, 
-  alert 
+  alert,
+  success
 }: { 
   label: string; 
   value: string | number; 
   icon: React.ElementType; 
-  trend?: number;
   alert?: boolean;
+  success?: boolean;
 }) {
+  const iconColor = alert ? "text-orange-500" : success ? "text-green-500" : "text-gray-400";
+  const valueColor = alert ? "text-orange-600" : success ? "text-green-600" : "text-gray-900";
+  
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4">
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs sm:text-sm text-gray-500">{label}</span>
-        <Icon className={`h-4 w-4 ${alert ? "text-red-500" : "text-gray-400"}`} />
+        <Icon className={`h-4 w-4 ${iconColor}`} />
       </div>
       <div className="flex items-end justify-between">
-        <span className={`text-lg sm:text-2xl font-semibold ${alert ? "text-red-600" : "text-gray-900"}`}>
+        <span className={`text-lg sm:text-2xl font-semibold ${valueColor}`}>
           {value}
         </span>
-        {trend !== undefined && (
-          <span className={`text-xs flex items-center ${trend >= 0 ? "text-green-600" : "text-red-600"}`}>
-            {trend >= 0 ? <TrendingUp className="h-3 w-3 mr-0.5" /> : <TrendingDown className="h-3 w-3 mr-0.5" />}
-            {trend >= 0 ? "+" : ""}{trend}%
-          </span>
-        )}
-        {alert && (
-          <AlertCircle className="h-4 w-4 text-red-500" />
-        )}
+        {alert && <AlertCircle className="h-4 w-4 text-orange-500" />}
       </div>
     </div>
   );
