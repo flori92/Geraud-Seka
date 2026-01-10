@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { PennylaneSidebar } from "@/components/layout/PennylaneSidebar";
-import { 
+import {
   Settings2,
   ChevronDown,
-  Loader2
+  Loader2,
+  AlertCircle,
+  Upload
 } from "lucide-react";
 import { deleteDocument, getDocuments, type Document } from "@/lib/api";
 
@@ -23,6 +25,8 @@ interface DisplayInvoice {
   source: string;
   codesAnalytiques: string;
   categories: string;
+  status: string;
+  type?: string;
 }
 
 export default function FacturesFournisseurs() {
@@ -35,6 +39,7 @@ export default function FacturesFournisseurs() {
   const [statusFilter, setStatusFilter] = useState<"all" | "validee" | "import">("all");
   const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
     const token = localStorage.getItem("seka_access_token");
@@ -47,7 +52,17 @@ export default function FacturesFournisseurs() {
       setLoading(true);
       try {
         const documents = await getDocuments(token);
-        const displayInvoices: DisplayInvoice[] = documents.map((doc: Document) => {
+
+        const purchaseInvoices = documents.filter((doc: Document) =>
+          doc.status === 'VALIDATED' && doc.type === 'INVOICE_PURCHASE'
+        );
+
+        const pending = documents.filter((doc: Document) =>
+          doc.status === 'UPLOADED' || doc.status === 'OCR_PROCESSING' || doc.status === 'OCR_COMPLETED'
+        );
+        setPendingCount(pending.length);
+
+        const displayInvoices: DisplayInvoice[] = purchaseInvoices.map((doc: Document) => {
           const ocr = (doc.ocr_data ?? {}) as Record<string, unknown>;
           const ocrStr = (key: string) => (typeof ocr[key] === "string" ? (ocr[key] as string) : "");
           const ocrNum = (key: string) => {
@@ -75,10 +90,12 @@ export default function FacturesFournisseurs() {
             numeroCompte: "6288",
             tauxTVA: determineTVARate(amountVAT, amountHT),
             ajout: new Date(doc.created_at).toLocaleDateString("fr-FR"),
-            statutDirigeant: doc.status === "validated" ? "Validée" : "Import comp...",
+            statutDirigeant: "Validée",
             source: "",
             codesAnalytiques: "",
             categories: "",
+            status: doc.status,
+            type: doc.type,
           };
         });
         setInvoices(displayInvoices);
@@ -187,18 +204,27 @@ export default function FacturesFournisseurs() {
       <div className="min-h-screen bg-gray-50">
         <PennylaneSidebar />
         <main className="lg:ml-[220px]">
-          {/* Top Header */}
+
           <header className="sticky top-0 z-40 min-h-[56px] bg-white border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 px-4 sm:px-6 py-2 sm:py-0">
             <div className="flex items-center gap-2 sm:gap-4">
-              <span className="text-xs sm:text-sm text-gray-500 hidden sm:inline">Exercice à clôturer</span>
-              <button className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm">
-                Exercice {selectedExercice}
-                <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4" />
-              </button>
+              <h1 className="text-lg font-semibold text-gray-900">Factures d&apos;achat</h1>
+              <span className="text-xs text-gray-500">(validées)</span>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
-              <button className="text-xs sm:text-sm text-[#1e3a5f] hover:text-[#172e4d] hidden sm:inline">Clôturer l&apos;exercice</button>
-              <button className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-[#1e3a5f] text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-[#172e4d]">
+              {pendingCount > 0 && (
+                <button
+                  onClick={() => router.push('/documents/en-attente')}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-orange-50 text-orange-700 rounded-lg text-xs sm:text-sm font-medium hover:bg-orange-100"
+                >
+                  <AlertCircle className="w-4 h-4" />
+                  <span>{pendingCount} en attente</span>
+                </button>
+              )}
+              <button
+                onClick={() => router.push('/accounting/entries/from-ocr')}
+                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-[#1e3a5f] text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-[#172e4d]"
+              >
+                <Upload className="w-4 h-4" />
                 <span className="hidden sm:inline">Importer des factures</span>
                 <span className="sm:hidden">Importer</span>
               </button>
@@ -206,7 +232,7 @@ export default function FacturesFournisseurs() {
           </header>
 
           <div className="p-4 sm:p-6">
-            {/* Filters Row */}
+
             <div className="bg-white rounded-xl border border-gray-200 mb-6">
               {selectedInvoices.length > 0 && (
                 <div className="px-4 py-3 bg-blue-50 border-b border-blue-200 flex items-center justify-between">
@@ -232,7 +258,7 @@ export default function FacturesFournisseurs() {
                 </div>
               )}
               <div className="p-3 sm:p-4 border-b border-gray-200 space-y-3">
-                {/* Ligne recherche + filtres principaux */}
+
                 <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-3">
                   <div className="flex-1 min-w-0 sm:min-w-[220px]">
                     <input
@@ -305,64 +331,64 @@ export default function FacturesFournisseurs() {
                     <p className="text-sm text-gray-400 mt-1">Importez vos premières factures pour commencer</p>
                   </div>
                 ) : (
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-200 bg-gray-50">
-                      <th className="w-10 px-4 py-3">
-                        <input
-                          type="checkbox"
-                          className="rounded border-gray-300"
-                          checked={filteredInvoices.length > 0 && selectedInvoices.length === filteredInvoices.length}
-                          onChange={(e) => handleToggleSelectAll(e.target.checked, filteredInvoices.map((i) => i.id))}
-                        />
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Émission</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tiers</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">N° de facture</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">N° de compte</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Taux TVA</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ajout</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut dirigeant</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Source</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Codes analytiques</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Catégories</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {filteredInvoices.map((inv) => (
-                      <tr
-                        key={inv.id}
-                        className="hover:bg-gray-50 cursor-pointer"
-                        onClick={() => router.push(`/documents/${inv.id}/validate`)}
-                      >
-                        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-200 bg-gray-50">
+                        <th className="w-10 px-4 py-3">
                           <input
                             type="checkbox"
                             className="rounded border-gray-300"
-                            checked={selectedInvoices.includes(inv.id)}
-                            onChange={(e) => handleToggleSelectOne(inv.id, e.target.checked)}
+                            checked={filteredInvoices.length > 0 && selectedInvoices.length === filteredInvoices.length}
+                            onChange={(e) => handleToggleSelectAll(e.target.checked, filteredInvoices.map((i) => i.id))}
                           />
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">{inv.emission}</td>
-                        <td className="px-4 py-3 text-sm text-gray-900">{inv.tiers || "-"}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{inv.numeroFacture}</td>
-                        <td className="px-4 py-3 text-sm text-teal-600 font-medium">{inv.numeroCompte}</td>
-                        <td className="px-4 py-3">{getTVABadge(inv.tauxTVA)}</td>
-                        <td className="px-4 py-3 text-sm text-gray-500">{inv.ajout}</td>
-                        <td className="px-4 py-3">
-                          {inv.statutDirigeant === "Validée" ? (
-                            <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-medium">Validée</span>
-                          ) : (
-                            <span className="text-sm text-gray-500">{inv.statutDirigeant}</span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-500">{inv.source}</td>
-                        <td className="px-4 py-3 text-sm text-gray-500">{inv.codesAnalytiques}</td>
-                        <td className="px-4 py-3 text-sm text-gray-500">{inv.categories}</td>
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Émission</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tiers</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">N° de facture</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">N° de compte</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Taux TVA</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ajout</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut dirigeant</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Source</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Codes analytiques</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Catégories</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {filteredInvoices.map((inv) => (
+                        <tr
+                          key={inv.id}
+                          className="hover:bg-gray-50 cursor-pointer"
+                          onClick={() => router.push(`/documents/${inv.id}/validate`)}
+                        >
+                          <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              className="rounded border-gray-300"
+                              checked={selectedInvoices.includes(inv.id)}
+                              onChange={(e) => handleToggleSelectOne(inv.id, e.target.checked)}
+                            />
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{inv.emission}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{inv.tiers || "-"}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{inv.numeroFacture}</td>
+                          <td className="px-4 py-3 text-sm text-teal-600 font-medium">{inv.numeroCompte}</td>
+                          <td className="px-4 py-3">{getTVABadge(inv.tauxTVA)}</td>
+                          <td className="px-4 py-3 text-sm text-gray-500">{inv.ajout}</td>
+                          <td className="px-4 py-3">
+                            {inv.statutDirigeant === "Validée" ? (
+                              <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-medium">Validée</span>
+                            ) : (
+                              <span className="text-sm text-gray-500">{inv.statutDirigeant}</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-500">{inv.source}</td>
+                          <td className="px-4 py-3 text-sm text-gray-500">{inv.codesAnalytiques}</td>
+                          <td className="px-4 py-3 text-sm text-gray-500">{inv.categories}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 )}
               </div>
 

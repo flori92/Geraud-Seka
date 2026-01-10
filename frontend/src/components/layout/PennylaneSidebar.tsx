@@ -49,9 +49,8 @@ const sekaV1Menu: MenuSection[] = [
         label: "Factures",
         icon: FileText,
         submenu: [
-          { label: "Upload", href: "/documents", badge: "OCR", badgeVariant: "new" },
-          { label: "En attente", href: "/accounting/entries?status=pending" },
-          { label: "Validées", href: "/accounting/entries?status=validated" },
+          { label: "Importer (OCR)", href: "/accounting/entries/from-ocr", badge: "IA", badgeVariant: "new" },
+          { label: "En attente", href: "/documents/en-attente" },
           { label: "Achats", href: "/achats/factures" },
           { label: "Ventes", href: "/ventes/factures" },
         ]
@@ -189,45 +188,86 @@ export function PennylaneSidebar({ isOpen = true, onClose }: PennylaneSidebarPro
 
   return (
     <>
-      {/* Overlay pour mobile */}
+
       {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-30 lg:hidden" 
+        <div
+          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
           onClick={onClose}
         />
       )}
       <div className={`sidebar fixed left-0 top-0 h-full w-[240px] flex flex-col bg-[#0f172a] border-r border-[#1e293b] z-40 overflow-hidden transition-transform duration-300 lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-      {/* Header avec Logo SEKA */}
-      <div className="p-4 border-b border-[#1e293b]">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm">
-            <span className="text-[#0f172a] font-bold text-xl">S</span>
-          </div>
-          <div>
-            <span className="text-white font-bold text-lg">SEKA</span>
-            <p className="text-white/60 text-[10px] -mt-0.5">Automatisation Comptable</p>
+
+        <div className="p-4 border-b border-[#1e293b]">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm">
+              <span className="text-[#0f172a] font-bold text-xl">S</span>
+            </div>
+            <div>
+              <span className="text-white font-bold text-lg">SEKA</span>
+              <p className="text-white/60 text-[10px] -mt-0.5">Automatisation Comptable</p>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-3 scrollbar-thin scrollbar-thumb-[#1e293b] scrollbar-track-transparent">
-        {sekaV1Menu.map((section: MenuSection, sectionIdx: number) => (
-          <div key={sectionIdx} className={sectionIdx > 0 ? "mt-4 pt-4 border-t border-[#1e293b]" : ""}>
-            {section.title && (
-              <div className="px-4 py-2 text-[10px] font-semibold text-white/50 uppercase tracking-wider">
-                {section.title}
-              </div>
-            )}
-            <div className="space-y-0.5 px-2">
-              {section.items.map((item: MenuItem) => (
-                <div key={item.id}>
-                  {item.submenu ? (
-                    <>
-                      <button
-                        onClick={() => toggleMenu(item.id)}
-                        className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all text-left ${openMenus.includes(item.id)
-                          ? "bg-[#1e293b] text-white"
+
+        <nav className="flex-1 overflow-y-auto py-3 scrollbar-thin scrollbar-thumb-[#1e293b] scrollbar-track-transparent">
+          {sekaV1Menu.map((section: MenuSection, sectionIdx: number) => (
+            <div key={sectionIdx} className={sectionIdx > 0 ? "mt-4 pt-4 border-t border-[#1e293b]" : ""}>
+              {section.title && (
+                <div className="px-4 py-2 text-[10px] font-semibold text-white/50 uppercase tracking-wider">
+                  {section.title}
+                </div>
+              )}
+              <div className="space-y-0.5 px-2">
+                {section.items.map((item: MenuItem) => (
+                  <div key={item.id}>
+                    {item.submenu ? (
+                      <>
+                        <button
+                          onClick={() => toggleMenu(item.id)}
+                          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all text-left ${openMenus.includes(item.id)
+                            ? "bg-[#1e293b] text-white"
+                            : "text-white/80 hover:bg-[#1e293b]/50 hover:text-white"
+                            }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <item.icon className="w-[18px] h-[18px]" strokeWidth={1.5} />
+                            <span className="text-sm font-medium">{item.label}</span>
+                          </div>
+                          <ChevronDown
+                            className={`w-4 h-4 transition-transform duration-200 ${openMenus.includes(item.id) ? "rotate-180" : ""
+                              }`}
+                          />
+                        </button>
+
+                        <div
+                          className={`overflow-hidden transition-all duration-200 ease-in-out ${openMenus.includes(item.id) ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0"
+                            }`}
+                        >
+                          <div className="py-1 ml-3 border-l border-[#1e293b]/50 space-y-0.5">
+                            {item.submenu.map((subItem: SubMenuItem, idx: number) => (
+                              <button
+                                key={idx}
+                                onClick={() => handleSubmenuClick(subItem.href, item.id)}
+                                className={`w-full flex items-center justify-between pl-6 pr-3 py-2 text-sm transition-colors text-left rounded-r-lg ${isActive(subItem.href)
+                                  ? "text-white bg-[#1e293b] font-medium"
+                                  : "text-white/70 hover:text-white hover:bg-[#1e293b]/30"
+                                  }`}
+                              >
+                                <span>{subItem.label}</span>
+                                {subItem.badge && (
+                                  <span className={badgeStyles[subItem.badgeVariant || "new"]}>{subItem.badge}</span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <Link
+                        href={item.href || "#"}
+                        className={`flex items-center justify-between px-3 py-2.5 rounded-lg transition-all ${isActive(item.href || "")
+                          ? "bg-[#1e293b] text-white font-medium"
                           : "text-white/80 hover:bg-[#1e293b]/50 hover:text-white"
                           }`}
                       >
@@ -235,83 +275,42 @@ export function PennylaneSidebar({ isOpen = true, onClose }: PennylaneSidebarPro
                           <item.icon className="w-[18px] h-[18px]" strokeWidth={1.5} />
                           <span className="text-sm font-medium">{item.label}</span>
                         </div>
-                        <ChevronDown
-                          className={`w-4 h-4 transition-transform duration-200 ${openMenus.includes(item.id) ? "rotate-180" : ""
-                            }`}
-                        />
-                      </button>
-                      {/* Submenu with smooth animation */}
-                      <div
-                        className={`overflow-hidden transition-all duration-200 ease-in-out ${openMenus.includes(item.id) ? "max-h-[600px] opacity-100" : "max-h-0 opacity-0"
-                          }`}
-                      >
-                        <div className="py-1 ml-3 border-l border-[#1e293b]/50 space-y-0.5">
-                          {item.submenu.map((subItem: SubMenuItem, idx: number) => (
-                            <button
-                              key={idx}
-                              onClick={() => handleSubmenuClick(subItem.href, item.id)}
-                              className={`w-full flex items-center justify-between pl-6 pr-3 py-2 text-sm transition-colors text-left rounded-r-lg ${isActive(subItem.href)
-                                ? "text-white bg-[#1e293b] font-medium"
-                                : "text-white/70 hover:text-white hover:bg-[#1e293b]/30"
-                                }`}
-                            >
-                              <span>{subItem.label}</span>
-                              {subItem.badge && (
-                                <span className={badgeStyles[subItem.badgeVariant || "new"]}>{subItem.badge}</span>
-                              )}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <Link
-                      href={item.href || "#"}
-                      className={`flex items-center justify-between px-3 py-2.5 rounded-lg transition-all ${isActive(item.href || "")
-                        ? "bg-[#1e293b] text-white font-medium"
-                        : "text-white/80 hover:bg-[#1e293b]/50 hover:text-white"
-                        }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <item.icon className="w-[18px] h-[18px]" strokeWidth={1.5} />
-                        <span className="text-sm font-medium">{item.label}</span>
-                      </div>
-                      {item.badge && (
-                        <span className={badgeStyles[item.badgeVariant || "new"]}>
-                          {item.badge}
-                        </span>
-                      )}
-                    </Link>
-                  )}
-                </div>
-              ))}
+                        {item.badge && (
+                          <span className={badgeStyles[item.badgeVariant || "new"]}>
+                            {item.badge}
+                          </span>
+                        )}
+                      </Link>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
-      </nav>
+          ))}
+        </nav>
 
-      {/* User Footer */}
-      <div className="p-3 border-t border-[#1e293b] bg-[#1e293b]/50">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-primary-600 flex items-center justify-center text-white text-sm font-bold shadow-sm">
-            {user?.full_name ? user.full_name.charAt(0).toUpperCase() : "U"}
+
+        <div className="p-3 border-t border-[#1e293b] bg-[#1e293b]/50">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-primary-600 flex items-center justify-center text-white text-sm font-bold shadow-sm">
+              {user?.full_name ? user.full_name.charAt(0).toUpperCase() : "U"}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-white truncate">
+                {user?.full_name || "Utilisateur"}
+              </p>
+              <p className="text-xs text-white/60 truncate">{user?.email}</p>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="text-white/60 hover:text-white transition-colors p-1.5 hover:bg-[#1e293b] rounded-lg"
+              title="Déconnexion"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white truncate">
-              {user?.full_name || "Utilisateur"}
-            </p>
-            <p className="text-xs text-white/60 truncate">{user?.email}</p>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="text-white/60 hover:text-white transition-colors p-1.5 hover:bg-[#1e293b] rounded-lg"
-            title="Déconnexion"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
         </div>
       </div>
-    </div>
     </>
   );
 }

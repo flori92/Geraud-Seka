@@ -7,6 +7,9 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { useToast } from "@/components/ui/ToastContainer";
+import { ShoppingCart, Receipt, Loader2 } from "lucide-react";
+
+type DocumentTypeChoice = "INVOICE_PURCHASE" | "INVOICE_SALES";
 
 export default function ValidateDocumentPage() {
     const router = useRouter();
@@ -14,6 +17,7 @@ export default function ValidateDocumentPage() {
     const { success, error: showError } = useToast();
 
     const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [document, setDocument] = useState<Document | null>(null);
     const [documentViewUrl, setDocumentViewUrl] = useState<string | null>(null);
@@ -26,6 +30,7 @@ export default function ValidateDocumentPage() {
     const [amountVAT, setAmountVAT] = useState("");
     const [amountTTC, setAmountTTC] = useState("");
     const [description, setDescription] = useState("");
+    const [documentType, setDocumentType] = useState<DocumentTypeChoice>("INVOICE_PURCHASE");
 
     useEffect(() => {
         if (!id) return;
@@ -41,7 +46,7 @@ export default function ValidateDocumentPage() {
             try {
                 const data = await getDocument(id as string, token);
                 setDocument(data);
-                
+
                 // Charger le document via fetch et créer un blob URL
                 if (data.file_path) {
                     try {
@@ -86,6 +91,19 @@ export default function ValidateDocumentPage() {
                 setAmountTTC((data.amount_ttc ?? ocrNum("amount_ttc"))?.toString() || "");
                 setDescription(data.description || `Document ${data.filename}`);
 
+                if (data.type === "INVOICE_SALES") {
+                    setDocumentType("INVOICE_SALES");
+                } else if (data.type === "INVOICE_PURCHASE") {
+                    setDocumentType("INVOICE_PURCHASE");
+                } else {
+                    const classification = (ocr as Record<string, unknown>)["classification"] as Record<string, unknown> | undefined;
+                    if (classification?.invoice_type === "SALE") {
+                        setDocumentType("INVOICE_SALES");
+                    } else {
+                        setDocumentType("INVOICE_PURCHASE");
+                    }
+                }
+
                 setError(null);
             } catch (err: unknown) {
                 console.error("Failed to fetch document", err);
@@ -103,7 +121,7 @@ export default function ValidateDocumentPage() {
         const token = localStorage.getItem("seka_access_token");
         if (!token || !id) return;
 
-        // Validation côté client
+
         if (!supplier || !supplier.trim()) {
             showError("Le nom du fournisseur est requis");
             return;
@@ -123,6 +141,7 @@ export default function ValidateDocumentPage() {
             return;
         }
 
+        setSaving(true);
         try {
             await validateDocument(id as string, {
                 reference_number: referenceNumber || undefined,
@@ -135,13 +154,33 @@ export default function ValidateDocumentPage() {
                 description: description || `Document ${document?.filename || ''}`,
             }, token);
 
-            success("Document validé avec succès !");
-            router.push("/documents");
+            try {
+                await fetch(`${API_BASE_URL}/api/v1/documents/${id}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ type: documentType })
+                });
+            } catch (patchError) {
+                console.warn("Could not update document type:", patchError);
+            }
+
+            success("Document validé et comptabilisé avec succès !");
+
+            if (documentType === "INVOICE_SALES") {
+                router.push("/ventes/factures");
+            } else {
+                router.push("/achats/factures");
+            }
         } catch (error: unknown) {
-            console.error("Validation failed", error);
+            console.error("[ERROR] Validation failed", error);
             const e = error as { response?: { data?: { detail?: string } }; message?: string };
             const errorMessage = e.response?.data?.detail || e.message || "Erreur lors de la validation";
             showError(errorMessage);
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -283,14 +322,61 @@ export default function ValidateDocumentPage() {
                                 placeholder="Description de la transaction"
                             />
 
+                            {/* Document Type Selector */}
+                            <div className="rounded-lg bg-accents-1 p-4">
+                                <h3 className="text-sm font-medium text-foreground mb-3">Type de document</h3>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setDocumentType("INVOICE_PURCHASE")}
+                                        className={`flex items-center justify-center gap-2 px-3 py-3 rounded-lg border-2 transition-all ${documentType === "INVOICE_PURCHASE"
+                                            ? "border-orange-500 bg-orange-50 text-orange-700"
+                                            : "border-accents-2 bg-white text-accents-5 hover:border-accents-3"
+                                            }`}
+                                    >
+                                        <ShoppingCart className="h-4 w-4" />
+                                        <span className="text-sm font-medium">Achat</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setDocumentType("INVOICE_SALES")}
+                                        className={`flex items-center justify-center gap-2 px-3 py-3 rounded-lg border-2 transition-all ${documentType === "INVOICE_SALES"
+                                            ? "border-green-500 bg-green-50 text-green-700"
+                                            : "border-accents-2 bg-white text-accents-5 hover:border-accents-3"
+                                            }`}
+                                    >
+                                        <Receipt className="h-4 w-4" />
+                                        <span className="text-sm font-medium">Vente</span>
+                                    </button>
+                                </div>
+                                <p className="text-xs text-accents-5 mt-2">
+                                    {documentType === "INVOICE_PURCHASE"
+                                        ? "Facture fournisseur - apparaîtra dans Achats"
+                                        : "Facture client - apparaîtra dans Ventes"
+                                    }
+                                </p>
+                            </div>
+
                             <div className="pt-4 space-y-2">
-                                <Button className="w-full" onClick={handleValidate}>
-                                    Valider et Comptabiliser
+                                <Button
+                                    className="w-full"
+                                    onClick={handleValidate}
+                                    disabled={saving}
+                                >
+                                    {saving ? (
+                                        <>
+                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                            Validation en cours...
+                                        </>
+                                    ) : (
+                                        "Valider et Comptabiliser"
+                                    )}
                                 </Button>
                                 <Button
                                     variant="secondary"
                                     className="w-full"
-                                    onClick={() => router.push("/documents")}
+                                    onClick={() => router.push("/documents/en-attente")}
+                                    disabled={saving}
                                 >
                                     Annuler
                                 </Button>

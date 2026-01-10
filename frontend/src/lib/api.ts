@@ -107,11 +107,11 @@ api.interceptors.response.use(
         window.location.href = "/login";
       }
     }
-    
+
     if (error.message?.includes("sentry") || url.includes("sentry")) {
       return Promise.reject(error);
     }
-    
+
     return Promise.reject(error);
   }
 );
@@ -237,10 +237,18 @@ export interface Document {
   total_amount?: number;
   tax_amount?: number;
   ocr_data?: Record<string, unknown> | null;
-  ocr_confidence?: number | null;
   created_at: string;
-  updated_at?: string;
   client_id: string;
+  type?: string;
+}
+
+export type DocumentStatus = 'UPLOADED' | 'OCR_PROCESSING' | 'OCR_COMPLETED' | 'VALIDATED' | 'REJECTED' | 'ARCHIVED';
+export type DocumentType = 'INVOICE_PURCHASE' | 'INVOICE_SALES' | 'RECEIPT' | 'EXPENSE_REPORT' | 'QUOTE' | 'DELIVERY_NOTE' | 'PURCHASE_ORDER' | 'OTHER';
+
+export interface DocumentFilters {
+  status?: DocumentStatus;
+  type?: DocumentType;
+  clientId?: string;
 }
 
 export async function getDocuments(accessToken: string, clientId?: string): Promise<Document[]> {
@@ -249,6 +257,45 @@ export async function getDocuments(accessToken: string, clientId?: string): Prom
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
+}
+
+export async function getDocumentsFiltered(accessToken: string, filters?: DocumentFilters): Promise<Document[]> {
+  const params = new URLSearchParams();
+  if (filters?.status) params.append('status', filters.status);
+  if (filters?.type) params.append('type', filters.type);
+  if (filters?.clientId) params.append('client_id', filters.clientId);
+
+  const url = `/documents/?${params.toString()}`;
+  const response = await api.get<Document[]>(url, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function getPendingDocuments(accessToken: string): Promise<Document[]> {
+  const docs = await getDocuments(accessToken);
+  return docs.filter((d: Document) =>
+    d.status === 'UPLOADED' || d.status === 'OCR_PROCESSING' || d.status === 'OCR_COMPLETED'
+  );
+}
+
+export async function getValidatedDocuments(accessToken: string): Promise<Document[]> {
+  const docs = await getDocuments(accessToken);
+  return docs.filter((d: Document) => d.status === 'VALIDATED');
+}
+
+export async function getPurchaseInvoices(accessToken: string): Promise<Document[]> {
+  const docs = await getDocuments(accessToken);
+  return docs.filter((d: Document) =>
+    d.type === 'INVOICE_PURCHASE' && d.status === 'VALIDATED'
+  );
+}
+
+export async function getSalesInvoices(accessToken: string): Promise<Document[]> {
+  const docs = await getDocuments(accessToken);
+  return docs.filter((d: Document) =>
+    d.type === 'INVOICE_SALES' && d.status === 'VALIDATED'
+  );
 }
 
 export async function getDocument(documentId: string, accessToken: string): Promise<Document> {
@@ -495,7 +542,7 @@ export async function verifyKKiaPayTransaction(
     "/payments/kkiapay/verify",
     { transaction_id: transactionId },
     {
-    headers: { Authorization: `Bearer ${accessToken}` },
+      headers: { Authorization: `Bearer ${accessToken}` },
     }
   );
   return response.data;
@@ -646,7 +693,7 @@ export async function getQuotes(accessToken: string): Promise<Quote[]> {
     const response = await api.get<QuotesResponse | Quote[]>("/sales/quotes/", {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
-   
+
     if (Array.isArray(response.data)) {
       return response.data;
     }
@@ -701,7 +748,7 @@ export async function getInvoices(accessToken: string): Promise<Invoice[]> {
     const response = await api.get<InvoicesResponse | Invoice[]>("/sales/invoices/", {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
-   
+
     if (Array.isArray(response.data)) {
       return response.data;
     }
@@ -1190,7 +1237,7 @@ export async function getInventory(accessToken: string): Promise<InventoryItem[]
     const response = await api.get<InventoryResponse | InventoryItem[]>("/stock/", {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
-   
+
     if (Array.isArray(response.data)) {
       return response.data;
     }
@@ -1239,7 +1286,7 @@ export async function getStockMovements(accessToken: string): Promise<StockMovem
     const response = await api.get<MovementsResponse | StockMovement[]>("/stock/movements/", {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
-   
+
     if (Array.isArray(response.data)) {
       return response.data;
     }
@@ -1294,7 +1341,7 @@ export async function getPurchaseOrders(accessToken: string): Promise<PurchaseOr
     const response = await api.get<PurchaseOrdersResponse | PurchaseOrder[]>("/sales/purchase-orders/", {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
-   
+
     if (Array.isArray(response.data)) {
       return response.data;
     }
@@ -1345,7 +1392,7 @@ export async function getDeliveryNotes(accessToken: string): Promise<DeliveryNot
     const response = await api.get<DeliveryNotesResponse | DeliveryNote[]>("/sales/delivery-notes/", {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
-   
+
     if (Array.isArray(response.data)) {
       return response.data;
     }
@@ -1756,7 +1803,7 @@ export async function getDashboardStatsExtended(accessToken: string): Promise<Da
     return response.data;
   } catch (error) {
     console.error("Error fetching extended dashboard stats:", error);
-   
+
     return {
       total_clients: 0,
       active_clients: 0,
@@ -1951,7 +1998,7 @@ export async function getAILearningStats(accessToken: string): Promise<AILearnin
     return response.data;
   } catch (error) {
     console.error("Error fetching AI learning stats:", error);
-   
+
     return {
       average_accuracy: 0,
       total_samples: 0,
