@@ -855,5 +855,9 @@ def validate_document(
         return document
     except Exception as e:
         db.rollback()
+        import traceback
+        error_trace = traceback.format_exc()
         print(f"❌ Erreur validation/comptabilisation: {type(e).__name__}: {e}")
+        print(f"📋 Stack trace:\n{error_trace}")
+        print(f"📋 Contexte: document_id={document.id}, client_id={document.client_id}, supplier_id={supplier_id}, date={entry_date}")
         raise HTTPException(status_code=500, detail=f"Erreur lors de la comptabilisation: {str(e)}")
