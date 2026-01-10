@@ -1,9 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { CheckCircle, X, Calendar, Building, DollarSign } from "lucide-react";
-import { API_BASE_URL } from "@/lib/api";
+import {
+    CheckCircle, X, Calendar, Building, DollarSign,
+    ArrowLeft, ArrowRight, FileText, Hash, Loader2, Save, AlertCircle
+} from "lucide-react";
+import { API_BASE_URL, getPendingDocuments } from "@/lib/api";
 import AccountAutocomplete, { type Account } from "@/components/AccountAutocomplete";
+import DocumentPdfViewer from "@/components/DocumentPdfViewer";
 
 interface ValidationFormData {
     supplier_name: string;
@@ -18,14 +22,33 @@ interface ValidationFormData {
     description: string;
 }
 
+interface DocumentInfo {
+    id: string;
+    original_filename: string;
+    supplier_name?: string;
+    document_date?: string;
+    due_date?: string;
+    amount_ht?: number;
+    amount_vat?: number;
+    amount_ttc?: number;
+    reference_number?: string;
+    file_path?: string;
+    status?: string;
+}
+
 export default function DocumentValidatePage() {
     const router = useRouter();
     const { id } = router.query;
     const [loading, setLoading] = useState(true);
-    const [documentData, setDocumentData] = useState<Record<string, unknown> | null>(null);
+    const [documentData, setDocumentData] = useState<DocumentInfo | null>(null);
     const [viewUrl, setViewUrl] = useState<string | null>(null);
     const [accounts, setAccounts] = useState<Account[]>([]);
     const [saving, setSaving] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    // Navigation entre documents
+    const [pendingDocIds, setPendingDocIds] = useState<string[]>([]);
+    const [currentIndex, setCurrentIndex] = useState<number>(-1);
 
     // Form State
     const [formData, setFormData] = useState<ValidationFormData>({
@@ -41,27 +64,50 @@ export default function DocumentValidatePage() {
         description: ""
     });
 
+    // Charger la liste des documents en attente pour navigation
+    const fetchPendingList = useCallback(async () => {
+        const token = localStorage.getItem("seka_access_token");
+        if (!token) return;
+        try {
+            const docs = await getPendingDocuments(token);
+            const ids = docs.map((d: { id: string }) => d.id);
+            setPendingDocIds(ids);
+            if (id) {
+                const idx = ids.indexOf(id as string);
+                setCurrentIndex(idx);
+            }
+        } catch (e) {
+            console.error("Error fetching pending docs:", e);
+        }
+    }, [id]);
+
     useEffect(() => {
         if (id) {
             fetchDocumentAndUrl();
             fetchAccounts();
+            fetchPendingList();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
 
     const fetchDocumentAndUrl = async () => {
         const token = localStorage.getItem("seka_access_token");
-        if (!token) return;
+        if (!token) {
+            setError("Vous devez être connecté");
+            setLoading(false);
+            return;
+        }
 
         setLoading(true);
+        setError(null);
         try {
             // 1. Fetch Document Details
             const docRes = await fetch(`${API_BASE_URL}/api/v1/documents/${id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            if (!docRes.ok) throw new Error("Document not found");
+            if (!docRes.ok) throw new Error("Document non trouvé");
             const doc = await docRes.json();
-            setDocumentData(doc);
+            setDocumentData(doc as DocumentInfo);
 
             // Populate form
             setFormData({
@@ -72,23 +118,26 @@ export default function DocumentValidatePage() {
                 amount_vat: doc.amount_vat || 0,
                 amount_ttc: doc.amount_ttc || 0,
                 reference_number: doc.reference_number || "",
-                account_number: "", // Would need to fetch supplier default if available
+                account_number: "",
                 journal_code: "ACH",
                 description: doc.supplier_name ? `Facture ${doc.supplier_name}` : "Facture"
             });
 
-            // 2. Fetch View URL
+            // 2. Fetch View URL (signed URL for R2/S3)
             const urlRes = await fetch(`${API_BASE_URL}/api/v1/documents/${id}/view-url`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (urlRes.ok) {
                 const data = await urlRes.json();
                 setViewUrl(data.view_url);
+            } else {
+                // Fallback: try direct download URL
+                setViewUrl(`${API_BASE_URL}/api/v1/documents/download/${encodeURIComponent(doc.file_path || "")}`);
             }
 
-        } catch (error) {
-            console.error("Error fetching document:", error);
-            alert("Erreur lors du chargement du document");
+        } catch (err) {
+            console.error("Error fetching document:", err);
+            setError(err instanceof Error ? err.message : "Erreur lors du chargement");
         } finally {
             setLoading(false);
         }
@@ -114,8 +163,22 @@ export default function DocumentValidatePage() {
         } catch (e) { console.error(e); }
     };
 
+    // Navigation vers document précédent/suivant
+    const goToPrevious = useCallback(() => {
+        if (currentIndex > 0) {
+            router.push(`/documents/${pendingDocIds[currentIndex - 1]}/validate`);
+        }
+    }, [currentIndex, pendingDocIds, router]);
+
+    const goToNext = useCallback(() => {
+        if (currentIndex < pendingDocIds.length - 1) {
+            router.push(`/documents/${pendingDocIds[currentIndex + 1]}/validate`);
+        }
+    }, [currentIndex, pendingDocIds, router]);
+
     const handleSave = async (validateAndNext = false) => {
         setSaving(true);
+        setError(null);
         const token = localStorage.getItem("seka_access_token");
         try {
             const response = await fetch(`${API_BASE_URL}/api/v1/documents/${id}/validate`, {
@@ -128,29 +191,52 @@ export default function DocumentValidatePage() {
             });
 
             if (response.ok) {
-                if (validateAndNext) {
-                    // Logic to find next document could be complex here without fetching list.
-                    // Simplified: go back to list
-                    router.push("/documents/en-attente");
+                if (validateAndNext && currentIndex < pendingDocIds.length - 1) {
+                    // Aller au document suivant
+                    router.push(`/documents/${pendingDocIds[currentIndex + 1]}/validate`);
                 } else {
                     router.push("/documents/en-attente");
                 }
             } else {
-                const err = await response.text();
-                alert(`Erreur validation: ${err}`);
+                const errData = await response.json().catch(() => ({ detail: "Erreur inconnue" }));
+                setError(errData.detail || "Erreur lors de la validation");
             }
-        } catch (error) {
-            console.error("Error saving:", error);
-            alert("Erreur lors de la validation");
+        } catch (err) {
+            console.error("Error saving:", err);
+            setError("Erreur réseau lors de la validation");
         } finally {
             setSaving(false);
         }
     };
 
+    // États de chargement et erreur
     if (loading) {
-        return <div className="min-h-screen flex items-center justify-center bg-gray-50">
-            <div className="text-center">Loading...</div>
-        </div>;
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <div className="text-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-[#1e3a5f] mx-auto mb-2" />
+                    <p className="text-gray-600">Chargement du document...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (error && !documentData) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <div className="text-center bg-white p-6 rounded-lg shadow-sm">
+                    <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-3" />
+                    <h2 className="text-lg font-semibold text-gray-900 mb-2">Erreur</h2>
+                    <p className="text-gray-600 mb-4">{error}</p>
+                    <button
+                        onClick={() => router.push("/documents/en-attente")}
+                        className="px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#172e4d]"
+                    >
+                        Retour à la liste
+                    </button>
+                </div>
+            </div>
+        );
     }
 
     return (
@@ -163,18 +249,45 @@ export default function DocumentValidatePage() {
                 {/* Left: PDF Viewer (50%) */}
                 <div className="w-1/2 bg-gray-800 border-r border-gray-700 relative flex flex-col">
                     <div className="flex items-center justify-between px-4 py-2 bg-gray-900 border-b border-gray-700 text-white">
-                        <span className="text-sm font-medium truncate">{String(documentData?.original_filename || "")}</span>
-                        <div className="flex gap-2">
-                            {/* PDF Controls could go here if managed by parent, but DocumentPdfViewer has its own */}
+                        <div className="flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-gray-400" />
+                            <span className="text-sm font-medium truncate">{documentData?.original_filename || "Document"}</span>
+                        </div>
+                        {/* Navigation entre documents */}
+                        <div className="flex items-center gap-1">
+                            <button
+                                onClick={goToPrevious}
+                                disabled={currentIndex <= 0}
+                                className="p-1.5 rounded hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
+                                title="Document précédent"
+                            >
+                                <ArrowLeft className="h-4 w-4" />
+                            </button>
+                            <span className="text-xs text-gray-400 px-2">
+                                {currentIndex >= 0 ? `${currentIndex + 1}/${pendingDocIds.length}` : "-"}
+                            </span>
+                            <button
+                                onClick={goToNext}
+                                disabled={currentIndex >= pendingDocIds.length - 1}
+                                className="p-1.5 rounded hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
+                                title="Document suivant"
+                            >
+                                <ArrowRight className="h-4 w-4" />
+                            </button>
                         </div>
                     </div>
-                    <div className="flex-1 overflow-hidden bg-gray-500 relative">
+                    <div className="flex-1 overflow-hidden bg-gray-600 relative">
                         {viewUrl ? (
-                            // Use iframe for better PDF rendering if URL is signed/available, 
-                            // OR usage of DocumentPdfViewer for canvas rendering
-                            <iframe src={viewUrl} className="w-full h-full border-none" />
+                            viewUrl.endsWith('.pdf') || viewUrl.includes('application/pdf') ? (
+                                <DocumentPdfViewer url={viewUrl} />
+                            ) : (
+                                <iframe src={viewUrl} className="w-full h-full border-none bg-white" />
+                            )
                         ) : (
-                            <div className="flex items-center justify-center h-full text-white">Aperçu non disponible</div>
+                            <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                                <FileText className="h-16 w-16 mb-3 opacity-50" />
+                                <p>Aperçu non disponible</p>
+                            </div>
                         )}
                     </div>
                 </div>
@@ -182,11 +295,14 @@ export default function DocumentValidatePage() {
                 {/* Right: Validation Form (50%) */}
                 <div className="w-1/2 bg-white flex flex-col h-full overflow-hidden">
 
-                    {/* Header */}
+                    {/* Header avec navigation */}
                     <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-white">
                         <div>
-                            <h1 className="text-lg font-bold text-gray-900">Validation Facture</h1>
-                            <p className="text-xs text-gray-500">Vérifiez les données extraites</p>
+                            <h1 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                                <Hash className="h-5 w-5 text-[#1e3a5f]" />
+                                Validation Facture
+                            </h1>
+                            <p className="text-xs text-gray-500">Vérifiez et corrigez les données extraites par l&apos;IA</p>
                         </div>
                         <div className="flex gap-2">
                             <button
@@ -198,6 +314,14 @@ export default function DocumentValidatePage() {
                             </button>
                         </div>
                     </div>
+
+                    {/* Message d'erreur si présent */}
+                    {error && (
+                        <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700 text-sm">
+                            <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                            {error}
+                        </div>
+                    )}
 
                     {/* Scrollable Form Content */}
                     <div className="flex-1 overflow-y-auto p-6 space-y-6">
@@ -340,16 +464,32 @@ export default function DocumentValidatePage() {
                             Annuler
                         </button>
                         <div className="flex gap-3">
-                            {/* <button className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium">
-                                Rejeter
-                            </button> */}
+                            {/* Bouton Sauvegarder (sans valider) - pour plus tard */}
                             <button
                                 onClick={() => handleSave(false)}
                                 disabled={saving}
-                                className="px-6 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#172e4d] text-sm font-medium flex items-center gap-2 shadow-sm"
+                                className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium flex items-center gap-2 disabled:opacity-50"
                             >
-                                <CheckCircle className="h-4 w-4" />
-                                {saving ? "Validation..." : "Valider"}
+                                <Save className="h-4 w-4" />
+                                Enregistrer
+                            </button>
+                            {/* Bouton Valider et Suivant */}
+                            <button
+                                onClick={() => handleSave(true)}
+                                disabled={saving || pendingDocIds.length === 0}
+                                className="px-5 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#172e4d] text-sm font-medium flex items-center gap-2 shadow-sm disabled:opacity-50"
+                            >
+                                {saving ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        Validation...
+                                    </>
+                                ) : (
+                                    <>
+                                        <CheckCircle className="h-4 w-4" />
+                                        Valider{currentIndex < pendingDocIds.length - 1 ? " & Suivant" : ""}
+                                    </>
+                                )}
                             </button>
                         </div>
                     </div>
