@@ -1,7 +1,6 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { useRouter } from "next/router";
 import { Client, getClients, getCurrentUser, User } from "@/lib/api";
 
 type AppMode = 'ENTREPRISE' | 'CABINET';
@@ -23,16 +22,20 @@ export function LayoutProvider({ children }: { children: ReactNode }) {
     const [currentTenant, setCurrentTenant] = useState<Client | null>(null);
     const [availableTenants, setAvailableTenants] = useState<Client[]>([]);
     const [user, setUser] = useState<User | null>(null);
-    const router = useRouter();
 
     const refreshTenants = async () => {
         const token = localStorage.getItem("seka_access_token");
-        if (!token) return;
+        if (!token) {
+            console.log("[LayoutContext] No token, skipping tenant refresh");
+            return;
+        }
         try {
             const clients = await getClients(token);
-            setAvailableTenants(clients);
+            console.log("[LayoutContext] Clients loaded:", clients?.length || 0, clients);
+            setAvailableTenants(clients || []);
         } catch (error) {
-            console.error("Failed to fetch clients", error);
+            console.error("[LayoutContext] Failed to fetch clients", error);
+            setAvailableTenants([]);
         }
     };
 

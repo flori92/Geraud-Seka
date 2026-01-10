@@ -112,8 +112,8 @@ export default function DashboardSimple() {
           <div className="px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
             {/* KPIs - Responsive grid */}
             <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-              <StatCard label="Chiffre d'affaires" value={formatCurrency(totalRevenue)} icon={Wallet} trend={12.5} />
-              <StatCard label="Clients" value={clientCount} icon={Users} trend={8} />
+              <StatCard label="Chiffre d'affaires" value={formatCurrency(totalRevenue)} icon={Wallet} />
+              <StatCard label="Clients" value={clientCount} icon={Users} />
               <StatCard label="Factures" value={invoices.length} icon={FileText} />
               <StatCard label="Impayées" value={pendingInvoices} icon={Receipt} alert={pendingInvoices > 0} />
             </div>
