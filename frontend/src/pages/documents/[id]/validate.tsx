@@ -20,6 +20,7 @@ interface ValidationFormData {
     account_number: string;
     journal_code: string;
     description: string;
+    document_type: 'INVOICE_PURCHASE' | 'INVOICE_SALES' | 'EXPENSE_REPORT' | 'OTHER';
 }
 
 interface DocumentInfo {
@@ -34,6 +35,7 @@ interface DocumentInfo {
     reference_number?: string;
     file_path?: string;
     status?: string;
+    type?: string;
 }
 
 export default function DocumentValidatePage() {
@@ -59,7 +61,8 @@ export default function DocumentValidatePage() {
         reference_number: "",
         account_number: "",
         journal_code: "ACH",
-        description: ""
+        description: "",
+        document_type: "INVOICE_PURCHASE"
     });
 
     const fetchPendingList = useCallback(async () => {
@@ -109,6 +112,8 @@ export default function DocumentValidatePage() {
             const doc = await docRes.json();
             setDocumentData(doc as DocumentInfo);
 
+            const docType = doc.type || "INVOICE_PURCHASE";
+            const defaultJournal = docType === "INVOICE_SALES" ? "VTE" : "ACH";
             setFormData({
                 supplier_name: doc.supplier_name || "",
                 date: doc.document_date || new Date().toISOString().split('T')[0],
@@ -118,8 +123,9 @@ export default function DocumentValidatePage() {
                 amount_ttc: doc.amount_ttc || 0,
                 reference_number: doc.reference_number || "",
                 account_number: "",
-                journal_code: "ACH",
-                description: doc.supplier_name ? `Facture ${doc.supplier_name}` : "Facture"
+                journal_code: defaultJournal,
+                description: doc.supplier_name ? `Facture ${doc.supplier_name}` : "Facture",
+                document_type: docType as ValidationFormData['document_type']
             });
 
             try {
@@ -346,24 +352,46 @@ export default function DocumentValidatePage() {
                                 <Building className="h-4 w-4 text-gray-400" /> Fournisseur
                             </h3>
                             <div className="grid grid-cols-1 gap-4">
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">Nom du fournisseur</label>
-                                    <input
-                                        type="text"
-                                        value={formData.supplier_name}
-                                        onChange={(e) => setFormData({ ...formData, supplier_name: e.target.value })}
-                                        className="w-full text-sm border-gray-300 rounded-md focus:ring-[#1e3a5f] focus:border-[#1e3a5f]"
-                                    />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-700 mb-1">Type de document</label>
+                                        <select
+                                            value={formData.document_type}
+                                            onChange={(e) => {
+                                                const type = e.target.value as ValidationFormData['document_type'];
+                                                const journal = type === 'INVOICE_SALES' ? 'VTE' : 'ACH';
+                                                setFormData({ ...formData, document_type: type, journal_code: journal });
+                                            }}
+                                            className="w-full text-sm border-gray-300 rounded-md focus:ring-[#1e3a5f] focus:border-[#1e3a5f]"
+                                        >
+                                            <option value="INVOICE_PURCHASE">Facture d&apos;achat</option>
+                                            <option value="INVOICE_SALES">Facture de vente</option>
+                                            <option value="EXPENSE_REPORT">Note de frais</option>
+                                            <option value="OTHER">Autre</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-700 mb-1">Nom du fournisseur/client</label>
+                                        <input
+                                            type="text"
+                                            value={formData.supplier_name}
+                                            onChange={(e) => setFormData({ ...formData, supplier_name: e.target.value })}
+                                            className="w-full text-sm border-gray-300 rounded-md focus:ring-[#1e3a5f] focus:border-[#1e3a5f]"
+                                        />
+                                    </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-xs font-medium text-gray-700 mb-1">Compte Tiers (401)</label>
+                                        <label className="block text-xs font-medium text-gray-700 mb-1">Compte Tiers</label>
                                         <AccountAutocomplete
-                                            // Simplification: using account code directly
                                             value={formData.account_number}
                                             onChange={(val) => setFormData({ ...formData, account_number: val })}
-                                            accounts={accounts.filter(a => a.code.startsWith('401'))}
-                                            placeholder="401..."
+                                            accounts={accounts.filter(a => 
+                                                formData.document_type === 'INVOICE_SALES' 
+                                                    ? a.code.startsWith('411') 
+                                                    : a.code.startsWith('401')
+                                            )}
+                                            placeholder={formData.document_type === 'INVOICE_SALES' ? "411..." : "401..."}
                                         />
                                     </div>
                                     <div>
@@ -374,8 +402,15 @@ export default function DocumentValidatePage() {
                                             className="w-full text-sm border-gray-300 rounded-md focus:ring-[#1e3a5f] focus:border-[#1e3a5f]"
                                         >
                                             <option value="ACH">ACH - Achats</option>
+                                            <option value="VTE">VTE - Ventes</option>
                                             <option value="BQ">BQ - Banque</option>
+                                            <option value="BQ1">BQ1 - Banque principale</option>
+                                            <option value="BQ2">BQ2 - Banque secondaire</option>
+                                            <option value="CA">CA - Caisse</option>
                                             <option value="OD">OD - Opérations Diverses</option>
+                                            <option value="AN">AN - À Nouveaux</option>
+                                            <option value="SAL">SAL - Salaires</option>
+                                            <option value="NDF">NDF - Notes de frais</option>
                                         </select>
                                     </div>
                                 </div>

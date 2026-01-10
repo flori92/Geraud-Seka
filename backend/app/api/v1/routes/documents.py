@@ -672,9 +672,10 @@ class ValidationData(BaseModel):
     description: Optional[str] = None
     account_number: Optional[str] = None
     journal_code: Optional[str] = "ACH"
+    document_type: Optional[str] = "INVOICE_PURCHASE"
     
     class Config:
-        extra = "ignore"  # Ignorer les champs inconnus
+        extra = "ignore"
 
 @router.post("/{document_id}/validate", response_model=DocumentSchema)
 def validate_document(
@@ -694,6 +695,9 @@ def validate_document(
 
     document.status = DocumentStatus.VALIDATED
     document.reference_number = validation_data.reference_number or document.reference_number
+    
+    if validation_data.document_type:
+        document.type = DocumentType(validation_data.document_type)
     
     # Parser les dates string en objets date
     from datetime import datetime
