@@ -29,14 +29,12 @@ export default function DocumentUploadPage() {
                     const arrayBuffer = await selectedFile.arrayBuffer();
                     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
                     setPageCount(pdf.numPages);
-                    if (pdf.numPages > 1) {
-                        setProcessMode('split'); // Default to split for multi-page? Or ask user.
-                    } else {
-                        setProcessMode('single');
-                    }
+                    // Ne pas forcer le mode, laisser l'utilisateur choisir
+                    setProcessMode('single');
+                    setPagesPerDoc(1);
                 } catch (err) {
                     console.error("Error reading PDF:", err);
-                    setPageCount(0); // Failed to read or not a PDF
+                    setPageCount(0);
                 }
             } else {
                 setPageCount(1);
