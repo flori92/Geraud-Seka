@@ -10,6 +10,7 @@ from app.core.config import get_settings
 from app.middleware.monitoring import MonitoringMiddleware
 from app.middleware.proxy_headers import ProxyHeadersMiddleware
 from app.middleware.security import SecurityMiddleware, RequestValidationMiddleware
+from app.middleware.cors_fallback import CORSFallbackMiddleware
 from app.services.monitoring import monitoring_service
 
 logger = logging.getLogger(__name__)
@@ -62,6 +63,7 @@ def create_application() -> FastAPI:
 
     app.add_middleware(ProxyHeadersMiddleware)
 
+
     production_origins = [
         "https://sekagestion.com",
         "https://www.sekagestion.com",
@@ -98,12 +100,34 @@ def create_application() -> FastAPI:
             "Referer",
         ],
         expose_headers=["*"],
+        max_age=86400,  # Cache preflight for 24 hours
     )
+
+    # Custom OPTIONS preflight handler to ensure CORS works with Cloudflare
+    @app.options("/{full_path:path}")
+    async def options_handler(request: Request, full_path: str):
+        """Explicit OPTIONS preflight handler for CORS."""
+        origin = request.headers.get("origin", "")
+        if origin in cors_origins or origin == "*":
+            return Response(
+                status_code=200,
+                headers={
+                    "Access-Control-Allow-Origin": origin or "*",
+                    "Access-Control-Allow-Credentials": "true",
+                    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
+                    "Access-Control-Allow-Headers": "Accept, Accept-Language, Content-Language, Content-Type, Authorization, X-Requested-With, X-CSRF-Token, Access-Control-Allow-Origin, Cache-Control, Pragma, Origin, User-Agent, Referer",
+                    "Access-Control-Max-Age": "86400",
+                }
+            )
+        return Response(status_code=200)
 
     app.add_middleware(SecurityMiddleware, environment=settings.environment)
     app.add_middleware(RequestValidationMiddleware)
     
     app.add_middleware(MonitoringMiddleware)
+    
+    # CORSFallbackMiddleware as a safety net to ensure CORS headers are always present
+    app.add_middleware(CORSFallbackMiddleware, allowed_origins=cors_origins)
     
     if os.path.exists("uploads"):
         app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
