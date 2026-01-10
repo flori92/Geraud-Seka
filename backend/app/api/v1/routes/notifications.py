@@ -84,6 +84,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
 
 
 
+@router.get("", include_in_schema=False)
 @router.get("/")
 async def list_notifications(
     is_read: Optional[bool] = Query(None),
@@ -139,6 +140,7 @@ async def list_notifications(
     }
 
 
+@router.post("", include_in_schema=False)
 @router.post("/")
 async def create_notification(
     data: NotificationCreate,
@@ -248,6 +250,7 @@ async def delete_notification(
     return {"message": "Notification supprimée"}
 
 
+@router.delete("", include_in_schema=False)
 @router.delete("/")
 async def clear_notifications(
     current_tenant: Tenant = Depends(get_current_tenant),
