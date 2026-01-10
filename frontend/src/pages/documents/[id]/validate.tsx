@@ -87,6 +87,12 @@ export default function DocumentValidatePage() {
             fetchAccounts();
             fetchPendingList();
         }
+        // Cleanup blob URL on unmount or id change
+        return () => {
+            if (viewUrl && viewUrl.startsWith('blob:')) {
+                URL.revokeObjectURL(viewUrl);
+            }
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
 
@@ -123,16 +129,39 @@ export default function DocumentValidatePage() {
                 description: doc.supplier_name ? `Facture ${doc.supplier_name}` : "Facture"
             });
 
-            // 2. Fetch View URL (signed URL for R2/S3)
-            const urlRes = await fetch(`${API_BASE_URL}/api/v1/documents/${id}/view-url`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            if (urlRes.ok) {
-                const data = await urlRes.json();
-                setViewUrl(data.view_url);
-            } else {
-                // Fallback: try direct download URL
-                setViewUrl(`${API_BASE_URL}/api/v1/documents/download/${encodeURIComponent(doc.file_path || "")}`);
+            // 2. Télécharger le fichier en blob pour contourner CSP frame-ancestors
+            try {
+                // D'abord essayer avec l'URL signée
+                const urlRes = await fetch(`${API_BASE_URL}/api/v1/documents/${id}/view-url`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                
+                let fileUrl = "";
+                if (urlRes.ok) {
+                    const data = await urlRes.json();
+                    fileUrl = data.view_url;
+                } else {
+                    // Fallback: URL de téléchargement direct
+                    fileUrl = `${API_BASE_URL}/api/v1/documents/${id}/download`;
+                }
+
+                // Télécharger le fichier en tant que blob
+                const fileRes = await fetch(fileUrl, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                
+                if (fileRes.ok) {
+                    const blob = await fileRes.blob();
+                    const blobUrl = URL.createObjectURL(blob);
+                    setViewUrl(blobUrl);
+                } else {
+                    // Dernier recours: utiliser l'URL directe (peut échouer avec CSP)
+                    setViewUrl(fileUrl);
+                }
+            } catch (urlErr) {
+                console.error("Error fetching file blob:", urlErr);
+                // Fallback: essayer l'URL directe
+                setViewUrl(`${API_BASE_URL}/api/v1/documents/${id}/download`);
             }
 
         } catch (err) {
