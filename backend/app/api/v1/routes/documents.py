@@ -638,14 +638,14 @@ class ValidationData(BaseModel):
     class Config:
         extra = "ignore"  # Ignorer les champs inconnus
 
-@router.post("/{document_id}/validate")
+@router.post("/{document_id}/validate", response_model=DocumentSchema)
 def validate_document(
     *,
     db: Session = Depends(deps.get_db_session),
     document_id: UUID,
     validation_data: ValidationData,
     current_user: User = Depends(deps.get_current_user),
-) -> Any:
+):
     """
     Validate a document and generate accounting entries.
     """
