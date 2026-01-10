@@ -17,6 +17,7 @@ from app.core.deps import get_current_user, get_current_tenant
 from app.models.user import User
 from app.models.ledger_account import LedgerAccount, AccountType
 from app.models.accounting_advanced import JournalEntry
+from app.models.accounting_advanced import ChartOfAccounts, JournalEntryLine
 
 router = APIRouter()
 
@@ -603,3 +604,82 @@ async def get_advanced_accounts(
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Erreur lors de la récupération des comptes: {str(e)}")
+
+
+@router.get("/advanced/stats")
+async def get_advanced_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    current_tenant = Depends(get_current_tenant),
+):
+    """Basic accounting stats consumed by the frontend dashboard"""
+    try:
+        total_accounts = db.query(ChartOfAccounts).filter(ChartOfAccounts.tenant_id == current_tenant.id).count()
+        total_entries = db.query(JournalEntry).filter(JournalEntry.tenant_id == current_tenant.id).count()
+        # approximate total balance by summing account balances
+        accounts = db.query(ChartOfAccounts).filter(ChartOfAccounts.tenant_id == current_tenant.id).all()
+        total_balance = sum(float(a.balance) for a in accounts) if accounts else 0
+        return {
+            "total_accounts": total_accounts,
+            "total_entries": total_entries,
+            "total_balance": float(total_balance),
+        }
+    except Exception as e:
+        print(f"Error fetching advanced stats: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/advanced/trial-balance")
+async def get_trial_balance(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    current_tenant = Depends(get_current_tenant),
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+):
+    """Return a simple trial balance using ChartOfAccounts balances."""
+    try:
+        accounts = db.query(ChartOfAccounts).filter(ChartOfAccounts.tenant_id == current_tenant.id).order_by(ChartOfAccounts.account_number).all()
+        result = []
+        for acc in accounts:
+            result.append({
+                "id": str(acc.id),
+                "account_number": acc.account_number,
+                "name": acc.name,
+                "balance": float(acc.balance) if acc.balance is not None else 0,
+                "level": acc.level,
+            })
+        return {"accounts": result}
+    except Exception as e:
+        print(f"Error fetching trial balance: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/advanced/accounts/{account_id}/ledger")
+async def get_account_ledger(
+    account_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    current_tenant = Depends(get_current_tenant),
+):
+    """Return ledger lines for a given chart of account id."""
+    try:
+        lines = db.query(JournalEntryLine).join(JournalEntry).filter(
+            JournalEntry.tenant_id == current_tenant.id,
+            JournalEntryLine.account_id == account_id
+        ).order_by(JournalEntry.entry_date.desc()).all()
+
+        out = []
+        for l in lines:
+            out.append({
+                "id": str(l.id),
+                "entry_id": str(l.entry_id),
+                "date": l.entry.entry_date.isoformat() if l.entry and l.entry.entry_date else None,
+                "label": l.label or (l.entry.label if l.entry else None),
+                "debit": float(l.debit or 0),
+                "credit": float(l.credit or 0),
+            })
+        return out
+    except Exception as e:
+        print(f"Error fetching account ledger: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
