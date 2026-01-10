@@ -688,7 +688,7 @@ def validate_document(
     """
     Validate a document and generate accounting entries.
     """
-    print(f"📝 Validation request received: {validation_data}")
+    print(f"📝 [v2] Validation request received: {validation_data}")
     document = db.query(Document).filter(Document.id == document_id, Document.tenant_id == current_user.tenant_id).first()
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
