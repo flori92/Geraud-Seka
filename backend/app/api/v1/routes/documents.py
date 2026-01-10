@@ -3,6 +3,7 @@ from uuid import UUID
 from datetime import date
 from decimal import Decimal
 import os
+from contextlib import suppress
 
 from pydantic import BaseModel
 from pydantic import model_validator
@@ -146,7 +147,7 @@ async def upload_document(
                 db_obj.status = DocumentStatus.UPLOADED
                 db.commit()
                 db.refresh(db_obj)
-            print(f"⚠️  Document saved with UPLOADED status (OCR failed)")
+            print("⚠️  Document saved with UPLOADED status (OCR failed)")
 
         return db_obj
         
@@ -291,10 +292,8 @@ async def upload_multipage_pdf(
                     
                     from datetime import datetime
                     if ocr_data.get("date"):
-                        try:
+                        with suppress(ValueError, TypeError):
                             db_obj.document_date = datetime.fromisoformat(str(ocr_data.get("date"))).date()
-                        except (ValueError, TypeError):
-                            pass
                     
                     db_obj.amount_ht = ocr_data.get("amount_ht")
                     db_obj.amount_vat = ocr_data.get("amount_vat")
@@ -370,8 +369,7 @@ def read_documents(
         if client_id:
             query = query.filter(Document.client_id == client_id)
         
-        documents = query.order_by(Document.created_at.desc()).offset(skip).limit(limit).all()
-        return documents
+        return query.order_by(Document.created_at.desc()).offset(skip).limit(limit).all()
         
     except Exception as e:
         print(f"Error fetching documents: {str(e)}")
@@ -393,8 +391,7 @@ def read_document(
     """
     Get document by ID.
     """
-    document = db.query(Document).filter(Document.id == id).first()
-    if not document:
+    if not (document := db.query(Document).filter(Document.id == id).first()):
         raise HTTPException(status_code=404, detail="Document not found")
     return document
 
@@ -565,7 +562,7 @@ async def view_document_with_token(
         elif file_key.lower().endswith('.png'):
             content_type = "image/png"
         
-        response = StreamingResponse(
+        return StreamingResponse(
             io.BytesIO(content),
             media_type=content_type,
             headers={
@@ -574,7 +571,6 @@ async def view_document_with_token(
                 "Content-Security-Policy": "frame-ancestors 'self'"
             }
         )
-        return response
     except HTTPException:
         raise
     except Exception as e:
@@ -606,7 +602,7 @@ async def download_document_by_key(
         elif file_key.lower().endswith('.png'):
             content_type = "image/png"
         
-        response = StreamingResponse(
+        return StreamingResponse(
             io.BytesIO(content),
             media_type=content_type,
             headers={
@@ -615,7 +611,6 @@ async def download_document_by_key(
                 "Content-Security-Policy": "frame-ancestors 'self'"
             }
         )
-        return response
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Document non trouvé")
     except Exception as e:
@@ -830,7 +825,7 @@ def validate_document(
             tenant_id=current_user.tenant_id
         )
         db.add(entry_expense)
-        print(f"✅ Écriture dépense ajoutée")
+        print("✅ Écriture dépense ajoutée")
     
         if tax_amount and tax_amount > 0:
             entry_vat = AccountingEntry(
@@ -867,4 +862,4 @@ def validate_document(
     except Exception as e:
         db.rollback()
         print(f"❌ Erreur validation/comptabilisation: {type(e).__name__}: {e}")
-        raise
+        raise HTTPException(status_code=500, detail=f"Erreur lors de la comptabilisation: {str(e)}")
