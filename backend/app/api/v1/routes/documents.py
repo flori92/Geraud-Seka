@@ -658,7 +658,7 @@ async def download_document_by_key(
 
 from app.models.accounting import AccountingEntry, EntryType
 from app.models.client import Client
-from datetime import date
+from datetime import date, datetime
 from pydantic import BaseModel
 
 class ValidationData(BaseModel):
@@ -697,10 +697,11 @@ def validate_document(
     document.reference_number = validation_data.reference_number or document.reference_number
     
     if validation_data.document_type:
-        document.type = DocumentType(validation_data.document_type)
+        try:
+            document.type = DocumentType(validation_data.document_type)
+        except ValueError:
+            print(f"⚠️ Type de document invalide: {validation_data.document_type}, ignoré")
     
-    # Parser les dates string en objets date
-    from datetime import datetime
     if validation_data.date:
         with suppress(ValueError):
             document.document_date = datetime.strptime(validation_data.date, "%Y-%m-%d").date()
