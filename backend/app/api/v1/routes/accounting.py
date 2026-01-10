@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from sqlalchemy.exc import ProgrammingError, OperationalError
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel
 from datetime import date, datetime
 from decimal import Decimal
