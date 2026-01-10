@@ -6,14 +6,9 @@ import {
     Clock,
     FileText,
     CheckCircle,
-    AlertCircle,
     Upload,
     Search,
-    Filter,
-    ChevronDown,
     Loader2,
-    Eye,
-    Trash2,
     ChevronRight
 } from "lucide-react";
 import { getPendingDocuments, deleteDocument, type Document } from "@/lib/api";
@@ -38,6 +33,7 @@ export default function DocumentsEnAttentePage() {
 
     useEffect(() => {
         fetchDocuments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const fetchDocuments = async () => {

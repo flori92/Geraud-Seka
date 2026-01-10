@@ -12,30 +12,13 @@ import { usePerformanceMonitor } from "@/lib/hooks/usePerformance";
 
 type DocumentTypeChoice = "INVOICE_PURCHASE" | "INVOICE_SALES";
 
-// Debounce hook pour optimiser les performances
-function useDebounce<T>(value: T, delay: number = 300): T {
-    const [debouncedValue, setDebouncedValue] = useState<T>(value);
-
-    useEffect(() => {
-        const handler = setTimeout(() => {
-            setDebouncedValue(value);
-        }, delay);
-
-        return () => clearTimeout(handler);
-    }, [value, delay]);
-
-    return debouncedValue;
-}
-
 export default function ValidateDocumentPage() {
     const router = useRouter();
     const { id } = router.query;
     const { success, error: showError } = useToast();
 
-    // Performance monitoring
     usePerformanceMonitor("ValidateDocumentPage");
 
-    // State variables grouped to reduce re-renders
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -52,7 +35,6 @@ export default function ValidateDocumentPage() {
     const [description, setDescription] = useState("");
     const [documentType, setDocumentType] = useState<DocumentTypeChoice>("INVOICE_PURCHASE");
 
-    // Use refs to avoid unnecessary state updates during validation
     const validationStateRef = useRef({
         referenceNumber,
         date,
@@ -64,7 +46,6 @@ export default function ValidateDocumentPage() {
         description,
     });
 
-    // Update ref when values change (prevents stale closures)
     useEffect(() => {
         validationStateRef.current = {
             referenceNumber,
@@ -236,6 +217,19 @@ export default function ValidateDocumentPage() {
         }
     }, [id, documentType, document?.filename, showError, success, router]);
 
+    // All callbacks must be defined before any early returns (React hooks rules)
+    const handleReferenceNumberChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setReferenceNumber(e.target.value), []);
+    const handleDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setDate(e.target.value), []);
+    const handleDueDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setDueDate(e.target.value), []);
+    const handleSupplierChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setSupplier(e.target.value), []);
+    const handleAmountHTChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setAmountHT(e.target.value), []);
+    const handleAmountVATChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setAmountVAT(e.target.value), []);
+    const handleAmountTTCChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setAmountTTC(e.target.value), []);
+    const handleDescriptionChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setDescription(e.target.value), []);
+    const handleSetPurchase = useCallback(() => setDocumentType("INVOICE_PURCHASE"), []);
+    const handleSetSales = useCallback(() => setDocumentType("INVOICE_SALES"), []);
+    const handleCancel = useCallback(() => router.push("/documents/en-attente"), [router]);
+
     if (loading) {
         return (
             <DashboardLayout title="Validation du document">
@@ -313,7 +307,7 @@ export default function ValidateDocumentPage() {
                             <Input
                                 label="Numéro de référence"
                                 value={referenceNumber}
-                                onChange={useCallback((e: React.ChangeEvent<HTMLInputElement>) => setReferenceNumber(e.target.value), [])}
+                                onChange={handleReferenceNumberChange}
                                 placeholder="Ex: INV-2025-001"
                             />
 
@@ -322,20 +316,20 @@ export default function ValidateDocumentPage() {
                                     label="Date du document"
                                     type="date"
                                     value={date}
-                                    onChange={useCallback((e: React.ChangeEvent<HTMLInputElement>) => setDate(e.target.value), [])}
+                                    onChange={handleDateChange}
                                 />
                                 <Input
                                     label="Date d'échéance"
                                     type="date"
                                     value={dueDate}
-                                    onChange={useCallback((e: React.ChangeEvent<HTMLInputElement>) => setDueDate(e.target.value), [])}
+                                    onChange={handleDueDateChange}
                                 />
                             </div>
 
                             <Input
                                 label="Fournisseur / Tiers"
                                 value={supplier}
-                                onChange={useCallback((e: React.ChangeEvent<HTMLInputElement>) => setSupplier(e.target.value), [])}
+                                onChange={handleSupplierChange}
                                 placeholder="Nom du fournisseur"
                             />
 
@@ -347,21 +341,21 @@ export default function ValidateDocumentPage() {
                                         type="number"
                                         step="0.01"
                                         value={amountHT}
-                                        onChange={useCallback((e: React.ChangeEvent<HTMLInputElement>) => setAmountHT(e.target.value), [])}
+                                        onChange={handleAmountHTChange}
                                     />
                                     <Input
                                         label="TVA"
                                         type="number"
                                         step="0.01"
                                         value={amountVAT}
-                                        onChange={useCallback((e: React.ChangeEvent<HTMLInputElement>) => setAmountVAT(e.target.value), [])}
+                                        onChange={handleAmountVATChange}
                                     />
                                     <Input
                                         label="Montant TTC"
                                         type="number"
                                         step="0.01"
                                         value={amountTTC}
-                                        onChange={useCallback((e: React.ChangeEvent<HTMLInputElement>) => setAmountTTC(e.target.value), [])}
+                                        onChange={handleAmountTTCChange}
                                         className="font-semibold"
                                     />
                                 </div>
@@ -370,7 +364,7 @@ export default function ValidateDocumentPage() {
                             <Input
                                 label="Libellé de l'écriture"
                                 value={description}
-                                onChange={useCallback((e: React.ChangeEvent<HTMLInputElement>) => setDescription(e.target.value), [])}
+                                onChange={handleDescriptionChange}
                                 placeholder="Description de la transaction"
                             />
 
@@ -380,7 +374,7 @@ export default function ValidateDocumentPage() {
                                 <div className="grid grid-cols-2 gap-2">
                                     <button
                                         type="button"
-                                        onClick={useCallback(() => setDocumentType("INVOICE_PURCHASE"), [])}
+                                        onClick={handleSetPurchase}
                                         className={`flex items-center justify-center gap-2 px-3 py-3 rounded-lg border-2 transition-all ${documentType === "INVOICE_PURCHASE"
                                             ? "border-orange-500 bg-orange-50 text-orange-700"
                                             : "border-accents-2 bg-white text-accents-5 hover:border-accents-3"
@@ -391,7 +385,7 @@ export default function ValidateDocumentPage() {
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={useCallback(() => setDocumentType("INVOICE_SALES"), [])}
+                                        onClick={handleSetSales}
                                         className={`flex items-center justify-center gap-2 px-3 py-3 rounded-lg border-2 transition-all ${documentType === "INVOICE_SALES"
                                             ? "border-green-500 bg-green-50 text-green-700"
                                             : "border-accents-2 bg-white text-accents-5 hover:border-accents-3"
@@ -427,7 +421,7 @@ export default function ValidateDocumentPage() {
                                 <Button
                                     variant="secondary"
                                     className="w-full"
-                                    onClick={useCallback(() => router.push("/documents/en-attente"), [router])}
+                                    onClick={handleCancel}
                                     disabled={saving}
                                 >
                                     Annuler
