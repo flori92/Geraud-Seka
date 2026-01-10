@@ -46,11 +46,9 @@ export default function DocumentValidatePage() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Navigation entre documents
     const [pendingDocIds, setPendingDocIds] = useState<string[]>([]);
     const [currentIndex, setCurrentIndex] = useState<number>(-1);
 
-    // Form State
     const [formData, setFormData] = useState<ValidationFormData>({
         supplier_name: "",
         date: "",
@@ -64,7 +62,6 @@ export default function DocumentValidatePage() {
         description: ""
     });
 
-    // Charger la liste des documents en attente pour navigation
     const fetchPendingList = useCallback(async () => {
         const token = localStorage.getItem("seka_access_token");
         if (!token) return;
@@ -87,14 +84,12 @@ export default function DocumentValidatePage() {
             fetchAccounts();
             fetchPendingList();
         }
-        // Cleanup blob URL on unmount or id change
         return () => {
             if (viewUrl && viewUrl.startsWith('blob:')) {
                 URL.revokeObjectURL(viewUrl);
             }
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [id]);
+        }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const fetchDocumentAndUrl = async () => {
         const token = localStorage.getItem("seka_access_token");
@@ -107,7 +102,6 @@ export default function DocumentValidatePage() {
         setLoading(true);
         setError(null);
         try {
-            // 1. Fetch Document Details
             const docRes = await fetch(`${API_BASE_URL}/api/v1/documents/${id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -115,7 +109,6 @@ export default function DocumentValidatePage() {
             const doc = await docRes.json();
             setDocumentData(doc as DocumentInfo);
 
-            // Populate form
             setFormData({
                 supplier_name: doc.supplier_name || "",
                 date: doc.document_date || new Date().toISOString().split('T')[0],
@@ -129,9 +122,7 @@ export default function DocumentValidatePage() {
                 description: doc.supplier_name ? `Facture ${doc.supplier_name}` : "Facture"
             });
 
-            // 2. Télécharger le fichier en blob pour contourner CSP frame-ancestors
             try {
-                // D'abord essayer avec l'URL signée
                 const urlRes = await fetch(`${API_BASE_URL}/api/v1/documents/${id}/view-url`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
@@ -141,11 +132,9 @@ export default function DocumentValidatePage() {
                     const data = await urlRes.json();
                     fileUrl = data.view_url;
                 } else {
-                    // Fallback: URL de téléchargement direct
                     fileUrl = `${API_BASE_URL}/api/v1/documents/${id}/download`;
                 }
 
-                // Télécharger le fichier en tant que blob
                 const fileRes = await fetch(fileUrl, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
@@ -155,12 +144,10 @@ export default function DocumentValidatePage() {
                     const blobUrl = URL.createObjectURL(blob);
                     setViewUrl(blobUrl);
                 } else {
-                    // Dernier recours: utiliser l'URL directe (peut échouer avec CSP)
                     setViewUrl(fileUrl);
                 }
             } catch (urlErr) {
                 console.error("Error fetching file blob:", urlErr);
-                // Fallback: essayer l'URL directe
                 setViewUrl(`${API_BASE_URL}/api/v1/documents/${id}/download`);
             }
 
@@ -173,7 +160,6 @@ export default function DocumentValidatePage() {
     };
 
     const fetchAccounts = async () => {
-        // ... (reuse account fetching logic or import hook)
         const token = localStorage.getItem("seka_access_token");
         try {
             const response = await fetch(`${API_BASE_URL}/api/v1/accounting/advanced/accounts`, {
@@ -192,7 +178,6 @@ export default function DocumentValidatePage() {
         } catch (e) { console.error(e); }
     };
 
-    // Navigation vers document précédent/suivant
     const goToPrevious = useCallback(() => {
         if (currentIndex > 0) {
             router.push(`/documents/${pendingDocIds[currentIndex - 1]}/validate`);

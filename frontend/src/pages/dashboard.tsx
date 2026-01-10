@@ -1,7 +1,3 @@
-/**
- * Dashboard Simple SEKA - Style Pennylane
- * Interface épurée et minimaliste
- */
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
@@ -76,13 +72,10 @@ export default function DashboardSimple() {
       <div className="min-h-screen bg-gray-50 flex">
         <PennylaneSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         
-        {/* Main Content */}
         <main className="flex-1 lg:ml-0 transition-all duration-300">
-          {/* Header */}
           <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                {/* Menu hamburger pour mobile */}
                 <button
                   onClick={() => setSidebarOpen(true)}
                   className="lg:hidden p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100"
@@ -103,7 +96,6 @@ export default function DashboardSimple() {
           </div>
 
           <div className="px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
-            {/* KPIs - Workflow SEKA V1 */}
             <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
               <StatCard label="Total documents" value={allDocs.length} icon={FileText} />
               <StatCard label="En attente" value={pendingDocs.length} icon={Clock} alert={pendingDocs.length > 0} />
@@ -111,7 +103,6 @@ export default function DashboardSimple() {
               <StatCard label="Ce mois" value={allDocs.filter(d => new Date(d.created_at || '').getMonth() === new Date().getMonth()).length} icon={Upload} />
             </div>
 
-            {/* Actions rapides - SEKA V1 */}
             <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-5">
               <h2 className="text-sm font-semibold text-gray-900 mb-4">Actions rapides</h2>
               <div className="grid gap-2 sm:gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
@@ -122,7 +113,6 @@ export default function DashboardSimple() {
               </div>
             </div>
 
-            {/* Modules principaux - SEKA V1 */}
             <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               <ModuleLink href="/documents/upload" title="Upload Factures" description="Importer PDF/images" icon={FileText} />
               <ModuleLink href="/documents/en-attente" title="En attente" description="Factures à valider" icon={Clock} />
