@@ -118,25 +118,25 @@ export default function DashboardSimple() {
               <StatCard label="Impayées" value={pendingInvoices} icon={Receipt} alert={pendingInvoices > 0} />
             </div>
 
-            {/* Actions rapides */}
+            {/* Actions rapides - SEKA V1 */}
             <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-5">
               <h2 className="text-sm font-semibold text-gray-900 mb-4">Actions rapides</h2>
               <div className="grid gap-2 sm:gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-                <QuickLink href="/ventes/factures-clients" label="Nouvelle facture" />
-                <QuickLink href="/achats/factures" label="Saisir un achat" />
-                <QuickLink href="/clients" label="Ajouter un client" />
-                <QuickLink href="/comptabilite/balance" label="Balance générale" />
+                <QuickLink href="/documents/upload" label="Importer des factures" />
+                <QuickLink href="/documents/en-attente" label="Valider les écritures" />
+                <QuickLink href="/exports" label="Exporter vers Perfecto" />
+                <QuickLink href="/suppliers" label="Règles fournisseurs" />
               </div>
             </div>
 
-            {/* Modules principaux */}
+            {/* Modules principaux - SEKA V1 */}
             <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-              <ModuleLink href="/ventes" title="Ventes" description="Devis, factures clients" icon={FileText} />
-              <ModuleLink href="/achats" title="Achats" description="Factures fournisseurs" icon={Receipt} />
-              <ModuleLink href="/comptabilite" title="Comptabilité" description="Balance, journal, bilan" icon={Wallet} />
-              <ModuleLink href="/tresorerie" title="Trésorerie" description="Comptes et prévisions" icon={TrendingUp} />
-              <ModuleLink href="/clients" title="Clients" description="Gestion des clients" icon={Users} />
-              <ModuleLink href="/reports" title="Rapports" description="Analyses et exports" icon={FileText} />
+              <ModuleLink href="/documents/upload" title="Upload Factures" description="Importer PDF/images" icon={FileText} />
+              <ModuleLink href="/documents/en-attente" title="En attente" description="Factures à valider" icon={Receipt} />
+              <ModuleLink href="/documents/validees" title="Validées" description="Écritures générées" icon={Wallet} />
+              <ModuleLink href="/suppliers" title="Fournisseurs" description="Règles auto-imputation" icon={Users} />
+              <ModuleLink href="/exports" title="Exports" description="Perfecto, SAARI, Sage" icon={TrendingUp} />
+              <ModuleLink href="/settings" title="Paramètres" description="Configuration" icon={FileText} />
             </div>
           </div>
         </main>

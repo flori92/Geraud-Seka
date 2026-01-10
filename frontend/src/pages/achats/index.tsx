@@ -34,9 +34,9 @@ export default function AchatsPage() {
       const cashFlow = treasury.cash_flow_summary;
       setStats({
         total_spent: cashFlow?.total_expenses || 0,
-        invoices_count: 24,
-        pending_amount: 1250000,
-        overdue_amount: 350000
+        invoices_count: 0,
+        pending_amount: 0,
+        overdue_amount: 0
       });
       const transactions = await getBankTransactions(token, {}, 0, 5);
       setRecentTransactions(transactions.filter(t => t.transaction_type === "debit"));
