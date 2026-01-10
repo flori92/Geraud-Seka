@@ -89,8 +89,7 @@ export default function AccountingRulesPage() {
     <>
       <Head><title>Règles Comptables - SEKA</title></Head>
       <div className="min-h-screen bg-gray-50">
-        <PennylaneSidebar />
-        <main className="ml-[220px] p-6">
+        <div className="p-6">
           <div className="max-w-6xl mx-auto">
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -148,11 +147,10 @@ export default function AccountingRulesPage() {
                   .map((rule) => (
                     <div
                       key={rule.id}
-                      className={`bg-white rounded-xl border p-6 transition-all ${
-                        rule.is_active
-                          ? 'border-gray-200 hover:shadow-md'
-                          : 'border-gray-200 opacity-60'
-                      }`}
+                      className={`bg-white rounded-xl border p-6 transition-all ${rule.is_active
+                        ? 'border-gray-200 hover:shadow-md'
+                        : 'border-gray-200 opacity-60'
+                        }`}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
@@ -250,7 +248,7 @@ export default function AccountingRulesPage() {
               </div>
             )}
           </div>
-        </main>
+        </div>
       </div>
     </>
   );

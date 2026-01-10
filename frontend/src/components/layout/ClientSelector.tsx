@@ -1,174 +1,64 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { ChevronDown, Building2, Check, Plus, Search } from "lucide-react";
-import { getClients, type Client } from "@/lib/api";
+import { Fragment } from 'react';
+import { Menu, Transition } from '@headlessui/react';
+import { ChevronDown, Check, Building2 } from 'lucide-react';
+import { useLayout } from '@/contexts/LayoutContext';
 
-interface ClientSelectorProps {
-    onChange?: (client: Client | null) => void;
-}
-
-export default function ClientSelector({ onChange }: ClientSelectorProps) {
-    const [isOpen, setIsOpen] = useState(false);
-    const [clients, setClients] = useState<Client[]>([]);
-    const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-    const [search, setSearch] = useState("");
-    const [loading, setLoading] = useState(true);
-    const containerRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        const fetchClients = async () => {
-            try {
-                const token = localStorage.getItem("seka_access_token");
-                if (token) {
-                    const data = await getClients(token);
-                    setClients(data);
-
-                    const savedClientId = localStorage.getItem("seka_selected_client");
-                    if (savedClientId) {
-                        const saved = data.find((c) => c.id === savedClientId);
-                        if (saved) {
-                            setSelectedClient(saved);
-                            onChange?.(saved);
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error("Failed to fetch clients:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchClients();
-    }, []);
-
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
-            }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
-
-    const handleSelectClient = (client: Client | null) => {
-        setSelectedClient(client);
-        if (client) {
-            localStorage.setItem("seka_selected_client", client.id);
-        } else {
-            localStorage.removeItem("seka_selected_client");
-        }
-        onChange?.(client);
-        setIsOpen(false);
-        setSearch("");
-    };
-
-    const filteredClients = search
-        ? clients.filter(
-            (c) =>
-                c.name.toLowerCase().includes(search.toLowerCase()) ||
-                c.slug?.toLowerCase().includes(search.toLowerCase())
-        )
-        : clients;
+export function ClientSelector() {
+    const { currentTenant, setCurrentTenant, availableTenants } = useLayout();
 
     return (
-        <div ref={containerRef} className="relative">
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors shadow-sm min-w-[200px]"
-            >
-                <Building2 className="h-4 w-4 text-blue-600" />
-                <span className="text-sm font-medium text-gray-700 truncate max-w-[150px]">
-                    {loading ? "Chargement..." : selectedClient?.name || "Tous les clients"}
-                </span>
-                <ChevronDown
-                    className={`h-4 w-4 text-gray-400 transition-transform ${isOpen ? "rotate-180" : ""
-                        }`}
-                />
-            </button>
-
-            {isOpen && (
-                <div className="absolute top-full left-0 mt-2 w-72 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
-                    {/* Search */}
-                    <div className="p-2 border-b border-gray-100">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                            <input
-                                type="text"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Rechercher un client..."
-                                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-blue-500"
-                                autoFocus
-                            />
+        <Menu as="div" className="relative inline-block text-left w-full px-4 mb-4">
+            <div>
+                <Menu.Button className="inline-flex w-full justify-between items-center rounded-md bg-[#1e293b] px-4 py-2 text-sm font-medium text-white hover:bg-[#2c3b52] border border-gray-700/50 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    <div className="flex items-center gap-2 overflow-hidden">
+                        <div className="flex-shrink-0 w-6 h-6 rounded bg-primary-600 flex items-center justify-center text-xs">
+                            {currentTenant ? currentTenant.name.charAt(0).toUpperCase() : <Building2 className="w-3 h-3" />}
                         </div>
+                        <span className="truncate">{currentTenant?.name || "Sélectionner un client"}</span>
                     </div>
+                    <ChevronDown className="-mr-1 ml-2 h-4 w-4" aria-hidden="true" />
+                </Menu.Button>
+            </div>
 
-                    {/* All clients option */}
-                    <div className="max-h-64 overflow-y-auto">
-                        <button
-                            onClick={() => handleSelectClient(null)}
-                            className={`w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition-colors ${!selectedClient ? "bg-blue-50" : ""
-                                }`}
-                        >
-                            <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-                                    <Building2 className="h-4 w-4 text-gray-500" />
-                                </div>
-                                <span className="text-sm font-medium text-gray-700">
-                                    Tous les clients
-                                </span>
-                            </div>
-                            {!selectedClient && <Check className="h-4 w-4 text-blue-600" />}
-                        </button>
-
-                        {/* Client list */}
-                        {filteredClients.map((client) => (
-                            <button
-                                key={client.id}
-                                onClick={() => handleSelectClient(client)}
-                                className={`w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition-colors ${selectedClient?.id === client.id ? "bg-blue-50" : ""
-                                    }`}
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                                        <span className="text-sm font-bold text-blue-700">
-                                            {client.name.charAt(0).toUpperCase()}
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-medium text-gray-700">{client.name}</p>
-                                        {client.sector && (
-                                            <p className="text-xs text-gray-500">{client.sector}</p>
-                                        )}
-                                    </div>
-                                </div>
-                                {selectedClient?.id === client.id && (
-                                    <Check className="h-4 w-4 text-blue-600" />
-                                )}
-                            </button>
-                        ))}
-
-                        {filteredClients.length === 0 && (
-                            <div className="px-4 py-6 text-center text-gray-500 text-sm">
-                                Aucun client trouvé
-                            </div>
+            <Transition
+                as={Fragment}
+                enter="transition ease-out duration-100"
+                enterFrom="transform opacity-0 scale-95"
+                enterTo="transform opacity-100 scale-100"
+                leave="transition ease-in duration-75"
+                leaveFrom="transform opacity-100 scale-100"
+                leaveTo="transform opacity-0 scale-95"
+            >
+                <Menu.Items className="absolute left-4 right-4 z-10 mt-2 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                    <div className="py-1 max-h-60 overflow-y-auto">
+                        {availableTenants.length === 0 ? (
+                            <div className="px-4 py-2 text-sm text-gray-500">Aucun client trouvé</div>
+                        ) : (
+                            availableTenants.map((client) => (
+                                <Menu.Item key={client.id}>
+                                    {({ active }) => (
+                                        <button
+                                            onClick={() => setCurrentTenant(client)}
+                                            className={`${active ? 'bg-gray-100 text-gray-900' : 'text-gray-700'
+                                                } group flex w-full items-center justify-between px-4 py-2 text-sm`}
+                                        >
+                                            <span className="flex items-center gap-2">
+                                                <span className={`w-2 h-2 rounded-full ${active ? 'bg-primary-500' : 'bg-gray-300'}`} />
+                                                {client.name}
+                                            </span>
+                                            {currentTenant?.id === client.id && (
+                                                <Check className="h-4 w-4 text-primary-600" />
+                                            )}
+                                        </button>
+                                    )}
+                                </Menu.Item>
+                            ))
                         )}
                     </div>
-
-                    {/* Add new client */}
-                    <div className="border-t border-gray-100 p-2">
-                        <a
-                            href="/clients"
-                            className="flex items-center gap-2 px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        >
-                            <Plus className="h-4 w-4" />
-                            Ajouter un client
-                        </a>
-                    </div>
-                </div>
-            )}
-        </div>
+                </Menu.Items>
+            </Transition>
+        </Menu>
     );
 }

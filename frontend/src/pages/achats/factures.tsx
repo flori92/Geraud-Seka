@@ -202,8 +202,7 @@ export default function FacturesFournisseurs() {
     <>
       <Head><title>Factures fournisseurs - SEKA</title></Head>
       <div className="min-h-screen bg-gray-50">
-        <PennylaneSidebar />
-        <main className="lg:ml-[220px]">
+        <div>
 
           <header className="sticky top-0 z-40 min-h-[56px] bg-white border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 px-4 sm:px-6 py-2 sm:py-0">
             <div className="flex items-center gap-2 sm:gap-4">
@@ -221,7 +220,7 @@ export default function FacturesFournisseurs() {
                 </button>
               )}
               <button
-                onClick={() => router.push('/accounting/entries/from-ocr')}
+                onClick={() => router.push('/documents/upload')}
                 className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-[#1e3a5f] text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-[#172e4d]"
               >
                 <Upload className="w-4 h-4" />
@@ -411,7 +410,7 @@ export default function FacturesFournisseurs() {
               </div>
             </div>
           </div>
-        </main>
+        </div>
       </div>
     </>
   );

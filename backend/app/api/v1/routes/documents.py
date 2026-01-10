@@ -191,10 +191,10 @@ async def upload_multipage_pdf(
     file: UploadFile = File(...),
     current_user: User = Depends(deps.get_current_user),
     client_id: Optional[UUID] = None,
+    pages_per_document: int = Query(1, ge=1, description="Nombre de pages par document créé"),
 ):
     """
-    Upload un PDF multi-pages et crée un document par page.
-    Chaque page est traitée par OCR séparément.
+    Upload un PDF multi-pages et le découpe en plusieurs documents.
     """
     from app.services.ocr_enhanced import enhanced_ocr_service
     from io import BytesIO
@@ -207,18 +207,18 @@ async def upload_multipage_pdf(
         
         # Compter les pages
         page_count = enhanced_ocr_service.get_pdf_page_count(file_content)
-        print(f"📑 PDF multi-pages détecté: {page_count} pages")
+        print(f"📑 PDF multi-pages détecté: {page_count} pages. Split tous les {pages_per_document} pages.")
         
-        if page_count <= 1:
-            # Si une seule page, utiliser l'upload normal
-            file.file = BytesIO(file_content)
-            file.file.seek(0)
-            return await upload_document(
+        # Si on ne veut pas splitter (et que le PDF n'est pas trop gros), ou si pages_per_doc >= page_count
+        if pages_per_document >= page_count:
+             file.file = BytesIO(file_content)
+             file.file.seek(0)
+             return await upload_document(
                 db=db,
                 file=file,
                 current_user=current_user,
                 client_id=client_id
-            )
+             )
         
         # Limiter pour éviter les abus (max 200 pages)
         if page_count > 200:
@@ -228,97 +228,120 @@ async def upload_multipage_pdf(
             )
         
         created_documents = []
-        failed_pages = []
+        failed_chunks = []
         
-        # Traiter chaque page
-        for page_num in range(1, page_count + 1):
+        from pdf2image import convert_from_bytes
+        import io as io_module
+        from fastapi import UploadFile as FastAPIUploadFile
+
+        # Boucler par chunk
+        num_chunks = (page_count + pages_per_document - 1) // pages_per_document
+        
+        for chunk_idx in range(num_chunks):
+            start_page = chunk_idx * pages_per_document + 1
+            end_page = min((chunk_idx + 1) * pages_per_document, page_count)
+            
             try:
-                print(f"📄 Traitement page {page_num}/{page_count}")
+                print(f"📄 Traitement chunk {chunk_idx+1}/{num_chunks} (Pages {start_page}-{end_page})")
                 
-                # Extraire la page comme PDF séparé
-                from pdf2image import convert_from_bytes
-                from PIL import Image
-                import io as io_module
-                
-                # Convertir la page en image
+                # Convertir les pages du chunk en images
                 images = convert_from_bytes(
                     file_content,
-                    first_page=page_num,
-                    last_page=page_num,
+                    first_page=start_page,
+                    last_page=end_page,
                     dpi=200
                 )
                 
                 if not images:
-                    failed_pages.append({"page": page_num, "error": "Conversion failed"})
+                    failed_chunks.append({"pages": f"{start_page}-{end_page}", "error": "Conversion failed"})
                     continue
                 
-                # Sauvegarder l'image comme JPEG temporaire
-                img_buffer = io_module.BytesIO()
-                images[0].save(img_buffer, format='JPEG', quality=90)
-                img_buffer.seek(0)
+                # Pour l'OCR et le stockage, on peut:
+                # 1. Soit créer un nouveau PDF avec ces pages (plus propre pour le multi-page)
+                # 2. Soit stocker la première page comme image (si 1 page)
                 
-                # Créer un UploadFile pour cette page
-                page_filename = f"{file.filename.rsplit('.', 1)[0]}_page_{page_num}.jpg"
+                # Ici pour simplifier et rester cohérent avec la logique précédente:
+                # Si 1 page, on stocke en JPG. Si > 1 page, idéalement on refait un PDF, 
+                # mais convert_from_bytes donne des images.
+                # ON VA RECRÉER UN PDF POUR CE CHUNK SI > 1 PAGE, SINON JPG.
                 
-                # Upload de l'image de la page
-                from fastapi import UploadFile as FastAPIUploadFile
-                page_file = FastAPIUploadFile(
-                    file=img_buffer,
-                    filename=page_filename
+                chunk_file_buffer = io_module.BytesIO()
+                chunk_filename = ""
+                content_type = ""
+                file_ext = ""
+
+                if len(images) == 1:
+                    images[0].save(chunk_file_buffer, format='JPEG', quality=90)
+                    chunk_filename = f"{file.filename.rsplit('.', 1)[0]}_p{start_page}.jpg"
+                    content_type = "image/jpeg"
+                    file_ext = ".jpg"
+                else:
+                    images[0].save(chunk_file_buffer, format='PDF', save_all=True, append_images=images[1:])
+                    chunk_filename = f"{file.filename.rsplit('.', 1)[0]}_p{start_page}-{end_page}.pdf"
+                    content_type = "application/pdf"
+                    file_ext = ".pdf"
+                
+                chunk_file_buffer.seek(0)
+                
+                # Upload
+                chunk_upload_file = FastAPIUploadFile(
+                    file=chunk_file_buffer,
+                    filename=chunk_filename
                 )
                 
                 upload_result = await storage_service.upload_file(
-                    page_file, 
+                    chunk_upload_file, 
                     tenant_id=str(current_user.tenant_id)
                 )
                 
                 if isinstance(upload_result, dict):
-                    page_file_path = upload_result.get('key') or upload_result.get('url')
+                    chunk_file_path = upload_result.get('key') or upload_result.get('url')
                 else:
-                    page_file_path = str(upload_result)
+                    chunk_file_path = str(upload_result)
                 
-                # Créer le document
+                # Créer Document
                 doc_data = {
-                    "filename": page_filename,
-                    "original_filename": f"{file.filename} (page {page_num}/{page_count})",
-                    "file_path": page_file_path,
-                    "content_type": "image/jpeg",
-                    "file_size": len(img_buffer.getvalue()),
-                    "file_extension": ".jpg",
+                    "filename": chunk_filename,
+                    "original_filename": f"{file.filename} (pages {start_page}-{end_page})",
+                    "file_path": chunk_file_path,
+                    "content_type": content_type,
+                    "file_size": len(chunk_file_buffer.getvalue()),
+                    "file_extension": file_ext,
                     "status": DocumentStatus.OCR_PROCESSING,
                     "tenant_id": current_user.tenant_id,
                     "uploaded_by": current_user.id,
                 }
-                
+                 
                 if client_id:
-                    doc_data["client_id"] = client_id
-                
+                     doc_data["client_id"] = client_id
+
                 db_obj = Document(**doc_data)
                 db.add(db_obj)
                 db.commit()
                 db.refresh(db_obj)
                 
-                # OCR sur la page
+                # OCR Processing
+                # Pour l'instant on utilise process_single_page pour la première page ou un service OCR qui gère le fichier
+                # Si c'est un PDF (multi-page chunk), il faudrait appeler process_invoice complet.
+                # Si c'est une image (single page chunk), process_single_page ou process_invoice fonctionnent.
+                
                 try:
-                    ocr_data = await enhanced_ocr_service.process_single_page(
-                        file_content, 
-                        page_number=page_num,
-                        file_path=page_file_path
-                    )
+                    # On utilise le contenu binaire du chunk
+                    chunk_ocr_data = await ocr_service.process_invoice(chunk_file_path, file_content=chunk_file_buffer.getvalue())
                     
-                    db_obj.reference_number = ocr_data.get("reference_number")
+                    db_obj.reference_number = chunk_ocr_data.get("reference_number")
                     
                     from datetime import datetime
-                    if ocr_data.get("date"):
+                    if chunk_ocr_data.get("date"):
                         with suppress(ValueError, TypeError):
-                            db_obj.document_date = datetime.fromisoformat(str(ocr_data.get("date"))).date()
+                             db_obj.document_date = datetime.fromisoformat(str(chunk_ocr_data.get("date"))).date()
                     
-                    db_obj.amount_ht = ocr_data.get("amount_ht")
-                    db_obj.amount_vat = ocr_data.get("amount_vat")
-                    db_obj.amount_ttc = ocr_data.get("amount_ttc")
-                    db_obj.supplier_name = ocr_data.get("supplier_name")
-                    db_obj.ocr_data = ocr_data
-                    db_obj.ocr_confidence = ocr_data.get("confidence", 0.0)
+                    db_obj.amount_ht = chunk_ocr_data.get("amount_ht")
+                    db_obj.amount_vat = chunk_ocr_data.get("amount_vat")
+                    db_obj.amount_ttc = chunk_ocr_data.get("amount_ttc")
+                    db_obj.supplier_name = chunk_ocr_data.get("supplier_name")
+                    db_obj.ocr_data = chunk_ocr_data
+                    db_obj.ocr_confidence = chunk_ocr_data.get("confidence", 0.0)
                     db_obj.status = DocumentStatus.OCR_COMPLETED
                     
                     db.commit()
@@ -326,36 +349,33 @@ async def upload_multipage_pdf(
                     
                     created_documents.append({
                         "id": str(db_obj.id),
-                        "page": page_num,
-                        "filename": page_filename,
+                        "pages": f"{start_page}-{end_page}",
+                        "filename": chunk_filename,
                         "status": "success",
-                        "reference": ocr_data.get("reference_number"),
-                        "supplier": ocr_data.get("supplier_name"),
-                        "amount_ttc": ocr_data.get("amount_ttc")
+                        "amount_ttc": chunk_ocr_data.get("amount_ttc")
                     })
-                    
+
                 except Exception as ocr_error:
-                    print(f"❌ OCR error page {page_num}: {ocr_error}")
-                    db_obj.status = DocumentStatus.UPLOADED
-                    db.commit()
-                    created_documents.append({
+                     print(f"❌ OCR error chunk {start_page}-{end_page}: {ocr_error}")
+                     db_obj.status = DocumentStatus.UPLOADED
+                     db.commit()
+                     created_documents.append({
                         "id": str(db_obj.id),
-                        "page": page_num,
-                        "filename": page_filename,
+                        "pages": f"{start_page}-{end_page}",
                         "status": "ocr_failed",
                         "error": str(ocr_error)
-                    })
-                
-            except Exception as page_error:
-                print(f"❌ Page {page_num} error: {page_error}")
-                failed_pages.append({"page": page_num, "error": str(page_error)})
-        
+                     })
+
+            except Exception as chunk_error:
+                print(f"❌ Chunk {start_page}-{end_page} error: {chunk_error}")
+                failed_chunks.append({"pages": f"{start_page}-{end_page}", "error": str(chunk_error)})
+
         return {
             "message": f"PDF traité: {len(created_documents)} documents créés",
             "total_pages": page_count,
             "documents_created": len(created_documents),
             "documents": created_documents,
-            "failed_pages": failed_pages
+            "failed_chunks": failed_chunks
         }
         
     except HTTPException:

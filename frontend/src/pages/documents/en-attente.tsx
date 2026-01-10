@@ -33,7 +33,7 @@ export default function DocumentsEnAttentePage() {
 
     useEffect(() => {
         fetchDocuments();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const fetchDocuments = async () => {
@@ -142,8 +142,8 @@ export default function DocumentsEnAttentePage() {
                 <title>Documents en attente - SEKA</title>
             </Head>
             <div className="min-h-screen bg-gray-50">
-                <PennylaneSidebar />
-                <main className="lg:ml-[220px]">
+                {/* Content */}
+                <div>
 
                     <div className="bg-white border-b border-gray-200 px-6 py-4">
                         <div className="flex items-center justify-between">
@@ -155,7 +155,7 @@ export default function DocumentsEnAttentePage() {
                             </div>
                             <div className="flex items-center gap-3">
                                 <button
-                                    onClick={() => router.push('/accounting/entries/from-ocr')}
+                                    onClick={() => router.push('/documents/upload')}
                                     className="px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#172e4d] flex items-center gap-2 text-sm font-medium"
                                 >
                                     <Upload className="h-4 w-4" />
@@ -277,7 +277,7 @@ export default function DocumentsEnAttentePage() {
                                     <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                                     <p className="text-gray-600 mb-4">Aucun document en attente</p>
                                     <button
-                                        onClick={() => router.push('/accounting/entries/from-ocr')}
+                                        onClick={() => router.push('/documents/upload')}
                                         className="inline-flex items-center gap-2 px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#172e4d]"
                                     >
                                         <Upload className="h-4 w-4" />
@@ -401,7 +401,7 @@ export default function DocumentsEnAttentePage() {
                             )}
                         </div>
                     </div>
-                </main>
+                </div>
             </div>
         </>
     );

@@ -1,0 +1,78 @@
+"use client";
+
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { useRouter } from "next/router";
+import { Client, getClients, getCurrentUser, User } from "@/lib/api";
+
+type AppMode = 'ENTREPRISE' | 'CABINET';
+
+interface LayoutContextType {
+    appMode: AppMode;
+    setAppMode: (mode: AppMode) => void;
+    currentTenant: Client | null;
+    setCurrentTenant: (client: Client | null) => void;
+    availableTenants: Client[];
+    refreshTenants: () => Promise<void>;
+    user: User | null;
+}
+
+const LayoutContext = createContext<LayoutContextType | undefined>(undefined);
+
+export function LayoutProvider({ children }: { children: ReactNode }) {
+    const [appMode, setAppMode] = useState<AppMode>('ENTREPRISE');
+    const [currentTenant, setCurrentTenant] = useState<Client | null>(null);
+    const [availableTenants, setAvailableTenants] = useState<Client[]>([]);
+    const [user, setUser] = useState<User | null>(null);
+    const router = useRouter();
+
+    const refreshTenants = async () => {
+        const token = localStorage.getItem("seka_access_token");
+        if (!token) return;
+        try {
+            const clients = await getClients(token);
+            setAvailableTenants(clients);
+        } catch (error) {
+            console.error("Failed to fetch clients", error);
+        }
+    };
+
+    useEffect(() => {
+        const init = async () => {
+            const token = localStorage.getItem("seka_access_token");
+            if (!token) return;
+
+            try {
+                const userData = await getCurrentUser(token);
+                setUser(userData);
+                await refreshTenants();
+            } catch (error) {
+                console.error("Init failed", error);
+            }
+        };
+        init();
+    }, []);
+
+    // Sync mode with URL or other logic if needed in future
+
+    return (
+        <LayoutContext.Provider value={{
+            appMode,
+            setAppMode,
+            currentTenant,
+            setCurrentTenant,
+            availableTenants,
+            refreshTenants,
+            user
+        }}>
+            {children}
+        </LayoutContext.Provider>
+    );
+}
+
+export function useLayout() {
+    const context = useContext(LayoutContext);
+    if (context === undefined) {
+        throw new Error("useLayout must be used within a LayoutProvider");
+    }
+    return context;
+}

@@ -1,447 +1,366 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect } from "react";
+import Head from "next/head";
 import { useRouter } from "next/router";
-import { DashboardLayout } from "@/components/DashboardLayout";
-import { getDocument, validateDocument, type Document, API_BASE_URL } from "@/lib/api";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
-import { Input } from "@/components/ui/Input";
-import { Badge } from "@/components/ui/Badge";
-import { useToast } from "@/components/ui/ToastContainer";
-import { ShoppingCart, Receipt, Loader2 } from "lucide-react";
-import { usePerformanceMonitor } from "@/lib/hooks/usePerformance";
+import {
+    CheckCircle, X, Save, ArrowLeft, ArrowRight,
+    Calendar, Building, DollarSign, FileText, Hash
+} from "lucide-react";
+import { API_BASE_URL } from "@/lib/api";
+import { AppLayout } from "@/components/layout/AppLayout";
+import AccountAutocomplete, { type Account } from "@/components/AccountAutocomplete";
+import DocumentPdfViewer from "@/components/DocumentPdfViewer";
 
-type DocumentTypeChoice = "INVOICE_PURCHASE" | "INVOICE_SALES";
+interface ValidationFormData {
+    supplier_name: string;
+    date: string;
+    due_date: string;
+    amount_ht: number;
+    amount_vat: number;
+    amount_ttc: number;
+    reference_number: string;
+    account_number: string;
+    journal_code: string;
+    description: string;
+}
 
-export default function ValidateDocumentPage() {
+export default function DocumentValidatePage() {
     const router = useRouter();
     const { id } = router.query;
-    const { success, error: showError } = useToast();
-
-    usePerformanceMonitor("ValidateDocumentPage");
-
     const [loading, setLoading] = useState(true);
+    const [documentData, setDocumentData] = useState<any>(null);
+    const [viewUrl, setViewUrl] = useState<string | null>(null);
+    const [accounts, setAccounts] = useState<Account[]>([]);
     const [saving, setSaving] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [document, setDocument] = useState<Document | null>(null);
-    const [documentViewUrl, setDocumentViewUrl] = useState<string | null>(null);
 
-    const [referenceNumber, setReferenceNumber] = useState("");
-    const [date, setDate] = useState("");
-    const [dueDate, setDueDate] = useState("");
-    const [supplier, setSupplier] = useState("");
-    const [amountHT, setAmountHT] = useState("");
-    const [amountVAT, setAmountVAT] = useState("");
-    const [amountTTC, setAmountTTC] = useState("");
-    const [description, setDescription] = useState("");
-    const [documentType, setDocumentType] = useState<DocumentTypeChoice>("INVOICE_PURCHASE");
-
-    const validationStateRef = useRef({
-        referenceNumber,
-        date,
-        dueDate,
-        supplier,
-        amountHT,
-        amountVAT,
-        amountTTC,
-        description,
+    // Form State
+    const [formData, setFormData] = useState<ValidationFormData>({
+        supplier_name: "",
+        date: "",
+        due_date: "",
+        amount_ht: 0,
+        amount_vat: 0,
+        amount_ttc: 0,
+        reference_number: "",
+        account_number: "",
+        journal_code: "ACH",
+        description: ""
     });
 
     useEffect(() => {
-        validationStateRef.current = {
-            referenceNumber,
-            date,
-            dueDate,
-            supplier,
-            amountHT,
-            amountVAT,
-            amountTTC,
-            description,
-        };
-    }, [referenceNumber, date, dueDate, supplier, amountHT, amountVAT, amountTTC, description]);
-
-    useEffect(() => {
-        if (!id) return;
-
-        const fetchDocument = async () => {
-            const token = localStorage.getItem("seka_access_token");
-            if (!token) {
-                setError("Vous devez être connecté");
-                setLoading(false);
-                return;
-            }
-
-            try {
-                const data = await getDocument(id as string, token);
-                setDocument(data);
-
-                // Charger le document via fetch et créer un blob URL
-                if (data.file_path) {
-                    try {
-                        const fileResponse = await fetch(
-                            `${API_BASE_URL}/api/v1/documents/download/${encodeURIComponent(data.file_path)}`,
-                            {
-                                headers: { Authorization: `Bearer ${token}` }
-                            }
-                        );
-                        if (fileResponse.ok) {
-                            const blob = await fileResponse.blob();
-                            const blobUrl = URL.createObjectURL(blob);
-                            setDocumentViewUrl(blobUrl);
-                        }
-                    } catch (e) {
-                        console.warn("Impossible de charger le document", e);
-                    }
-                }
-
-                const ocr = (data.ocr_data ?? {}) as Record<string, unknown>;
-                const ocrStr = (key: string) => {
-                    const v = ocr[key];
-                    return typeof v === "string" ? v : "";
-                };
-                const ocrNum = (key: string) => {
-                    const v = ocr[key];
-                    if (typeof v === "number") return v;
-                    if (typeof v === "string") {
-                        const normalized = v.replace(/\s/g, "").replace(",", ".");
-                        const n = parseFloat(normalized);
-                        return Number.isFinite(n) ? n : undefined;
-                    }
-                    return undefined;
-                };
-
-                setReferenceNumber(data.reference_number || ocrStr("reference_number") || "");
-                setDate(data.date || ocrStr("date") || "");
-                setDueDate(data.due_date || ocrStr("due_date") || "");
-                setSupplier(data.supplier_name || ocrStr("supplier_name") || "");
-                setAmountHT((data.amount_ht ?? ocrNum("amount_ht"))?.toString() || "");
-                setAmountVAT((data.amount_vat ?? ocrNum("amount_vat"))?.toString() || "");
-                setAmountTTC((data.amount_ttc ?? ocrNum("amount_ttc"))?.toString() || "");
-                setDescription(data.description || `Document ${data.filename}`);
-
-                if (data.type === "INVOICE_SALES") {
-                    setDocumentType("INVOICE_SALES");
-                } else if (data.type === "INVOICE_PURCHASE") {
-                    setDocumentType("INVOICE_PURCHASE");
-                } else {
-                    const classification = (ocr as Record<string, unknown>)["classification"] as Record<string, unknown> | undefined;
-                    if (classification?.invoice_type === "SALE") {
-                        setDocumentType("INVOICE_SALES");
-                    } else {
-                        setDocumentType("INVOICE_PURCHASE");
-                    }
-                }
-
-                setError(null);
-            } catch (err: unknown) {
-                console.error("Failed to fetch document", err);
-                const e = err as { response?: { data?: { detail?: string } } };
-                setError(e.response?.data?.detail || "Erreur lors du chargement du document");
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchDocument();
+        if (id) {
+            fetchDocumentAndUrl();
+            fetchAccounts();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
 
-    const handleValidate = useCallback(async () => {
+    const fetchDocumentAndUrl = async () => {
         const token = localStorage.getItem("seka_access_token");
-        if (!token || !id) return;
+        if (!token) return;
 
-        // Get current values from ref to avoid stale state
-        const state = validationStateRef.current;
-
-        if (!state.supplier || !state.supplier.trim()) {
-            showError("Le nom du fournisseur est requis");
-            return;
-        }
-
-        if (!state.date) {
-            showError("La date du document est requise");
-            return;
-        }
-
-        const amountHTNum = Number(state.amountHT) || 0;
-        const amountVATNum = Number(state.amountVAT) || 0;
-        const amountTTCNum = Number(state.amountTTC) || 0;
-
-        if (amountTTCNum <= 0 && amountHTNum <= 0) {
-            showError("Au moins un montant (HT ou TTC) doit être renseigné");
-            return;
-        }
-
-        setSaving(true);
+        setLoading(true);
         try {
-            await validateDocument(id as string, {
-                reference_number: state.referenceNumber || undefined,
-                date: state.date,
-                due_date: state.dueDate || undefined,
-                supplier_name: state.supplier.trim(),
-                amount_ht: amountHTNum > 0 ? amountHTNum : undefined,
-                amount_vat: amountVATNum > 0 ? amountVATNum : undefined,
-                amount_ttc: amountTTCNum > 0 ? amountTTCNum : undefined,
-                description: state.description || `Document ${document?.filename || ''}`,
-            }, token);
-
-            // Update document type in background (non-blocking)
-            try {
-                await fetch(`${API_BASE_URL}/api/v1/documents/${id}`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ type: documentType })
-                });
-            } catch (patchError) {
-                console.warn("Could not update document type:", patchError);
-            }
-
-            success("Document validé et comptabilisé avec succès !");
-
-            // Redirect after short delay to allow state updates
-            requestAnimationFrame(() => {
-                if (documentType === "INVOICE_SALES") {
-                    router.push("/ventes/factures");
-                } else {
-                    router.push("/achats/factures");
-                }
+            // 1. Fetch Document Details
+            const docRes = await fetch(`${API_BASE_URL}/api/v1/documents/${id}`, {
+                headers: { Authorization: `Bearer ${token}` }
             });
-        } catch (error: unknown) {
-            const e = error as { response?: { status?: number; data?: { detail?: string } }; message?: string };
-            const status = e.response?.status;
-            const detail = e.response?.data?.detail;
-            console.error("[ERROR] Validation failed", { status, detail, error });
-            
-            let errorMessage = "Erreur lors de la validation";
-            if (detail) {
-                errorMessage = detail;
-            } else if (e.message) {
-                errorMessage = e.message;
+            if (!docRes.ok) throw new Error("Document not found");
+            const doc = await docRes.json();
+            setDocumentData(doc);
+
+            // Populate form
+            setFormData({
+                supplier_name: doc.supplier_name || "",
+                date: doc.document_date || new Date().toISOString().split('T')[0],
+                due_date: doc.due_date || "",
+                amount_ht: doc.amount_ht || 0,
+                amount_vat: doc.amount_vat || 0,
+                amount_ttc: doc.amount_ttc || 0,
+                reference_number: doc.reference_number || "",
+                account_number: "", // Would need to fetch supplier default if available
+                journal_code: "ACH",
+                description: doc.supplier_name ? `Facture ${doc.supplier_name}` : "Facture"
+            });
+
+            // 2. Fetch View URL
+            const urlRes = await fetch(`${API_BASE_URL}/api/v1/documents/${id}/view-url`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (urlRes.ok) {
+                const data = await urlRes.json();
+                setViewUrl(data.view_url);
             }
-            if (status === 500) {
-                errorMessage = `Erreur serveur: ${detail || "Veuillez réessayer ou contacter le support"}`;
+
+        } catch (error) {
+            console.error("Error fetching document:", error);
+            alert("Erreur lors du chargement du document");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchAccounts = async () => {
+        // ... (reuse account fetching logic or import hook)
+        const token = localStorage.getItem("seka_access_token");
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/v1/accounting/advanced/accounts`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (response.ok) {
+                const data = await response.json();
+                const accountList = Array.isArray(data) ? data : data.accounts || [];
+                setAccounts(
+                    (accountList as any[]).map((acc) => ({
+                        code: acc.code || acc.account_number || acc.account_code || "",
+                        name: acc.name || acc.label || acc.account_name || "",
+                    }))
+                );
             }
-            showError(errorMessage);
+        } catch (e) { console.error(e); }
+    };
+
+    const handleSave = async (validateAndNext = false) => {
+        setSaving(true);
+        const token = localStorage.getItem("seka_access_token");
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/v1/documents/${id}/validate`, {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            });
+
+            if (response.ok) {
+                if (validateAndNext) {
+                    // Logic to find next document could be complex here without fetching list.
+                    // Simplified: go back to list
+                    router.push("/documents/en-attente");
+                } else {
+                    router.push("/documents/en-attente");
+                }
+            } else {
+                const err = await response.text();
+                alert(`Erreur validation: ${err}`);
+            }
+        } catch (error) {
+            console.error("Error saving:", error);
+            alert("Erreur lors de la validation");
         } finally {
             setSaving(false);
         }
-    }, [id, documentType, document?.filename, showError, success, router]);
-
-    // All callbacks must be defined before any early returns (React hooks rules)
-    const handleReferenceNumberChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setReferenceNumber(e.target.value), []);
-    const handleDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setDate(e.target.value), []);
-    const handleDueDateChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setDueDate(e.target.value), []);
-    const handleSupplierChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setSupplier(e.target.value), []);
-    const handleAmountHTChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setAmountHT(e.target.value), []);
-    const handleAmountVATChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setAmountVAT(e.target.value), []);
-    const handleAmountTTCChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setAmountTTC(e.target.value), []);
-    const handleDescriptionChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setDescription(e.target.value), []);
-    const handleSetPurchase = useCallback(() => setDocumentType("INVOICE_PURCHASE"), []);
-    const handleSetSales = useCallback(() => setDocumentType("INVOICE_SALES"), []);
-    const handleCancel = useCallback(() => router.push("/documents/en-attente"), [router]);
-
-    if (loading) {
-        return (
-            <DashboardLayout title="Validation du document">
-                <div className="flex h-96 items-center justify-center">
-                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-accents-2 border-t-foreground"></div>
-                </div>
-            </DashboardLayout>
-        );
-    }
-
-    if (error || !document) {
-        return (
-            <DashboardLayout title="Validation du document">
-                <Card className="p-6">
-                    <p className="text-error">{error || "Document introuvable"}</p>
-                    <Button variant="secondary" className="mt-4" onClick={() => router.push("/documents")}>
-                        Retour aux documents
-                    </Button>
-                </Card>
-            </DashboardLayout>
-        );
-    }
-
-    const getStatusBadge = (status: string) => {
-        const statusMap: Record<string, { variant: "default" | "success" | "warning" | "error"; label: string }> = {
-            PENDING: { variant: "default", label: "En attente" },
-            OCR_PROCESSING: { variant: "warning", label: "Traitement IA" },
-            OCR_COMPLETED: { variant: "success", label: "Traité par IA" },
-            VALIDATED: { variant: "success", label: "Validé" },
-            REJECTED: { variant: "error", label: "Rejeté" },
-        };
-        const config = statusMap[status] || { variant: "default" as const, label: status };
-        return <Badge variant={config.variant}>{config.label}</Badge>;
     };
 
+    if (loading) {
+        return <div className="min-h-screen flex items-center justify-center bg-gray-50">
+            <div className="text-center">Loading...</div>
+        </div>;
+    }
+
     return (
-        <DashboardLayout title={`Validation - ${document.filename}`}>
-            <div className="flex h-[calc(100vh-8rem)] gap-6">
-                {/* Left: Document Preview */}
-                <div className="flex-1 overflow-hidden rounded-lg border border-accents-2 bg-accents-1">
-                    <div className="flex h-full items-center justify-center p-4">
-                        {document.file_path ? (
-                            documentViewUrl ? (
-                                <iframe
-                                    src={documentViewUrl}
-                                    className="h-full w-full rounded border border-accents-2"
-                                    title={document.filename}
-                                />
-                            ) : (
-                                <div className="flex flex-col items-center justify-center text-accents-5">
-                                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-accents-2 border-t-foreground mb-4"></div>
-                                    <p>Chargement du document...</p>
-                                </div>
-                            )
+        <>
+            <Head><title>Valider Document - SEKA</title></Head>
+
+            {/* Split Screen Container */}
+            <div className="flex h-[calc(100vh-80px)] -mx-3 sm:-mx-4 -my-4 lg:-my-8 pt-4 lg:pt-8 bg-gray-100 overflow-hidden">
+
+                {/* Left: PDF Viewer (50%) */}
+                <div className="w-1/2 bg-gray-800 border-r border-gray-700 relative flex flex-col">
+                    <div className="flex items-center justify-between px-4 py-2 bg-gray-900 border-b border-gray-700 text-white">
+                        <span className="text-sm font-medium truncate">{documentData?.original_filename}</span>
+                        <div className="flex gap-2">
+                            {/* PDF Controls could go here if managed by parent, but DocumentPdfViewer has its own */}
+                        </div>
+                    </div>
+                    <div className="flex-1 overflow-hidden bg-gray-500 relative">
+                        {viewUrl ? (
+                            // Use iframe for better PDF rendering if URL is signed/available, 
+                            // OR usage of DocumentPdfViewer for canvas rendering
+                            <iframe src={viewUrl} className="w-full h-full border-none" />
                         ) : (
-                            <div className="text-center text-accents-5">
-                                <svg className="mx-auto h-16 w-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                </svg>
-                                <p>Aperçu du document non disponible</p>
-                            </div>
+                            <div className="flex items-center justify-center h-full text-white">Aperçu non disponible</div>
                         )}
                     </div>
                 </div>
 
-                {/* Right: Validation Form */}
-                <div className="w-96 flex-shrink-0 overflow-y-auto">
-                    <Card className="h-full">
-                        <div className="mb-6 flex items-center justify-between">
-                            <h2 className="font-semibold text-foreground">Données extraites par IA</h2>
-                            {getStatusBadge(document.status)}
-                        </div>
+                {/* Right: Validation Form (50%) */}
+                <div className="w-1/2 bg-white flex flex-col h-full overflow-hidden">
 
+                    {/* Header */}
+                    <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-white">
+                        <div>
+                            <h1 className="text-lg font-bold text-gray-900">Validation Facture</h1>
+                            <p className="text-xs text-gray-500">Vérifiez les données extraites</p>
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => router.push("/documents/en-attente")}
+                                className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg"
+                                title="Fermer"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Scrollable Form Content */}
+                    <div className="flex-1 overflow-y-auto p-6 space-y-6">
+
+                        {/* Supplier Section */}
                         <div className="space-y-4">
-                            <Input
-                                label="Numéro de référence"
-                                value={referenceNumber}
-                                onChange={handleReferenceNumberChange}
-                                placeholder="Ex: INV-2025-001"
-                            />
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <Input
-                                    label="Date du document"
-                                    type="date"
-                                    value={date}
-                                    onChange={handleDateChange}
-                                />
-                                <Input
-                                    label="Date d'échéance"
-                                    type="date"
-                                    value={dueDate}
-                                    onChange={handleDueDateChange}
-                                />
-                            </div>
-
-                            <Input
-                                label="Fournisseur / Tiers"
-                                value={supplier}
-                                onChange={handleSupplierChange}
-                                placeholder="Nom du fournisseur"
-                            />
-
-                            <div className="rounded-lg bg-accents-1 p-4">
-                                <h3 className="text-sm font-medium text-foreground mb-3">Montants</h3>
-                                <div className="space-y-3">
-                                    <Input
-                                        label="Montant HT"
-                                        type="number"
-                                        step="0.01"
-                                        value={amountHT}
-                                        onChange={handleAmountHTChange}
-                                    />
-                                    <Input
-                                        label="TVA"
-                                        type="number"
-                                        step="0.01"
-                                        value={amountVAT}
-                                        onChange={handleAmountVATChange}
-                                    />
-                                    <Input
-                                        label="Montant TTC"
-                                        type="number"
-                                        step="0.01"
-                                        value={amountTTC}
-                                        onChange={handleAmountTTCChange}
-                                        className="font-semibold"
+                            <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                                <Building className="h-4 w-4 text-gray-400" /> Fournisseur
+                            </h3>
+                            <div className="grid grid-cols-1 gap-4">
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">Nom du fournisseur</label>
+                                    <input
+                                        type="text"
+                                        value={formData.supplier_name}
+                                        onChange={(e) => setFormData({ ...formData, supplier_name: e.target.value })}
+                                        className="w-full text-sm border-gray-300 rounded-md focus:ring-[#1e3a5f] focus:border-[#1e3a5f]"
                                     />
                                 </div>
-                            </div>
-
-                            <Input
-                                label="Libellé de l'écriture"
-                                value={description}
-                                onChange={handleDescriptionChange}
-                                placeholder="Description de la transaction"
-                            />
-
-                            {/* Document Type Selector */}
-                            <div className="rounded-lg bg-accents-1 p-4">
-                                <h3 className="text-sm font-medium text-foreground mb-3">Type de document</h3>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={handleSetPurchase}
-                                        className={`flex items-center justify-center gap-2 px-3 py-3 rounded-lg border-2 transition-all ${documentType === "INVOICE_PURCHASE"
-                                            ? "border-orange-500 bg-orange-50 text-orange-700"
-                                            : "border-accents-2 bg-white text-accents-5 hover:border-accents-3"
-                                            }`}
-                                    >
-                                        <ShoppingCart className="h-4 w-4" />
-                                        <span className="text-sm font-medium">Achat</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={handleSetSales}
-                                        className={`flex items-center justify-center gap-2 px-3 py-3 rounded-lg border-2 transition-all ${documentType === "INVOICE_SALES"
-                                            ? "border-green-500 bg-green-50 text-green-700"
-                                            : "border-accents-2 bg-white text-accents-5 hover:border-accents-3"
-                                            }`}
-                                    >
-                                        <Receipt className="h-4 w-4" />
-                                        <span className="text-sm font-medium">Vente</span>
-                                    </button>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-700 mb-1">Compte Tiers (401)</label>
+                                        <AccountAutocomplete
+                                            // Simplification: using account code directly
+                                            value={formData.account_number}
+                                            onChange={(val) => setFormData({ ...formData, account_number: val })}
+                                            accounts={accounts.filter(a => a.code.startsWith('401'))}
+                                            placeholder="401..."
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-700 mb-1">Journal</label>
+                                        <select
+                                            value={formData.journal_code}
+                                            onChange={(e) => setFormData({ ...formData, journal_code: e.target.value })}
+                                            className="w-full text-sm border-gray-300 rounded-md focus:ring-[#1e3a5f] focus:border-[#1e3a5f]"
+                                        >
+                                            <option value="ACH">ACH - Achats</option>
+                                            <option value="BQ">BQ - Banque</option>
+                                            <option value="OD">OD - Opérations Diverses</option>
+                                        </select>
+                                    </div>
                                 </div>
-                                <p className="text-xs text-accents-5 mt-2">
-                                    {documentType === "INVOICE_PURCHASE"
-                                        ? "Facture fournisseur - apparaîtra dans Achats"
-                                        : "Facture client - apparaîtra dans Ventes"
-                                    }
-                                </p>
-                            </div>
-
-                            <div className="pt-4 space-y-2">
-                                <Button
-                                    className="w-full"
-                                    onClick={handleValidate}
-                                    disabled={saving}
-                                >
-                                    {saving ? (
-                                        <>
-                                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                            Validation en cours...
-                                        </>
-                                    ) : (
-                                        "Valider et Comptabiliser"
-                                    )}
-                                </Button>
-                                <Button
-                                    variant="secondary"
-                                    className="w-full"
-                                    onClick={handleCancel}
-                                    disabled={saving}
-                                >
-                                    Annuler
-                                </Button>
                             </div>
                         </div>
-                    </Card>
+
+                        <hr className="border-gray-100" />
+
+                        {/* Dates & Reference */}
+                        <div className="space-y-4">
+                            <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                                <Calendar className="h-4 w-4 text-gray-400" /> Dates & Référence
+                            </h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">Date pièce</label>
+                                    <input
+                                        type="date"
+                                        value={formData.date}
+                                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                                        className="w-full text-sm border-gray-300 rounded-md"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">Échéance</label>
+                                    <input
+                                        type="date"
+                                        value={formData.due_date}
+                                        onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                                        className="w-full text-sm border-gray-300 rounded-md"
+                                    />
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">Référence Pièce / Facture N°</label>
+                                    <input
+                                        type="text"
+                                        value={formData.reference_number}
+                                        onChange={(e) => setFormData({ ...formData, reference_number: e.target.value })}
+                                        className="w-full text-sm border-gray-300 rounded-md"
+                                    />
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">Libellé écriture</label>
+                                    <input
+                                        type="text"
+                                        value={formData.description}
+                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                        className="w-full text-sm border-gray-300 rounded-md"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr className="border-gray-100" />
+
+                        {/* Amounts */}
+                        <div className="space-y-4">
+                            <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                                <DollarSign className="h-4 w-4 text-gray-400" /> Montants
+                            </h3>
+                            <div className="grid grid-cols-3 gap-4">
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">HT</label>
+                                    <input
+                                        type="number"
+                                        value={formData.amount_ht}
+                                        onChange={(e) => setFormData({ ...formData, amount_ht: parseFloat(e.target.value) || 0 })}
+                                        className="w-full text-sm border-gray-300 rounded-md text-right"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">TVA</label>
+                                    <input
+                                        type="number"
+                                        value={formData.amount_vat}
+                                        onChange={(e) => setFormData({ ...formData, amount_vat: parseFloat(e.target.value) || 0 })}
+                                        className="w-full text-sm border-gray-300 rounded-md text-right"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">TTC</label>
+                                    <input
+                                        type="number"
+                                        value={formData.amount_ttc}
+                                        onChange={(e) => setFormData({ ...formData, amount_ttc: parseFloat(e.target.value) || 0 })}
+                                        className="w-full text-sm border-gray-300 rounded-md font-bold bg-gray-50 text-right"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    {/* Footer Actions */}
+                    <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
+                        <button
+                            className="text-gray-600 hover:text-gray-900 text-sm font-medium"
+                            onClick={() => router.push("/documents/en-attente")}
+                        >
+                            Annuler
+                        </button>
+                        <div className="flex gap-3">
+                            {/* <button className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium">
+                                Rejeter
+                            </button> */}
+                            <button
+                                onClick={() => handleSave(false)}
+                                disabled={saving}
+                                className="px-6 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#172e4d] text-sm font-medium flex items-center gap-2 shadow-sm"
+                            >
+                                <CheckCircle className="h-4 w-4" />
+                                {saving ? "Validation..." : "Valider"}
+                            </button>
+                        </div>
+                    </div>
+
                 </div>
             </div>
-        </DashboardLayout>
+        </>
     );
 }

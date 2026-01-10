@@ -10,8 +10,8 @@ import { ControlBar } from '@/components/pennylane/ControlBar';
 import { DataTable, Column } from '@/components/pennylane/DataTable';
 import { Drawer } from '@/components/pennylane/Drawer';
 import { StatsCard } from '@/components/pennylane/StatsCard';
-import { 
-  Plus, Building2, Mail, Phone, MapPin, FileText, 
+import {
+  Plus, Building2, Mail, Phone, MapPin, FileText,
   CreditCard, TrendingDown, Eye, History
 } from 'lucide-react';
 
@@ -92,9 +92,9 @@ export default function SuppliersPage() {
   const filteredSuppliers = suppliers.filter((s) => {
     if (search) {
       const q = search.toLowerCase();
-      if (!s.name.toLowerCase().includes(q) && 
-          !s.code.toLowerCase().includes(q) &&
-          !s.email.toLowerCase().includes(q)) {
+      if (!s.name.toLowerCase().includes(q) &&
+        !s.code.toLowerCase().includes(q) &&
+        !s.email.toLowerCase().includes(q)) {
         return false;
       }
     }
@@ -210,164 +210,163 @@ export default function SuppliersPage() {
         <title>Fournisseurs - SEKA</title>
       </Head>
       <div className="min-h-screen bg-gray-50">
-        <PennylaneSidebar />
-        <main className="ml-[220px] h-full flex flex-col">
-        <PageHeader
-          breadcrumb={[
-            { label: 'Achats', href: '/achats' },
-            { label: 'Fournisseurs' },
-          ]}
-          onRefresh={fetchSuppliers}
-          actions={
-            <Button onClick={() => router.push('/suppliers/new')}>
-              <Plus className="w-4 h-4 mr-2" />
-              Nouveau fournisseur
-            </Button>
-          }
-        />
+        <div className="h-full flex flex-col">
+          <PageHeader
+            breadcrumb={[
+              { label: 'Achats', href: '/achats' },
+              { label: 'Fournisseurs' },
+            ]}
+            onRefresh={fetchSuppliers}
+            actions={
+              <Button onClick={() => router.push('/suppliers/new')}>
+                <Plus className="w-4 h-4 mr-2" />
+                Nouveau fournisseur
+              </Button>
+            }
+          />
 
-        {/* Stats */}
-        <div className="px-6 py-4 grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 border-b">
-          <StatsCard
-            title="Total Fournisseurs"
-            value={suppliers.length}
-            icon={<Building2 className="w-6 h-6 text-blue-600" />}
-            iconBgColor="bg-blue-100"
-          />
-          <StatsCard
-            title="Fournisseurs Actifs"
-            value={activeCount}
-            icon={<Building2 className="w-6 h-6 text-green-600" />}
-            iconBgColor="bg-green-100"
-          />
-          <StatsCard
-            title="Solde Fournisseurs"
-            value={formatCurrency(totalBalance)}
-            valueColor={totalBalance > 0 ? 'red' : 'default'}
-            icon={<TrendingDown className="w-6 h-6 text-red-600" />}
-            iconBgColor="bg-red-100"
-          />
-          <StatsCard
-            title="Factures en Attente"
-            value={suppliers.reduce((sum, s) => sum + s.invoiceCount, 0)}
-            icon={<FileText className="w-6 h-6 text-orange-600" />}
-            iconBgColor="bg-orange-100"
-          />
-        </div>
-
-        <ControlBar
-          search={{
-            value: search,
-            onChange: setSearch,
-            placeholder: 'Rechercher un fournisseur...',
-            resultCount: filteredSuppliers.length,
-          }}
-          filters={[
-            {
-              label: 'Statut',
-              value: statusFilter,
-              options: [
-                { value: 'all', label: 'Tous' },
-                { value: 'active', label: 'Actifs' },
-                { value: 'inactive', label: 'Inactifs' },
-                { value: 'blocked', label: 'Bloqués' },
-              ],
-              onChange: setStatusFilter,
-            },
-          ]}
-          onExport={handleExport}
-        />
-
-        <div className="flex-1 flex overflow-hidden">
-          <div className={`flex-1 overflow-auto p-6 ${selectedSupplier ? 'pr-3' : ''}`}>
-            <DataTable
-              data={filteredSuppliers}
-              columns={columns}
-              keyField="id"
-              selectable
-              selectedIds={selectedIds}
-              onSelectionChange={setSelectedIds}
-              onRowClick={(row) => setSelectedSupplier(row)}
-              loading={loading}
-              emptyMessage="Aucun fournisseur trouvé"
-              rowActions={[
-                { label: 'Voir détails', onClick: (row) => setSelectedSupplier(row) },
-                { label: 'Modifier', onClick: (row) => router.push(`/suppliers/${row.id}/edit`) },
-                { label: 'Voir factures', onClick: (row) => router.push(`/achats/factures?supplier=${row.id}`) },
-              ]}
+          {/* Stats */}
+          <div className="px-6 py-4 grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 border-b">
+            <StatsCard
+              title="Total Fournisseurs"
+              value={suppliers.length}
+              icon={<Building2 className="w-6 h-6 text-blue-600" />}
+              iconBgColor="bg-blue-100"
+            />
+            <StatsCard
+              title="Fournisseurs Actifs"
+              value={activeCount}
+              icon={<Building2 className="w-6 h-6 text-green-600" />}
+              iconBgColor="bg-green-100"
+            />
+            <StatsCard
+              title="Solde Fournisseurs"
+              value={formatCurrency(totalBalance)}
+              valueColor={totalBalance > 0 ? 'red' : 'default'}
+              icon={<TrendingDown className="w-6 h-6 text-red-600" />}
+              iconBgColor="bg-red-100"
+            />
+            <StatsCard
+              title="Factures en Attente"
+              value={suppliers.reduce((sum, s) => sum + s.invoiceCount, 0)}
+              icon={<FileText className="w-6 h-6 text-orange-600" />}
+              iconBgColor="bg-orange-100"
             />
           </div>
 
-          {selectedSupplier && (
-            <Drawer
-              open={!!selectedSupplier}
-              onClose={() => setSelectedSupplier(null)}
-              title={selectedSupplier.name}
-              subtitle={selectedSupplier.code}
-              headerValue={formatCurrency(selectedSupplier.balance)}
-              headerLabel="Solde fournisseur"
-              tabs={[
-                {
-                  id: 'info',
-                  label: 'Informations',
-                  content: (
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                        <Mail className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm">{selectedSupplier.email || 'Non renseigné'}</span>
+          <ControlBar
+            search={{
+              value: search,
+              onChange: setSearch,
+              placeholder: 'Rechercher un fournisseur...',
+              resultCount: filteredSuppliers.length,
+            }}
+            filters={[
+              {
+                label: 'Statut',
+                value: statusFilter,
+                options: [
+                  { value: 'all', label: 'Tous' },
+                  { value: 'active', label: 'Actifs' },
+                  { value: 'inactive', label: 'Inactifs' },
+                  { value: 'blocked', label: 'Bloqués' },
+                ],
+                onChange: setStatusFilter,
+              },
+            ]}
+            onExport={handleExport}
+          />
+
+          <div className="flex-1 flex overflow-hidden">
+            <div className={`flex-1 overflow-auto p-6 ${selectedSupplier ? 'pr-3' : ''}`}>
+              <DataTable
+                data={filteredSuppliers}
+                columns={columns}
+                keyField="id"
+                selectable
+                selectedIds={selectedIds}
+                onSelectionChange={setSelectedIds}
+                onRowClick={(row) => setSelectedSupplier(row)}
+                loading={loading}
+                emptyMessage="Aucun fournisseur trouvé"
+                rowActions={[
+                  { label: 'Voir détails', onClick: (row) => setSelectedSupplier(row) },
+                  { label: 'Modifier', onClick: (row) => router.push(`/suppliers/${row.id}/edit`) },
+                  { label: 'Voir factures', onClick: (row) => router.push(`/achats/factures?supplier=${row.id}`) },
+                ]}
+              />
+            </div>
+
+            {selectedSupplier && (
+              <Drawer
+                open={!!selectedSupplier}
+                onClose={() => setSelectedSupplier(null)}
+                title={selectedSupplier.name}
+                subtitle={selectedSupplier.code}
+                headerValue={formatCurrency(selectedSupplier.balance)}
+                headerLabel="Solde fournisseur"
+                tabs={[
+                  {
+                    id: 'info',
+                    label: 'Informations',
+                    content: (
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                          <Mail className="w-4 h-4 text-gray-400" />
+                          <span className="text-sm">{selectedSupplier.email || 'Non renseigné'}</span>
+                        </div>
+                        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                          <Phone className="w-4 h-4 text-gray-400" />
+                          <span className="text-sm">{selectedSupplier.phone || 'Non renseigné'}</span>
+                        </div>
+                        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                          <MapPin className="w-4 h-4 text-gray-400" />
+                          <span className="text-sm">{selectedSupplier.address || 'Non renseigné'}</span>
+                        </div>
+                        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                          <CreditCard className="w-4 h-4 text-gray-400" />
+                          <span className="text-sm">Délai paiement: {selectedSupplier.paymentTerms} jours</span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                        <Phone className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm">{selectedSupplier.phone || 'Non renseigné'}</span>
+                    ),
+                  },
+                  {
+                    id: 'invoices',
+                    label: 'Factures',
+                    content: (
+                      <div className="space-y-2">
+                        <p className="text-gray-500 text-center py-8">
+                          {selectedSupplier.invoiceCount} facture(s) enregistrée(s)
+                        </p>
                       </div>
-                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                        <MapPin className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm">{selectedSupplier.address || 'Non renseigné'}</span>
+                    ),
+                  },
+                  {
+                    id: 'history',
+                    label: 'Historique',
+                    content: (
+                      <div className="text-center py-8 text-gray-500">
+                        Historique à venir
                       </div>
-                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                        <CreditCard className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm">Délai paiement: {selectedSupplier.paymentTerms} jours</span>
-                      </div>
-                    </div>
-                  ),
-                },
-                {
-                  id: 'invoices',
-                  label: 'Factures',
-                  content: (
-                    <div className="space-y-2">
-                      <p className="text-gray-500 text-center py-8">
-                        {selectedSupplier.invoiceCount} facture(s) enregistrée(s)
-                      </p>
-                    </div>
-                  ),
-                },
-                {
-                  id: 'history',
-                  label: 'Historique',
-                  content: (
-                    <div className="text-center py-8 text-gray-500">
-                      Historique à venir
-                    </div>
-                  ),
-                },
-              ]}
-              actions={
-                <div className="flex gap-2">
-                  <Button variant="secondary" size="sm" className="flex-1">
-                    <Eye className="w-4 h-4 mr-2" />
-                    Voir fiche
-                  </Button>
-                  <Button variant="secondary" size="sm" className="flex-1">
-                    <History className="w-4 h-4 mr-2" />
-                    Historique
-                  </Button>
-                </div>
-              }
-            />
-          )}
+                    ),
+                  },
+                ]}
+                actions={
+                  <div className="flex gap-2">
+                    <Button variant="secondary" size="sm" className="flex-1">
+                      <Eye className="w-4 h-4 mr-2" />
+                      Voir fiche
+                    </Button>
+                    <Button variant="secondary" size="sm" className="flex-1">
+                      <History className="w-4 h-4 mr-2" />
+                      Historique
+                    </Button>
+                  </div>
+                }
+              />
+            )}
+          </div>
         </div>
-        </main>
       </div>
     </>
   );

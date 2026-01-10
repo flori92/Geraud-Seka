@@ -70,8 +70,7 @@ export default function ChartOfAccounts() {
         <title>Plan comptable - SEKA</title>
       </Head>
       <div className="min-h-screen bg-gray-50">
-        <PennylaneSidebar />
-        <main className="ml-[220px] p-6">
+        <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-semibold text-gray-900">Plan comptable</h1>
             <div className="flex items-center gap-3">
@@ -159,7 +158,7 @@ export default function ChartOfAccounts() {
               fetchAccounts();
             }}
           />
-        </main>
+        </div>
       </div>
     </>
   );

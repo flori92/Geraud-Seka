@@ -49,7 +49,7 @@ const sekaV1Menu: MenuSection[] = [
         label: "Factures",
         icon: FileText,
         submenu: [
-          { label: "Importer (OCR)", href: "/accounting/entries/from-ocr", badge: "IA", badgeVariant: "new" },
+          { label: "Importer (OCR)", href: "/documents/upload", badge: "IA", badgeVariant: "new" },
           { label: "En attente", href: "/documents/en-attente" },
           { label: "Achats", href: "/achats/factures" },
           { label: "Ventes", href: "/ventes/factures" },
