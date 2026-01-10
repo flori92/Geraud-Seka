@@ -1,14 +1,9 @@
 import { useState, useEffect } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import {
-    CheckCircle, X, Save, ArrowLeft, ArrowRight,
-    Calendar, Building, DollarSign, FileText, Hash
-} from "lucide-react";
+import { CheckCircle, X, Calendar, Building, DollarSign } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api";
-import { AppLayout } from "@/components/layout/AppLayout";
 import AccountAutocomplete, { type Account } from "@/components/AccountAutocomplete";
-import DocumentPdfViewer from "@/components/DocumentPdfViewer";
 
 interface ValidationFormData {
     supplier_name: string;
@@ -27,7 +22,7 @@ export default function DocumentValidatePage() {
     const router = useRouter();
     const { id } = router.query;
     const [loading, setLoading] = useState(true);
-    const [documentData, setDocumentData] = useState<any>(null);
+    const [documentData, setDocumentData] = useState<Record<string, unknown> | null>(null);
     const [viewUrl, setViewUrl] = useState<string | null>(null);
     const [accounts, setAccounts] = useState<Account[]>([]);
     const [saving, setSaving] = useState(false);
@@ -110,7 +105,7 @@ export default function DocumentValidatePage() {
                 const data = await response.json();
                 const accountList = Array.isArray(data) ? data : data.accounts || [];
                 setAccounts(
-                    (accountList as any[]).map((acc) => ({
+                    (accountList as Array<Record<string, string>>).map((acc) => ({
                         code: acc.code || acc.account_number || acc.account_code || "",
                         name: acc.name || acc.label || acc.account_name || "",
                     }))
@@ -168,7 +163,7 @@ export default function DocumentValidatePage() {
                 {/* Left: PDF Viewer (50%) */}
                 <div className="w-1/2 bg-gray-800 border-r border-gray-700 relative flex flex-col">
                     <div className="flex items-center justify-between px-4 py-2 bg-gray-900 border-b border-gray-700 text-white">
-                        <span className="text-sm font-medium truncate">{documentData?.original_filename}</span>
+                        <span className="text-sm font-medium truncate">{String(documentData?.original_filename || "")}</span>
                         <div className="flex gap-2">
                             {/* PDF Controls could go here if managed by parent, but DocumentPdfViewer has its own */}
                         </div>
