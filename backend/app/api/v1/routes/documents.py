@@ -13,7 +13,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core import deps
-from app.models.document import Document, DocumentStatus
+from app.models.document import Document, DocumentStatus, DocumentType
 from app.models.user import User
 from app.schemas.document import Document as DocumentSchema
 from app.schemas.document import DocumentCreate, DocumentUpdate
