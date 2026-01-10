@@ -687,11 +687,17 @@ def validate_document(
     """
     Validate a document and generate accounting entries.
     """
-    print(f"📝 [v3] Validation request received: {validation_data}")
-    print(f"🔍 Imports disponibles: datetime={datetime}, timedelta={timedelta}, date={date}")
-    document = db.query(Document).filter(Document.id == document_id, Document.tenant_id == current_user.tenant_id).first()
-    if not document:
-        raise HTTPException(status_code=404, detail="Document not found")
+    try:
+        print(f"📝 [v4] Validation request received: {validation_data}")
+        print(f"🔍 Imports disponibles: datetime={datetime}, timedelta={timedelta}, date={date}")
+        document = db.query(Document).filter(Document.id == document_id, Document.tenant_id == current_user.tenant_id).first()
+        if not document:
+            raise HTTPException(status_code=404, detail="Document not found")
+    except NameError as ne:
+        import traceback
+        print(f"❌ NameError détecté au début: {ne}")
+        print(f"📋 Traceback:\n{traceback.format_exc()}")
+        raise
 
     document.status = DocumentStatus.VALIDATED
     document.reference_number = validation_data.reference_number or document.reference_number
