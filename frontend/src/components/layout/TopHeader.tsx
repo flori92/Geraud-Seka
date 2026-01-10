@@ -3,11 +3,10 @@
 import { useState, useEffect } from "react";
 import { Bell, Search, MessageSquare, HelpCircle, Menu, X, ChevronRight, Book, Mail, ExternalLink } from "lucide-react";
 import Link from "next/link";
-import ClientSelector from "./ClientSelector";
-import { getCurrentUser, type User, type Client } from "@/lib/api";
+import { ClientSelector } from "./ClientSelector";
+import { getCurrentUser, type User } from "@/lib/api";
 
 interface TopHeaderProps {
-    onClientChange?: (client: Client | null) => void;
     onMenuToggle?: () => void;
 }
 
@@ -20,7 +19,7 @@ interface NotificationItem {
     created_at: string;
 }
 
-export default function TopHeader({ onClientChange, onMenuToggle }: TopHeaderProps) {
+export default function TopHeader({ onMenuToggle }: TopHeaderProps) {
     const [user, setUser] = useState<User | null>(null);
     const [notifications, setNotifications] = useState<NotificationItem[]>([]);
     const [showHelp, setShowHelp] = useState(false);
@@ -78,7 +77,7 @@ export default function TopHeader({ onClientChange, onMenuToggle }: TopHeaderPro
                     <Menu className="h-5 w-5 text-gray-600" />
                 </button>
 
-                <ClientSelector onChange={onClientChange} />
+                <ClientSelector />
 
                 {/* Quick Search */}
                 <div className="hidden md:flex items-center relative">
