@@ -12,10 +12,6 @@ interface PendingRequest {
     reject: (reason?: Error) => void;
 }
 
-/**
- * Hook for batching and debouncing network requests to reduce violations
- * Groups similar requests and prevents excessive fetches
- */
 export function useOptimizedFetch(batchDelay: number = 100) {
     const pendingRequestsRef = useRef<Map<string, PendingRequest>>(new Map());
     const batchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -45,17 +41,14 @@ export function useOptimizedFetch(batchDelay: number = 100) {
             const request: FetchRequest = { url, options, id };
             pendingRequestsRef.current.set(id, { request, resolve, reject });
 
-            // Clear existing timeout
             if (batchTimeoutRef.current) {
                 clearTimeout(batchTimeoutRef.current);
             }
 
-            // Set new timeout for batch execution
             batchTimeoutRef.current = setTimeout(executeBatch, batchDelay);
         });
     }, [batchDelay, executeBatch]);
 
-    // Cleanup on unmount
     useEffect(() => {
         return () => {
             if (batchTimeoutRef.current) {
@@ -67,10 +60,6 @@ export function useOptimizedFetch(batchDelay: number = 100) {
     return batchedFetch;
 }
 
-/**
- * Cache decorator for fetch requests
- * Prevents duplicate requests for the same URL
- */
 export function useRequestCache<T = unknown>(duration: number = 60000) {
     const cacheRef = useRef<Map<string, { data: T; timestamp: number }>>(new Map());
 

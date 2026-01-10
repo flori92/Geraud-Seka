@@ -163,7 +163,7 @@ async def upload_document(
         raise HTTPException(
             status_code=500,
             detail=f"Erreur lors de l'upload du document: {str(e)}"
-        )
+        ) from e
 
 
 @router.post("/upload-multipage")
@@ -575,7 +575,7 @@ async def view_document_with_token(
         raise
     except Exception as e:
         print(f"Erreur affichage document: {e}")
-        raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}") from e
 
 
 @router.get("/download/{file_key:path}")
@@ -615,7 +615,7 @@ async def download_document_by_key(
         raise HTTPException(status_code=404, detail="Document non trouvé")
     except Exception as e:
         print(f"Erreur téléchargement: {e}")
-        raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}") from e
 
 
 from app.models.accounting import AccountingEntry, EntryType
@@ -660,27 +660,21 @@ def validate_document(
     # Parser les dates string en objets date
     from datetime import datetime
     if validation_data.date:
-        try:
+        with suppress(ValueError):
             document.document_date = datetime.strptime(validation_data.date, "%Y-%m-%d").date()
-        except ValueError:
-            pass
     if validation_data.due_date:
-        try:
+        with suppress(ValueError):
             document.due_date = datetime.strptime(validation_data.due_date, "%Y-%m-%d").date()
-        except ValueError:
-            pass
     document.amount_ht = float(validation_data.amount_ht) if validation_data.amount_ht is not None else document.amount_ht
     document.amount_vat = float(validation_data.amount_vat) if validation_data.amount_vat is not None else document.amount_vat
     document.amount_ttc = float(validation_data.amount_ttc) if validation_data.amount_ttc is not None else document.amount_ttc
     document.description = validation_data.description
     
     supplier_name = (validation_data.supplier_name or "").strip()
+    if not supplier_name and document.ocr_data and isinstance(document.ocr_data, dict):
+        supplier_name = (document.ocr_data.get("supplier_name") or "").strip()
     if not supplier_name:
-        # Essayer d'extraire depuis les données OCR si disponible
-        if document.ocr_data and isinstance(document.ocr_data, dict):
-            supplier_name = (document.ocr_data.get("supplier_name") or "").strip()
-        if not supplier_name:
-            raise HTTPException(status_code=422, detail="supplier_name est requis. Veuillez renseigner le fournisseur.")
+        raise HTTPException(status_code=422, detail="supplier_name est requis. Veuillez renseigner le fournisseur.")
 
     if document.client_id is None:
         client = db.query(Client).filter(Client.tenant_id == current_user.tenant_id).first()
