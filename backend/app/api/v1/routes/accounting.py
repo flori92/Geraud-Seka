@@ -13,7 +13,7 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from app.db.session import get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, get_current_tenant
 from app.models.user import User
 from app.models.ledger_account import LedgerAccount, AccountType
 from app.models.accounting_advanced import JournalEntry
@@ -562,3 +562,44 @@ def get_balance_generale(
     except Exception as e:
         print(f"Error in get_balance_generale: {str(e)}")
         return []
+
+
+@router.get("/advanced/accounts")
+async def get_advanced_accounts(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    current_tenant = Depends(get_current_tenant),
+):
+    """
+    Récupère la liste complète du plan comptable (Chart of Accounts) du tenant
+    avec les soldes actuels.
+    """
+    from app.models.accounting_advanced import ChartOfAccounts
+    
+    try:
+        accounts = db.query(ChartOfAccounts).filter(
+            ChartOfAccounts.tenant_id == current_tenant.id,
+            ChartOfAccounts.is_active == True
+        ).order_by(ChartOfAccounts.account_number).all()
+        
+        return [
+            {
+                "id": str(acc.id),
+                "code": acc.account_number,
+                "name": acc.name,
+                "description": acc.description,
+                "account_class": acc.account_class,
+                "account_type": acc.account_type,
+                "balance": float(acc.balance) if acc.balance else 0,
+                "is_detail": acc.is_detail,
+                "is_group": acc.is_group,
+                "is_bank_account": acc.is_bank_account,
+                "is_reconcilable": acc.is_reconcilable,
+            }
+            for acc in accounts
+        ]
+    except Exception as e:
+        print(f"Error fetching advanced accounts: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Erreur lors de la récupération des comptes: {str(e)}")
