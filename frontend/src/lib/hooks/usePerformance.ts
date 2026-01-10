@@ -91,20 +91,22 @@ export function useOptimizedChangeHandler<T>(
 }
 
 export function usePerformanceMonitor(componentName: string) {
-    const renderStartRef = useRef(performance.now());
+    const renderCountRef = useRef(0);
+    const mountTimeRef = useRef(performance.now());
 
     useEffect(() => {
-        const renderEnd = performance.now();
-        const renderTime = renderEnd - renderStartRef.current;
-
-        if (renderTime > 16) {
-            console.warn(
-                `⚠️ Performance: ${componentName} render took ${renderTime.toFixed(2)}ms (> 16ms)`
-            );
+        renderCountRef.current += 1;
+        
+        // Only log on mount (first render) in development
+        if (renderCountRef.current === 1 && process.env.NODE_ENV === 'development') {
+            const mountTime = performance.now() - mountTimeRef.current;
+            if (mountTime > 100) {
+                console.debug(
+                    `📊 Performance: ${componentName} initial mount took ${mountTime.toFixed(2)}ms`
+                );
+            }
         }
-
-        renderStartRef.current = performance.now();
-    });
+    }, [componentName]);
 
     return null;
 }

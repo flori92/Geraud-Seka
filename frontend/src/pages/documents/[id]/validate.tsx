@@ -208,9 +208,20 @@ export default function ValidateDocumentPage() {
                 }
             });
         } catch (error: unknown) {
-            console.error("[ERROR] Validation failed", error);
-            const e = error as { response?: { data?: { detail?: string } }; message?: string };
-            const errorMessage = e.response?.data?.detail || e.message || "Erreur lors de la validation";
+            const e = error as { response?: { status?: number; data?: { detail?: string } }; message?: string };
+            const status = e.response?.status;
+            const detail = e.response?.data?.detail;
+            console.error("[ERROR] Validation failed", { status, detail, error });
+            
+            let errorMessage = "Erreur lors de la validation";
+            if (detail) {
+                errorMessage = detail;
+            } else if (e.message) {
+                errorMessage = e.message;
+            }
+            if (status === 500) {
+                errorMessage = `Erreur serveur: ${detail || "Veuillez réessayer ou contacter le support"}`;
+            }
             showError(errorMessage);
         } finally {
             setSaving(false);
