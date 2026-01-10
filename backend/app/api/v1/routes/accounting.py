@@ -317,8 +317,38 @@ def get_journal_entries(
 ):
     """Get journal entries - supports both /journals and /journal/ endpoints"""
     try:
-        print(f"Journal entries requested for tenant {current_user.tenant_id}")
-        return []
+        entries = db.query(JournalEntry).filter(
+            JournalEntry.tenant_id == current_user.tenant_id
+        ).order_by(JournalEntry.entry_date.desc()).all()
+
+        result = []
+        for e in entries:
+            # Resolve account codes if possible
+            debit_acc = None
+            credit_acc = None
+            try:
+                if e.debit_account_id:
+                    da = db.query(LedgerAccount).filter(LedgerAccount.id == e.debit_account_id).first()
+                    debit_acc = da.account_code if da else None
+                if e.credit_account_id:
+                    ca = db.query(LedgerAccount).filter(LedgerAccount.id == e.credit_account_id).first()
+                    credit_acc = ca.account_code if ca else None
+            except Exception:
+                pass
+
+            result.append(JournalEntryResponse(
+                id=str(e.id),
+                entry_number=getattr(e, 'entry_number', None) or None,
+                date=(e.entry_date.isoformat() if getattr(e, 'entry_date', None) else None),
+                description=getattr(e, 'description', None),
+                debit_account=debit_acc,
+                credit_account=credit_acc,
+                amount=float(e.amount) if getattr(e, 'amount', None) is not None else 0.0,
+                reference=getattr(e, 'reference', None),
+                created_at=getattr(e, 'created_at', None).isoformat() if getattr(e, 'created_at', None) else None,
+            ))
+
+        return result
     except Exception as e:
         print(f"Journal entries error: {str(e)}")
         import traceback
