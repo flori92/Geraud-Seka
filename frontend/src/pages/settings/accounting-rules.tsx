@@ -1,7 +1,22 @@
 import { useState, useEffect } from "react";
 import Head from "next/head";
-import { PennylaneSidebar } from "@/components/layout/PennylaneSidebar";
 import { Plus, Edit2, Trash2, ToggleLeft, ToggleRight, Zap, CheckCircle } from "lucide-react";
+import CreateRuleModal from "@/components/rules/CreateRuleModal";
+
+interface RuleCondition {
+  type: string;
+  operator: string;
+  value: string;
+}
+
+interface RuleAction {
+  type: string;
+  debit_account?: string;
+  credit_account?: string;
+  vat_rate?: number;
+  label_template?: string;
+  analytic_code?: string;
+}
 
 interface Rule {
   id: string;
@@ -10,8 +25,8 @@ interface Rule {
   priority: number;
   is_active: boolean;
   auto_apply: boolean;
-  conditions: any[];
-  actions: any[];
+  conditions: RuleCondition[];
+  actions: RuleAction[];
 }
 
 export default function AccountingRulesPage() {
@@ -228,24 +243,12 @@ export default function AccountingRulesPage() {
               </div>
             )}
 
-            {/* Create Modal Placeholder */}
+            {/* Create Modal */}
             {showCreateModal && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className="bg-white rounded-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                  <h2 className="text-xl font-bold mb-4">Créer une nouvelle règle</h2>
-                  <p className="text-gray-600 mb-6">
-                    Cette fonctionnalité sera disponible prochainement. Utilisez l&apos;API pour créer des règles.
-                  </p>
-                  <div className="flex justify-end gap-3">
-                    <button
-                      onClick={() => setShowCreateModal(false)}
-                      className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                    >
-                      Fermer
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <CreateRuleModal
+                onClose={() => setShowCreateModal(false)}
+                onSuccess={fetchRules}
+              />
             )}
           </div>
         </div>
