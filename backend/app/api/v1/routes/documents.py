@@ -1,6 +1,6 @@
 from typing import List, Optional, Any
 from uuid import UUID
-from datetime import date
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 import os
 from contextlib import suppress
@@ -658,7 +658,6 @@ async def download_document_by_key(
 
 from app.models.accounting import AccountingEntry, EntryType
 from app.models.client import Client
-from datetime import date, datetime
 from pydantic import BaseModel
 
 class ValidationData(BaseModel):
