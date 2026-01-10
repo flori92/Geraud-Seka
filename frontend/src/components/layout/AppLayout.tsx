@@ -6,7 +6,6 @@ import { useLayout } from "@/contexts/LayoutContext";
 import { CabinetSidebar } from "./CabinetSidebar";
 import { PennylaneSidebar } from "./PennylaneSidebar";
 import TopHeader from "./TopHeader";
-import { useClient } from "@/contexts/ClientContext";
 import { Menu, X } from "lucide-react";
 
 interface AppLayoutProps {
@@ -15,9 +14,8 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
     const router = useRouter();
-    const { appMode, setAppMode } = useLayout();
+    const { appMode } = useLayout();
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const { setSelectedClientId } = useClient();
 
     const noSidebarPages = ['/login', '/register', '/landing', '/pricing', '/about', '/blog', '/faq', '/privacy', '/terms'];
     const showSidebar = !noSidebarPages.includes(router.pathname);
@@ -25,10 +23,6 @@ export function AppLayout({ children }: AppLayoutProps) {
     const mainClass = showSidebar
         ? "lg:ml-[240px] transition-all duration-300 pt-14 px-3 sm:px-4 min-h-screen bg-gray-50"
         : "px-3 sm:px-4 min-h-screen bg-gray-50";
-
-    const handleClientChange = (client: any) => {
-        setSelectedClientId(client?.id ?? null);
-    };
 
     if (!showSidebar) {
         return <main className={mainClass}>{children}</main>;
@@ -44,7 +38,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             )}
 
             {/* Header */}
-            <TopHeader onClientChange={handleClientChange} />
+            <TopHeader />
 
             {/* Mobile Toggle */}
             <button
