@@ -53,32 +53,73 @@ class Document(DocumentBase):
     description: Optional[str] = None
     ocr_data: Optional[dict] = None
     ocr_confidence: Optional[float] = None
+    ai_extracted_data: Optional[dict] = None
+    tags: Optional[list] = None
+    custom_fields: Optional[dict] = None
+    supplier_name: Optional[str] = None
+    customer_name: Optional[str] = None
     created_at: datetime
     updated_at: datetime
-    client_id: Optional[UUID] = None  # Made optional
+    client_id: Optional[UUID] = None
     supplier_id: Optional[UUID] = None
     tenant_id: Optional[UUID] = None
     uploaded_by: Optional[UUID] = None
 
-    @field_validator("ocr_data", mode="before")
+    @field_validator("ocr_data", "ai_extracted_data", "custom_fields", mode="before")
     @classmethod
-    def parse_ocr_data(cls, v: Any):
+    def parse_json_data(cls, v: Any):
         if v is None:
             return None
         if isinstance(v, dict):
-            return v
+            # Convert any non-serializable types to serializable ones
+            return cls._sanitize_dict(v)
         if isinstance(v, str):
             try:
                 parsed = json.loads(v)
                 if isinstance(parsed, dict):
+                    return cls._sanitize_dict(parsed)
+            except Exception:
+                return None
+        return None
+
+    @field_validator("tags", mode="before")
+    @classmethod
+    def parse_tags(cls, v: Any):
+        if v is None:
+            return None
+        if isinstance(v, list):
+            return v
+        if isinstance(v, str):
+            try:
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
                     return parsed
             except Exception:
                 return None
         return None
 
+    @staticmethod
+    def _sanitize_dict(d: dict) -> dict:
+        """Convert non-serializable types in dict to serializable ones"""
+        from decimal import Decimal
+        result = {}
+        for k, v in d.items():
+            if isinstance(v, Decimal):
+                result[k] = float(v)
+            elif isinstance(v, dict):
+                result[k] = Document._sanitize_dict(v)
+            elif isinstance(v, list):
+                result[k] = [
+                    float(item) if isinstance(item, Decimal) else item
+                    for item in v
+                ]
+            else:
+                result[k] = v
+        return result
+
     class Config:
         from_attributes = True
-        populate_by_name = True  # Allow both 'date' and 'document_date'
+        populate_by_name = True
 
 
 class DocumentUploadResponse(BaseModel):
