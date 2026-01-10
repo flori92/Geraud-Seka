@@ -82,72 +82,90 @@ async def upload_document(
         
         try:
             print(f"🔍 Starting OCR processing for document: {file.filename}")
-            ocr_data = await ocr_service.process_invoice(file_path, file_content=file_content)
-            print(f"✅ OCR completed. Extracted data: {ocr_data}")
 
-            # Classification automatique Achat/Vente
-            from app.services.invoice_classifier import InvoiceClassifier
-            from app.models.document import DocumentType
-            classifier = InvoiceClassifier(db, str(current_user.tenant_id))
-            invoice_type, classification_confidence, classification_metadata = classifier.classify_invoice(ocr_data)
-            
-            # Mise à jour du type de document
-            if invoice_type == "PURCHASE":
-                db_obj.type = DocumentType.INVOICE_PURCHASE
-            elif invoice_type == "SALE":
-                db_obj.type = DocumentType.INVOICE_SALES
-            
-            # Stocker les métadonnées de classification
-            if not db_obj.ai_extracted_data:
-                db_obj.ai_extracted_data = {}
-            db_obj.ai_extracted_data["classification"] = classification_metadata
-            print(f"📋 Classification: {invoice_type} (confiance: {classification_confidence:.2f})")
+            # Use a nested transaction (savepoint) so that OCR-specific updates
+            # can be rolled back without deleting the original uploaded record.
+            # This prevents losing the uploaded file record on OCR failures.
+            with db.begin_nested():
+                ocr_data = await ocr_service.process_invoice(file_path, file_content=file_content)
+                print(f"✅ OCR completed. Extracted data: {ocr_data}")
 
-            db_obj.reference_number = ocr_data.get("reference_number")
+                # Classification automatique Achat/Vente
+                from app.services.invoice_classifier import InvoiceClassifier
+                from app.models.document import DocumentType
+                classifier = InvoiceClassifier(db, str(current_user.tenant_id))
+                invoice_type, classification_confidence, classification_metadata = classifier.classify_invoice(ocr_data)
 
-            from datetime import datetime
-            if ocr_data.get("date"):
-                try:
-                    db_obj.document_date = datetime.fromisoformat(str(ocr_data.get("date"))).date()
-                except (ValueError, TypeError) as e:
-                    print(f"⚠️  Date parsing error for 'date': {e}")
-                    db_obj.document_date = None
+                # Mise à jour du type de document
+                if invoice_type == "PURCHASE":
+                    db_obj.type = DocumentType.INVOICE_PURCHASE
+                elif invoice_type == "SALE":
+                    db_obj.type = DocumentType.INVOICE_SALES
 
-            if ocr_data.get("due_date"):
-                try:
-                    db_obj.due_date = datetime.fromisoformat(str(ocr_data.get("due_date"))).date()
-                except (ValueError, TypeError) as e:
-                    print(f"⚠️  Date parsing error for 'due_date': {e}")
-                    db_obj.due_date = None
+                # Stocker les métadonnées de classification
+                if not db_obj.ai_extracted_data:
+                    db_obj.ai_extracted_data = {}
+                db_obj.ai_extracted_data["classification"] = classification_metadata
+                print(f"📋 Classification: {invoice_type} (confiance: {classification_confidence:.2f})")
 
-            db_obj.amount_ht = ocr_data.get("amount_ht")
-            db_obj.amount_vat = ocr_data.get("amount_vat")
-            db_obj.amount_ttc = ocr_data.get("amount_ttc")
-            db_obj.currency = ocr_data.get("currency")
-            db_obj.supplier_name = ocr_data.get("supplier_name")
-            db_obj.ocr_data = ocr_data  # Store full OCR data
-            db_obj.ocr_confidence = ocr_data.get("confidence", 0.0)
-            db_obj.status = DocumentStatus.OCR_COMPLETED
-            
-            print(f"📋 Classification: {invoice_type} | Fournisseur: {ocr_data.get('supplier_name')} | Montant: {ocr_data.get('amount_ttc')}")
+                db_obj.reference_number = ocr_data.get("reference_number")
 
-            print(f"💾 Saving OCR data to database for document {db_obj.id}")
+                from datetime import datetime
+                if ocr_data.get("date"):
+                    try:
+                        db_obj.document_date = datetime.fromisoformat(str(ocr_data.get("date"))).date()
+                    except (ValueError, TypeError) as e:
+                        print(f"⚠️  Date parsing error for 'date': {e}")
+                        db_obj.document_date = None
+
+                if ocr_data.get("due_date"):
+                    try:
+                        db_obj.due_date = datetime.fromisoformat(str(ocr_data.get("due_date"))).date()
+                    except (ValueError, TypeError) as e:
+                        print(f"⚠️  Date parsing error for 'due_date': {e}")
+                        db_obj.due_date = None
+
+                db_obj.amount_ht = ocr_data.get("amount_ht")
+                db_obj.amount_vat = ocr_data.get("amount_vat")
+                db_obj.amount_ttc = ocr_data.get("amount_ttc")
+                db_obj.currency = ocr_data.get("currency")
+                db_obj.supplier_name = ocr_data.get("supplier_name")
+                db_obj.ocr_data = ocr_data  # Store full OCR data
+                db_obj.ocr_confidence = ocr_data.get("confidence", 0.0)
+                db_obj.status = DocumentStatus.OCR_COMPLETED
+
+                print(f"📋 Classification: {invoice_type} | Fournisseur: {ocr_data.get('supplier_name')} | Montant: {ocr_data.get('amount_ttc')}")
+
+                # Flush nested changes; commit below will persist them.
+                db.flush()
+
+            # Commit outer transaction to persist nested updates
             db.commit()
             db.refresh(db_obj)
-            print(f"✅ OCR data saved successfully. Status: {db_obj.status}")
+            print(f"💾 OCR data saved successfully. Status: {db_obj.status}")
 
         except Exception as ocr_error:
             print(f"❌ OCR Error: {ocr_error}")
             import traceback
             traceback.print_exc()
-            db.rollback()  # Rollback en cas d'erreur OCR
-            # Recharger le document et mettre à jour son statut
-            db_obj = db.query(Document).filter(Document.id == db_obj.id).first()
-            if db_obj:
-                db_obj.status = DocumentStatus.UPLOADED
-                db.commit()
-                db.refresh(db_obj)
-            print("⚠️  Document saved with UPLOADED status (OCR failed)")
+            # Rollback nested/outer if needed and keep the uploaded record with
+            # a safe status so it can be retried or inspected.
+            try:
+                db.rollback()
+            except Exception:
+                pass
+
+            # Ensure the initial uploaded document remains and mark as UPLOADED
+            try:
+                safe_obj = db.query(Document).filter(Document.id == db_obj.id).first()
+                if safe_obj:
+                    safe_obj.status = DocumentStatus.UPLOADED
+                    db.add(safe_obj)
+                    db.commit()
+                    db.refresh(safe_obj)
+                    print("⚠️  Document saved with UPLOADED status (OCR failed)")
+            except Exception as e_inner:
+                print(f"⚠️ Failed to set UPLOADED status after OCR failure: {e_inner}")
 
         return db_obj
         
