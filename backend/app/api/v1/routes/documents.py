@@ -984,3 +984,156 @@ def validate_document(
         print(f"📋 Stack trace:\n{error_trace}")
         print(f"📋 Contexte: document_id={document.id}, client_id={document.client_id}, supplier_id={supplier_id}, date={entry_date}")
         raise HTTPException(status_code=500, detail=f"Erreur lors de la comptabilisation: {str(e)}")
+
+
+# ============================================================================
+# ASYNC UPLOAD ENDPOINTS
+# ============================================================================
+
+@router.post("/upload-multipage-async")
+async def upload_multipage_pdf_async(
+    *,
+    db: Session = Depends(deps.get_db_session),
+    file: UploadFile = File(...),
+    current_user: User = Depends(deps.get_current_user),
+    client_id: Optional[UUID] = None,
+    pages_per_document: int = Query(1, ge=1, description="Nombre de pages par document créé"),
+):
+    """
+    Upload un PDF multi-pages en mode ASYNCHRONE.
+    Retourne immédiatement un job_id pour suivre la progression.
+    
+    Idéal pour les gros PDFs (>30 pages) qui risquent de timeout.
+    Le traitement se fait en arrière-plan.
+    """
+    from app.services.ocr_enhanced import enhanced_ocr_service
+    from app.models.upload_job import UploadJob, UploadJobStatus
+    from app.services.async_upload import start_background_job
+    
+    if not file.filename or not file.filename.lower().endswith('.pdf'):
+        raise HTTPException(status_code=400, detail="Seuls les fichiers PDF sont acceptés")
+    
+    try:
+        file_content = await file.read()
+        
+        # Compter les pages
+        page_count = enhanced_ocr_service.get_pdf_page_count(file_content)
+        
+        if page_count == 0:
+            raise HTTPException(status_code=400, detail="Impossible de lire le PDF ou PDF vide")
+        
+        # Limite absolue
+        if page_count > 500:
+            raise HTTPException(
+                status_code=400,
+                detail=f"PDF trop volumineux ({page_count} pages). Maximum: 500 pages."
+            )
+        
+        # Upload le PDF original vers le storage
+        from io import BytesIO
+        from fastapi import UploadFile as FastAPIUploadFile
+        
+        temp_file = FastAPIUploadFile(
+            file=BytesIO(file_content),
+            filename=f"async_job_{file.filename}"
+        )
+        
+        upload_result = await storage_service.upload_file(
+            temp_file,
+            tenant_id=str(current_user.tenant_id)
+        )
+        
+        if isinstance(upload_result, dict):
+            stored_path = upload_result.get('key') or upload_result.get('url')
+        else:
+            stored_path = str(upload_result)
+        
+        # Créer le job
+        job = UploadJob(
+            tenant_id=current_user.tenant_id,
+            user_id=current_user.id,
+            original_filename=file.filename,
+            file_path=stored_path,
+            total_pages=page_count,
+            pages_per_document=pages_per_document,
+            status=UploadJobStatus.PENDING,
+            client_id=client_id,
+        )
+        db.add(job)
+        db.commit()
+        db.refresh(job)
+        
+        # Démarrer le traitement en arrière-plan
+        start_background_job(job.id)
+        
+        return {
+            "success": True,
+            "mode": "async",
+            "job_id": str(job.id),
+            "message": f"Traitement démarré pour {page_count} pages. Utilisez /upload-jobs/{job.id} pour suivre la progression.",
+            "total_pages": page_count,
+            "expected_documents": job.expected_documents,
+            "status_url": f"/api/v1/documents/upload-jobs/{job.id}"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Async upload error: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Erreur lors de la création du job: {str(e)}")
+
+
+@router.get("/upload-jobs/{job_id}")
+async def get_upload_job_status(
+    job_id: UUID,
+    db: Session = Depends(deps.get_db_session),
+    current_user: User = Depends(deps.get_current_user),
+):
+    """
+    Récupère le statut d'un job d'upload async.
+    Utilisez cet endpoint pour le polling de progression.
+    """
+    from app.models.upload_job import UploadJob
+    
+    job = db.query(UploadJob).filter(
+        UploadJob.id == job_id,
+        UploadJob.tenant_id == current_user.tenant_id
+    ).first()
+    
+    if not job:
+        raise HTTPException(status_code=404, detail="Job non trouvé")
+    
+    return job.to_dict()
+
+
+@router.get("/upload-jobs")
+async def list_upload_jobs(
+    db: Session = Depends(deps.get_db_session),
+    current_user: User = Depends(deps.get_current_user),
+    status: Optional[str] = None,
+    limit: int = Query(20, ge=1, le=100),
+):
+    """
+    Liste les jobs d'upload de l'utilisateur.
+    """
+    from app.models.upload_job import UploadJob, UploadJobStatus
+    
+    query = db.query(UploadJob).filter(
+        UploadJob.tenant_id == current_user.tenant_id
+    )
+    
+    if status:
+        try:
+            status_enum = UploadJobStatus(status)
+            query = query.filter(UploadJob.status == status_enum)
+        except ValueError:
+            pass
+    
+    jobs = query.order_by(UploadJob.created_at.desc()).limit(limit).all()
+    
+    return {
+        "jobs": [job.to_dict() for job in jobs],
+        "count": len(jobs)
+    }

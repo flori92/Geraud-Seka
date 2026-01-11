@@ -1,10 +1,23 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { Upload, FileText, Loader2, AlertCircle, File, CheckCircle, X, Eye } from "lucide-react";
+import { Upload, FileText, Loader2, AlertCircle, File, CheckCircle, X, Eye, Clock } from "lucide-react";
 import * as pdfjsLib from 'pdfjs-dist';
 import { API_BASE_URL } from "@/lib/api";
 import { PdfSplitUpload } from "@/components/PdfSplitUpload";
+
+// Seuil pour basculer en mode async (30 documents)
+const ASYNC_THRESHOLD = 30;
+
+interface UploadJob {
+    id: string;
+    status: string;
+    progress_percent: number;
+    successful_documents: number;
+    failed_documents: number;
+    expected_documents: number;
+    errors: any[];
+}
 
 export default function DocumentUploadPage() {
     const router = useRouter();
@@ -17,6 +30,10 @@ export default function DocumentUploadPage() {
     const [showPreview, setShowPreview] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    
+    // Async upload state
+    const [asyncJob, setAsyncJob] = useState<UploadJob | null>(null);
+    const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
 
     // Initialize PDF.js worker
     if (typeof window !== 'undefined' && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
@@ -47,6 +64,45 @@ export default function DocumentUploadPage() {
         }
     };
 
+    // Cleanup polling on unmount
+    useEffect(() => {
+        return () => {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+            }
+        };
+    }, [pollingInterval]);
+
+    // Poll job status
+    const pollJobStatus = async (jobId: string) => {
+        const token = localStorage.getItem("seka_access_token");
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/v1/documents/upload-jobs/${jobId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (response.ok) {
+                const job: UploadJob = await response.json();
+                setAsyncJob(job);
+                
+                if (job.status === 'completed' || job.status === 'partial' || job.status === 'failed') {
+                    if (pollingInterval) {
+                        clearInterval(pollingInterval);
+                        setPollingInterval(null);
+                    }
+                    setUploading(false);
+                    
+                    if (job.status === 'completed' || job.status === 'partial') {
+                        setTimeout(() => {
+                            router.push("/documents/en-attente");
+                        }, 2000);
+                    }
+                }
+            }
+        } catch (err) {
+            console.error("Polling error:", err);
+        }
+    };
+
     const handleUpload = async () => {
         if (!file) return;
 
@@ -57,16 +113,21 @@ export default function DocumentUploadPage() {
             const formData = new FormData();
             formData.append('file', file);
 
+            // Calculer le nombre de documents attendus
+            const expectedDocs = processMode === 'split' ? Math.ceil(pageCount / pagesPerDoc) : 1;
+            const useAsync = processMode === 'split' && expectedDocs > ASYNC_THRESHOLD;
+
             let url = `${API_BASE_URL}/api/v1/documents/`;
 
             if (processMode === 'split' && pageCount > 1) {
-                // If it's a huge PDF treated as single, we still use normal upload
-                // If it is split, use multipage endpoint
-                url = `${API_BASE_URL}/api/v1/documents/upload-multipage?pages_per_document=${pagesPerDoc}`;
+                if (useAsync) {
+                    // Mode asynchrone pour les gros PDFs
+                    url = `${API_BASE_URL}/api/v1/documents/upload-multipage-async?pages_per_document=${pagesPerDoc}`;
+                } else {
+                    // Mode synchrone pour les petits PDFs
+                    url = `${API_BASE_URL}/api/v1/documents/upload-multipage?pages_per_document=${pagesPerDoc}`;
+                }
             }
-
-            // Note: If user selected 'single' for a multi-page PDF, we use standard upload endpoint.
-            // But if pageCount > 1 and processMode is 'single', we just use standard upload.
 
             const response = await fetch(url, {
                 method: 'POST',
@@ -77,7 +138,26 @@ export default function DocumentUploadPage() {
             });
 
             if (response.ok) {
-                router.push("/documents/en-attente");
+                const data = await response.json();
+                
+                if (data.mode === 'async' && data.job_id) {
+                    // Mode async: démarrer le polling
+                    setAsyncJob({
+                        id: data.job_id,
+                        status: 'pending',
+                        progress_percent: 0,
+                        successful_documents: 0,
+                        failed_documents: 0,
+                        expected_documents: data.expected_documents,
+                        errors: []
+                    });
+                    
+                    const interval = setInterval(() => pollJobStatus(data.job_id), 2000);
+                    setPollingInterval(interval);
+                } else {
+                    // Mode sync: rediriger directement
+                    router.push("/documents/en-attente");
+                }
             } else {
                 let errorMessage = "Une erreur est survenue lors de l'upload.";
                 try {
@@ -88,12 +168,12 @@ export default function DocumentUploadPage() {
                     errorMessage = errorText || errorMessage;
                 }
                 alert(`Erreur: ${errorMessage}`);
+                setUploading(false);
             }
 
         } catch (error) {
             console.error("Upload failed", error);
             alert("Erreur lors de l'upload");
-        } finally {
             setUploading(false);
         }
     };
@@ -230,9 +310,49 @@ export default function DocumentUploadPage() {
                                     </div>
                                 )}
 
+                                {/* Progress bar for async jobs */}
+                                {asyncJob && (
+                                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <Clock className="w-4 h-4 text-blue-600 animate-pulse" />
+                                            <span className="text-sm font-medium text-blue-900">
+                                                Traitement en cours...
+                                            </span>
+                                        </div>
+                                        <div className="w-full bg-blue-100 rounded-full h-3 mb-2">
+                                            <div 
+                                                className="bg-blue-600 h-3 rounded-full transition-all duration-500"
+                                                style={{ width: `${asyncJob.progress_percent}%` }}
+                                            />
+                                        </div>
+                                        <div className="flex justify-between text-xs text-blue-700">
+                                            <span>{asyncJob.progress_percent}% complété</span>
+                                            <span>
+                                                {asyncJob.successful_documents}/{asyncJob.expected_documents} documents
+                                            </span>
+                                        </div>
+                                        {asyncJob.status === 'completed' && (
+                                            <p className="text-sm text-green-600 mt-2 flex items-center gap-1">
+                                                <CheckCircle className="w-4 h-4" />
+                                                Terminé ! Redirection...
+                                            </p>
+                                        )}
+                                        {asyncJob.status === 'partial' && (
+                                            <p className="text-sm text-amber-600 mt-2">
+                                                ⚠️ Terminé avec {asyncJob.failed_documents} erreur(s). Redirection...
+                                            </p>
+                                        )}
+                                        {asyncJob.status === 'failed' && (
+                                            <p className="text-sm text-red-600 mt-2">
+                                                ❌ Échec du traitement. {asyncJob.errors?.[0]?.error || 'Erreur inconnue'}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+
                                 <div className="flex gap-3 pt-2">
                                     <button
-                                        onClick={() => { setFile(null); setPageCount(0); }}
+                                        onClick={() => { setFile(null); setPageCount(0); setAsyncJob(null); }}
                                         className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium"
                                         disabled={uploading}
                                     >
@@ -240,11 +360,11 @@ export default function DocumentUploadPage() {
                                     </button>
                                     <button
                                         onClick={handleUpload}
-                                        disabled={uploading}
-                                        className="flex-1 px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#172e4d] text-sm font-medium flex items-center justify-center gap-2"
+                                        disabled={uploading || !!asyncJob}
+                                        className="flex-1 px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#172e4d] text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
                                     >
                                         {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-                                        {uploading ? 'Traitement...' : "Lancer l'extraction"}
+                                        {uploading ? (asyncJob ? 'Traitement...' : 'Envoi...') : "Lancer l'extraction"}
                                     </button>
                                 </div>
                             </div>

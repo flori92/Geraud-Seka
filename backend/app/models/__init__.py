@@ -50,3 +50,4 @@ __all__ = [
     "AccountingRule",
     "DocumentClassification",
 ]
+from app.models.upload_job import UploadJob, UploadJobStatus

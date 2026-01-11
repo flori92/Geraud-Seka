@@ -207,5 +207,24 @@ class StorageService:
                 with open(local_path, 'rb') as f:
                     return f.read()
             raise FileNotFoundError(f"Fichier non trouvé: {key}")
+    
+    def download_file_sync(self, key: str) -> bytes:
+        """Récupère le contenu d'un fichier de manière synchrone (pour les workers)."""
+        if self.use_r2:
+            try:
+                response = self.r2_client.get_object(
+                    Bucket=settings.r2_bucket_name,
+                    Key=key
+                )
+                return response['Body'].read()
+            except ClientError as e:
+                print(f"Erreur lecture R2 sync: {e}")
+                raise
+        else:
+            local_path = os.path.join(self.local_upload_dir, key)
+            if os.path.exists(local_path):
+                with open(local_path, 'rb') as f:
+                    return f.read()
+            raise FileNotFoundError(f"Fichier non trouvé: {key}")
 
 storage_service = StorageService()
