@@ -44,7 +44,7 @@ const settingsCategories: Record<SettingsCategory, { label: string; items: Setti
   general: {
     label: "Général",
     items: [
-      { id: "company", label: "Informations entreprise", description: "Nom, adresse, SIRET, logo", icon: Building2, href: "/settings/company" },
+      { id: "company", label: "Informations entreprise", description: "Nom, adresse, SIRET, logo", icon: Building2, href: "/parametres/entreprise" },
       { id: "notifications", label: "Notifications", description: "Alertes email et push", icon: Bell, href: "/settings/notifications", hasRules: true },
       { id: "appearance", label: "Apparence", description: "Thème et personnalisation", icon: Palette, href: "/settings/appearance" },
       { id: "language", label: "Langue et région", description: "Devise, format de date", icon: Globe, href: "/settings/language" },
@@ -54,11 +54,11 @@ const settingsCategories: Record<SettingsCategory, { label: string; items: Setti
   comptabilite: {
     label: "Comptabilité",
     items: [
-      { id: "chart-of-accounts", label: "Plan comptable", description: "Structure des comptes", icon: BookOpen, href: "/accounting/chart-of-accounts", hasRules: true },
-      { id: "journals", label: "Journaux", description: "Achats, ventes, banque, OD", icon: FileText, href: "/accounting/journals", hasRules: true },
-      { id: "vat-rates", label: "Taux de TVA", description: "Paramétrage des taux", icon: Calculator, href: "/settings/vat-rates", hasRules: true },
+      { id: "chart-of-accounts", label: "Plan comptable", description: "Structure des comptes", icon: BookOpen, href: "/tiers/plan-comptable", hasRules: true },
+      { id: "journals", label: "Journaux", description: "Achats, ventes, banque, OD", icon: FileText, href: "/regles/journaux", hasRules: true },
+      { id: "vat-rates", label: "Taux de TVA", description: "Paramétrage des taux", icon: Calculator, href: "/parametres/tva", hasRules: true },
       { id: "analytics", label: "Familles analytiques", description: "Centres de coûts", icon: Tag, href: "/settings/analytics", hasRules: true },
-      { id: "accounting-rules", label: "Règles comptables", description: "Automatisation des écritures", icon: Zap, href: "/settings/accounting-rules", hasRules: true, badge: "IA" },
+      { id: "accounting-rules", label: "Règles comptables", description: "Automatisation des écritures", icon: Zap, href: "/regles/fournisseurs", hasRules: true, badge: "IA" },
     ],
   },
   facturation: {
@@ -84,7 +84,7 @@ const settingsCategories: Record<SettingsCategory, { label: string; items: Setti
   equipe: {
     label: "Équipe",
     items: [
-      { id: "team", label: "Membres", description: "Utilisateurs et rôles", icon: Users, href: "/settings/team" },
+      { id: "team", label: "Membres", description: "Utilisateurs et rôles", icon: Users, href: "/parametres/utilisateurs" },
       { id: "roles", label: "Rôles et permissions", description: "Droits d'accès", icon: Shield, href: "/settings/roles", hasRules: true },
       { id: "billing", label: "Abonnement", description: "Plan et facturation", icon: CreditCard, href: "/billing" },
     ],
