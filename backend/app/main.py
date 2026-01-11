@@ -23,6 +23,7 @@ def create_application() -> FastAPI:
     
     app = FastAPI(
         title="SEKA API",
+        redirect_slashes=True,
         description="API SEKA - ERP/CRM pour PME Africaines" if is_production else """
         
         API REST complète pour la gestion de la comptabilité, trésorerie, CRM, RH et plus.

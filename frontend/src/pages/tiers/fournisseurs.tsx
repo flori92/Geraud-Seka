@@ -61,7 +61,7 @@ export default function FournisseursPage() {
 
         setLoading(true);
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/suppliers`, {
+            const response = await fetch(`${API_BASE_URL}/api/v1/suppliers/`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
@@ -103,7 +103,7 @@ export default function FournisseursPage() {
         try {
             const url = editingSupplier?.id
                 ? `${API_BASE_URL}/api/v1/suppliers/${editingSupplier.id}`
-                : `${API_BASE_URL}/api/v1/suppliers`;
+                : `${API_BASE_URL}/api/v1/suppliers/`;
             
             const method = editingSupplier?.id ? "PUT" : "POST";
 
