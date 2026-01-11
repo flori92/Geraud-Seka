@@ -4,7 +4,7 @@ import Head from "next/head";
 import { 
     FileText, Filter, Search, CheckSquare, Square, 
     AlertCircle, Clock, CheckCircle, Eye, Trash2,
-    MoreVertical, Download, Upload, Loader2, ChevronRight
+    MoreVertical, Download, Upload, Loader2, ChevronRight, CheckCheck
 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api";
 import { getPendingDocuments, deleteDocument, type Document } from "@/lib/api";
@@ -26,6 +26,7 @@ export default function DocumentsEnAttentePage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [isValidating, setIsValidating] = useState(false);
 
     useEffect(() => {
         fetchDocuments();
@@ -146,6 +147,65 @@ export default function DocumentsEnAttentePage() {
         }
     };
 
+    const handleValidateAll = async () => {
+        const token = localStorage.getItem("seka_access_token");
+        if (!token) return;
+
+        const docsToValidate = documents.filter(d => d.status === 'OCR_COMPLETED' || d.status === 'ocr_completed');
+        if (docsToValidate.length === 0) {
+            alert("Aucun document prêt à valider");
+            return;
+        }
+
+        const confirmed = window.confirm(`Valider ${docsToValidate.length} document(s) prêts à être validés ?`);
+        if (!confirmed) return;
+
+        setIsValidating(true);
+        let successCount = 0;
+        let errorCount = 0;
+
+        try {
+            for (const doc of docsToValidate) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/v1/documents/${doc.id}/validate`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        successCount++;
+                    } else {
+                        errorCount++;
+                    }
+                } catch (err) {
+                    errorCount++;
+                    console.error(`Failed to validate ${doc.id}:`, err);
+                }
+                await new Promise(r => setTimeout(r, 100));
+            }
+
+            if (successCount > 0) {
+                setDocuments(prev => prev.filter(d => 
+                    !(d.status === 'OCR_COMPLETED' || d.status === 'ocr_completed')
+                ));
+            }
+
+            if (errorCount > 0) {
+                alert(`${successCount} document(s) validé(s), ${errorCount} échec(s)`);
+            } else {
+                alert(`${successCount} document(s) validé(s) avec succès !`);
+            }
+        } catch (error) {
+            console.error("Error validating documents:", error);
+            alert("Erreur lors de la validation");
+        } finally {
+            setIsValidating(false);
+        }
+    };
+
     const tabOptions = [
         { id: 'all', label: 'Tous', count: stats.total },
         { id: 'uploaded', label: 'Uploadés', count: stats.uploaded },
@@ -171,6 +231,20 @@ export default function DocumentsEnAttentePage() {
                                 </p>
                             </div>
                             <div className="flex items-center gap-3">
+                                {stats.completed > 0 && (
+                                    <button
+                                        onClick={handleValidateAll}
+                                        disabled={isValidating}
+                                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 text-sm font-medium disabled:opacity-50"
+                                    >
+                                        {isValidating ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                        ) : (
+                                            <CheckCheck className="h-4 w-4" />
+                                        )}
+                                        {isValidating ? "Validation..." : `Valider tout (${stats.completed})`}
+                                    </button>
+                                )}
                                 <button
                                     onClick={() => router.push('/documents/upload')}
                                     className="px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#172e4d] flex items-center gap-2 text-sm font-medium"
