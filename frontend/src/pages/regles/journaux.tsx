@@ -2,7 +2,7 @@
  * Page Gestion des Journaux Comptables
  * ACH, VEN, OD, BQ, CAI...
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
 import { 
@@ -15,15 +15,16 @@ interface Journal {
     code: string;
     name: string;
     type: "ACH" | "VEN" | "BQ" | "CAI" | "OD";
+    is_active?: boolean;
     is_default?: boolean;
 }
 
 const DEFAULT_JOURNALS: Journal[] = [
-    { code: "ACH", name: "Journal des achats", type: "ACH", is_default: true },
-    { code: "VEN", name: "Journal des ventes", type: "VEN", is_default: true },
-    { code: "BQ", name: "Journal de banque", type: "BQ", is_default: true },
-    { code: "CAI", name: "Journal de caisse", type: "CAI", is_default: true },
-    { code: "OD", name: "Journal des opérations diverses", type: "OD", is_default: true },
+    { code: "ACH", name: "Journal des achats", type: "ACH", is_default: true, is_active: true },
+    { code: "VEN", name: "Journal des ventes", type: "VEN", is_default: true, is_active: true },
+    { code: "BQ", name: "Journal de banque", type: "BQ", is_default: true, is_active: true },
+    { code: "CAI", name: "Journal de caisse", type: "CAI", is_default: true, is_active: true },
+    { code: "OD", name: "Journal des opérations diverses", type: "OD", is_default: true, is_active: true },
 ];
 
 export default function JournauxPage() {
@@ -43,15 +44,7 @@ export default function JournauxPage() {
         type: "OD"
     });
 
-    useEffect(() => {
-        fetchJournals();
-    }, []);
-
-    useEffect(() => {
-        applyFilters();
-    }, [journals, searchTerm]);
-
-    const fetchJournals = async () => {
+    const fetchJournals = useCallback(async () => {
         const token = localStorage.getItem("seka_access_token");
         if (!token) {
             router.push("/login");
@@ -66,7 +59,6 @@ export default function JournauxPage() {
 
             if (response.ok) {
                 const data = await response.json();
-                // Merge with defaults
                 const customJournals = Array.isArray(data) ? data : [];
                 const merged = [...DEFAULT_JOURNALS, ...customJournals];
                 setJournals(merged);
@@ -76,9 +68,9 @@ export default function JournauxPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [router]);
 
-    const applyFilters = () => {
+    const applyFilters = useCallback(() => {
         if (!searchTerm) {
             setFilteredJournals(journals);
             return;
@@ -89,7 +81,15 @@ export default function JournauxPage() {
             j.name.toLowerCase().includes(searchTerm.toLowerCase())
         );
         setFilteredJournals(filtered);
-    };
+    }, [journals, searchTerm]);
+
+    useEffect(() => {
+        fetchJournals();
+    }, [fetchJournals]);
+
+    useEffect(() => {
+        applyFilters();
+    }, [applyFilters]);
 
     const handleSave = async () => {
         if (!formData.code || !formData.name) {
@@ -124,8 +124,8 @@ export default function JournauxPage() {
 
             await fetchJournals();
             handleCloseModal();
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Erreur inconnue");
         } finally {
             setSaving(false);
         }
@@ -396,7 +396,7 @@ export default function JournauxPage() {
                                     </label>
                                     <select
                                         value={formData.type || "OD"}
-                                        onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
+                                        onChange={(e) => setFormData({ ...formData, type: e.target.value as Journal["type"] })}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                                     >
                                         <option value="ACH">Achats</option>

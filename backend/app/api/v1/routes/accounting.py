@@ -16,8 +16,7 @@ from app.db.session import get_db
 from app.core.deps import get_current_user, get_current_tenant
 from app.models.user import User
 from app.models.ledger_account import LedgerAccount, AccountType
-from app.models.accounting_advanced import JournalEntry
-from app.models.accounting_advanced import ChartOfAccounts, JournalEntryLine
+from app.models.accounting_advanced import JournalEntry, ChartOfAccounts, JournalEntryLine, AccountingJournal
 
 router = APIRouter()
 
@@ -61,6 +60,25 @@ class JournalEntryResponse(BaseModel):
     amount: float
     reference: str | None
     created_at: str
+    
+    class Config:
+        from_attributes = True
+
+
+class AccountingJournalCreate(BaseModel):
+    code: str
+    name: str
+    type: str
+    is_default: bool = False
+
+
+class AccountingJournalResponse(BaseModel):
+    id: str
+    code: str
+    name: str
+    type: str
+    is_default: bool = False
+    is_active: bool = True
     
     class Config:
         from_attributes = True
@@ -713,3 +731,147 @@ async def get_account_ledger(
     except Exception as e:
         print(f"Error fetching account ledger: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/journals", response_model=List[AccountingJournalResponse])
+def get_accounting_journals(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get all accounting journals for the tenant"""
+    try:
+        journals = db.query(AccountingJournal).filter(
+            AccountingJournal.tenant_id == current_user.tenant_id,
+            AccountingJournal.is_active == True
+        ).order_by(AccountingJournal.code).all()
+
+        return [
+            AccountingJournalResponse(
+                id=str(journal.id),
+                code=journal.code,
+                name=journal.name,
+                type=journal.journal_type,
+                is_active=journal.is_active
+            )
+            for journal in journals
+        ]
+    except Exception as e:
+        print(f"Error fetching journals: {str(e)}")
+        return []
+
+
+@router.post("/journals", response_model=AccountingJournalResponse)
+def create_accounting_journal(
+    journal: AccountingJournalCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Create a new accounting journal"""
+    try:
+        existing = db.query(AccountingJournal).filter(
+            AccountingJournal.tenant_id == current_user.tenant_id,
+            AccountingJournal.code == journal.code
+        ).first()
+        
+        if existing:
+            raise HTTPException(status_code=400, detail="Ce code de journal existe déjà")
+        
+        new_journal = AccountingJournal(
+            tenant_id=current_user.tenant_id,
+            code=journal.code,
+            name=journal.name,
+            journal_type=journal.type,
+            is_active=True
+        )
+        
+        db.add(new_journal)
+        db.commit()
+        db.refresh(new_journal)
+        
+        return AccountingJournalResponse(
+            id=str(new_journal.id),
+            code=new_journal.code,
+            name=new_journal.name,
+            type=new_journal.journal_type,
+            is_active=new_journal.is_active
+        )
+    except Exception as e:
+        db.rollback()
+        print(f"Error creating journal: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur lors de la création du journal: {str(e)}")
+
+
+@router.put("/journals/{journal_id}", response_model=AccountingJournalResponse)
+def update_accounting_journal(
+    journal_id: str,
+    journal: AccountingJournalCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update an accounting journal"""
+    try:
+        existing_journal = db.query(AccountingJournal).filter(
+            AccountingJournal.id == journal_id,
+            AccountingJournal.tenant_id == current_user.tenant_id
+        ).first()
+        
+        if not existing_journal:
+            raise HTTPException(status_code=404, detail="Journal introuvable")
+        
+        duplicate_code = db.query(AccountingJournal).filter(
+            AccountingJournal.tenant_id == current_user.tenant_id,
+            AccountingJournal.code == journal.code,
+            AccountingJournal.id != journal_id
+        ).first()
+        
+        if duplicate_code:
+            raise HTTPException(status_code=400, detail="Ce code de journal existe déjà")
+        
+        existing_journal.code = journal.code
+        existing_journal.name = journal.name
+        existing_journal.journal_type = journal.type
+        
+        db.commit()
+        db.refresh(existing_journal)
+        
+        return AccountingJournalResponse(
+            id=str(existing_journal.id),
+            code=existing_journal.code,
+            name=existing_journal.name,
+            type=existing_journal.journal_type,
+            is_active=existing_journal.is_active
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        print(f"Error updating journal: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur lors de la mise à jour du journal: {str(e)}")
+
+
+@router.delete("/journals/{journal_id}")
+def delete_accounting_journal(
+    journal_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete an accounting journal"""
+    try:
+        journal = db.query(AccountingJournal).filter(
+            AccountingJournal.id == journal_id,
+            AccountingJournal.tenant_id == current_user.tenant_id
+        ).first()
+        
+        if not journal:
+            raise HTTPException(status_code=404, detail="Journal introuvable")
+        
+        db.delete(journal)
+        db.commit()
+        
+        return {"message": "Journal supprimé avec succès"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        print(f"Error deleting journal: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur lors de la suppression du journal: {str(e)}")
