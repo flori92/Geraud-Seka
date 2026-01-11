@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status,
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.api import deps
 from app.models.accounting import AccountingEntry
 from app.models.document import Document, DocumentStatus, DocumentType
 from app.services.invoice_classifier import InvoiceClassifier
