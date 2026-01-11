@@ -234,9 +234,9 @@ async def upload_multipage_pdf(
         # Calculer le nombre de documents à créer
         num_chunks = (page_count + pages_per_document - 1) // pages_per_document
         
-        # Limiter pour éviter les timeouts Cloudflare (max ~30 docs en synchrone)
-        # Chaque doc prend ~3s (upload + OCR), donc 30 docs = ~90s < 100s timeout
-        MAX_SYNC_DOCUMENTS = 30
+        # Limiter pour éviter les timeouts Cloudflare (max ~50 docs en synchrone)
+        # Avec DPI 150 et thread_count=2, chaque doc prend ~1.5-2s, donc 50 docs = ~75-100s
+        MAX_SYNC_DOCUMENTS = 50
         if num_chunks > MAX_SYNC_DOCUMENTS:
             raise HTTPException(
                 status_code=400, 

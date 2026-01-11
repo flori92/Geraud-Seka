@@ -79,8 +79,15 @@ export default function DocumentUploadPage() {
             if (response.ok) {
                 router.push("/documents/en-attente");
             } else {
-                const errorText = await response.text();
-                alert(`Erreur upload: ${errorText}`);
+                let errorMessage = "Une erreur est survenue lors de l'upload.";
+                try {
+                    const errorData = await response.json();
+                    errorMessage = errorData.detail || errorData.error || errorData.message || errorMessage;
+                } catch {
+                    const errorText = await response.text();
+                    errorMessage = errorText || errorMessage;
+                }
+                alert(`Erreur: ${errorMessage}`);
             }
 
         } catch (error) {
@@ -209,6 +216,17 @@ export default function DocumentUploadPage() {
                                                 <span className="text-sm text-gray-700">Traiter comme 1 seule facture</span>
                                             </label>
                                         </div>
+                                        
+                                        {/* Avertissement si trop de documents */}
+                                        {processMode === 'split' && Math.ceil(pageCount / pagesPerDoc) > 50 && (
+                                            <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                                                <p className="text-sm text-amber-800">
+                                                    <strong>⚠️ Attention :</strong> Ce PDF créerait {Math.ceil(pageCount / pagesPerDoc)} documents. 
+                                                    La limite est de 50 documents par upload. 
+                                                    Veuillez augmenter le nombre de pages par facture ou diviser votre PDF.
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 
