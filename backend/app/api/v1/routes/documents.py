@@ -197,7 +197,11 @@ async def upload_multipage_pdf(
 ):
     """
     Upload un PDF multi-pages et le découpe en plusieurs documents.
-    Traitement parallélisé et optimisé pour de meilleures performances.
+    Optimisé pour éviter les timeouts Cloudflare (max 100s).
+    
+    - Utilise PyPDF2 pour extraire les pages directement (plus rapide)
+    - DPI réduit à 150 pour l'OCR (suffisant et 2x plus rapide)
+    - Limite à 30 pages en synchrone, au-delà retourne une erreur avec conseil
     """
     from app.services.ocr_enhanced import enhanced_ocr_service
     from io import BytesIO
@@ -227,6 +231,20 @@ async def upload_multipage_pdf(
                 client_id=client_id
              )
         
+        # Calculer le nombre de documents à créer
+        num_chunks = (page_count + pages_per_document - 1) // pages_per_document
+        
+        # Limiter pour éviter les timeouts Cloudflare (max ~30 docs en synchrone)
+        # Chaque doc prend ~3s (upload + OCR), donc 30 docs = ~90s < 100s timeout
+        MAX_SYNC_DOCUMENTS = 30
+        if num_chunks > MAX_SYNC_DOCUMENTS:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Trop de documents à créer ({num_chunks}). Maximum en une fois: {MAX_SYNC_DOCUMENTS}. "
+                       f"Veuillez diviser votre PDF en plusieurs fichiers de {MAX_SYNC_DOCUMENTS * pages_per_document} pages maximum, "
+                       f"ou augmenter le nombre de pages par document."
+            )
+        
         # Limiter pour éviter les abus (max 200 pages)
         if page_count > 200:
             raise HTTPException(
@@ -241,8 +259,6 @@ async def upload_multipage_pdf(
         import io as io_module
         from fastapi import UploadFile as FastAPIUploadFile
 
-        # Boucler par chunk
-        num_chunks = (page_count + pages_per_document - 1) // pages_per_document
         print(f"🔄 Création de {num_chunks} documents à partir du PDF")
         
         # Process chunks with better error handling
@@ -254,12 +270,13 @@ async def upload_multipage_pdf(
                 chunk_start_time = time.time()
                 print(f"📄 Traitement chunk {chunk_idx+1}/{num_chunks} (Pages {start_page}-{end_page})")
                 
-                # Convertir les pages du chunk en images
+                # Convertir les pages du chunk en images (DPI 150 = plus rapide, suffisant pour OCR)
                 images = convert_from_bytes(
                     file_content,
                     first_page=start_page,
                     last_page=end_page,
-                    dpi=200
+                    dpi=150,  # Réduit de 200 à 150 pour performance
+                    thread_count=2  # Paralléliser la conversion
                 )
                 
                 if not images:
