@@ -1137,3 +1137,46 @@ async def list_upload_jobs(
         "jobs": [job.to_dict() for job in jobs],
         "count": len(jobs)
     }
+
+
+@router.get("/ocr-test")
+async def test_ocr_service(
+    current_user: User = Depends(deps.get_current_user),
+):
+    """Test OCR service configuration and connectivity."""
+    import os
+    from app.services.ocr import ocr_service, GROQ_API_KEY, GROQ_MODEL
+    from app.services.ocr_enhanced import enhanced_ocr_service, VISION_MODEL, VISION_FALLBACK, PROCESSING_MODEL
+    
+    result = {
+        "groq_api_key_configured": bool(GROQ_API_KEY),
+        "groq_api_key_length": len(GROQ_API_KEY) if GROQ_API_KEY else 0,
+        "models": {
+            "basic_model": GROQ_MODEL,
+            "vision_model": VISION_MODEL,
+            "vision_fallback": VISION_FALLBACK,
+            "processing_model": PROCESSING_MODEL,
+        },
+        "use_enhanced": ocr_service.use_enhanced,
+    }
+    
+    if GROQ_API_KEY:
+        import httpx
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(
+                    "https://api.groq.com/openai/v1/models",
+                    headers={"Authorization": f"Bearer {GROQ_API_KEY}"}
+                )
+                if response.status_code == 200:
+                    models_data = response.json()
+                    available_models = [m["id"] for m in models_data.get("data", [])]
+                    result["available_models"] = sorted(available_models)
+                    result["vision_model_valid"] = VISION_MODEL in available_models
+                    result["fallback_model_valid"] = VISION_FALLBACK in available_models
+                else:
+                    result["groq_api_error"] = f"{response.status_code}: {response.text[:200]}"
+        except Exception as e:
+            result["groq_connection_error"] = str(e)
+    
+    return result
