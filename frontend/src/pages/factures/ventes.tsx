@@ -48,22 +48,45 @@ export default function FacturesVentesPage() {
 
         setLoading(true);
         try {
-            const response = await fetch(
+            // D'abord essayer avec le filtre document_type
+            let response = await fetch(
                 `${API_BASE_URL}/api/v1/documents?document_type=INVOICE_SALES`,
                 {
                     headers: { Authorization: `Bearer ${token}` }
                 }
             );
 
-            console.log("Response status:", response.status);
+            console.log("Response status (with filter):", response.status);
+            
+            // Si ça échoue, récupérer tous les documents et filtrer côté client
+            if (!response.ok) {
+                console.log("Filtrage par document_type échoué, récupération de tous les documents...");
+                response = await fetch(
+                    `${API_BASE_URL}/api/v1/documents`,
+                    {
+                        headers: { Authorization: `Bearer ${token}` }
+                    }
+                );
+                
+                console.log("Response status (all documents):", response.status);
+            }
+
             if (response.ok) {
                 const data = await response.json();
-                console.log("Sales invoices data:", data);
+                console.log("Documents data:", data);
                 console.log("Data is array:", Array.isArray(data));
                 console.log("Data length:", data?.length);
-                setDocuments(Array.isArray(data) ? data : []);
+                
+                // Filtrer pour ne garder que les factures de ventes
+                const salesInvoices = Array.isArray(data) 
+                    ? data.filter(doc => doc.type === 'INVOICE_SALES')
+                    : [];
+                
+                console.log("Sales invoices filtered:", salesInvoices.length);
+                setDocuments(salesInvoices);
             } else {
-                console.error("Response not OK:", response.status, await response.text());
+                const errorText = await response.text();
+                console.error("Response not OK:", response.status, errorText);
             }
         } catch (error) {
             console.error("Error fetching sales invoices:", error);
