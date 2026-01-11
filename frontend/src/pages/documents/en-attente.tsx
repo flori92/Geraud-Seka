@@ -113,10 +113,31 @@ export default function DocumentsEnAttentePage() {
         if (!confirmed) return;
 
         setIsDeleting(true);
+        const deletedIds: string[] = [];
+        const errors: string[] = [];
+        
         try {
-            await Promise.all(selectedDocs.map(id => deleteDocument(id, token)));
-            setDocuments(prev => prev.filter(doc => !selectedDocs.includes(doc.id)));
+            // Delete sequentially to avoid rate limiting (429)
+            for (const id of selectedDocs) {
+                try {
+                    await deleteDocument(id, token);
+                    deletedIds.push(id);
+                } catch (err) {
+                    errors.push(id);
+                    console.error(`Failed to delete ${id}:`, err);
+                }
+                // Small delay between requests
+                if (selectedDocs.indexOf(id) < selectedDocs.length - 1) {
+                    await new Promise(r => setTimeout(r, 100));
+                }
+            }
+            
+            setDocuments(prev => prev.filter(doc => !deletedIds.includes(doc.id)));
             setSelectedDocs([]);
+            
+            if (errors.length > 0) {
+                alert(`${deletedIds.length} document(s) supprimé(s), ${errors.length} échec(s)`);
+            }
         } catch (error) {
             console.error("Error deleting documents:", error);
             alert("Erreur lors de la suppression");
