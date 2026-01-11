@@ -12,8 +12,9 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status,
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.core import deps
+from app.models.accounting import AccountingEntry
 from app.models.document import Document, DocumentStatus, DocumentType
+from app.services.invoice_classifier import InvoiceClassifier
 from app.models.user import User
 from app.schemas.document import Document as DocumentSchema
 from app.schemas.document import DocumentCreate, DocumentUpdate
@@ -730,6 +731,33 @@ def validate_document(
     document.status = DocumentStatus.VALIDATED
     document.reference_number = validation_data.reference_number or document.reference_number
     
+    # Classification automatique du type de document si non spécifié
+    if not validation_data.document_type and document.ocr_data and isinstance(document.ocr_data, dict):
+        try:
+            from app.models.tenant import Tenant
+            tenant = db.query(Tenant).filter(Tenant.id == current_user.tenant_id).first()
+            tenant_name = tenant.name if tenant else None
+            
+            classifier = InvoiceClassifier(db, current_user.tenant_id)
+            invoice_type, confidence, metadata = classifier.classify_invoice(document.ocr_data, tenant_name)
+            
+            # Mapper les types du classifier vers les types du modèle
+            type_mapping = {
+                "PURCHASE": "INVOICE_PURCHASE",
+                "SALE": "INVOICE_SALES"
+            }
+            
+            mapped_type = type_mapping.get(invoice_type, "INVOICE_PURCHASE")
+            document.type = DocumentType(mapped_type)
+            
+            print(f"🤖 Classification automatique: {invoice_type} (confiance: {confidence:.2f})")
+            print(f"📋 Métadonnées: {metadata}")
+        except Exception as classify_err:
+            print(f"⚠️ Erreur classification automatique: {classify_err}")
+            # En cas d'erreur, garder le type par défaut
+            pass
+    
+    # Utiliser le type spécifié si fourni
     if validation_data.document_type:
         try:
             document.type = DocumentType(validation_data.document_type)

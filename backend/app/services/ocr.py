@@ -25,6 +25,13 @@ except ImportError:
     USE_ENHANCED = False
     print("⚠️  Service OCR amélioré non disponible, fallback vers service basique")
 
+try:
+    from app.services.invoice_classifier import InvoiceClassifier
+    CLASSIFIER_AVAILABLE = True
+except ImportError:
+    CLASSIFIER_AVAILABLE = False
+    print("⚠️  Service de classification non disponible")
+
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_MODEL = os.getenv("GROQ_MODEL", "meta-llama/llama-4-scout-17b-16e-instruct")
@@ -194,7 +201,7 @@ class GroqOCRService:
 
     def _format_response(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Assure que la réponse respecte le format interne attendu."""
-        return {
+        formatted_data = {
             "reference_number": data.get("reference_number") or "",
             "date": data.get("date") or date.today().isoformat(),
             "due_date": data.get("due_date"),
@@ -202,7 +209,7 @@ class GroqOCRService:
             "amount_vat": float(data.get("amount_vat") or 0.0),
             "amount_ttc": float(data.get("amount_ttc") or 0.0),
             "currency": data.get("currency") or "XOF",
-            "supplier_name": data.get("supplier_name") or "Inconnu",
+            "supplier_name": data.get("supplier_name") or "",
             "supplier_address": data.get("supplier_address") or "",
             "supplier_tax_id": data.get("supplier_tax_id") or "",
             "customer_name": data.get("customer_name") or "",
@@ -214,6 +221,34 @@ class GroqOCRService:
             "source": "groq-llama-vision",
             "is_multi_page": False
         }
+        
+        # Ajouter la classification automatique si disponible
+        if CLASSIFIER_AVAILABLE:
+            try:
+                # Importer ici pour éviter les imports circulaires
+                from app.services.invoice_classifier import InvoiceClassifier
+                
+                # Créer une instance temporaire avec des paramètres par défaut
+                # Note: Cette classification sera affinée lors de la validation avec le bon tenant_id
+                temp_classifier = InvoiceClassifier(None, "temp")
+                invoice_type, confidence, metadata = temp_classifier.classify_invoice(data)
+                
+                # Mapper les types
+                type_mapping = {
+                    "PURCHASE": "INVOICE_PURCHASE",
+                    "SALE": "INVOICE_SALES"
+                }
+                
+                formatted_data["document_type"] = type_mapping.get(invoice_type, "INVOICE_PURCHASE")
+                formatted_data["classification_confidence"] = confidence
+                formatted_data["classification_metadata"] = metadata
+                
+                print(f"🤖 Classification OCR: {invoice_type} (confiance: {confidence:.2f})")
+            except Exception as classify_err:
+                print(f"⚠️ Erreur classification OCR: {classify_err}")
+                formatted_data["document_type"] = "INVOICE_PURCHASE"  # Par défaut
+        
+        return formatted_data
 
 
 ocr_service = GroqOCRService()
