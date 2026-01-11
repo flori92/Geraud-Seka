@@ -15,6 +15,36 @@ from app.services.treasury import TreasuryService
 router = APIRouter()
 
 
+@router.get("/accounts")
+async def get_treasury_accounts(
+    *,
+    db: Session = Depends(deps.get_db_session),
+    current_user: User = Depends(deps.get_current_user),
+    limit: int = Query(200, le=1000, description="Max number of accounts to return")
+):
+    """
+    Get list of bank/treasury accounts for the current tenant.
+    """
+    from app.models.treasury import BankAccount
+    
+    accounts = db.query(BankAccount).filter(
+        BankAccount.tenant_id == current_user.tenant_id
+    ).limit(limit).all()
+    
+    return [
+        {
+            "id": str(acc.id),
+            "name": acc.name,
+            "account_number": acc.account_number,
+            "bank_name": getattr(acc, 'bank_name', None),
+            "balance": getattr(acc, 'balance', 0),
+            "currency": getattr(acc, 'currency', 'FCFA'),
+            "is_active": getattr(acc, 'is_active', True)
+        }
+        for acc in accounts
+    ]
+
+
 @router.get("/cash-flow", response_model=CashFlowSummary)
 def get_cash_flow(
     *,
