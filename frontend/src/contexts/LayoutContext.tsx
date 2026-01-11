@@ -30,8 +30,14 @@ export function LayoutProvider({ children }: { children: ReactNode }) {
             return;
         }
         try {
+            console.log("[LayoutContext] Fetching clients...");
             const clients = await getClients(token);
             console.log("[LayoutContext] Clients loaded:", clients?.length || 0, clients);
+            
+            // Debug: vérifier si "seka demo" est dans la liste
+            const sekaDemo = clients?.find(c => c.name?.toLowerCase().includes('seka demo') || c.slug?.toLowerCase().includes('seka-demo'));
+            console.log("[LayoutContext] 'seka demo' client found:", sekaDemo);
+            
             setAvailableTenants(clients || []);
         } catch (error) {
             console.error("[LayoutContext] Failed to fetch clients", error);

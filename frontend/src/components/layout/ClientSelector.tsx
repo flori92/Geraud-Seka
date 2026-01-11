@@ -1,12 +1,19 @@
 "use client";
 
-import { Fragment } from 'react';
+import { Fragment, useState } from 'react';
 import { Menu, Transition } from '@headlessui/react';
-import { ChevronDown, Check, Building2 } from 'lucide-react';
+import { ChevronDown, Check, Building2, RefreshCw } from 'lucide-react';
 import { useLayout } from '@/contexts/LayoutContext';
 
 export function ClientSelector() {
-    const { currentTenant, setCurrentTenant, availableTenants } = useLayout();
+    const { currentTenant, setCurrentTenant, availableTenants, refreshTenants } = useLayout();
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    const handleRefresh = async () => {
+        setIsRefreshing(true);
+        await refreshTenants();
+        setIsRefreshing(false);
+    };
 
     return (
         <Menu as="div" className="relative inline-block text-left w-full px-4 mb-4">
@@ -33,6 +40,16 @@ export function ClientSelector() {
             >
                 <Menu.Items className="absolute left-4 right-4 z-10 mt-2 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                     <div className="py-1 max-h-60 overflow-y-auto">
+                        <div className="px-4 py-2 border-b border-gray-100">
+                            <button
+                                onClick={handleRefresh}
+                                disabled={isRefreshing}
+                                className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50"
+                            >
+                                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                                {isRefreshing ? 'Actualisation...' : 'Actualiser'}
+                            </button>
+                        </div>
                         {availableTenants.length === 0 ? (
                             <div className="px-4 py-2 text-sm text-gray-500">Aucun client trouvé</div>
                         ) : (
