@@ -46,12 +46,6 @@ class GroqOCRService:
         self.use_enhanced = USE_ENHANCED
 
     async def process_invoice(self, file_path: str, file_content: Optional[bytes] = None, extract_all_pages: bool = True) -> Dict[str, Any]:
-        """
-        Traite une facture avec OCR.
-
-        Utilise automatiquement le service amélioré si disponible,
-        sinon fallback vers le service basique.
-        """
         if not self.api_key:
             raise RuntimeError("GROQ_API_KEY non configurée: impossible d'utiliser l'OCR serveur.")
 
@@ -200,7 +194,6 @@ class GroqOCRService:
         }
 
     def _format_response(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Assure que la réponse respecte le format interne attendu."""
         formatted_data = {
             "reference_number": data.get("reference_number") or "",
             "date": data.get("date") or date.today().isoformat(),
@@ -217,23 +210,18 @@ class GroqOCRService:
             "line_items": data.get("line_items") or [],
             "page_count": 1,
             "raw_text": json.dumps(data),
-            "confidence": 0.9, # Simulé car Groq ne donne pas de confidence
+            "confidence": 0.9,
             "source": "groq-llama-vision",
             "is_multi_page": False
         }
         
-        # Ajouter la classification automatique si disponible
         if CLASSIFIER_AVAILABLE:
             try:
-                # Importer ici pour éviter les imports circulaires
                 from app.services.invoice_classifier import InvoiceClassifier
                 
-                # Créer une instance temporaire avec des paramètres par défaut
-                # Note: Cette classification sera affinée lors de la validation avec le bon tenant_id
                 temp_classifier = InvoiceClassifier(None, "temp")
                 invoice_type, confidence, metadata = temp_classifier.classify_invoice(data)
                 
-                # Mapper les types
                 type_mapping = {
                     "PURCHASE": "INVOICE_PURCHASE",
                     "SALE": "INVOICE_SALES"
@@ -246,7 +234,7 @@ class GroqOCRService:
                 print(f"🤖 Classification OCR: {invoice_type} (confiance: {confidence:.2f})")
             except Exception as classify_err:
                 print(f"⚠️ Erreur classification OCR: {classify_err}")
-                formatted_data["document_type"] = "INVOICE_PURCHASE"  # Par défaut
+                formatted_data["document_type"] = "INVOICE_PURCHASE"
         
         return formatted_data
 
