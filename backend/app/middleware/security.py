@@ -44,12 +44,16 @@ class SecurityMiddleware(BaseHTTPMiddleware):
     def __init__(self, app, environment: str = "production"):
         super().__init__(app)
         self.environment = environment
-        self.rate_limiter = RateLimiter(requests_per_minute=100, requests_per_hour=2000)
+        self.rate_limiter = RateLimiter(requests_per_minute=300, requests_per_hour=5000)
         self.rate_limit_exemptions = {
             "/health",
             "/health/live",
             "/health/ready",
             "/api/v1/auth/login",
+            "/api/v1/auth/me",
+            "/api/v1/notifications",
+            "/api/v1/documents/",
+            "/api/v1/clients/",
         }
         self.sensitive_endpoints = {
             "/api/v1/auth/",
@@ -127,7 +131,8 @@ class SecurityMiddleware(BaseHTTPMiddleware):
             self._add_security_headers(response, request)
             return response
         
-        if path not in self.rate_limit_exemptions:
+        is_exempt = path in self.rate_limit_exemptions or any(path.startswith(ex) for ex in self.rate_limit_exemptions)
+        if not is_exempt:
             is_limited, limit_reason = self.rate_limiter.is_rate_limited(client_id)
             if is_limited:
                 logger.warning(f"⚠️ Rate limited client {client_id}: {limit_reason}")
