@@ -32,8 +32,8 @@ settings = get_settings()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
-VISION_MODEL = os.getenv("GROQ_VISION_MODEL", "meta-llama/llama-4-maverick-17b-128e-instruct")
-VISION_FALLBACK = os.getenv("GROQ_VISION_FALLBACK_MODEL", "meta-llama/llama-4-scout-17b-16e-instruct")
+VISION_MODEL = os.getenv("GROQ_VISION_MODEL", "llama-3.2-90b-vision-preview")
+VISION_FALLBACK = os.getenv("GROQ_VISION_FALLBACK_MODEL", "llama-3.2-11b-vision-preview")
 PROCESSING_MODEL = os.getenv("GROQ_PROCESSING_MODEL", "llama-3.3-70b-versatile")
 
 
