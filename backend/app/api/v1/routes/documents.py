@@ -414,6 +414,8 @@ def read_documents(
     limit: int = 100,
     current_user: User = Depends(deps.get_current_user),
     client_id: Optional[UUID] = None,
+    status: Optional[str] = None,
+    document_type: Optional[str] = None,
 ) -> Any:
     """
     Retrieve documents filtered by tenant.
@@ -423,6 +425,12 @@ def read_documents(
         
         if client_id:
             query = query.filter(Document.client_id == client_id)
+        
+        if status:
+            query = query.filter(Document.status == status)
+        
+        if document_type:
+            query = query.filter(Document.type == document_type)
         
         return query.order_by(Document.created_at.desc()).offset(skip).limit(limit).all()
         
