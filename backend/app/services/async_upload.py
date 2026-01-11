@@ -1,14 +1,9 @@
-"""
-Async PDF Upload Service.
-Handles background processing of large multi-page PDFs.
-"""
 import asyncio
 import logging
 import threading
 from datetime import datetime
-from io import BytesIO
-from typing import Optional
 from uuid import UUID
+import io
 
 from sqlalchemy.orm import Session
 
@@ -19,52 +14,35 @@ from app.services.storage import storage_service
 from app.services.ocr import ocr_service
 
 logger = logging.getLogger(__name__)
-
-# Global dict to track running jobs (in production, use Redis/Celery)
 _running_jobs = {}
 
 
 def process_upload_job_sync(job_id: UUID):
-    """
-    Process an upload job synchronously (runs in a separate thread).
-    This is the worker that processes PDF pages in the background.
-    """
     db = SessionLocal()
     
     try:
         job = db.query(UploadJob).filter(UploadJob.id == job_id).first()
-        if not job:
-            logger.error(f"Job {job_id} not found")
+        if not job or job.status != UploadJobStatus.PENDING:
             return
         
-        if job.status != UploadJobStatus.PENDING:
-            logger.warning(f"Job {job_id} is not pending, status: {job.status}")
-            return
-        
-        # Mark as processing
         job.status = UploadJobStatus.PROCESSING
         job.started_at = datetime.utcnow()
         db.commit()
         
-        logger.info(f"🚀 Starting async processing for job {job_id}: {job.original_filename} ({job.total_pages} pages)")
+        logger.info(f"Starting job {job_id}: {job.original_filename} ({job.total_pages} pages)")
         
-        # Download the PDF from storage
         try:
             pdf_content = storage_service.download_file_sync(job.file_path)
-            if not pdf_content:
-                raise Exception(f"Could not download PDF from {job.file_path}")
         except Exception as e:
             logger.error(f"Failed to download PDF for job {job_id}: {e}")
             job.status = UploadJobStatus.FAILED
-            job.errors = [f"Failed to download PDF: {str(e)}"]
+            job.errors = [f"Download failed: {str(e)}"]
             job.completed_at = datetime.utcnow()
             db.commit()
             return
         
-        # Process the PDF
         from pdf2image import convert_from_bytes
         from fastapi import UploadFile as FastAPIUploadFile
-        import io
         
         created_docs = []
         errors = []
@@ -77,9 +55,6 @@ def process_upload_job_sync(job_id: UUID):
             end_page = min((chunk_idx + 1) * pages_per_doc, total_pages)
             
             try:
-                logger.info(f"📄 Job {job_id}: Processing chunk {chunk_idx+1}/{num_chunks} (pages {start_page}-{end_page})")
-                
-                # Convert pages to images
                 images = convert_from_bytes(
                     pdf_content,
                     first_page=start_page,
@@ -93,7 +68,6 @@ def process_upload_job_sync(job_id: UUID):
                     job.failed_documents += 1
                     continue
                 
-                # Create output file
                 chunk_buffer = io.BytesIO()
                 base_name = job.original_filename.rsplit('.', 1)[0]
                 
@@ -110,7 +84,6 @@ def process_upload_job_sync(job_id: UUID):
                 
                 chunk_buffer.seek(0)
                 
-                # Upload to storage
                 chunk_upload = FastAPIUploadFile(file=chunk_buffer, filename=chunk_filename)
                 upload_result = asyncio.run(
                     storage_service.upload_file(chunk_upload, tenant_id=str(job.tenant_id))
@@ -121,7 +94,6 @@ def process_upload_job_sync(job_id: UUID):
                 else:
                     chunk_file_path = str(upload_result)
                 
-                # Create document record
                 doc = Document(
                     filename=chunk_filename,
                     original_filename=f"{job.original_filename} (pages {start_page}-{end_page})",
@@ -138,7 +110,6 @@ def process_upload_job_sync(job_id: UUID):
                 db.commit()
                 db.refresh(doc)
                 
-                # Run OCR
                 try:
                     chunk_buffer.seek(0)
                     ocr_data = asyncio.run(
@@ -159,7 +130,6 @@ def process_upload_job_sync(job_id: UUID):
                     doc.ocr_data = ocr_data
                     doc.ocr_confidence = ocr_data.get("confidence", 0.0)
                     doc.status = DocumentStatus.OCR_COMPLETED
-                    
                 except Exception as ocr_err:
                     logger.warning(f"OCR failed for chunk {start_page}-{end_page}: {ocr_err}")
                     doc.status = DocumentStatus.UPLOADED
@@ -172,16 +142,13 @@ def process_upload_job_sync(job_id: UUID):
                 job.created_document_ids = created_docs
                 db.commit()
                 
-                logger.info(f"✅ Job {job_id}: Chunk {chunk_idx+1}/{num_chunks} completed - Doc ID: {doc.id}")
-                
             except Exception as chunk_err:
-                logger.error(f"❌ Job {job_id}: Chunk {start_page}-{end_page} failed: {chunk_err}")
+                logger.error(f"Job {job_id}: Chunk {start_page}-{end_page} failed: {chunk_err}")
                 errors.append({"pages": f"{start_page}-{end_page}", "error": str(chunk_err)})
                 job.failed_documents += 1
                 job.errors = errors
                 db.commit()
         
-        # Finalize job
         job.completed_at = datetime.utcnow()
         job.created_document_ids = created_docs
         job.errors = errors
@@ -194,14 +161,10 @@ def process_upload_job_sync(job_id: UUID):
             job.status = UploadJobStatus.FAILED
         
         db.commit()
-        
-        logger.info(f"🎉 Job {job_id} completed: {job.successful_documents} docs created, {job.failed_documents} failed")
+        logger.info(f"Job {job_id} completed: {job.successful_documents} docs, {job.failed_documents} failed")
         
     except Exception as e:
-        logger.error(f"❌ Job {job_id} failed with error: {e}")
-        import traceback
-        traceback.print_exc()
-        
+        logger.error(f"Job {job_id} failed: {e}")
         try:
             job = db.query(UploadJob).filter(UploadJob.id == job_id).first()
             if job:
@@ -213,32 +176,15 @@ def process_upload_job_sync(job_id: UUID):
             pass
     finally:
         db.close()
-        # Remove from running jobs
         if job_id in _running_jobs:
             del _running_jobs[job_id]
 
 
 def start_background_job(job_id: UUID):
-    """Start processing a job in a background thread."""
     if job_id in _running_jobs:
-        logger.warning(f"Job {job_id} is already running")
         return False
     
-    thread = threading.Thread(
-        target=process_upload_job_sync,
-        args=(job_id,),
-        daemon=True
-    )
+    thread = threading.Thread(target=process_upload_job_sync, args=(job_id,), daemon=True)
     _running_jobs[job_id] = thread
     thread.start()
-    
-    logger.info(f"🚀 Started background thread for job {job_id}")
     return True
-
-
-def get_job_status(job_id: UUID, db: Session) -> Optional[dict]:
-    """Get the status of an upload job."""
-    job = db.query(UploadJob).filter(UploadJob.id == job_id).first()
-    if not job:
-        return None
-    return job.to_dict()
