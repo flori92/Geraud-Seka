@@ -43,6 +43,7 @@ from app.api.v1.routes import (
     sales_reminders,
     sales_credit_notes,
     settings_audit,
+    settings,
 )
 
 api_router = APIRouter()
@@ -101,3 +102,4 @@ api_router.include_router(sales_reminders.router, prefix="/sales/reminders", tag
 api_router.include_router(sales_credit_notes.router, prefix="/sales/credit-notes", tags=["sales", "credit-notes"])
 
 api_router.include_router(settings_audit.router, prefix="/settings/audit-trail", tags=["settings", "audit"])
+api_router.include_router(settings.router, prefix="/settings", tags=["settings"])
