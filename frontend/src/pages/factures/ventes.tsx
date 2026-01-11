@@ -48,7 +48,6 @@ export default function FacturesVentesPage() {
 
         setLoading(true);
         try {
-            // D'abord essayer avec le filtre document_type
             let response = await fetch(
                 `${API_BASE_URL}/api/v1/documents?document_type=INVOICE_SALES`,
                 {
@@ -58,7 +57,6 @@ export default function FacturesVentesPage() {
 
             console.log("Response status (with filter):", response.status);
             
-            // Si ça échoue, récupérer tous les documents et filtrer côté client
             if (!response.ok) {
                 console.log("Filtrage par document_type échoué, récupération de tous les documents...");
                 response = await fetch(
@@ -77,7 +75,6 @@ export default function FacturesVentesPage() {
                 console.log("Data is array:", Array.isArray(data));
                 console.log("Data length:", data?.length);
                 
-                // Filtrer pour ne garder que les factures de ventes
                 const salesInvoices = Array.isArray(data) 
                     ? data.filter(doc => doc.type === 'INVOICE_SALES')
                     : [];
