@@ -1,10 +1,7 @@
 import { useState, useEffect } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { PennylaneSidebar } from "@/components/layout/PennylaneSidebar";
 import {
-  Settings2,
-  ChevronDown,
   Loader2,
   AlertCircle,
   Upload
@@ -18,13 +15,9 @@ interface DisplayInvoice {
   emission: string;
   tiers: string;
   numeroFacture: string;
-  numeroCompte: string;
+  montantHT?: number;
+  montantTTC?: number;
   tauxTVA: InvoiceStatus;
-  ajout: string;
-  statutDirigeant: string;
-  source: string;
-  codesAnalytiques: string;
-  categories: string;
   status: string;
   type?: string;
 }
@@ -33,7 +26,6 @@ export default function FacturesFournisseurs() {
   const router = useRouter();
   const [invoices, setInvoices] = useState<DisplayInvoice[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedExercice] = useState("2024");
   const [searchQuery, setSearchQuery] = useState("");
   const [tvaFilter, setTvaFilter] = useState<InvoiceStatus | "all">("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "validee" | "import">("all");
@@ -80,6 +72,7 @@ export default function FacturesFournisseurs() {
           const supplierName = doc.supplier_name || ocrStr("supplier_name");
           const referenceNumber = doc.reference_number || ocrStr("reference_number") || doc.filename;
           const amountHT = doc.amount_ht ?? ocrNum("amount_ht");
+          const amountTTC = doc.amount_ttc ?? ocrNum("amount_ttc");
           const amountVAT = doc.amount_vat ?? ocrNum("amount_vat");
 
           return {
@@ -87,13 +80,9 @@ export default function FacturesFournisseurs() {
             emission: date ? new Date(date).toLocaleDateString("fr-FR") : "-",
             tiers: supplierName || "",
             numeroFacture: referenceNumber,
-            numeroCompte: "6288",
+            montantHT: amountHT,
+            montantTTC: amountTTC,
             tauxTVA: determineTVARate(amountVAT, amountHT),
-            ajout: new Date(doc.created_at).toLocaleDateString("fr-FR"),
-            statutDirigeant: "Validée",
-            source: "",
-            codesAnalytiques: "",
-            categories: "",
             status: doc.status,
             type: doc.type,
           };
@@ -185,15 +174,11 @@ export default function FacturesFournisseurs() {
     if (q) {
       const match =
         inv.tiers.toLowerCase().includes(q) ||
-        inv.numeroFacture.toLowerCase().includes(q) ||
-        inv.numeroCompte.toLowerCase().includes(q);
+        inv.numeroFacture.toLowerCase().includes(q);
       if (!match) return false;
     }
 
     if (tvaFilter !== "all" && inv.tauxTVA !== tvaFilter) return false;
-
-    if (statusFilter === "validee" && inv.statutDirigeant !== "Validée") return false;
-    if (statusFilter === "import" && inv.statutDirigeant === "Validée") return false;
 
     return true;
   });
@@ -294,25 +279,23 @@ export default function FacturesFournisseurs() {
 
                 {/* Ligne de configuration des colonnes (statique) - masquée sur mobile */}
                 <div className="hidden sm:flex items-center gap-2 sm:gap-3 flex-wrap overflow-x-auto pb-1">
-                  <div className="flex items-center gap-2">
-                    <input type="checkbox" className="rounded border-gray-300" />
-                    <span className="text-xs sm:text-sm text-gray-600">N° compte</span>
-                  </div>
-                  <button className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm text-gray-600 hover:bg-gray-50 whitespace-nowrap">
-                    Statut
-                  </button>
                   <button className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm text-gray-600 hover:bg-gray-50 whitespace-nowrap">
                     Émission
                   </button>
                   <button className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm text-gray-600 hover:bg-gray-50 whitespace-nowrap">
-                    Fournisseurs
+                    Fournisseur
+                  </button>
+                  <button className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm text-gray-600 hover:bg-gray-50 whitespace-nowrap">
+                    N° facture
+                  </button>
+                  <button className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm text-gray-600 hover:bg-gray-50 whitespace-nowrap">
+                    Montant HT
                   </button>
                   <button className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm text-gray-600 hover:bg-gray-50 whitespace-nowrap">
                     TVA
                   </button>
-                  <button className="ml-auto flex items-center gap-1.5 text-xs sm:text-sm text-gray-600 hover:text-gray-900">
-                    <Settings2 className="w-4 h-4" />
-                    <span className="hidden md:inline">Personnaliser</span>
+                  <button className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm text-gray-600 hover:bg-gray-50 whitespace-nowrap">
+                    Montant TTC
                   </button>
                 </div>
               </div>
@@ -342,15 +325,11 @@ export default function FacturesFournisseurs() {
                           />
                         </th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Émission</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tiers</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fournisseur</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">N° de facture</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">N° de compte</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Montant HT</th>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Taux TVA</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ajout</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statut dirigeant</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Source</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Codes analytiques</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Catégories</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Montant TTC</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
@@ -371,19 +350,9 @@ export default function FacturesFournisseurs() {
                           <td className="px-4 py-3 text-sm text-gray-900">{inv.emission}</td>
                           <td className="px-4 py-3 text-sm text-gray-900">{inv.tiers || "-"}</td>
                           <td className="px-4 py-3 text-sm text-gray-600">{inv.numeroFacture}</td>
-                          <td className="px-4 py-3 text-sm text-teal-600 font-medium">{inv.numeroCompte}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{inv.montantHT ? `${inv.montantHT.toLocaleString('fr-FR')} €` : "-"}</td>
                           <td className="px-4 py-3">{getTVABadge(inv.tauxTVA)}</td>
-                          <td className="px-4 py-3 text-sm text-gray-500">{inv.ajout}</td>
-                          <td className="px-4 py-3">
-                            {inv.statutDirigeant === "Validée" ? (
-                              <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-medium">Validée</span>
-                            ) : (
-                              <span className="text-sm text-gray-500">{inv.statutDirigeant}</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-500">{inv.source}</td>
-                          <td className="px-4 py-3 text-sm text-gray-500">{inv.codesAnalytiques}</td>
-                          <td className="px-4 py-3 text-sm text-gray-500">{inv.categories}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900 font-medium">{inv.montantTTC ? `${inv.montantTTC.toLocaleString('fr-FR')} €` : "-"}</td>
                         </tr>
                       ))}
                     </tbody>
