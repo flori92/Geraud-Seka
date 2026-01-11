@@ -20,6 +20,245 @@ from app.services.storage import storage_service
 router = APIRouter()
 
 
+# ============================================================================
+# SUPPLIER RULES - Simplified for client requirements
+# ============================================================================
+
+class SupplierRuleCreate(BaseModel):
+    """Règle fournisseur simplifiée pour auto-imputation"""
+    supplier_name: str
+    supplier_code: Optional[str] = None
+    charge_account: str  # Ex: 6061 - Électricité
+    vat_account: str = "4454"  # Par défaut TVA déductible
+    supplier_account: str  # Ex: 401SBEE
+    vat_rate: float = 18  # Taux par défaut Bénin
+    journal_code: str = "ACH"
+    is_active: bool = True
+
+
+class SupplierRuleResponse(BaseModel):
+    id: str
+    supplier_name: str
+    supplier_code: Optional[str]
+    charge_account: str
+    charge_account_label: Optional[str]
+    vat_account: str
+    vat_account_label: Optional[str]
+    supplier_account: str
+    supplier_account_label: Optional[str]
+    vat_rate: float
+    journal_code: str
+    is_active: bool
+
+    class Config:
+        from_attributes = True
+
+
+@router.get("/supplier-rules", response_model=List[SupplierRuleResponse])
+async def list_supplier_rules(
+    current_tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Liste toutes les règles fournisseurs (format simplifié client)"""
+    # On récupère les règles génériques qui correspondent aux fournisseurs
+    rules = db.query(AccountingRule).filter(
+        AccountingRule.tenant_id == current_tenant.id,
+        AccountingRule.is_active == True
+    ).all()
+    
+    # Transformation en format simplifié
+    supplier_rules = []
+    for rule in rules:
+        # Parser les conditions pour extraire supplier_name
+        supplier_name = None
+        for condition in rule.conditions:
+            if condition.get('type') == 'supplier_name':
+                supplier_name = condition.get('value')
+                break
+        
+        if not supplier_name:
+            continue
+            
+        # Parser les actions pour extraire les comptes
+        charge_account = vat_account = supplier_account = None
+        vat_rate = 18
+        journal_code = "ACH"
+        
+        for action in rule.actions:
+            if action.get('type') == 'assign_account':
+                charge_account = action.get('debit_account')
+                supplier_account = action.get('credit_account')
+                vat_account = action.get('vat_account', '4454')
+            elif action.get('type') == 'set_vat_rate':
+                vat_rate = action.get('vat_rate', 18)
+        
+        supplier_rules.append(SupplierRuleResponse(
+            id=str(rule.id),
+            supplier_name=supplier_name,
+            supplier_code=None,
+            charge_account=charge_account or '6061',
+            charge_account_label=None,
+            vat_account=vat_account or '4454',
+            vat_account_label=None,
+            supplier_account=supplier_account or f'401{supplier_name[:4].upper()}',
+            supplier_account_label=None,
+            vat_rate=vat_rate,
+            journal_code=journal_code,
+            is_active=True
+        ))
+    
+    return supplier_rules
+
+
+@router.post("/supplier-rules", response_model=SupplierRuleResponse)
+async def create_supplier_rule(
+    rule_data: SupplierRuleCreate,
+    current_tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Crée une règle fournisseur simplifiée"""
+    # Convertir en format règle générique
+    conditions = [
+        {
+            "type": "supplier_name",
+            "operator": "equals",
+            "value": rule_data.supplier_name
+        }
+    ]
+    
+    actions = [
+        {
+            "type": "assign_account",
+            "debit_account": rule_data.charge_account,
+            "credit_account": rule_data.supplier_account,
+            "vat_account": rule_data.vat_account
+        },
+        {
+            "type": "set_vat_rate",
+            "vat_rate": rule_data.vat_rate
+        }
+    ]
+    
+    rule = AccountingRule(
+        tenant_id=current_tenant.id,
+        name=f"Règle {rule_data.supplier_name}",
+        description=f"Auto-imputation pour {rule_data.supplier_name}",
+        priority=10,
+        conditions=conditions,
+        actions=actions,
+        auto_apply=True,
+        confidence_threshold=0.8,
+        is_active=rule_data.is_active
+    )
+    
+    db.add(rule)
+    db.commit()
+    db.refresh(rule)
+    
+    return SupplierRuleResponse(
+        id=str(rule.id),
+        supplier_name=rule_data.supplier_name,
+        supplier_code=rule_data.supplier_code,
+        charge_account=rule_data.charge_account,
+        charge_account_label=None,
+        vat_account=rule_data.vat_account,
+        vat_account_label=None,
+        supplier_account=rule_data.supplier_account,
+        supplier_account_label=None,
+        vat_rate=rule_data.vat_rate,
+        journal_code=rule_data.journal_code,
+        is_active=rule_data.is_active
+    )
+
+
+@router.put("/supplier-rules/{rule_id}", response_model=SupplierRuleResponse)
+async def update_supplier_rule(
+    rule_id: UUID,
+    rule_data: SupplierRuleCreate,
+    current_tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Modifie une règle fournisseur"""
+    rule = db.query(AccountingRule).filter(
+        AccountingRule.id == rule_id,
+        AccountingRule.tenant_id == current_tenant.id
+    ).first()
+    
+    if not rule:
+        raise HTTPException(status_code=404, detail="Règle non trouvée")
+    
+    # Mettre à jour
+    rule.name = f"Règle {rule_data.supplier_name}"
+    rule.description = f"Auto-imputation pour {rule_data.supplier_name}"
+    rule.conditions = [
+        {
+            "type": "supplier_name",
+            "operator": "equals",
+            "value": rule_data.supplier_name
+        }
+    ]
+    rule.actions = [
+        {
+            "type": "assign_account",
+            "debit_account": rule_data.charge_account,
+            "credit_account": rule_data.supplier_account,
+            "vat_account": rule_data.vat_account
+        },
+        {
+            "type": "set_vat_rate",
+            "vat_rate": rule_data.vat_rate
+        }
+    ]
+    rule.is_active = rule_data.is_active
+    
+    db.commit()
+    db.refresh(rule)
+    
+    return SupplierRuleResponse(
+        id=str(rule.id),
+        supplier_name=rule_data.supplier_name,
+        supplier_code=rule_data.supplier_code,
+        charge_account=rule_data.charge_account,
+        charge_account_label=None,
+        vat_account=rule_data.vat_account,
+        vat_account_label=None,
+        supplier_account=rule_data.supplier_account,
+        supplier_account_label=None,
+        vat_rate=rule_data.vat_rate,
+        journal_code=rule_data.journal_code,
+        is_active=rule_data.is_active
+    )
+
+
+@router.delete("/supplier-rules/{rule_id}")
+async def delete_supplier_rule(
+    rule_id: UUID,
+    current_tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Supprime une règle fournisseur"""
+    rule = db.query(AccountingRule).filter(
+        AccountingRule.id == rule_id,
+        AccountingRule.tenant_id == current_tenant.id
+    ).first()
+    
+    if not rule:
+        raise HTTPException(status_code=404, detail="Règle non trouvée")
+    
+    db.delete(rule)
+    db.commit()
+    
+    return {"message": "Règle supprimée avec succès"}
+
+
+# ============================================================================
+# GENERIC RULES - Existing functionality
+# ============================================================================
+
 class RuleCondition(BaseModel):
     type: str
     operator: str

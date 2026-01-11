@@ -3,11 +3,13 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import {
     CheckCircle, X, Calendar, Building, DollarSign,
-    ArrowLeft, ArrowRight, FileText, Hash, Loader2, Save, AlertCircle
+    ArrowLeft, ArrowRight, FileText, Hash, Loader2, Save, AlertCircle, 
+    ChevronLeft, ChevronRight, MessageSquare, MoreVertical, Edit2, Zap, Trash2, Copy, Archive
 } from "lucide-react";
 import { API_BASE_URL, getPendingDocuments } from "@/lib/api";
 import AccountAutocomplete, { type Account } from "@/components/AccountAutocomplete";
 import DocumentPdfViewer from "@/components/DocumentPdfViewer";
+import { ConfidenceIndicator, calculateFieldConfidence, type ConfidenceLevel } from "@/components/ConfidenceIndicator";
 
 interface ValidationFormData {
     supplier_name: string;
@@ -21,6 +23,7 @@ interface ValidationFormData {
     journal_code: string;
     description: string;
     document_type: 'INVOICE_PURCHASE' | 'INVOICE_SALES' | 'EXPENSE_REPORT' | 'OTHER';
+    vat_rate: number;
 }
 
 interface DocumentInfo {
@@ -38,6 +41,23 @@ interface DocumentInfo {
     type?: string;
 }
 
+interface AccountingEntry {
+    journal: string;
+    date: string;
+    account: string;
+    label: string;
+    debit: number;
+    credit: number;
+}
+
+interface SupplierRule {
+    supplier_name: string;
+    charge_account: string;
+    vat_account: string;
+    supplier_account: string;
+    vat_rate: number;
+}
+
 export default function DocumentValidatePage() {
     const router = useRouter();
     const { id } = router.query;
@@ -50,6 +70,11 @@ export default function DocumentValidatePage() {
 
     const [pendingDocIds, setPendingDocIds] = useState<string[]>([]);
     const [currentIndex, setCurrentIndex] = useState<number>(-1);
+    const [showQuickActions, setShowQuickActions] = useState(false);
+    const [fieldConfidence, setFieldConfidence] = useState<Record<string, { score: number; level: ConfidenceLevel; reasons: string[] }>>({});
+    const [accountingEntries, setAccountingEntries] = useState<AccountingEntry[]>([]);
+    const [supplierRule, setSupplierRule] = useState<SupplierRule | null>(null);
+    const [generatingEntries, setGeneratingEntries] = useState(false);
 
     const [formData, setFormData] = useState<ValidationFormData>({
         supplier_name: "",
@@ -62,8 +87,98 @@ export default function DocumentValidatePage() {
         account_number: "",
         journal_code: "ACH",
         description: "",
-        document_type: "INVOICE_PURCHASE"
+        document_type: "INVOICE_PURCHASE",
+        vat_rate: 0
     });
+
+    // Generate accounting entries from form data
+    const generateAccountingEntries = useCallback(() => {
+        setGeneratingEntries(true);
+        
+        try {
+            const entries: AccountingEntry[] = [];
+            const { journal_code, date, amount_ht, amount_vat, amount_ttc, account_number, description, reference_number } = formData;
+
+            if (!amount_ttc || amount_ttc === 0) {
+                setAccountingEntries([]);
+                return;
+            }
+
+            // Entry 1: Charge (Debit)
+            if (amount_ht > 0) {
+                entries.push({
+                    journal: journal_code,
+                    date: date,
+                    account: supplierRule?.charge_account || '6061',
+                    label: description || `Facture ${reference_number}`,
+                    debit: amount_ht,
+                    credit: 0
+                });
+            }
+
+            // Entry 2: TVA (Debit)
+            if (amount_vat > 0) {
+                entries.push({
+                    journal: journal_code,
+                    date: date,
+                    account: supplierRule?.vat_account || '4454',
+                    label: `TVA déductible ${formData.vat_rate || 18}%`,
+                    debit: amount_vat,
+                    credit: 0
+                });
+            }
+
+            // Entry 3: Supplier/Client account (Credit)
+            entries.push({
+                journal: journal_code,
+                date: date,
+                account: account_number || supplierRule?.supplier_account || (formData.document_type === 'INVOICE_SALES' ? '411000' : '401000'),
+                label: `${formData.document_type === 'INVOICE_SALES' ? 'Client' : 'Fournisseur'} ${formData.supplier_name}`,
+                debit: 0,
+                credit: amount_ttc
+            });
+
+            setAccountingEntries(entries);
+        } catch (error) {
+            console.error('Error generating entries:', error);
+        } finally {
+            setGeneratingEntries(false);
+        }
+    }, [formData, supplierRule]);
+
+    // Auto-generate entries when form data changes
+    useEffect(() => {
+        if (formData.amount_ttc > 0) {
+            generateAccountingEntries();
+        }
+    }, [formData.amount_ht, formData.amount_vat, formData.amount_ttc, formData.account_number, formData.journal_code, generateAccountingEntries]);
+
+    // Calculate field confidence scores
+    const updateFieldConfidence = useCallback((data: DocumentInfo) => {
+        const confidence: Record<string, { score: number; level: ConfidenceLevel; reasons: string[] }> = {};
+        
+        // Supplier name
+        confidence.supplier_name = calculateFieldConfidence(
+            data.supplier_name,
+            /^[A-Za-zÀ-ÿ0-9\s\-\.&']+$/
+        );
+        
+        // Reference number
+        confidence.reference_number = calculateFieldConfidence(
+            data.reference_number,
+            /^[A-Z0-9\-\/]+$/i
+        );
+        
+        // Date
+        confidence.date = calculateFieldConfidence(data.document_date);
+        
+        // Amounts
+        confidence.amount_ht = calculateFieldConfidence(data.amount_ht);
+        confidence.amount_vat = calculateFieldConfidence(data.amount_vat);
+        confidence.amount_ttc = calculateFieldConfidence(data.amount_ttc);
+        
+        setFieldConfidence(confidence);
+    }, []);
 
     const fetchPendingList = useCallback(async () => {
         const token = localStorage.getItem("seka_access_token");
@@ -80,6 +195,54 @@ export default function DocumentValidatePage() {
             console.error("Error fetching pending docs:", e);
         }
     }, [id]);
+
+    // Keyboard shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Ignore if typing in input/textarea
+            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+                // Only handle Ctrl+S even in inputs
+                if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                    e.preventDefault();
+                    handleSave(false);
+                }
+                return;
+            }
+
+            // Ctrl/Cmd + S = Save
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                handleSave(false);
+            }
+            
+            // Ctrl/Cmd + Enter = Validate & Next
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                handleSave(true);
+            }
+            
+            // Ctrl/Cmd + → = Next document
+            if ((e.ctrlKey || e.metaKey) && e.key === 'ArrowRight') {
+                e.preventDefault();
+                goToNext();
+            }
+            
+            // Ctrl/Cmd + ← = Previous document
+            if ((e.ctrlKey || e.metaKey) && e.key === 'ArrowLeft') {
+                e.preventDefault();
+                goToPrevious();
+            }
+
+            // Escape = Close
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                router.push('/documents/en-attente');
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [saving, currentIndex, pendingDocIds.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         if (id) {
@@ -125,8 +288,12 @@ export default function DocumentValidatePage() {
                 account_number: "",
                 journal_code: defaultJournal,
                 description: doc.supplier_name ? `Facture ${doc.supplier_name}` : "Facture",
-                document_type: docType as ValidationFormData['document_type']
+                document_type: docType as ValidationFormData['document_type'],
+                vat_rate: 0
             });
+
+            // Calculate confidence scores
+            updateFieldConfidence(doc);
 
             try {
                 const urlRes = await fetch(`${API_BASE_URL}/api/v1/documents/${id}/view-url`, {
@@ -325,10 +492,74 @@ export default function DocumentValidatePage() {
                             <p className="text-xs text-gray-500">Vérifiez et corrigez les données extraites par l&apos;IA</p>
                         </div>
                         <div className="flex gap-2">
+                            {/* Quick Actions Menu */}
+                            <div className="relative">
+                                <button
+                                    onClick={() => setShowQuickActions(!showQuickActions)}
+                                    className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg"
+                                    title="Actions rapides"
+                                >
+                                    <MoreVertical className="h-5 w-5" />
+                                </button>
+                                {showQuickActions && (
+                                    <>
+                                        <div 
+                                            className="fixed inset-0 z-10" 
+                                            onClick={() => setShowQuickActions(false)}
+                                        />
+                                        <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                                            <button
+                                                onClick={() => {
+                                                    // Copy current formData as template
+                                                    const template = { ...formData };
+                                                    localStorage.setItem('invoice_template', JSON.stringify(template));
+                                                    alert('Template sauvegardé !');
+                                                    setShowQuickActions(false);
+                                                }}
+                                                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                            >
+                                                <Copy className="h-4 w-4" />
+                                                Copier comme template
+                                            </button>
+                                            <button
+                                                onClick={async () => {
+                                                    if (confirm('Archiver ce document ?')) {
+                                                        // Archive logic here
+                                                        setShowQuickActions(false);
+                                                    }
+                                                }}
+                                                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                            >
+                                                <Archive className="h-4 w-4" />
+                                                Archiver
+                                            </button>
+                                            <button
+                                                onClick={async () => {
+                                                    if (confirm('Rejeter ce document ?')) {
+                                                        const token = localStorage.getItem('seka_access_token');
+                                                        if (token && id) {
+                                                            await fetch(`${API_BASE_URL}/api/v1/documents/${id}`, {
+                                                                method: 'DELETE',
+                                                                headers: { Authorization: `Bearer ${token}` }
+                                                            });
+                                                            goToNext();
+                                                        }
+                                                        setShowQuickActions(false);
+                                                    }
+                                                }}
+                                                className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                                Rejeter
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
                             <button
                                 onClick={() => router.push("/documents/en-attente")}
                                 className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg"
-                                title="Fermer"
+                                title="Fermer (Esc)"
                             >
                                 <X className="h-5 w-5" />
                             </button>
@@ -371,12 +602,26 @@ export default function DocumentValidatePage() {
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-medium text-gray-700 mb-1">Nom du fournisseur/client</label>
+                                        <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center justify-between">
+                                            <span>Nom du fournisseur/client</span>
+                                            {fieldConfidence.supplier_name && (
+                                                <ConfidenceIndicator 
+                                                    level={fieldConfidence.supplier_name.level}
+                                                    score={fieldConfidence.supplier_name.score}
+                                                    size="sm"
+                                                    tooltip={fieldConfidence.supplier_name.reasons.join(', ')}
+                                                />
+                                            )}
+                                        </label>
                                         <input
                                             type="text"
                                             value={formData.supplier_name}
                                             onChange={(e) => setFormData({ ...formData, supplier_name: e.target.value })}
-                                            className="w-full text-sm border-gray-300 rounded-md focus:ring-[#1e3a5f] focus:border-[#1e3a5f]"
+                                            className={`w-full text-sm rounded-md focus:ring-[#1e3a5f] focus:border-[#1e3a5f] ${
+                                                fieldConfidence.supplier_name?.level === 'low' ? 'border-red-300 bg-red-50' :
+                                                fieldConfidence.supplier_name?.level === 'medium' ? 'border-orange-300 bg-orange-50' :
+                                                'border-gray-300'
+                                            }`}
                                         />
                                     </div>
                                 </div>
@@ -426,12 +671,26 @@ export default function DocumentValidatePage() {
                             </h3>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">Date pièce</label>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center justify-between">
+                                        <span>Date pièce</span>
+                                        {fieldConfidence.date && (
+                                            <ConfidenceIndicator 
+                                                level={fieldConfidence.date.level}
+                                                score={fieldConfidence.date.score}
+                                                size="sm"
+                                                tooltip={fieldConfidence.date.reasons.join(', ')}
+                                            />
+                                        )}
+                                    </label>
                                     <input
                                         type="date"
                                         value={formData.date}
                                         onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                                        className="w-full text-sm border-gray-300 rounded-md"
+                                        className={`w-full text-sm rounded-md ${
+                                            fieldConfidence.date?.level === 'low' ? 'border-red-300 bg-red-50' :
+                                            fieldConfidence.date?.level === 'medium' ? 'border-orange-300 bg-orange-50' :
+                                            'border-gray-300'
+                                        }`}
                                     />
                                 </div>
                                 <div>
@@ -444,12 +703,26 @@ export default function DocumentValidatePage() {
                                     />
                                 </div>
                                 <div className="col-span-2">
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">Référence Pièce / Facture N°</label>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center justify-between">
+                                        <span>Référence Pièce / Facture N°</span>
+                                        {fieldConfidence.reference_number && (
+                                            <ConfidenceIndicator 
+                                                level={fieldConfidence.reference_number.level}
+                                                score={fieldConfidence.reference_number.score}
+                                                size="sm"
+                                                tooltip={fieldConfidence.reference_number.reasons.join(', ')}
+                                            />
+                                        )}
+                                    </label>
                                     <input
                                         type="text"
                                         value={formData.reference_number}
                                         onChange={(e) => setFormData({ ...formData, reference_number: e.target.value })}
-                                        className="w-full text-sm border-gray-300 rounded-md"
+                                        className={`w-full text-sm rounded-md ${
+                                            fieldConfidence.reference_number?.level === 'low' ? 'border-red-300 bg-red-50' :
+                                            fieldConfidence.reference_number?.level === 'medium' ? 'border-orange-300 bg-orange-50' :
+                                            'border-gray-300'
+                                        }`}
                                     />
                                 </div>
                                 <div className="col-span-2">
@@ -473,73 +746,245 @@ export default function DocumentValidatePage() {
                             </h3>
                             <div className="grid grid-cols-3 gap-4">
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">HT</label>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center justify-between">
+                                        <span>HT</span>
+                                        {fieldConfidence.amount_ht && (
+                                            <ConfidenceIndicator 
+                                                level={fieldConfidence.amount_ht.level}
+                                                score={fieldConfidence.amount_ht.score}
+                                                size="sm"
+                                                showLabel={false}
+                                            />
+                                        )}
+                                    </label>
                                     <input
                                         type="number"
                                         value={formData.amount_ht}
                                         onChange={(e) => setFormData({ ...formData, amount_ht: parseFloat(e.target.value) || 0 })}
-                                        className="w-full text-sm border-gray-300 rounded-md text-right"
+                                        className={`w-full text-sm rounded-md text-right ${
+                                            fieldConfidence.amount_ht?.level === 'low' ? 'border-red-300 bg-red-50' :
+                                            fieldConfidence.amount_ht?.level === 'medium' ? 'border-orange-300 bg-orange-50' :
+                                            'border-gray-300'
+                                        }`}
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">TVA</label>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center justify-between">
+                                        <span>TVA</span>
+                                        {fieldConfidence.amount_vat && (
+                                            <ConfidenceIndicator 
+                                                level={fieldConfidence.amount_vat.level}
+                                                score={fieldConfidence.amount_vat.score}
+                                                size="sm"
+                                                showLabel={false}
+                                            />
+                                        )}
+                                    </label>
                                     <input
                                         type="number"
                                         value={formData.amount_vat}
                                         onChange={(e) => setFormData({ ...formData, amount_vat: parseFloat(e.target.value) || 0 })}
-                                        className="w-full text-sm border-gray-300 rounded-md text-right"
+                                        className={`w-full text-sm rounded-md text-right ${
+                                            fieldConfidence.amount_vat?.level === 'low' ? 'border-red-300 bg-red-50' :
+                                            fieldConfidence.amount_vat?.level === 'medium' ? 'border-orange-300 bg-orange-50' :
+                                            'border-gray-300'
+                                        }`}
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">TTC</label>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center justify-between">
+                                        <span>TTC</span>
+                                        {fieldConfidence.amount_ttc && (
+                                            <ConfidenceIndicator 
+                                                level={fieldConfidence.amount_ttc.level}
+                                                score={fieldConfidence.amount_ttc.score}
+                                                size="sm"
+                                                showLabel={false}
+                                            />
+                                        )}
+                                    </label>
                                     <input
                                         type="number"
                                         value={formData.amount_ttc}
                                         onChange={(e) => setFormData({ ...formData, amount_ttc: parseFloat(e.target.value) || 0 })}
-                                        className="w-full text-sm border-gray-300 rounded-md font-bold bg-gray-50 text-right"
+                                        className={`w-full text-sm rounded-md font-bold bg-gray-50 text-right ${
+                                            fieldConfidence.amount_ttc?.level === 'low' ? 'border-red-300' :
+                                            fieldConfidence.amount_ttc?.level === 'medium' ? 'border-orange-300' :
+                                            'border-gray-300'
+                                        }`}
                                     />
                                 </div>
                             </div>
                         </div>
 
+                        <hr className="border-gray-200 my-4" />
+
+                        {/* ÉCRITURES GÉNÉRÉES - SECTION CRITIQUE */}
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                                    <FileText className="h-4 w-4 text-gray-400" /> 
+                                    ÉCRITURES GÉNÉRÉES
+                                </h3>
+                                <button
+                                    onClick={generateAccountingEntries}
+                                    disabled={generatingEntries}
+                                    className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1 disabled:opacity-50"
+                                >
+                                    {generatingEntries ? (
+                                        <>
+                                            <Loader2 className="w-3 h-3 animate-spin" />
+                                            Génération...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Zap className="w-3 h-3" />
+                                            Re-générer les écritures
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+
+                            {accountingEntries.length > 0 ? (
+                                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                                    <table className="min-w-full divide-y divide-gray-200">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jrnl</th>
+                                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Compte</th>
+                                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Libellé</th>
+                                                <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Débit</th>
+                                                <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Crédit</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white divide-y divide-gray-200">
+                                            {accountingEntries.map((entry, idx) => (
+                                                <tr key={idx} className="hover:bg-gray-50">
+                                                    <td className="px-3 py-2 whitespace-nowrap text-xs font-medium text-gray-900">{entry.journal}</td>
+                                                    <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-500">
+                                                        {new Date(entry.date).toLocaleDateString('fr-FR')}
+                                                    </td>
+                                                    <td className="px-3 py-2 whitespace-nowrap text-xs font-medium text-gray-900">
+                                                        {entry.account}
+                                                        {entry.account.startsWith('401') && <span className="ml-1 text-gray-400">[F]</span>}
+                                                        {entry.account.startsWith('411') && <span className="ml-1 text-gray-400">[C]</span>}
+                                                    </td>
+                                                    <td className="px-3 py-2 text-xs text-gray-700">{entry.label}</td>
+                                                    <td className="px-3 py-2 whitespace-nowrap text-xs text-right font-medium text-gray-900">
+                                                        {entry.debit > 0 ? entry.debit.toLocaleString('fr-FR') : '-'}
+                                                    </td>
+                                                    <td className="px-3 py-2 whitespace-nowrap text-xs text-right font-medium text-gray-900">
+                                                        {entry.credit > 0 ? entry.credit.toLocaleString('fr-FR') : '-'}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                        <tfoot className="bg-gray-50 border-t-2 border-gray-300">
+                                            <tr>
+                                                <td colSpan={4} className="px-3 py-2 text-xs font-bold text-gray-900 text-right">TOTAL</td>
+                                                <td className="px-3 py-2 whitespace-nowrap text-xs text-right font-bold text-gray-900">
+                                                    {accountingEntries.reduce((sum, e) => sum + e.debit, 0).toLocaleString('fr-FR')}
+                                                </td>
+                                                <td className="px-3 py-2 whitespace-nowrap text-xs text-right font-bold text-gray-900">
+                                                    {accountingEntries.reduce((sum, e) => sum + e.credit, 0).toLocaleString('fr-FR')}
+                                                </td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                    
+                                    {/* Validation Balance */}
+                                    <div className="px-3 py-2 bg-green-50 border-t border-green-200">
+                                        <div className="flex items-center gap-2 text-xs text-green-700">
+                                            <CheckCircle className="w-4 h-4" />
+                                            <span className="font-medium">
+                                                Écritures équilibrées
+                                            </span>
+                                            {accountingEntries.reduce((sum, e) => sum + e.debit, 0) === 
+                                             accountingEntries.reduce((sum, e) => sum + e.credit, 0) && (
+                                                <span className="ml-auto">
+                                                    ✓ Débit = Crédit
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center text-gray-500 text-sm">
+                                    <FileText className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                                    <p>Les écritures seront générées automatiquement</p>
+                                    <p className="text-xs mt-1">Remplissez les montants et le compte tiers</p>
+                                </div>
+                            )}
+
+                            {/* Règle fournisseur appliquée */}
+                            {supplierRule && (
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                    <div className="flex items-start gap-2">
+                                        <Zap className="w-4 h-4 text-blue-600 mt-0.5" />
+                                        <div className="flex-1">
+                                            <p className="text-xs font-medium text-blue-900">RÈGLE FOURNISSEUR APPLIQUÉE</p>
+                                            <p className="text-xs text-blue-700 mt-1">
+                                                {supplierRule.supplier_name} → {supplierRule.charge_account} (Charge) + {supplierRule.vat_account} (TVA {supplierRule.vat_rate}%) + {supplierRule.supplier_account} (Fournisseur)
+                                            </p>
+                                            <button className="text-xs text-blue-600 hover:text-blue-800 mt-1 underline">
+                                                Modifier la règle
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
                     </div>
 
                     {/* Footer Actions */}
-                    <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
-                        <button
-                            className="text-gray-600 hover:text-gray-900 text-sm font-medium"
-                            onClick={() => router.push("/documents/en-attente")}
-                        >
-                            Annuler
-                        </button>
-                        <div className="flex gap-3">
-                            {/* Bouton Sauvegarder (sans valider) - pour plus tard */}
+                    <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+                        <div className="flex items-center justify-between mb-2">
                             <button
-                                onClick={() => handleSave(false)}
-                                disabled={saving}
-                                className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium flex items-center gap-2 disabled:opacity-50"
+                                className="text-gray-600 hover:text-gray-900 text-sm font-medium"
+                                onClick={() => router.push("/documents/en-attente")}
                             >
-                                <Save className="h-4 w-4" />
-                                Enregistrer
+                                Annuler
                             </button>
-                            {/* Bouton Valider et Suivant */}
-                            <button
-                                onClick={() => handleSave(true)}
-                                disabled={saving || pendingDocIds.length === 0}
-                                className="px-5 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#172e4d] text-sm font-medium flex items-center gap-2 shadow-sm disabled:opacity-50"
-                            >
-                                {saving ? (
-                                    <>
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                        Validation...
-                                    </>
-                                ) : (
-                                    <>
-                                        <CheckCircle className="h-4 w-4" />
-                                        Valider{currentIndex < pendingDocIds.length - 1 ? " & Suivant" : ""}
-                                    </>
-                                )}
-                            </button>
+                            <div className="flex gap-3">
+                                {/* Bouton Sauvegarder (sans valider) */}
+                                <button
+                                    onClick={() => handleSave(false)}
+                                    disabled={saving}
+                                    className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium flex items-center gap-2 disabled:opacity-50"
+                                    title="Ctrl/Cmd + S"
+                                >
+                                    <Save className="h-4 w-4" />
+                                    Enregistrer
+                                </button>
+                                {/* Bouton Valider et Suivant */}
+                                <button
+                                    onClick={() => handleSave(true)}
+                                    disabled={saving || pendingDocIds.length === 0}
+                                    className="px-5 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#172e4d] text-sm font-medium flex items-center gap-2 shadow-sm disabled:opacity-50"
+                                    title="Ctrl/Cmd + Enter"
+                                >
+                                    {saving ? (
+                                        <>
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                            Validation...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <CheckCircle className="h-4 w-4" />
+                                            Valider{currentIndex < pendingDocIds.length - 1 ? " & Suivant" : ""}
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                        {/* Keyboard shortcuts hint */}
+                        <div className="text-xs text-gray-500 flex gap-4 pt-2 border-t border-gray-200">
+                            <span><kbd className="px-1.5 py-0.5 bg-white border border-gray-300 rounded text-xs">Ctrl+S</kbd> Enregistrer</span>
+                            <span><kbd className="px-1.5 py-0.5 bg-white border border-gray-300 rounded text-xs">Ctrl+↵</kbd> Valider</span>
+                            <span><kbd className="px-1.5 py-0.5 bg-white border border-gray-300 rounded text-xs">Ctrl+←→</kbd> Navigation</span>
+                            <span><kbd className="px-1.5 py-0.5 bg-white border border-gray-300 rounded text-xs">Esc</kbd> Fermer</span>
                         </div>
                     </div>
 

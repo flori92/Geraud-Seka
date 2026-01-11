@@ -1,15 +1,12 @@
 import { useState, useEffect } from "react";
-import Head from "next/head";
 import { useRouter } from "next/router";
-import {
-    Clock,
-    FileText,
-    CheckCircle,
-    Upload,
-    Search,
-    Loader2,
-    ChevronRight
+import Head from "next/head";
+import { 
+    FileText, Filter, Search, CheckSquare, Square, 
+    AlertCircle, Clock, CheckCircle, Eye, Trash2,
+    MoreVertical, Download, Upload, Loader2, ChevronRight
 } from "lucide-react";
+import { API_BASE_URL } from "@/lib/api";
 import { getPendingDocuments, deleteDocument, type Document } from "@/lib/api";
 
 type TabFilter = 'all' | 'uploaded' | 'ocr_processing' | 'ocr_completed';

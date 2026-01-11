@@ -1,5 +1,5 @@
-import { useState, useCallback } from "react";
-import { Upload, FileText, Loader2, AlertCircle, CheckCircle, X, Settings2 } from "lucide-react";
+import { useState, useCallback, useEffect } from "react";
+import { Upload, FileText, Loader2, AlertCircle, CheckCircle, X, Settings2, Eye, Scissors } from "lucide-react";
 import * as pdfjsLib from 'pdfjs-dist';
 
 interface PdfSplitUploadProps {
@@ -17,6 +17,13 @@ interface ProcessedFile {
 
 type SplitMode = "single" | "one_per_page" | "two_per_invoice" | "custom";
 
+interface PagePreview {
+  pageNumber: number;
+  thumbnail: string;
+  selected: boolean;
+  groupIndex: number;
+}
+
 export function PdfSplitUpload({ onUploadComplete, apiPrefix }: PdfSplitUploadProps) {
   const [file, setFile] = useState<File | null>(null);
   const [pageCount, setPageCount] = useState(0);
@@ -24,7 +31,10 @@ export function PdfSplitUpload({ onUploadComplete, apiPrefix }: PdfSplitUploadPr
   const [customPages, setCustomPages] = useState(1);
   const [uploading, setUploading] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pagePreviews, setPagePreviews] = useState<PagePreview[]>([]);
+  const [loadingPreviews, setLoadingPreviews] = useState(false);
 
   const getExpectedInvoices = (): number => {
     if (pageCount === 0) return 0;
@@ -41,6 +51,46 @@ export function PdfSplitUpload({ onUploadComplete, apiPrefix }: PdfSplitUploadPr
         return pageCount;
     }
   };
+
+  const generateThumbnails = useCallback(async (selectedFile: File) => {
+    setLoadingPreviews(true);
+    try {
+      const arrayBuffer = await selectedFile.arrayBuffer();
+      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+      const pdf = await loadingTask.promise;
+      
+      const previews: PagePreview[] = [];
+      const maxPreviewPages = Math.min(pdf.numPages, 20); // Limit to 20 pages for performance
+      
+      for (let i = 1; i <= maxPreviewPages; i++) {
+        const page = await pdf.getPage(i);
+        const viewport = page.getViewport({ scale: 0.3 });
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        
+        await page.render({
+          canvasContext: context!,
+          viewport: viewport
+        }).promise;
+        
+        previews.push({
+          pageNumber: i,
+          thumbnail: canvas.toDataURL(),
+          selected: false,
+          groupIndex: Math.floor((i - 1) / (splitMode === 'one_per_page' ? 1 : splitMode === 'two_per_invoice' ? 2 : customPages))
+        });
+      }
+      
+      setPagePreviews(previews);
+    } catch (err) {
+      console.error("Erreur génération miniatures:", err);
+    } finally {
+      setLoadingPreviews(false);
+    }
+  }, [splitMode, customPages]);
 
   const handleFileSelect = useCallback(async (selectedFile: File) => {
     setFile(selectedFile);
@@ -64,6 +114,13 @@ export function PdfSplitUpload({ onUploadComplete, apiPrefix }: PdfSplitUploadPr
       setPageCount(1);
     }
   }, []);
+
+  // Update previews when split mode changes
+  useEffect(() => {
+    if (file && showPreview && file.type === "application/pdf") {
+      generateThumbnails(file);
+    }
+  }, [file, showPreview, splitMode, customPages, generateThumbnails]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -169,9 +226,18 @@ export function PdfSplitUpload({ onUploadComplete, apiPrefix }: PdfSplitUploadPr
           {/* Split Options for multi-page PDFs */}
           {showOptions && pageCount > 1 && (
             <div className="border border-gray-200 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-4">
-                <Settings2 className="h-4 w-4 text-gray-500" />
-                <span className="text-sm font-medium">Comment voulez-vous le traiter ?</span>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Settings2 className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm font-medium">Comment voulez-vous le traiter ?</span>
+                </div>
+                <button
+                  onClick={() => setShowPreview(!showPreview)}
+                  className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1 px-2 py-1 rounded hover:bg-blue-50"
+                >
+                  <Eye className="w-3 h-3" />
+                  {showPreview ? 'Masquer aperçu' : 'Voir aperçu'}
+                </button>
               </div>
 
               <div className="space-y-3">
@@ -248,6 +314,56 @@ export function PdfSplitUpload({ onUploadComplete, apiPrefix }: PdfSplitUploadPr
                   </div>
                 </label>
               </div>
+
+              {/* Preview Panel */}
+              {showPreview && (
+                <div className="mt-4 border-t border-gray-200 pt-4">
+                  {loadingPreviews ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                      <span className="ml-2 text-sm text-gray-600">Génération des aperçus...</span>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <Scissors className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm font-medium text-gray-700">Aperçu de la découpe</span>
+                      </div>
+                      <div className="grid grid-cols-4 gap-3 max-h-96 overflow-y-auto">
+                        {pagePreviews.map((preview) => {
+                          const colors = ['border-blue-500', 'border-green-500', 'border-orange-500', 'border-purple-500', 'border-pink-500'];
+                          const bgColors = ['bg-blue-50', 'bg-green-50', 'bg-orange-50', 'bg-purple-50', 'bg-pink-50'];
+                          const colorIndex = preview.groupIndex % colors.length;
+                          
+                          return (
+                            <div 
+                              key={preview.pageNumber}
+                              className={`relative border-2 ${colors[colorIndex]} ${bgColors[colorIndex]} rounded-lg p-2 transition-all hover:shadow-md`}
+                            >
+                              <img 
+                                src={preview.thumbnail} 
+                                alt={`Page ${preview.pageNumber}`}
+                                className="w-full h-auto rounded"
+                              />
+                              <div className="absolute top-1 right-1 bg-white px-2 py-0.5 rounded shadow text-xs font-bold">
+                                {preview.pageNumber}
+                              </div>
+                              <div className="text-xs text-center mt-1 font-medium">
+                                Facture #{preview.groupIndex + 1}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {pageCount > 20 && (
+                        <p className="text-xs text-gray-500 text-center mt-2">
+                          Aperçu limité aux 20 premières pages
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

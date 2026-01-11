@@ -1,17 +1,21 @@
 import { useState, useRef } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { Upload, FileText, Loader2, AlertCircle, File, CheckCircle } from "lucide-react";
+import { Upload, FileText, Loader2, AlertCircle, File, CheckCircle, X, Eye } from "lucide-react";
 import * as pdfjsLib from 'pdfjs-dist';
 import { API_BASE_URL } from "@/lib/api";
+import { PdfSplitUpload } from "@/components/PdfSplitUpload";
 
 export default function DocumentUploadPage() {
     const router = useRouter();
     const [file, setFile] = useState<File | null>(null);
     const [pageCount, setPageCount] = useState<number>(0);
     const [uploading, setUploading] = useState(false);
+    const [uploadMode, setUploadMode] = useState<'simple' | 'advanced'>('simple');
     const [processMode, setProcessMode] = useState<'single' | 'split'>('single');
     const [pagesPerDoc, setPagesPerDoc] = useState<number>(1);
+    const [showPreview, setShowPreview] = useState(false);
+    const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Initialize PDF.js worker

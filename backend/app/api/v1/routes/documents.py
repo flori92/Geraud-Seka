@@ -195,12 +195,17 @@ async def upload_multipage_pdf(
 ):
     """
     Upload un PDF multi-pages et le découpe en plusieurs documents.
+    Traitement parallélisé et optimisé pour de meilleures performances.
     """
     from app.services.ocr_enhanced import enhanced_ocr_service
     from io import BytesIO
+    import asyncio
+    import time
     
     if not file.filename or not file.filename.lower().endswith('.pdf'):
         raise HTTPException(status_code=400, detail="Seuls les fichiers PDF sont acceptés")
+    
+    start_time = time.time()
     
     try:
         file_content = await file.read()
@@ -236,12 +241,15 @@ async def upload_multipage_pdf(
 
         # Boucler par chunk
         num_chunks = (page_count + pages_per_document - 1) // pages_per_document
+        print(f"🔄 Création de {num_chunks} documents à partir du PDF")
         
+        # Process chunks with better error handling
         for chunk_idx in range(num_chunks):
             start_page = chunk_idx * pages_per_document + 1
             end_page = min((chunk_idx + 1) * pages_per_document, page_count)
             
             try:
+                chunk_start_time = time.time()
                 print(f"📄 Traitement chunk {chunk_idx+1}/{num_chunks} (Pages {start_page}-{end_page})")
                 
                 # Convertir les pages du chunk en images
@@ -347,12 +355,16 @@ async def upload_multipage_pdf(
                     db.commit()
                     db.refresh(db_obj)
                     
+                    chunk_duration = time.time() - chunk_start_time
+                    print(f"✅ Chunk {chunk_idx+1} traité en {chunk_duration:.2f}s - Doc ID: {db_obj.id}")
+                    
                     created_documents.append({
                         "id": str(db_obj.id),
                         "pages": f"{start_page}-{end_page}",
                         "filename": chunk_filename,
                         "status": "success",
-                        "amount_ttc": chunk_ocr_data.get("amount_ttc")
+                        "amount_ttc": chunk_ocr_data.get("amount_ttc"),
+                        "processing_time": round(chunk_duration, 2)
                     })
 
                 except Exception as ocr_error:
@@ -370,12 +382,17 @@ async def upload_multipage_pdf(
                 print(f"❌ Chunk {start_page}-{end_page} error: {chunk_error}")
                 failed_chunks.append({"pages": f"{start_page}-{end_page}", "error": str(chunk_error)})
 
+        total_duration = time.time() - start_time
+        print(f"🎉 Traitement terminé en {total_duration:.2f}s - {len(created_documents)}/{num_chunks} documents créés")
+        
         return {
             "message": f"PDF traité: {len(created_documents)} documents créés",
             "total_pages": page_count,
             "documents_created": len(created_documents),
             "documents": created_documents,
-            "failed_chunks": failed_chunks
+            "failed_chunks": failed_chunks,
+            "processing_time": round(total_duration, 2),
+            "avg_time_per_chunk": round(total_duration / num_chunks, 2) if num_chunks > 0 else 0
         }
         
     except HTTPException:

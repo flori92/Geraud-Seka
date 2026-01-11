@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Head from "next/head";
-import { Download } from "lucide-react";
+import { Download, FileText, CheckCircle, Calendar, Filter, AlertCircle, Eye } from "lucide-react";
+import { API_BASE_URL } from "@/lib/api";
 
 type ExportFormat = "perfecto" | "saari" | "sage";
 
