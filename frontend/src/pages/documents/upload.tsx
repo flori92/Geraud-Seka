@@ -218,11 +218,11 @@ export default function DocumentUploadPage() {
                                         </div>
                                         
                                         {/* Avertissement si trop de documents */}
-                                        {processMode === 'split' && Math.ceil(pageCount / pagesPerDoc) > 50 && (
+                                        {processMode === 'split' && Math.ceil(pageCount / pagesPerDoc) > 150 && (
                                             <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                                                 <p className="text-sm text-amber-800">
                                                     <strong>⚠️ Attention :</strong> Ce PDF créerait {Math.ceil(pageCount / pagesPerDoc)} documents. 
-                                                    La limite est de 50 documents par upload. 
+                                                    La limite est de 150 documents par upload. 
                                                     Veuillez augmenter le nombre de pages par facture ou diviser votre PDF.
                                                 </p>
                                             </div>
