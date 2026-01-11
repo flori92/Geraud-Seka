@@ -430,9 +430,12 @@ def read_documents(
             query = query.filter(Document.status == status)
         
         if document_type:
+            print(f"Filtering by document_type: {document_type}")
             query = query.filter(Document.type == document_type)
         
-        return query.order_by(Document.created_at.desc()).offset(skip).limit(limit).all()
+        results = query.order_by(Document.created_at.desc()).offset(skip).limit(limit).all()
+        print(f"Found {len(results)} documents with type={document_type}, status={status}")
+        return results
         
     except Exception as e:
         print(f"Error fetching documents: {str(e)}")

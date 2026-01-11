@@ -55,9 +55,15 @@ export default function FacturesVentesPage() {
                 }
             );
 
+            console.log("Response status:", response.status);
             if (response.ok) {
                 const data = await response.json();
+                console.log("Sales invoices data:", data);
+                console.log("Data is array:", Array.isArray(data));
+                console.log("Data length:", data?.length);
                 setDocuments(Array.isArray(data) ? data : []);
+            } else {
+                console.error("Response not OK:", response.status, await response.text());
             }
         } catch (error) {
             console.error("Error fetching sales invoices:", error);
