@@ -287,16 +287,17 @@ class AccountingRuleCreate(BaseModel):
 class AccountingRuleResponse(BaseModel):
     id: str
     name: str
-    description: Optional[str]
-    priority: float
-    conditions: List[dict]
-    actions: List[dict]
-    is_active: bool
-    auto_apply: bool
+    description: Optional[str] = None
+    priority: float = 0.0
+    conditions: List[dict] = []
+    actions: List[dict] = []
+    is_active: bool = True
+    auto_apply: bool = False
     confidence_threshold: float = 0.8
 
     class Config:
         from_attributes = True
+        extra = "ignore"
 
 
 
