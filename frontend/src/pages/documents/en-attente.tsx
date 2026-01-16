@@ -5,7 +5,7 @@ import {
     FileText, Filter, Search, CheckSquare, Square, 
     AlertCircle, Clock, CheckCircle, Eye, Trash2,
     MoreVertical, Download, Upload, Loader2, ChevronRight, CheckCheck,
-    Zap, X
+    Zap, X, AlertTriangle
 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api";
 import { getPendingDocuments, deleteDocument, type Document } from "@/lib/api";
