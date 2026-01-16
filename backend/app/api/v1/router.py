@@ -114,6 +114,9 @@ api_router.include_router(batch_validation.router, prefix="/batch-validation", t
 
 from app.api.v1.routes import accounting_rules_stats
 api_router.include_router(accounting_rules_stats.router, prefix="/accounting-rules", tags=["accounting-rules"])
+
+from app.api.v1.routes import ledger_accounts
+api_router.include_router(ledger_accounts.router, prefix="/ledger-accounts", tags=["ledger-accounts"])
 api_router.include_router(tiers_interconnection.router, prefix="/interconnection", tags=["tiers-interconnection"])
 api_router.include_router(rules_advanced.router, prefix="/rules-advanced", tags=["rules-advanced"])
 api_router.include_router(duplicates.router, prefix="/duplicates", tags=["duplicates"])
