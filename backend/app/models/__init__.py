@@ -3,6 +3,7 @@ try:
     from app.models.document import Document
     from app.models.tenant import Tenant
     from app.models.user import User
+    from app.models.team_invitation import TeamInvitation
     from app.models.activity import Activity
     from app.models.product import Product
 except Exception as e:

@@ -238,3 +238,122 @@ class EmailService:
 
 
 email_service = EmailService()
+
+
+async def send_team_invitation_email(
+    to_email: str,
+    inviter_name: str,
+    company_name: str,
+    invitation_token: str,
+    role: str
+):
+    """Send team invitation email with Resend"""
+    role_names = {
+        "admin": "Administrateur",
+        "manager": "Gestionnaire",
+        "accountant": "Comptable",
+        "viewer": "Lecture seule"
+    }
+    
+    role_label = role_names.get(role, role)
+    accept_url = f"https://app.sekagestion.com/accept-invitation?token={invitation_token}"
+    
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; }}
+            .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+            .header {{ background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }}
+            .content {{ background: #ffffff; padding: 40px; border: 1px solid #e5e7eb; border-top: none; }}
+            .button {{ display: inline-block; background: #1e3a5f; color: white; padding: 14px 32px; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 20px 0; }}
+            .button:hover {{ background: #172e4d; }}
+            .info-box {{ background: #f3f4f6; padding: 20px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #1e3a5f; }}
+            .footer {{ text-align: center; color: #6b7280; font-size: 14px; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; }}
+            .role-badge {{ display: inline-block; background: #dbeafe; color: #1e40af; padding: 4px 12px; border-radius: 12px; font-size: 14px; font-weight: 500; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1 style="margin: 0; font-size: 28px;">🎉 Invitation à rejoindre SEKA</h1>
+            </div>
+            <div class="content">
+                <p style="font-size: 16px;">Bonjour,</p>
+                
+                <p style="font-size: 16px;">
+                    <strong>{inviter_name}</strong> vous invite à rejoindre l'équipe de 
+                    <strong>{company_name}</strong> sur SEKA.
+                </p>
+                
+                <div class="info-box">
+                    <p style="margin: 0; font-size: 15px;">
+                        <strong>🏢 Entreprise :</strong> {company_name}<br>
+                        <strong>👤 Invité par :</strong> {inviter_name}<br>
+                        <strong>🔑 Rôle assigné :</strong> <span class="role-badge">{role_label}</span>
+                    </p>
+                </div>
+                
+                <p style="font-size: 16px;">
+                    SEKA est la plateforme de gestion comptable intelligente qui simplifie 
+                    la comptabilité de votre entreprise avec l'IA.
+                </p>
+                
+                <div style="text-align: center;">
+                    <a href="{accept_url}" class="button">
+                        ✨ Accepter l'invitation
+                    </a>
+                </div>
+                
+                <p style="font-size: 14px; color: #6b7280; margin-top: 30px;">
+                    <strong>Note :</strong> Cette invitation expire dans 7 jours. 
+                    Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :
+                </p>
+                <p style="font-size: 13px; color: #6b7280; word-break: break-all; background: #f9fafb; padding: 10px; border-radius: 4px;">
+                    {accept_url}
+                </p>
+            </div>
+            
+            <div class="footer">
+                <p>
+                    <strong>SEKA</strong> - Gestion comptable intelligente<br>
+                    <a href="https://sekagestion.com" style="color: #1e3a5f;">sekagestion.com</a>
+                </p>
+                <p style="font-size: 12px; color: #9ca3af;">
+                    Vous recevez cet email car {inviter_name} vous a invité à rejoindre {company_name} sur SEKA.
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    text = f"""
+Invitation à rejoindre SEKA
+
+{inviter_name} vous invite à rejoindre l'équipe de {company_name} sur SEKA.
+
+Entreprise : {company_name}
+Invité par : {inviter_name}
+Rôle assigné : {role_label}
+
+Acceptez l'invitation en visitant ce lien :
+{accept_url}
+
+Cette invitation expire dans 7 jours.
+
+---
+SEKA - Gestion comptable intelligente
+https://sekagestion.com
+"""
+    
+    return await email_service.send_email(
+        to=to_email,
+        subject=f"Invitation à rejoindre {company_name} sur SEKA",
+        html=html,
+        text=text
+    )
+
