@@ -769,6 +769,55 @@ export default function ReglesFournisseursPage() {
                             )
                         )}
 
+                        {/* Alert: Suppliers without rules */}
+                        {activeTab === 'rules' && stats.suppliersWithoutRules > 0 && (
+                            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+                                <div className="flex">
+                                    <div className="flex-shrink-0">
+                                        <AlertCircle className="h-5 w-5 text-yellow-400" />
+                                    </div>
+                                    <div className="ml-3 flex-1">
+                                        <h3 className="text-sm font-medium text-yellow-800">
+                                            ⚠️ Fournisseurs sans règle
+                                        </h3>
+                                        <div className="mt-2 text-sm text-yellow-700">
+                                            <p className="mb-2">
+                                                Les factures de ces fournisseurs devront être imputées manuellement :
+                                            </p>
+                                            <ul className="list-disc list-inside space-y-1">
+                                                {suppliers
+                                                    .filter(s => !s.has_active_rule)
+                                                    .slice(0, 5)
+                                                    .map(supplier => (
+                                                        <li key={supplier.id}>
+                                                            <strong>{supplier.name}</strong>
+                                                            {supplier.pending_invoices && supplier.pending_invoices > 0 && (
+                                                                <span className="text-yellow-600"> ({supplier.pending_invoices} facture{supplier.pending_invoices > 1 ? 's' : ''} en attente)</span>
+                                                            )}
+                                                        </li>
+                                                    ))
+                                                }
+                                                {suppliers.filter(s => !s.has_active_rule).length > 5 && (
+                                                    <li className="text-yellow-600">
+                                                        ... et {suppliers.filter(s => !s.has_active_rule).length - 5} autre(s)
+                                                    </li>
+                                                )}
+                                            </ul>
+                                        </div>
+                                        <div className="mt-4">
+                                            <button
+                                                onClick={() => setActiveTab('suppliers')}
+                                                className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 text-sm font-medium"
+                                            >
+                                                <Plus className="h-4 w-4" />
+                                                Créer les règles manquantes
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Footer */}
                         <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
                             <p className="text-sm text-gray-500">

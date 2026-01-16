@@ -29,6 +29,7 @@ from sqlalchemy import and_
 from decimal import Decimal
 
 from app.models.supplier import Supplier
+from app.models.client import Client
 from app.models.accounting_advanced import ChartOfAccounts
 from app.models.accounting_rules import AccountingRule
 from app.models.document import Document, DocumentStatus
@@ -609,6 +610,286 @@ class TiersInterconnectionService:
             rule = self.create_supplier_rule(
                 supplier=supplier,
                 charge_account=charge_account,
+                vat_account=vat_account,
+                vat_rate=vat_rate,
+                journal_code=journal_code,
+                ocr_keywords=ocr_keywords
+            )
+            result["rule"] = rule
+        
+        return result
+    
+    # =========================================================================
+    # GESTION DES CLIENTS (TIERS DE TYPE CLIENT)
+    # =========================================================================
+    
+    def create_client_auxiliary_account(
+        self,
+        client: Client,
+        collective_account_code: str = "411"
+    ) -> ChartOfAccounts:
+        """
+        Crée automatiquement un compte auxiliaire pour un client.
+        
+        Exemple: Pour le client "Entreprise ABC", crée le compte 411CLI01
+        
+        Args:
+            client: Le client pour lequel créer le compte
+            collective_account_code: Le compte collectif parent (défaut: 411)
+            
+        Returns:
+            Le compte auxiliaire créé
+        """
+        # Générer le code du compte auxiliaire
+        auxiliary_code = client.generate_auxiliary_code()
+        
+        # Vérifier si le compte existe déjà
+        existing = self.db.query(ChartOfAccounts).filter(
+            and_(
+                ChartOfAccounts.tenant_id == self.tenant_id,
+                ChartOfAccounts.account_number == auxiliary_code
+            )
+        ).first()
+        
+        if existing:
+            return existing
+        
+        # Trouver le compte collectif parent
+        parent_account = self.db.query(ChartOfAccounts).filter(
+            and_(
+                ChartOfAccounts.tenant_id == self.tenant_id,
+                ChartOfAccounts.account_number == collective_account_code
+            )
+        ).first()
+        
+        # Créer le compte auxiliaire
+        auxiliary_account = ChartOfAccounts(
+            tenant_id=self.tenant_id,
+            account_number=auxiliary_code,
+            name=f"Client {client.name}",
+            description=f"Compte auxiliaire pour {client.name}",
+            account_class="4",  # Classe 4 - Tiers
+            account_type="asset",  # Actif (client = créance)
+            parent_id=parent_account.id if parent_account else None,
+            level=3,  # Niveau détail
+            is_group=False,
+            is_detail=True,
+            is_auxiliary=True,
+            is_collective=False,
+            linked_customer_id=client.id,
+            collective_parent_code=collective_account_code,
+            is_active=True,
+            is_reconcilable=True,  # Lettrable
+        )
+        
+        self.db.add(auxiliary_account)
+        self.db.flush()
+        
+        # Mettre à jour le client avec la référence au compte
+        client.auxiliary_account_id = auxiliary_account.id
+        client.auxiliary_account_code = auxiliary_code
+        
+        return auxiliary_account
+    
+    def get_or_create_client_auxiliary_account(
+        self,
+        client: Client
+    ) -> ChartOfAccounts:
+        """
+        Récupère ou crée le compte auxiliaire d'un client.
+        """
+        if client.auxiliary_account_id:
+            account = self.db.query(ChartOfAccounts).filter(
+                ChartOfAccounts.id == client.auxiliary_account_id
+            ).first()
+            if account:
+                return account
+        
+        return self.create_client_auxiliary_account(client)
+    
+    def create_client_rule(
+        self,
+        client: Client,
+        revenue_account: str,
+        vat_account: str = "4457",
+        vat_rate: float = 18.0,
+        journal_code: str = "VTE",
+        ocr_keywords: List[str] = None
+    ) -> AccountingRule:
+        """
+        Crée une règle d'imputation pour un client (factures de vente).
+        
+        La règle définit:
+        - Le compte de produit (crédit): ex. 701 pour ventes de marchandises
+        - Le compte TVA (crédit): ex. 4457 TVA collectée
+        - Le compte client (débit): ex. 411CLI01
+        
+        Args:
+            client: Le client
+            revenue_account: Le compte de produit (701, 706, etc.)
+            vat_account: Le compte TVA (défaut: 4457)
+            vat_rate: Le taux de TVA (défaut: 18%)
+            journal_code: Le code journal (défaut: VTE)
+            ocr_keywords: Mots-clés pour reconnaissance OCR
+            
+        Returns:
+            La règle créée
+        """
+        # S'assurer que le compte auxiliaire existe
+        auxiliary_account = self.get_or_create_client_auxiliary_account(client)
+        
+        # Construire les conditions
+        keywords = ocr_keywords or [client.name]
+        if client.code:
+            keywords.append(client.code)
+        
+        conditions = [
+            {
+                "type": "customer_name",
+                "operator": "contains",
+                "value": client.name
+            }
+        ]
+        
+        # Ajouter les mots-clés OCR comme conditions alternatives
+        if len(keywords) > 1:
+            for keyword in keywords[1:]:
+                conditions.append({
+                    "type": "description_contains",
+                    "operator": "contains",
+                    "value": keyword
+                })
+        
+        # Construire les actions (inversé par rapport au fournisseur)
+        actions = [
+            {
+                "type": "assign_account",
+                "debit_account": auxiliary_account.account_number,  # Client au débit
+                "credit_account": revenue_account,  # Produit au crédit
+                "vat_account": vat_account
+            },
+            {
+                "type": "set_vat_rate",
+                "vat_rate": vat_rate
+            },
+            {
+                "type": "suggest_label",
+                "label_template": f"Facture client {{customer_name}} - {{reference_number}}"
+            }
+        ]
+        
+        # Créer la règle
+        rule = AccountingRule(
+            tenant_id=self.tenant_id,
+            name=f"Règle {client.name}",
+            description=f"Auto-imputation pour les factures client {client.name}",
+            priority=10,
+            conditions=conditions,
+            actions=actions,
+            auto_apply=True,
+            confidence_threshold=0.7,
+            is_active=True
+        )
+        
+        self.db.add(rule)
+        self.db.flush()
+        
+        # Mettre à jour le client
+        client.default_rule_id = rule.id
+        client.has_active_rule = True
+        client.default_revenue_account = revenue_account
+        client.default_vat_account = vat_account
+        client.default_tax_rate = Decimal(str(vat_rate))
+        client.default_journal = journal_code
+        client.ocr_keywords = keywords
+        
+        return rule
+    
+    def create_client_with_interconnection(
+        self,
+        name: str,
+        code: str = None,
+        slug: str = None,
+        sector: str = None,
+        nif: str = None,
+        rccm: str = None,
+        contact_name: str = None,
+        email: str = None,
+        phone: str = None,
+        address: str = None,
+        create_auxiliary_account: bool = True,
+        create_rule: bool = False,
+        revenue_account: str = None,
+        vat_account: str = "4457",
+        vat_rate: float = 18.0,
+        journal_code: str = "VTE",
+        ocr_keywords: List[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Crée un client avec toute l'interconnexion.
+        
+        Ce qui se passe:
+        1. Création du client dans la table Client
+        2. (Optionnel) Création du compte auxiliaire 411XXX
+        3. (Optionnel) Création de la règle d'imputation
+        
+        Args:
+            name: Nom du client
+            code: Code court (ex: CLI01)
+            create_auxiliary_account: Créer le compte auxiliaire
+            create_rule: Créer une règle d'imputation
+            revenue_account: Compte de produit si règle
+            
+        Returns:
+            Dict avec client, compte auxiliaire et règle
+        """
+        # Générer le code si non fourni
+        if not code:
+            code = f"CLI{name[:4].upper().replace(' ', '')}"
+        
+        # Générer le slug si non fourni
+        if not slug:
+            slug = name.lower().replace(" ", "-")
+        
+        # 1. Créer le client
+        client = Client(
+            tenant_id=self.tenant_id,
+            code=code,
+            name=name,
+            slug=slug,
+            sector=sector,
+            nif=nif,
+            rccm=rccm,
+            contact_name=contact_name,
+            email=email,
+            phone=phone,
+            address=address,
+            collective_account_code="411",
+            default_vat_account=vat_account,
+            default_tax_rate=Decimal(str(vat_rate)),
+            default_journal=journal_code,
+            ocr_keywords=ocr_keywords or [name, code]
+        )
+        
+        self.db.add(client)
+        self.db.flush()
+        
+        result = {
+            "client": client,
+            "auxiliary_account": None,
+            "rule": None
+        }
+        
+        # 2. Créer le compte auxiliaire
+        if create_auxiliary_account:
+            auxiliary_account = self.create_client_auxiliary_account(client)
+            result["auxiliary_account"] = auxiliary_account
+        
+        # 3. Créer la règle d'imputation
+        if create_rule and revenue_account:
+            rule = self.create_client_rule(
+                client=client,
+                revenue_account=revenue_account,
                 vat_account=vat_account,
                 vat_rate=vat_rate,
                 journal_code=journal_code,

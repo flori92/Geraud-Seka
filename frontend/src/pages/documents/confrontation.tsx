@@ -16,6 +16,7 @@ import {
     Eye, Download, ChevronDown
 } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api';
+import DocumentPdfViewer from '@/components/DocumentPdfViewer';
 
 interface DocumentInfo {
     id: string;
@@ -233,18 +234,17 @@ export default function ConfrontationPage() {
                                         </h2>
                                         <p className="text-sm text-orange-100">Vient d'être uploadée</p>
                                     </div>
-                                    <div className="h-96 bg-gray-200 flex items-center justify-center">
+                                    <div className="h-[600px] bg-gray-100">
                                         {comparison.document_1.file_url ? (
-                                            <iframe
-                                                src={comparison.document_1.file_url}
-                                                className="w-full h-full"
-                                                title="Nouvelle facture"
+                                            <DocumentPdfViewer
+                                                url={comparison.document_1.file_url}
+                                                enableTextSelection={true}
                                             />
                                         ) : (
-                                            <div className="text-center text-gray-500">
-                                                <FileText className="h-16 w-16 mx-auto mb-2" />
-                                                <p>Aperçu non disponible</p>
-                                                <p className="text-sm">{comparison.document_1.filename}</p>
+                                            <div className="h-full flex flex-col items-center justify-center text-gray-500">
+                                                <FileText className="h-16 w-16 mb-4 text-gray-400" />
+                                                <p className="text-lg font-medium">Document non disponible</p>
+                                                <p className="text-sm mt-2">{comparison.document_1.filename || 'Fichier introuvable'}</p>
                                             </div>
                                         )}
                                     </div>
@@ -263,18 +263,17 @@ export default function ConfrontationPage() {
                                         </h2>
                                         <p className="text-sm text-blue-100">Déjà dans le système</p>
                                     </div>
-                                    <div className="h-96 bg-gray-200 flex items-center justify-center">
+                                    <div className="h-[600px] bg-gray-100">
                                         {comparison.document_2.file_url ? (
-                                            <iframe
-                                                src={comparison.document_2.file_url}
-                                                className="w-full h-full"
-                                                title="Facture existante"
+                                            <DocumentPdfViewer
+                                                url={comparison.document_2.file_url}
+                                                enableTextSelection={true}
                                             />
                                         ) : (
-                                            <div className="text-center text-gray-500">
-                                                <FileText className="h-16 w-16 mx-auto mb-2" />
-                                                <p>Aperçu non disponible</p>
-                                                <p className="text-sm">{comparison.document_2.filename}</p>
+                                            <div className="h-full flex flex-col items-center justify-center text-gray-500">
+                                                <FileText className="h-16 w-16 mb-4 text-gray-400" />
+                                                <p className="text-lg font-medium">Document non disponible</p>
+                                                <p className="text-sm mt-2">{comparison.document_2.filename || 'Fichier introuvable'}</p>
                                             </div>
                                         )}
                                     </div>

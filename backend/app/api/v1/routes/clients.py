@@ -11,6 +11,7 @@ from app.models.client import Client
 from app.models.user import User
 from app.models.sales_invoice import SalesInvoice
 from app.schemas import client as client_schema
+from app.services.tiers_interconnection import TiersInterconnectionService
 from pydantic import BaseModel
 
 router = APIRouter()
@@ -239,45 +240,165 @@ async def get_clients_balance_stats(
         }
 
 
-@router.get("/", response_model=List[client_schema.Client])
+@router.get("/", response_model=List[dict])
 def read_clients(
     db: Session = Depends(deps.get_db_session),
     skip: int = 0,
     limit: int = 100,
+    search: Optional[str] = Query(None),
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
     """
-    Retrieve clients.
+    Retrieve clients with auxiliary account information.
     """
-    clients = (
-        db.query(Client)
-        .filter(Client.tenant_id == current_user.tenant_id)
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
-    return clients
+    query = db.query(Client).filter(Client.tenant_id == current_user.tenant_id)
+    
+    # Search filter
+    if search:
+        search_filter = f"%{search}%"
+        query = query.filter(
+            (Client.name.ilike(search_filter)) |
+            (Client.code.ilike(search_filter)) |
+            (Client.auxiliary_account_code.ilike(search_filter))
+        )
+    
+    clients = query.offset(skip).limit(limit).all()
+    
+    # Return with auxiliary account info
+    return [
+        {
+            "id": str(client.id),
+            "name": client.name,
+            "slug": client.slug,
+            "code": getattr(client, 'code', None),
+            "sector": client.sector,
+            "auxiliary_account_code": getattr(client, 'auxiliary_account_code', None),
+            "has_active_rule": getattr(client, 'has_active_rule', False),
+            "default_revenue_account": getattr(client, 'default_revenue_account', None),
+            "default_vat_account": getattr(client, 'default_vat_account', None),
+            "default_tax_rate": float(getattr(client, 'default_tax_rate', 0) or 0),
+            "contact_name": getattr(client, 'contact_name', None),
+            "email": getattr(client, 'email', None),
+            "phone": getattr(client, 'phone', None),
+            "address": getattr(client, 'address', None),
+        }
+        for client in clients
+    ]
 
-@router.post("/", response_model=client_schema.Client)
+
+class ClientCreateExtended(BaseModel):
+    """Extended client creation with interconnection support"""
+    name: str
+    slug: Optional[str] = None
+    code: Optional[str] = None
+    sector: Optional[str] = None
+    nif: Optional[str] = None
+    rccm: Optional[str] = None
+    contact_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    country: Optional[str] = "Bénin"
+    
+    # Interconnection options
+    create_auxiliary_account: bool = True
+    create_rule: bool = False
+    revenue_account: Optional[str] = None  # 701, 706, etc.
+    vat_account: Optional[str] = "4457"
+    vat_rate: Optional[float] = 18.0
+    journal_code: Optional[str] = "VTE"
+    ocr_keywords: Optional[List[str]] = None
+
+
+@router.post("/", response_model=dict)
 def create_client(
     *,
     db: Session = Depends(deps.get_db_session),
-    client_in: client_schema.ClientCreate,
+    client_in: ClientCreateExtended,
     current_user: User = Depends(deps.get_current_user),
 ) -> Any:
     """
-    Create new client.
+    Create new client with optional auxiliary account and rule.
+    
+    Options d'interconnexion:
+    - create_auxiliary_account: Crée automatiquement un compte 411XXX
+    - create_rule: Crée une règle d'imputation pour les factures de vente
+    
+    Exemple:
+    {
+        "name": "Entreprise ABC",
+        "code": "CLI01",
+        "create_auxiliary_account": true,
+        "create_rule": true,
+        "revenue_account": "701",
+        "ocr_keywords": ["ABC", "Entreprise ABC SA"]
+    }
     """
-    client = Client(
-        name=client_in.name,
-        slug=client_in.slug,
-        sector=client_in.sector,
-        tenant_id=current_user.tenant_id,
-    )
-    db.add(client)
-    db.commit()
-    db.refresh(client)
-    return client
+    try:
+        # Use interconnection service if advanced features requested
+        if client_in.create_auxiliary_account or client_in.create_rule:
+            service = TiersInterconnectionService(db, str(current_user.tenant_id))
+            
+            result = service.create_client_with_interconnection(
+                name=client_in.name,
+                code=client_in.code,
+                slug=client_in.slug,
+                sector=client_in.sector,
+                nif=client_in.nif,
+                rccm=client_in.rccm,
+                contact_name=client_in.contact_name,
+                email=client_in.email,
+                phone=client_in.phone,
+                address=client_in.address,
+                create_auxiliary_account=client_in.create_auxiliary_account,
+                create_rule=client_in.create_rule,
+                revenue_account=client_in.revenue_account,
+                vat_account=client_in.vat_account,
+                vat_rate=client_in.vat_rate,
+                journal_code=client_in.journal_code,
+                ocr_keywords=client_in.ocr_keywords
+            )
+            
+            db.commit()
+            
+            client = result["client"]
+            return {
+                "id": str(client.id),
+                "name": client.name,
+                "slug": client.slug,
+                "code": client.code,
+                "sector": client.sector,
+                "auxiliary_account_code": client.auxiliary_account_code,
+                "has_active_rule": client.has_active_rule,
+                "auxiliary_account_created": result["auxiliary_account"] is not None,
+                "rule_created": result["rule"] is not None,
+                "message": "Client créé avec succès"
+            }
+        else:
+            # Simple creation without interconnection
+            client = Client(
+                name=client_in.name,
+                slug=client_in.slug or client_in.name.lower().replace(" ", "-"),
+                code=client_in.code,
+                sector=client_in.sector,
+                tenant_id=current_user.tenant_id,
+            )
+            db.add(client)
+            db.commit()
+            db.refresh(client)
+            
+            return {
+                "id": str(client.id),
+                "name": client.name,
+                "slug": client.slug,
+                "code": client.code,
+                "sector": client.sector,
+                "message": "Client créé avec succès"
+            }
+    
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Erreur lors de la création du client: {str(e)}")
 
 @router.get("/{client_id}", response_model=client_schema.Client)
 def read_client(

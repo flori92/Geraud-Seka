@@ -140,10 +140,10 @@ async def upload_document(
 
                 # Vérifier si le document correspond à une règle active
                 try:
-                    from app.services.accounting_rules import AccountingRulesService
+                    from app.services.accounting_rules import AccountingRulesEngine
                     from app.models.accounting_rules import AccountingRule
                     
-                    rules_service = AccountingRulesService(db, str(current_user.tenant_id))
+                    rules_service = AccountingRulesEngine(db, str(current_user.tenant_id))
                     
                     # Récupérer toutes les règles actives
                     active_rules = db.query(AccountingRule).filter(

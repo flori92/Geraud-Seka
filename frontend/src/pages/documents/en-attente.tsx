@@ -541,10 +541,17 @@ export default function DocumentsEnAttentePage() {
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap">
                                                             <div className="flex items-center gap-2">
-                                                                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${statusConfig.color}`}>
-                                                                    <StatusIcon className={`h-3 w-3 ${doc.status === 'OCR_PROCESSING' ? 'animate-spin' : ''}`} />
-                                                                    {statusConfig.label}
-                                                                </span>
+                                                                {doc.status === 'DUPLICATE_BLOCKED' || doc.status === 'duplicate' ? (
+                                                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 border-2 border-red-300">
+                                                                        <AlertTriangle className="h-3 w-3" />
+                                                                        🛑 DOUBLON
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${statusConfig.color}`}>
+                                                                        <StatusIcon className={`h-3 w-3 ${doc.status === 'OCR_PROCESSING' ? 'animate-spin' : ''}`} />
+                                                                        {statusConfig.label}
+                                                                    </span>
+                                                                )}
                                                                 {doc.auto_validable && (
                                                                     <span 
                                                                         className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-purple-100 to-indigo-100 text-purple-700 border border-purple-200"

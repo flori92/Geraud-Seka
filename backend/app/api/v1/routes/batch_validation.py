@@ -16,7 +16,7 @@ from app.models.user import User
 from app.models.tenant import Tenant
 from app.models.document import Document
 from app.models.accounting_rules import AccountingRule
-from app.services.accounting_rules import AccountingRulesService
+from app.services.accounting_rules import AccountingRulesEngine
 
 router = APIRouter()
 
@@ -69,7 +69,7 @@ async def preview_batch_validation(
         Document.ocr_confidence >= min_confidence
     ).all()
     
-    rules_service = AccountingRulesService(db, str(current_tenant.id))
+    rules_service = AccountingRulesEngine(db, str(current_tenant.id))
     
     eligible_count = 0
     with_rules = 0
@@ -147,7 +147,7 @@ async def validate_all_eligible(
     
     pending_docs = query.all()
     
-    rules_service = AccountingRulesService(db, str(current_tenant.id))
+    rules_service = AccountingRulesEngine(db, str(current_tenant.id))
     
     validated_count = 0
     failed_count = 0
@@ -250,7 +250,7 @@ async def validate_by_specific_rule(
         Document.status.in_(["pending", "pre_processed", "ocr_completed"])
     ).all()
     
-    rules_service = AccountingRulesService(db, str(current_tenant.id))
+    rules_service = AccountingRulesEngine(db, str(current_tenant.id))
     validated_count = 0
     
     for doc in pending_docs:

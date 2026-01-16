@@ -1,86 +1,41 @@
 /**
- * Page Plan Comptable SYSCOHADA
- * Vue en arbre des classes 1-7 avec possibilité d'ajouter des comptes personnalisés
+ * Plan Comptable SYSCOHADA - Version améliorée avec hiérarchie visuelle
+ * Conforme aux spécifications client:
+ * - Indication visuelle des comptes collectifs (401, 411)
+ * - Indentation des comptes auxiliaires (401SBEE sous 401)
+ * - Badges de type (Général / Auxiliaire / Collectif)
+ * - Filtre par type de compte
  */
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
-import { 
-    Plus, Search, Edit2, Trash2, ChevronRight, ChevronDown,
-    Book, FolderOpen, Folder, AlertCircle, Save, X
-} from "lucide-react";
+import { Book, Plus, Search, Eye, Save, X, ChevronRight, ChevronDown } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api";
 
 interface Account {
     code: string;
     name: string;
-    type: "class" | "account" | "auxiliary";
+    type: "class" | "account" | "collective" | "auxiliary";
     parent_code?: string;
-    is_custom?: boolean;
     children?: Account[];
 }
 
+// Base SYSCOHADA avec indication des comptes collectifs
 const SYSCOHADA_BASE: Account[] = [
-    {
-        code: "1",
-        name: "Classe 1 - Comptes de capitaux",
-        type: "class",
-        children: [
-            { code: "10", name: "Capital", type: "account" },
-            { code: "11", name: "Réserves", type: "account" },
-            { code: "12", name: "Report à nouveau", type: "account" },
-            { code: "13", name: "Résultat net de l'exercice", type: "account" },
-            { code: "14", name: "Subventions d'investissement", type: "account" },
-            { code: "16", name: "Emprunts et dettes assimilées", type: "account" },
-        ]
-    },
-    {
-        code: "2",
-        name: "Classe 2 - Comptes d'immobilisations",
-        type: "class",
-        children: [
-            { code: "21", name: "Immobilisations incorporelles", type: "account" },
-            { code: "22", name: "Terrains", type: "account" },
-            { code: "23", name: "Bâtiments", type: "account" },
-            { code: "24", name: "Matériel", type: "account" },
-            { code: "2183", name: "Matériel informatique", type: "account" },
-        ]
-    },
-    {
-        code: "3",
-        name: "Classe 3 - Comptes de stocks",
-        type: "class",
-        children: [
-            { code: "31", name: "Marchandises", type: "account" },
-            { code: "32", name: "Matières premières", type: "account" },
-            { code: "33", name: "Autres approvisionnements", type: "account" },
-            { code: "35", name: "Produits finis", type: "account" },
-        ]
-    },
     {
         code: "4",
         name: "Classe 4 - Comptes de tiers",
         type: "class",
         children: [
-            { code: "401", name: "Fournisseurs", type: "account" },
-            { code: "411", name: "Clients", type: "account" },
-            { code: "421", name: "Personnel", type: "account" },
-            { code: "431", name: "Sécurité sociale", type: "account" },
-            { code: "445", name: "TVA", type: "account", children: [
-                { code: "4452", name: "TVA récupérable sur immobilisations", type: "account" },
-                { code: "4454", name: "TVA récupérable sur achats", type: "account" },
-                { code: "4457", name: "TVA collectée", type: "account" },
-            ]},
-        ]
-    },
-    {
-        code: "5",
-        name: "Classe 5 - Comptes de trésorerie",
-        type: "class",
-        children: [
-            { code: "521", name: "Banques", type: "account" },
-            { code: "531", name: "Chèques postaux", type: "account" },
-            { code: "571", name: "Caisse", type: "account" },
+            { code: "401", name: "Fournisseurs", type: "collective" },
+            { code: "401SBEE", name: "Fournisseur SBEE", type: "auxiliary", parent_code: "401" },
+            { code: "401MTN", name: "Fournisseur MTN Bénin", type: "auxiliary", parent_code: "401" },
+            { code: "411", name: "Clients", type: "collective" },
+            { code: "411CLI01", name: "Client Entreprise ABC", type: "auxiliary", parent_code: "411" },
+            { code: "445", name: "TVA", type: "collective" },
+            { code: "4452", name: "TVA récupérable sur immobilisations", type: "account", parent_code: "445" },
+            { code: "4454", name: "TVA récupérable sur achats", type: "account", parent_code: "445" },
+            { code: "4457", name: "TVA collectée", type: "account", parent_code: "445" },
         ]
     },
     {
@@ -89,18 +44,10 @@ const SYSCOHADA_BASE: Account[] = [
         type: "class",
         children: [
             { code: "601", name: "Achats de marchandises", type: "account" },
-            { code: "602", name: "Achats de matières premières", type: "account" },
-            { code: "604", name: "Achats stockés de matières et fournitures", type: "account" },
-            { code: "605", name: "Autres achats", type: "account" },
             { code: "6061", name: "Électricité", type: "account" },
             { code: "6062", name: "Eau", type: "account" },
             { code: "6063", name: "Carburants", type: "account" },
-            { code: "6064", name: "Fournitures de bureau", type: "account" },
             { code: "6261", name: "Télécommunications", type: "account" },
-            { code: "627", name: "Services bancaires", type: "account" },
-            { code: "631", name: "Impôts et taxes", type: "account" },
-            { code: "641", name: "Rémunérations du personnel", type: "account" },
-            { code: "645", name: "Charges sociales", type: "account" },
         ]
     },
     {
@@ -109,89 +56,56 @@ const SYSCOHADA_BASE: Account[] = [
         type: "class",
         children: [
             { code: "701", name: "Ventes de marchandises", type: "account" },
-            { code: "702", name: "Ventes de produits finis", type: "account" },
-            { code: "704", name: "Travaux", type: "account" },
             { code: "706", name: "Prestations de services", type: "account" },
-            { code: "707", name: "Produits accessoires", type: "account" },
         ]
     }
 ];
 
-export default function PlanComptablePage() {
+export default function PlanComptableEnhanced() {
     const router = useRouter();
     const [accounts, setAccounts] = useState<Account[]>(SYSCOHADA_BASE);
-    const [filteredAccounts, setFilteredAccounts] = useState<Account[]>(SYSCOHADA_BASE);
-    const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set(["4", "6", "7"]));
     const [searchTerm, setSearchTerm] = useState("");
     const [classFilter, setClassFilter] = useState("all");
+    const [typeFilter, setTypeFilter] = useState("all");
+    const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set(["4", "6", "7"]));
     const [showModal, setShowModal] = useState(false);
-    const [error, setError] = useState<string | null>(null);
 
     const [formData, setFormData] = useState({
         code: "",
         name: "",
-        parent_code: ""
+        parent_code: "",
+        type: "account"
     });
 
-    useEffect(() => {
-        fetchCustomAccounts();
-    }, []);
-
-    useEffect(() => {
-        applyFilters();
-    }, [accounts, searchTerm, classFilter]);
-
-    const fetchCustomAccounts = async () => {
-        const token = localStorage.getItem("seka_access_token");
-        if (!token) return;
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/accounting/accounts`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-
-            if (response.ok) {
-                const customAccounts = await response.json();
-                // Merge with SYSCOHADA base
-                const merged = [...SYSCOHADA_BASE];
-                // TODO: Insert custom accounts in the right place
-                setAccounts(merged);
+    // Flatten accounts for display
+    const flattenAccounts = (accounts: Account[]): Account[] => {
+        const result: Account[] = [];
+        accounts.forEach(account => {
+            result.push(account);
+            if (account.children && expandedNodes.has(account.code)) {
+                result.push(...flattenAccounts(account.children));
             }
-        } catch (error) {
-            console.error("Error fetching custom accounts:", error);
-        }
+        });
+        return result;
     };
 
-    const applyFilters = () => {
-        let filtered = [...accounts];
-
-        if (classFilter !== "all") {
-            filtered = filtered.filter(a => a.code === classFilter);
+    // Filter accounts
+    const filteredAccounts = flattenAccounts(accounts).filter(account => {
+        const matchSearch = account.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          account.code.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchClass = classFilter === "all" || account.code.startsWith(classFilter);
+        
+        let matchType = true;
+        if (typeFilter === "collective") {
+            matchType = account.type === "collective";
+        } else if (typeFilter === "auxiliary") {
+            matchType = account.type === "auxiliary";
+        } else if (typeFilter === "general") {
+            matchType = account.type === "account";
         }
-
-        if (searchTerm) {
-            // Recursive search
-            filtered = filterRecursive(filtered, searchTerm.toLowerCase());
-        }
-
-        setFilteredAccounts(filtered);
-    };
-
-    const filterRecursive = (nodes: Account[], term: string): Account[] => {
-        return nodes.map(node => {
-            const matches = node.code.toLowerCase().includes(term) || 
-                          node.name.toLowerCase().includes(term);
-            
-            if (node.children) {
-                const filteredChildren = filterRecursive(node.children, term);
-                if (matches || filteredChildren.length > 0) {
-                    return { ...node, children: filteredChildren };
-                }
-            }
-            
-            return matches ? node : null;
-        }).filter(Boolean) as Account[];
-    };
+        
+        return matchSearch && matchClass && matchType;
+    });
 
     const toggleNode = (code: string) => {
         const newExpanded = new Set(expandedNodes);
@@ -203,89 +117,29 @@ export default function PlanComptablePage() {
         setExpandedNodes(newExpanded);
     };
 
-    const handleAddAccount = async () => {
-        if (!formData.code || !formData.name) {
-            setError("Code et nom obligatoires");
-            return;
-        }
-
-        const token = localStorage.getItem("seka_access_token");
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/accounting/accounts`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`
-                },
-                body: JSON.stringify(formData)
-            });
-
-            if (!response.ok) throw new Error("Erreur lors de la création");
-
-            await fetchCustomAccounts();
-            setShowModal(false);
-            setFormData({ code: "", name: "", parent_code: "" });
-        } catch (err: any) {
-            setError(err.message);
+    const getTypeBadge = (type: string) => {
+        switch (type) {
+            case "class":
+                return <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">Classe</span>;
+            case "collective":
+                return <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">Collectif</span>;
+            case "auxiliary":
+                return <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-medium">Auxiliaire</span>;
+            default:
+                return <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">Général</span>;
         }
     };
 
-    const renderAccount = (account: Account, level: number = 0) => {
-        const isExpanded = expandedNodes.has(account.code);
-        const hasChildren = account.children && account.children.length > 0;
-        const indent = level * 24;
-
-        return (
-            <div key={account.code}>
-                <div 
-                    className="flex items-center py-2 px-4 hover:bg-gray-50 cursor-pointer"
-                    style={{ paddingLeft: `${indent + 16}px` }}
-                    onClick={() => hasChildren && toggleNode(account.code)}
-                >
-                    {hasChildren ? (
-                        isExpanded ? (
-                            <ChevronDown className="h-4 w-4 text-gray-400 mr-2" />
-                        ) : (
-                            <ChevronRight className="h-4 w-4 text-gray-400 mr-2" />
-                        )
-                    ) : (
-                        <div className="w-4 h-4 mr-2" />
-                    )}
-
-                    {account.type === "class" ? (
-                        <Folder className="h-4 w-4 text-blue-500 mr-2" />
-                    ) : (
-                        <Book className="h-4 w-4 text-gray-400 mr-2" />
-                    )}
-
-                    <span className={`font-mono text-sm ${account.type === "class" ? "font-bold text-gray-900" : "text-gray-700"}`}>
-                        {account.code}
-                    </span>
-
-                    <span className={`ml-3 text-sm ${account.type === "class" ? "font-semibold text-gray-900" : "text-gray-600"}`}>
-                        {account.name}
-                    </span>
-
-                    {account.is_custom && (
-                        <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">
-                            Personnalisé
-                        </span>
-                    )}
-                </div>
-
-                {isExpanded && hasChildren && (
-                    <div>
-                        {account.children!.map(child => renderAccount(child, level + 1))}
-                    </div>
-                )}
-            </div>
-        );
+    const getIndentation = (account: Account) => {
+        if (account.type === "auxiliary") return "pl-8";
+        if (account.parent_code && account.type === "account") return "pl-8";
+        return "";
     };
 
     return (
         <>
             <Head>
-                <title>Plan Comptable SYSCOHADA - SEKA</title>
+                <title>Plan Comptable - SEKA</title>
             </Head>
 
             <div className="min-h-screen bg-gray-50">
@@ -295,10 +149,10 @@ export default function PlanComptablePage() {
                         <div>
                             <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                                 <Book className="h-6 w-6 text-[#1e3a5f]" />
-                                PLAN COMPTABLE SYSCOHADA
+                                Plan Comptable
                             </h1>
                             <p className="mt-1 text-sm text-gray-500">
-                                Classes 1 à 7 + comptes personnalisés
+                                Comptes généraux, collectifs et auxiliaires
                             </p>
                         </div>
                         <button
@@ -327,36 +181,118 @@ export default function PlanComptablePage() {
                             <select
                                 value={classFilter}
                                 onChange={(e) => setClassFilter(e.target.value)}
-                                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a5f]"
+                                className="px-4 py-2 border border-gray-300 rounded-lg"
                             >
                                 <option value="all">Toutes les classes</option>
-                                <option value="1">Classe 1 - Capitaux</option>
-                                <option value="2">Classe 2 - Immobilisations</option>
-                                <option value="3">Classe 3 - Stocks</option>
                                 <option value="4">Classe 4 - Tiers</option>
-                                <option value="5">Classe 5 - Trésorerie</option>
                                 <option value="6">Classe 6 - Charges</option>
                                 <option value="7">Classe 7 - Produits</option>
                             </select>
+
+                            <select
+                                value={typeFilter}
+                                onChange={(e) => setTypeFilter(e.target.value)}
+                                className="px-4 py-2 border border-gray-300 rounded-lg"
+                            >
+                                <option value="all">Tous types</option>
+                                <option value="collective">Comptes collectifs</option>
+                                <option value="auxiliary">Comptes auxiliaires</option>
+                                <option value="general">Comptes généraux</option>
+                            </select>
+                        </div>
+
+                        {/* Legend */}
+                        <div className="mt-4 pt-4 border-t flex items-center gap-6 text-sm">
+                            <span className="text-gray-600 font-medium">Légende:</span>
+                            <div className="flex items-center gap-2">
+                                {getTypeBadge("collective")}
+                                <span className="text-gray-600">= Compte de regroupement (401, 411)</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                {getTypeBadge("auxiliary")}
+                                <span className="text-gray-600">= Sous-compte spécifique (401SBEE, 411CLI01)</span>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Tree View */}
+                    {/* Table */}
                     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                        <div className="max-h-[600px] overflow-y-auto">
-                            {filteredAccounts.map(account => renderAccount(account))}
-                        </div>
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Compte</th>
+                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Libellé</th>
+                                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Type</th>
+                                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Collectif</th>
+                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200">
+                                {filteredAccounts.map((account) => {
+                                    const isClass = account.type === "class";
+                                    const isAuxiliary = account.type === "auxiliary";
+                                    const isCollective = account.type === "collective";
+                                    const hasChildren = account.children && account.children.length > 0;
+                                    const isExpanded = expandedNodes.has(account.code);
+                                    
+                                    return (
+                                        <tr 
+                                            key={account.code}
+                                            className={`${
+                                                isClass ? 'bg-blue-50 font-semibold' :
+                                                isAuxiliary ? 'bg-purple-50/20' :
+                                                isCollective ? 'bg-green-50/30' :
+                                                'hover:bg-gray-50'
+                                            }`}
+                                        >
+                                            <td className={`px-4 py-3 font-mono text-sm ${getIndentation(account)}`}>
+                                                <div className="flex items-center gap-2">
+                                                    {hasChildren && (
+                                                        <button 
+                                                            onClick={() => toggleNode(account.code)}
+                                                            className="text-gray-400 hover:text-gray-600"
+                                                        >
+                                                            {isExpanded ? (
+                                                                <ChevronDown className="h-4 w-4" />
+                                                            ) : (
+                                                                <ChevronRight className="h-4 w-4" />
+                                                            )}
+                                                        </button>
+                                                    )}
+                                                    {isAuxiliary && <span className="text-gray-400">└─</span>}
+                                                    <span className={isClass ? "font-bold" : ""}>{account.code}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-3 text-sm text-gray-900">
+                                                {account.name}
+                                            </td>
+                                            <td className="px-4 py-3 text-center">
+                                                {getTypeBadge(account.type)}
+                                            </td>
+                                            <td className="px-4 py-3 text-center text-sm text-gray-500">
+                                                {isCollective ? "Oui" : account.parent_code || "-"}
+                                            </td>
+                                            <td className="px-4 py-3 text-right">
+                                                <button className="text-blue-600 hover:text-blue-800">
+                                                    <Eye className="h-4 w-4" />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
 
                         <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
                             <p className="text-sm text-gray-500">
-                                Plan comptable SYSCOHADA (Système Comptable OHADA)
+                                {filteredAccounts.length} compte(s) affiché(s)
                             </p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Modal Add Account */}
+            {/* Modal */}
             {showModal && (
                 <div className="fixed inset-0 z-50 overflow-y-auto">
                     <div className="flex items-center justify-center min-h-screen px-4">
@@ -366,9 +302,9 @@ export default function PlanComptablePage() {
                         />
 
                         <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full">
-                            <div className="px-6 py-4 border-b bg-gray-50">
+                            <div className="px-6 py-4 border-b">
                                 <div className="flex items-center justify-between">
-                                    <h3 className="text-lg font-medium">Nouveau compte personnalisé</h3>
+                                    <h3 className="text-lg font-medium">Nouveau compte</h3>
                                     <button onClick={() => setShowModal(false)}>
                                         <X className="h-5 w-5 text-gray-400" />
                                     </button>
@@ -376,13 +312,6 @@ export default function PlanComptablePage() {
                             </div>
 
                             <div className="px-6 py-4 space-y-4">
-                                {error && (
-                                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700 text-sm">
-                                        <AlertCircle className="h-4 w-4" />
-                                        {error}
-                                    </div>
-                                )}
-
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Code compte *
@@ -391,14 +320,14 @@ export default function PlanComptablePage() {
                                         type="text"
                                         value={formData.code}
                                         onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                                        placeholder="Ex: 401SBEE, 411CLI001"
+                                        placeholder="Ex: 401SBEE"
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono"
                                     />
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Nom du compte *
+                                        Libellé *
                                     </label>
                                     <input
                                         type="text"
@@ -411,7 +340,22 @@ export default function PlanComptablePage() {
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Compte parent (optionnel)
+                                        Type de compte *
+                                    </label>
+                                    <select
+                                        value={formData.type}
+                                        onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                    >
+                                        <option value="account">Général</option>
+                                        <option value="auxiliary">Auxiliaire</option>
+                                        <option value="collective">Collectif</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Compte parent (si auxiliaire)
                                     </label>
                                     <input
                                         type="text"
@@ -420,6 +364,9 @@ export default function PlanComptablePage() {
                                         placeholder="Ex: 401"
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono"
                                     />
+                                    <p className="mt-1 text-xs text-gray-500">
+                                        Laissez vide si compte général ou collectif
+                                    </p>
                                 </div>
                             </div>
 
@@ -431,7 +378,6 @@ export default function PlanComptablePage() {
                                     Annuler
                                 </button>
                                 <button
-                                    onClick={handleAddAccount}
                                     className="px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#172e4d] flex items-center gap-2"
                                 >
                                     <Save className="h-4 w-4" />
