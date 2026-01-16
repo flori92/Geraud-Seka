@@ -1,0 +1,44 @@
+# Git
+.git
+.gitignore
+
+# Python virtual envs
+.venv
+venv
+env
+__pycache__
+*.py[cod]
+*.egg-info
+.Python
+*.bak
+.pytest_cache
+htmlcov
+coverage
+
+# Test files
+tests
+*.test.py
+test_*.py
+
+# IDE
+.idea
+.vscode
+.DS_Store
+
+# Logs
+*.log
+
+# Local env
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Temporary files
+tmp_*
+*.tmp
+*.bak
+
+# Documentation
+*.md
+!README.md

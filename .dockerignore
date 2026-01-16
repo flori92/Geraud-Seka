@@ -1,0 +1,59 @@
+# Git
+.git
+.gitignore
+
+# Node
+node_modules
+.next
+.turbo
+dist
+build
+
+# Python
+__pycache__
+*.py[cod]
+*.egg-info
+.Python
+.venv
+venv
+env
+*.bak
+.pytest_cache
+htmlcov
+coverage
+
+# Database
+pgdata
+
+# IDE
+.idea
+.vscode
+.DS_Store
+
+# Docs & assets (not needed for runtime)
+docs
+*.zip
+*.tar.gz
+*.png
+*.jpg
+*.jpeg
+
+# Frontend (backend doesn't need it)
+frontend
+
+# Local env files
+.env
+.env.local
+.env.*.local
+
+# Test files
+tests
+*.test.*
+*.spec.*
+
+# Claude/AI config
+.claude
+
+# Logs
+*.log
+npm-debug.log*

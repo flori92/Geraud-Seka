@@ -1,0 +1,38 @@
+# Git
+.git
+.gitignore
+
+# Dependencies (will be installed during build)
+node_modules
+
+# Build cache
+.next
+.turbo
+dist
+build
+
+# Test files
+e2e
+*.test.*
+*.spec.*
+playwright.config.ts
+playwright-report
+
+# IDE
+.idea
+.vscode
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+
+# Local env
+.env
+.env.local
+.env.*.local
+!.env.production
+
+# Documentation
+*.md
+!README.md
