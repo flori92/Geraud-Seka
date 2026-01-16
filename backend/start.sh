@@ -21,13 +21,16 @@ if [ "$SEKA_RUN_WORKER" = "1" ] || [ "$SEKA_RUN_WORKER" = "true" ]; then
     if [ "$SKIP_MIGRATIONS" = "1" ] || [ "$SKIP_MIGRATIONS" = "true" ]; then
         echo "⚠️  SKIP_MIGRATIONS est défini — on saute l'exécution des migrations"
     else
-        echo "🔄 Exécution des migrations de base de données..."
-        python3 migrate.py
+        echo "🔄 Exécution des migrations de base de données (timeout: 120s)..."
+        timeout 120 python3 migrate.py
+        MIGRATE_EXIT=$?
 
-        if [ $? -eq 0 ]; then
+        if [ $MIGRATE_EXIT -eq 0 ]; then
             echo "✅ Migrations terminées avec succès"
+        elif [ $MIGRATE_EXIT -eq 124 ]; then
+            echo "⚠️  Migrations timeout après 120s - démarrage du worker quand même"
         else
-            echo "❌ Échec des migrations, arrêt du démarrage"
+            echo "❌ Échec des migrations (code: $MIGRATE_EXIT), arrêt du démarrage"
             exit 1
         fi
     fi
@@ -40,13 +43,16 @@ fi
 if [ "$SKIP_MIGRATIONS" = "1" ] || [ "$SKIP_MIGRATIONS" = "true" ]; then
     echo "⚠️  SKIP_MIGRATIONS est défini — on saute l'exécution des migrations"
 else
-    echo "🔄 Exécution des migrations de base de données..."
-    python3 migrate.py
+    echo "🔄 Exécution des migrations de base de données (timeout: 120s)..."
+    timeout 120 python3 migrate.py
+    MIGRATE_EXIT=$?
 
-    if [ $? -eq 0 ]; then
+    if [ $MIGRATE_EXIT -eq 0 ]; then
         echo "✅ Migrations terminées avec succès"
+    elif [ $MIGRATE_EXIT -eq 124 ]; then
+        echo "⚠️  Migrations timeout après 120s - démarrage de l'API quand même"
     else
-        echo "❌ Échec des migrations, arrêt du démarrage"
+        echo "❌ Échec des migrations (code: $MIGRATE_EXIT), arrêt du démarrage"
         exit 1
     fi
 fi
