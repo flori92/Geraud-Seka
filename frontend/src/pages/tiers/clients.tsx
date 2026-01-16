@@ -182,7 +182,6 @@ export default function ClientsPage() {
         setFormData({
             code: "",
             name: "",
-            auxiliary_account: "",
             contact_name: "",
             email: "",
             phone: "",
