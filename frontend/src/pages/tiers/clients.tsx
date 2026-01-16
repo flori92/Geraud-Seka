@@ -113,8 +113,8 @@ export default function ClientsPage() {
     };
 
     const handleSave = async () => {
-        if (!formData.name || !formData.auxiliary_account) {
-            setError("Nom et compte auxiliaire obligatoires");
+        if (!formData.name) {
+            setError("Nom obligatoire");
             return;
         }
 
