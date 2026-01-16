@@ -396,8 +396,7 @@ export default function ClientsPage() {
                                                 const name = e.target.value;
                                                 setFormData({ 
                                                     ...formData, 
-                                                    name,
-                                                    auxiliary_account: formData.auxiliary_account || generateAuxiliaryAccount(name)
+                                                    name
                                                 });
                                             }}
                                             placeholder="Ex: Entreprise ABC"
