@@ -172,7 +172,26 @@ export default function ClientsPage() {
 
     const handleEdit = (client: Client) => {
         setEditingClient(client);
-        setFormData(client);
+        setFormData({
+            code: client.code || "",
+            name: client.name || "",
+            slug: client.slug || "",
+            sector: client.sector || "",
+            nif: client.nif || "",
+            rccm: client.rccm || "",
+            contact_name: client.contact_name || "",
+            email: client.email || "",
+            phone: client.phone || "",
+            address: client.address || "",
+            country: client.country || "Bénin",
+            create_auxiliary_account: false,
+            create_rule: false,
+            revenue_account: client.default_revenue_account || "",
+            vat_account: client.default_vat_account || "4457",
+            tax_rate: client.default_tax_rate || 18,
+            journal_code: client.default_journal || "VTE",
+            ocr_keywords: client.ocr_keywords?.join(",") || ""
+        });
         setShowModal(true);
     };
 
@@ -182,10 +201,22 @@ export default function ClientsPage() {
         setFormData({
             code: "",
             name: "",
+            slug: "",
+            sector: "",
+            nif: "",
+            rccm: "",
             contact_name: "",
             email: "",
             phone: "",
-            address: ""
+            address: "",
+            country: "Bénin",
+            create_auxiliary_account: true,
+            create_rule: false,
+            revenue_account: "",
+            vat_account: "4457",
+            tax_rate: 18,
+            journal_code: "VTE",
+            ocr_keywords: ""
         });
         setError(null);
     };
