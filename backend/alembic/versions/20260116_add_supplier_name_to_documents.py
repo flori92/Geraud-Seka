@@ -1,7 +1,7 @@
 """Add supplier_name column to documents table
 
 Revision ID: 20260116_supplier_name
-Revises: 20260117_add_auto_validable_to_documents
+Revises: 20260116_add_team_invitations
 Create Date: 2026-01-16
 
 """
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '20260116_supplier_name'
-down_revision = None  # Will be determined by Alembic
+down_revision = '20260116_add_team_invitations'
 branch_labels = None
 depends_on = None
 

@@ -1,7 +1,7 @@
 """Add tiers interconnection columns for Plan Comptable, Fournisseurs, Règles
 
-Revision ID: 20260116_interconnection
-Revises: 
+Revision ID: 20260116_add_tiers_interconnection
+Revises: 20260109_file_hash
 Create Date: 2026-01-16
 
 Cette migration ajoute les colonnes nécessaires pour l'interconnexion SEKA Business:
@@ -13,8 +13,8 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '20260116_interconnection'
-down_revision = None
+revision = '20260116_add_tiers_interconnection'
+down_revision = '20260109_file_hash'
 branch_labels = None
 depends_on = None
 
