@@ -108,6 +108,9 @@ api_router.include_router(sales_credit_notes.router, prefix="/sales/credit-notes
 api_router.include_router(settings_audit.router, prefix="/settings/audit-trail", tags=["settings", "audit"])
 api_router.include_router(settings.router, prefix="/settings", tags=["settings"])
 api_router.include_router(team.router, prefix="/team", tags=["team"])
+
+from app.api.v1.routes import batch_validation
+api_router.include_router(batch_validation.router, prefix="/batch-validation", tags=["batch-validation"])
 api_router.include_router(tiers_interconnection.router, prefix="/interconnection", tags=["tiers-interconnection"])
 api_router.include_router(rules_advanced.router, prefix="/rules-advanced", tags=["rules-advanced"])
 api_router.include_router(duplicates.router, prefix="/duplicates", tags=["duplicates"])

@@ -4,7 +4,8 @@ import Head from "next/head";
 import { 
     FileText, Filter, Search, CheckSquare, Square, 
     AlertCircle, Clock, CheckCircle, Eye, Trash2,
-    MoreVertical, Download, Upload, Loader2, ChevronRight, CheckCheck
+    MoreVertical, Download, Upload, Loader2, ChevronRight, CheckCheck,
+    Zap, X
 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api";
 import { getPendingDocuments, deleteDocument, type Document } from "@/lib/api";
@@ -27,6 +28,9 @@ export default function DocumentsEnAttentePage() {
     const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isValidating, setIsValidating] = useState(false);
+    const [showBatchModal, setShowBatchModal] = useState(false);
+    const [batchPreview, setBatchPreview] = useState<any>(null);
+    const [loadingPreview, setLoadingPreview] = useState(false);
 
     useEffect(() => {
         fetchDocuments();
@@ -206,6 +210,65 @@ export default function DocumentsEnAttentePage() {
         }
     };
 
+    const handleAutoValidateClick = async () => {
+        const token = localStorage.getItem("seka_access_token");
+        if (!token) return;
+
+        setLoadingPreview(true);
+        setShowBatchModal(true);
+        
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/v1/batch-validation/preview?min_confidence=0.8`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                setBatchPreview(data);
+            } else {
+                alert("Erreur lors du chargement de la prévisualisation");
+                setShowBatchModal(false);
+            }
+        } catch (err) {
+            console.error("Preview error:", err);
+            alert("Erreur lors du chargement");
+            setShowBatchModal(false);
+        } finally {
+            setLoadingPreview(false);
+        }
+    };
+
+    const handleConfirmBatchValidation = async () => {
+        const token = localStorage.getItem("seka_access_token");
+        if (!token) return;
+
+        setIsValidating(true);
+        
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/v1/batch-validation/validate-all?min_confidence=0.8`, {
+                method: "POST",
+                headers: { 
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                }
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                alert(`✅ Validation terminée!\n\n✓ ${result.validated_count} validés\n✗ ${result.failed_count} échoués\n⏸ ${result.skipped_count} ignorés\n\nTemps: ${result.processing_time.toFixed(1)}s`);
+                setShowBatchModal(false);
+                fetchDocuments();
+            } else {
+                alert("Erreur lors de la validation automatique");
+            }
+        } catch (err) {
+            console.error("Batch validation error:", err);
+            alert("Erreur lors de la validation");
+        } finally {
+            setIsValidating(false);
+        }
+    };
+
     const tabOptions = [
         { id: 'all', label: 'Tous', count: stats.total },
         { id: 'uploaded', label: 'Uploadés', count: stats.uploaded },
@@ -232,18 +295,28 @@ export default function DocumentsEnAttentePage() {
                             </div>
                             <div className="flex items-center gap-3">
                                 {stats.completed > 0 && (
-                                    <button
-                                        onClick={handleValidateAll}
-                                        disabled={isValidating}
-                                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 text-sm font-medium disabled:opacity-50"
-                                    >
-                                        {isValidating ? (
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                        ) : (
-                                            <CheckCheck className="h-4 w-4" />
-                                        )}
-                                        {isValidating ? "Validation..." : `Valider tout (${stats.completed})`}
-                                    </button>
+                                    <>
+                                        <button
+                                            onClick={handleValidateAll}
+                                            disabled={isValidating}
+                                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 text-sm font-medium disabled:opacity-50"
+                                        >
+                                            {isValidating ? (
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                                <CheckCheck className="h-4 w-4" />
+                                            )}
+                                            {isValidating ? "Validation..." : `Valider tout (${stats.completed})`}
+                                        </button>
+                                        <button
+                                            onClick={handleAutoValidateClick}
+                                            disabled={isValidating || loadingPreview}
+                                            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 flex items-center gap-2 text-sm font-medium disabled:opacity-50 shadow-lg"
+                                        >
+                                            <Zap className="h-4 w-4" />
+                                            {loadingPreview ? "Chargement..." : "Validation intelligente"}
+                                        </button>
+                                    </>
                                 )}
                                 <button
                                     onClick={() => router.push('/documents/upload')}
@@ -494,6 +567,144 @@ export default function DocumentsEnAttentePage() {
                     </div>
                 </div>
             </div>
+
+            {/* Modal de validation intelligente */}
+            {showBatchModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-6 text-white">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <h2 className="text-2xl font-bold flex items-center gap-2">
+                                        <Zap className="h-6 w-6" />
+                                        Validation Intelligente
+                                    </h2>
+                                    <p className="text-purple-100 mt-2">
+                                        Validation automatique basée sur vos règles comptables
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setShowBatchModal(false)}
+                                    className="p-2 hover:bg-white/20 rounded-lg transition"
+                                >
+                                    <X className="h-5 w-5" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="p-6">
+                            {loadingPreview ? (
+                                <div className="flex flex-col items-center justify-center py-12">
+                                    <Loader2 className="h-12 w-12 animate-spin text-purple-600 mb-4" />
+                                    <p className="text-gray-600">Analyse des documents en cours...</p>
+                                </div>
+                            ) : batchPreview ? (
+                                <>
+                                    <div className="grid grid-cols-2 gap-4 mb-6">
+                                        <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
+                                            <div className="text-3xl font-bold text-blue-600 mb-1">
+                                                {batchPreview.total_documents}
+                                            </div>
+                                            <div className="text-sm text-blue-800">Documents analysés</div>
+                                        </div>
+                                        <div className="bg-green-50 rounded-lg p-4 border border-green-100">
+                                            <div className="text-3xl font-bold text-green-600 mb-1">
+                                                {batchPreview.eligible_documents}
+                                            </div>
+                                            <div className="text-sm text-green-800">Prêts à valider</div>
+                                        </div>
+                                        <div className="bg-purple-50 rounded-lg p-4 border border-purple-100">
+                                            <div className="text-3xl font-bold text-purple-600 mb-1">
+                                                {batchPreview.documents_with_rules}
+                                            </div>
+                                            <div className="text-sm text-purple-800">Avec règles</div>
+                                        </div>
+                                        <div className="bg-amber-50 rounded-lg p-4 border border-amber-100">
+                                            <div className="text-3xl font-bold text-amber-600 mb-1">
+                                                {batchPreview.documents_without_rules}
+                                            </div>
+                                            <div className="text-sm text-amber-800">Sans règles</div>
+                                        </div>
+                                    </div>
+
+                                    {batchPreview.rules_applied && batchPreview.rules_applied.length > 0 && (
+                                        <div className="mb-6">
+                                            <h3 className="font-semibold text-gray-900 mb-3">Règles appliquées</h3>
+                                            <div className="space-y-2">
+                                                {batchPreview.rules_applied.map((rule: any, idx: number) => (
+                                                    <div key={idx} className="flex justify-between items-center bg-gray-50 rounded-lg p-3">
+                                                        <span className="text-sm text-gray-700">{rule.rule_name}</span>
+                                                        <span className="text-sm font-semibold text-purple-600">
+                                                            {rule.document_count} doc(s)
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg p-4 mb-6 border border-purple-100">
+                                        <div className="flex items-start gap-3">
+                                            <Zap className="h-5 w-5 text-purple-600 flex-shrink-0 mt-0.5" />
+                                            <div>
+                                                <p className="text-sm font-medium text-gray-900">
+                                                    {batchPreview.eligible_documents > 0 
+                                                        ? `${batchPreview.eligible_documents} document(s) seront validés automatiquement`
+                                                        : "Aucun document éligible pour la validation automatique"
+                                                    }
+                                                </p>
+                                                {batchPreview.eligible_documents > 0 && (
+                                                    <p className="text-xs text-gray-600 mt-1">
+                                                        Temps estimé: ~{Math.ceil(batchPreview.estimated_time)} secondes
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {batchPreview.documents_without_rules > 0 && (
+                                        <div className="bg-amber-50 rounded-lg p-4 mb-6 border border-amber-100">
+                                            <p className="text-sm text-amber-800">
+                                                ⚠️ {batchPreview.documents_without_rules} document(s) n'ont pas de règle applicable et devront être validés manuellement.
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={() => setShowBatchModal(false)}
+                                            className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition"
+                                        >
+                                            Annuler
+                                        </button>
+                                        <button
+                                            onClick={handleConfirmBatchValidation}
+                                            disabled={batchPreview.eligible_documents === 0 || isValidating}
+                                            className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
+                                        >
+                                            {isValidating ? (
+                                                <>
+                                                    <Loader2 className="h-5 w-5 animate-spin" />
+                                                    Validation en cours...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <CheckCircle className="h-5 w-5" />
+                                                    Valider {batchPreview.eligible_documents} document(s)
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="text-center py-8 text-gray-500">
+                                    Erreur lors du chargement des données
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }
