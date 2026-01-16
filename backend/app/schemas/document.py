@@ -57,7 +57,7 @@ class Document(DocumentBase):
     tags: Optional[list] = None
     custom_fields: Optional[dict] = None
     supplier_name: Optional[str] = None
-    customer_name: Optional[str] = None
+    customer_name: Optional[str] = None  # Computed from ocr_data
     created_at: datetime
     updated_at: datetime
     client_id: Optional[UUID] = None
@@ -98,6 +98,14 @@ class Document(DocumentBase):
                 return None
         return None
 
+    @field_validator("customer_name", mode="before")
+    @classmethod
+    def extract_customer_name(cls, v: Any):
+        """Extract customer_name - it's not stored in DB, just return None or the value if provided"""
+        if v is None:
+            return None
+        return v
+
     @staticmethod
     def _sanitize_dict(d: dict) -> dict:
         """Convert non-serializable types in dict to serializable ones"""
@@ -116,6 +124,24 @@ class Document(DocumentBase):
             else:
                 result[k] = v
         return result
+
+    @classmethod
+    def model_validate(cls, obj: Any, **kwargs):
+        """Override model_validate to extract customer_name from ocr_data"""
+        if hasattr(obj, '__dict__'):
+            # SQLAlchemy model - extract customer_name from ocr_data if not present
+            data = {}
+            for key in cls.model_fields.keys():
+                if hasattr(obj, key):
+                    data[key] = getattr(obj, key)
+                elif key == 'customer_name' and hasattr(obj, 'ocr_data'):
+                    ocr = getattr(obj, 'ocr_data')
+                    if isinstance(ocr, dict):
+                        data[key] = ocr.get('customer_name')
+                    else:
+                        data[key] = None
+            return super().model_validate(data, **kwargs)
+        return super().model_validate(obj, **kwargs)
 
     class Config:
         from_attributes = True

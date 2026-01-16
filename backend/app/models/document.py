@@ -115,6 +115,8 @@ class Document(Base, TimestampMixin):
     amount_ttc = Column(Float, nullable=True)
     currency = Column(String(3), default="XOF", nullable=True)
     
+    supplier_name = Column(String(255), nullable=True)  # Nom du fournisseur extrait par OCR
+    
     version = Column(Integer, default=1)
     parent_document_id = Column(UUID(as_uuid=True), ForeignKey("documents.id", ondelete="SET NULL"))
     is_latest_version = Column(Boolean, default=True)
