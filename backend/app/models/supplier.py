@@ -58,7 +58,7 @@ class Supplier(Base, TimestampMixin):
     ocr_keywords = Column(JSON, nullable=True)  # ["SBEE", "Société Béninoise d'Énergie"]
     
     # Métadonnées pour apprentissage et données additionnelles
-    metadata = Column(JSON, nullable=True)  # {"learning_corrections": [...], "conditional_rules": [...]}
+    supplier_metadata = Column(JSON, nullable=True)  # {"learning_corrections": [...], "conditional_rules": [...]}
     
     # Tenant (entreprise)
     client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id", ondelete="CASCADE"), nullable=False)

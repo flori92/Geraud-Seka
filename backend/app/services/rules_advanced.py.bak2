@@ -421,7 +421,7 @@ class RulesAdvancedService:
         corrections_key = f"corrections_{corrected_account}"
         
         # Mettre à jour le compteur de corrections
-        if not hasattr(supplier, 'supplier_metadata') or supplier.supplier_metadata is None:
+        if not hasattr(supplier, 'metadata') or supplier.supplier_metadata is None:
             supplier.supplier_metadata = {}
         
         # Simuler le stockage des corrections
@@ -513,7 +513,7 @@ class RulesAdvancedService:
         suggestions = []
         
         for supplier in suppliers:
-            if not hasattr(supplier, 'supplier_metadata') or not supplier.supplier_metadata:
+            if not hasattr(supplier, 'metadata') or not supplier.supplier_metadata:
                 continue
                 
             corrections = supplier.supplier_metadata.get("learning_corrections", [])
@@ -749,7 +749,7 @@ class RulesAdvancedService:
         self.db.flush()
         
         # Associer au fournisseur (règle secondaire)
-        if not hasattr(supplier, 'supplier_metadata') or supplier.supplier_metadata is None:
+        if not hasattr(supplier, 'metadata') or supplier.supplier_metadata is None:
             supplier.supplier_metadata = {}
         
         conditional_rules = supplier.supplier_metadata.get("conditional_rules", [])
@@ -791,7 +791,7 @@ class RulesAdvancedService:
             return {"matched": False, "error": "Fournisseur non trouvé"}
         
         # Récupérer les règles conditionnelles
-        if not hasattr(supplier, 'supplier_metadata') or not supplier.supplier_metadata:
+        if not hasattr(supplier, 'metadata') or not supplier.supplier_metadata:
             return {"matched": False, "reason": "Pas de règles conditionnelles"}
         
         conditional_rule_ids = supplier.supplier_metadata.get("conditional_rules", [])
