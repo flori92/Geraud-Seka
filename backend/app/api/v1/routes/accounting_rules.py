@@ -293,6 +293,7 @@ class AccountingRuleResponse(BaseModel):
     actions: List[dict]
     is_active: bool
     auto_apply: bool
+    confidence_threshold: float = 0.8
 
     class Config:
         from_attributes = True
