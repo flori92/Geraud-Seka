@@ -791,8 +791,8 @@ export default function ReglesFournisseursPage() {
                                                     .map(supplier => (
                                                         <li key={supplier.id}>
                                                             <strong>{supplier.name}</strong>
-                                                            {supplier.pending_invoices && supplier.pending_invoices > 0 && (
-                                                                <span className="text-yellow-600"> ({supplier.pending_invoices} facture{supplier.pending_invoices > 1 ? 's' : ''} en attente)</span>
+                                                            {(supplier as any).pending_invoices && (supplier as any).pending_invoices > 0 && (
+                                                                <span className="text-yellow-600"> ({(supplier as any).pending_invoices} facture{(supplier as any).pending_invoices > 1 ? 's' : ''} en attente)</span>
                                                             )}
                                                         </li>
                                                     ))
