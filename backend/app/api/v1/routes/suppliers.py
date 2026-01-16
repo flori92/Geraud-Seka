@@ -1,6 +1,11 @@
 """
 Suppliers API Routes
-CRUD operations for supplier management
+CRUD operations for supplier management with interconnection logic
+
+Logique d'interconnexion SEKA Business:
+- Chaque fournisseur peut avoir un compte auxiliaire (401SBEE, 401MTN, etc.)
+- Chaque fournisseur peut avoir une règle d'imputation automatique
+- La création d'un fournisseur peut automatiquement créer le compte auxiliaire
 """
 from typing import List, Optional
 from uuid import UUID
@@ -23,28 +28,40 @@ router = APIRouter()
 
 class SupplierBase(BaseModel):
     name: str
+    code: Optional[str] = None  # Code court (SBEE, MTN)
     nif: Optional[str] = None
+    rccm: Optional[str] = None
     default_account: Optional[str] = None
-    default_tax_rate: Optional[float] = None
-    default_journal: Optional[str] = None
+    default_charge_account: Optional[str] = None  # Compte de charge (6061, 6261)
+    default_vat_account: Optional[str] = "4454"  # Compte TVA
+    default_tax_rate: Optional[float] = 18.0
+    default_journal: Optional[str] = "ACH"
     default_description: Optional[str] = None
     contact_name: Optional[str] = None
     email: Optional[str] = None
     phone: Optional[str] = None
     address: Optional[str] = None
-    country: Optional[str] = None
+    country: Optional[str] = "Bénin"
+    ocr_keywords: Optional[List[str]] = None  # Mots-clés pour OCR
 
 
 class SupplierCreate(SupplierBase):
-    pass
+    # Options d'interconnexion
+    create_auxiliary_account: bool = True  # Créer compte 401XXX automatiquement
+    create_rule: bool = False  # Créer règle d'imputation
+    collective_account_code: Optional[str] = "401"  # Compte collectif parent
 
 
 class SupplierUpdate(SupplierBase):
     name: Optional[str] = None
+    create_auxiliary_account: Optional[bool] = None
+    create_rule: Optional[bool] = None
 
 
 class SupplierResponse(SupplierBase):
     id: UUID
+    auxiliary_account_code: Optional[str] = None  # Compte auxiliaire (401SBEE)
+    has_active_rule: bool = False  # A une règle d'imputation
     total_orders: int = 0
     total_spent: float = 0
     status: str = "active"
@@ -81,11 +98,22 @@ async def list_suppliers(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
     search: Optional[str] = None,
+    has_rule: Optional[bool] = None,  # Filtrer par présence de règle
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """
-    List all suppliers for the current tenant with order statistics.
+    List all suppliers for the current tenant with interconnection info.
+    
+    Retourne pour chaque fournisseur:
+    - Informations de base (nom, code, contact)
+    - Compte auxiliaire lié (401SBEE, etc.)
+    - Présence d'une règle d'imputation active
+    - Statistiques de commandes
+    
+    Filtres:
+    - search: Recherche par nom ou code
+    - has_rule: Filtrer les fournisseurs avec/sans règle d'imputation
     """
     try:
         query = db.query(Supplier).filter(Supplier.client_id == current_user.tenant_id)
@@ -93,8 +121,13 @@ async def list_suppliers(
         if search:
             search_filter = f"%{search}%"
             query = query.filter(
-                Supplier.name.ilike(search_filter)
+                (Supplier.name.ilike(search_filter)) |
+                (Supplier.code.ilike(search_filter)) |
+                (Supplier.auxiliary_account_code.ilike(search_filter))
             )
+        
+        if has_rule is not None:
+            query = query.filter(Supplier.has_active_rule == has_rule)
         
         suppliers = query.offset(skip).limit(limit).all()
         
@@ -110,8 +143,12 @@ async def list_suppliers(
             supplier_dict = {
                 "id": supplier.id,
                 "name": supplier.name,
+                "code": getattr(supplier, 'code', None),
                 "nif": supplier.nif,
+                "rccm": getattr(supplier, 'rccm', None),
                 "default_account": supplier.default_account,
+                "default_charge_account": getattr(supplier, 'default_charge_account', None),
+                "default_vat_account": getattr(supplier, 'default_vat_account', None),
                 "default_tax_rate": float(supplier.default_tax_rate) if supplier.default_tax_rate else None,
                 "default_journal": supplier.default_journal,
                 "default_description": supplier.default_description,
@@ -120,6 +157,11 @@ async def list_suppliers(
                 "phone": getattr(supplier, 'phone', None),
                 "address": getattr(supplier, 'address', None),
                 "country": getattr(supplier, 'country', None),
+                "ocr_keywords": getattr(supplier, 'ocr_keywords', None),
+                # Interconnexion
+                "auxiliary_account_code": getattr(supplier, 'auxiliary_account_code', None),
+                "has_active_rule": getattr(supplier, 'has_active_rule', False),
+                # Stats
                 "total_orders": order_stats.total_orders if order_stats else 0,
                 "total_spent": float(order_stats.total_spent) if order_stats else 0,
                 "status": "active"
@@ -129,6 +171,8 @@ async def list_suppliers(
         return result
     except Exception as e:
         print(f"Error listing suppliers: {e}")
+        import traceback
+        traceback.print_exc()
         return []
 
 
@@ -391,39 +435,100 @@ async def create_supplier(
     current_user: User = Depends(get_current_user)
 ):
     """
-    Create a new supplier.
+    Create a new supplier with automatic interconnection.
+    
+    Interconnection automatique:
+    - Si create_auxiliary_account=True: crée le compte auxiliaire 401XXX
+    - Si create_rule=True: crée la règle d'imputation automatique
+    
+    Exemple:
+    ```json
+    {
+        "name": "SBEE",
+        "code": "SBEE",
+        "create_auxiliary_account": true,
+        "create_rule": true,
+        "default_charge_account": "6061",
+        "ocr_keywords": ["SBEE", "Société Béninoise d'Énergie"]
+    }
+    ```
+    
+    Résultat:
+    - Fournisseur SBEE créé
+    - Compte 401SBEE créé dans le plan comptable
+    - Règle d'imputation créée: 6061 (Débit) + 4454 (Débit TVA) + 401SBEE (Crédit)
     """
     try:
-        supplier = Supplier(
-            name=supplier_data.name,
-            nif=supplier_data.nif,
-            default_account=supplier_data.default_account,
-            default_tax_rate=supplier_data.default_tax_rate,
-            default_journal=supplier_data.default_journal,
-            default_description=supplier_data.default_description,
-            client_id=current_user.tenant_id
-        )
+        from app.services.tiers_interconnection import get_interconnection_service
         
-        if hasattr(supplier, 'contact_name'):
-            supplier.contact_name = supplier_data.contact_name
-        if hasattr(supplier, 'email'):
-            supplier.email = supplier_data.email
-        if hasattr(supplier, 'phone'):
-            supplier.phone = supplier_data.phone
-        if hasattr(supplier, 'address'):
-            supplier.address = supplier_data.address
-        if hasattr(supplier, 'country'):
-            supplier.country = supplier_data.country
-        
-        db.add(supplier)
-        db.commit()
-        db.refresh(supplier)
+        # Utiliser le service d'interconnexion si demandé
+        if supplier_data.create_auxiliary_account or supplier_data.create_rule:
+            service = get_interconnection_service(db, str(current_user.tenant_id))
+            
+            result = service.create_supplier_with_interconnection(
+                name=supplier_data.name,
+                code=supplier_data.code,
+                nif=supplier_data.nif,
+                rccm=supplier_data.rccm,
+                contact_name=supplier_data.contact_name,
+                email=supplier_data.email,
+                phone=supplier_data.phone,
+                address=supplier_data.address,
+                create_auxiliary_account=supplier_data.create_auxiliary_account,
+                create_rule=supplier_data.create_rule,
+                charge_account=supplier_data.default_charge_account,
+                vat_account=supplier_data.default_vat_account or "4454",
+                vat_rate=supplier_data.default_tax_rate or 18.0,
+                journal_code=supplier_data.default_journal or "ACH",
+                ocr_keywords=supplier_data.ocr_keywords,
+                client_id=current_user.tenant_id
+            )
+            
+            supplier = result["supplier"]
+            db.commit()
+            db.refresh(supplier)
+        else:
+            # Création simple sans interconnexion
+            supplier = Supplier(
+                name=supplier_data.name,
+                code=supplier_data.code,
+                nif=supplier_data.nif,
+                rccm=supplier_data.rccm,
+                default_account=supplier_data.default_account,
+                default_charge_account=supplier_data.default_charge_account,
+                default_vat_account=supplier_data.default_vat_account,
+                default_tax_rate=supplier_data.default_tax_rate,
+                default_journal=supplier_data.default_journal,
+                default_description=supplier_data.default_description,
+                ocr_keywords=supplier_data.ocr_keywords,
+                client_id=current_user.tenant_id,
+                tenant_id=current_user.tenant_id
+            )
+            
+            if hasattr(supplier, 'contact_name'):
+                supplier.contact_name = supplier_data.contact_name
+            if hasattr(supplier, 'email'):
+                supplier.email = supplier_data.email
+            if hasattr(supplier, 'phone'):
+                supplier.phone = supplier_data.phone
+            if hasattr(supplier, 'address'):
+                supplier.address = supplier_data.address
+            if hasattr(supplier, 'country'):
+                supplier.country = supplier_data.country
+            
+            db.add(supplier)
+            db.commit()
+            db.refresh(supplier)
         
         return {
             "id": supplier.id,
             "name": supplier.name,
+            "code": supplier.code,
             "nif": supplier.nif,
+            "rccm": getattr(supplier, 'rccm', None),
             "default_account": supplier.default_account,
+            "default_charge_account": getattr(supplier, 'default_charge_account', None),
+            "default_vat_account": getattr(supplier, 'default_vat_account', None),
             "default_tax_rate": float(supplier.default_tax_rate) if supplier.default_tax_rate else None,
             "default_journal": supplier.default_journal,
             "default_description": supplier.default_description,
@@ -432,12 +537,17 @@ async def create_supplier(
             "phone": getattr(supplier, 'phone', None),
             "address": getattr(supplier, 'address', None),
             "country": getattr(supplier, 'country', None),
+            "ocr_keywords": getattr(supplier, 'ocr_keywords', None),
+            "auxiliary_account_code": getattr(supplier, 'auxiliary_account_code', None),
+            "has_active_rule": getattr(supplier, 'has_active_rule', False),
             "total_orders": 0,
             "total_spent": 0,
             "status": "active"
         }
     except Exception as e:
         db.rollback()
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=400, detail=f"Erreur lors de la création: {str(e)}")
 
 

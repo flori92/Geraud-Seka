@@ -1,13 +1,18 @@
 /**
  * Page Fournisseurs - Conforme cahier des charges client
- * Gestion des fournisseurs avec comptes auxiliaires
+ * Gestion des fournisseurs avec comptes auxiliaires et règles d'imputation
+ * 
+ * Logique d'interconnexion SEKA Business:
+ * - Chaque fournisseur peut avoir un compte auxiliaire (401SBEE, 401MTN, etc.)
+ * - Chaque fournisseur peut avoir une règle d'imputation automatique
+ * - La création d'un fournisseur peut automatiquement créer le compte auxiliaire
  */
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
 import { 
     Plus, Search, Edit2, Trash2, Building, FileText,
-    Save, X, AlertCircle, Eye
+    Save, X, AlertCircle, Eye, CheckCircle, XCircle, Settings
 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api";
 
@@ -15,12 +20,22 @@ interface Supplier {
     id: string;
     code: string;
     name: string;
-    auxiliary_account: string;
+    nif?: string;
+    rccm?: string;
+    auxiliary_account_code?: string;  // Compte auxiliaire (401SBEE)
+    has_active_rule?: boolean;  // A une règle d'imputation
+    default_charge_account?: string;  // Compte de charge (6061)
+    default_vat_account?: string;  // Compte TVA (4454)
+    default_tax_rate?: number;  // Taux TVA (18)
+    default_journal?: string;  // Journal (ACH)
+    ocr_keywords?: string[];  // Mots-clés OCR
     contact_name?: string;
     email?: string;
     phone?: string;
     address?: string;
-    invoice_count?: number;
+    country?: string;
+    total_orders?: number;
+    total_spent?: number;
 }
 
 export default function FournisseursPage() {
@@ -34,14 +49,34 @@ export default function FournisseursPage() {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const [formData, setFormData] = useState<Partial<Supplier>>({
+    const [formData, setFormData] = useState<{
+        code: string;
+        name: string;
+        nif: string;
+        contact_name: string;
+        email: string;
+        phone: string;
+        address: string;
+        create_auxiliary_account: boolean;
+        create_rule: boolean;
+        default_charge_account: string;
+        default_vat_account: string;
+        default_tax_rate: number;
+        ocr_keywords: string;
+    }>({
         code: "",
         name: "",
-        auxiliary_account: "",
+        nif: "",
         contact_name: "",
         email: "",
         phone: "",
-        address: ""
+        address: "",
+        create_auxiliary_account: true,
+        create_rule: false,
+        default_charge_account: "",
+        default_vat_account: "4454",
+        default_tax_rate: 18,
+        ocr_keywords: ""
     });
 
     useEffect(() => {
@@ -85,14 +120,20 @@ export default function FournisseursPage() {
         const filtered = suppliers.filter(s =>
             s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             s.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            s.auxiliary_account?.toLowerCase().includes(searchTerm.toLowerCase())
+            s.auxiliary_account_code?.toLowerCase().includes(searchTerm.toLowerCase())
         );
         setFilteredSuppliers(filtered);
     };
 
     const handleSave = async () => {
-        if (!formData.name || !formData.auxiliary_account) {
-            setError("Nom et compte auxiliaire obligatoires");
+        if (!formData.name) {
+            setError("Le nom est obligatoire");
+            return;
+        }
+
+        // Si on crée une règle, le compte de charge est obligatoire
+        if (formData.create_rule && !formData.default_charge_account) {
+            setError("Le compte de charge est obligatoire pour créer une règle");
             return;
         }
 
@@ -107,13 +148,32 @@ export default function FournisseursPage() {
             
             const method = editingSupplier?.id ? "PUT" : "POST";
 
+            // Préparer les données pour l'API
+            const payload = {
+                name: formData.name,
+                code: formData.code || formData.name.substring(0, 6).toUpperCase().replace(/[^A-Z0-9]/g, ''),
+                nif: formData.nif,
+                contact_name: formData.contact_name,
+                email: formData.email,
+                phone: formData.phone,
+                address: formData.address,
+                create_auxiliary_account: formData.create_auxiliary_account,
+                create_rule: formData.create_rule,
+                default_charge_account: formData.default_charge_account,
+                default_vat_account: formData.default_vat_account || "4454",
+                default_tax_rate: formData.default_tax_rate || 18,
+                ocr_keywords: formData.ocr_keywords 
+                    ? formData.ocr_keywords.split(',').map(k => k.trim()).filter(k => k)
+                    : [formData.name]
+            };
+
             const response = await fetch(url, {
                 method,
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`
                 },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(payload)
             });
 
             if (!response.ok) {
@@ -150,7 +210,21 @@ export default function FournisseursPage() {
 
     const handleEdit = (supplier: Supplier) => {
         setEditingSupplier(supplier);
-        setFormData(supplier);
+        setFormData({
+            code: supplier.code || "",
+            name: supplier.name || "",
+            nif: supplier.nif || "",
+            contact_name: supplier.contact_name || "",
+            email: supplier.email || "",
+            phone: supplier.phone || "",
+            address: supplier.address || "",
+            create_auxiliary_account: false,  // Ne pas recréer en mode édition
+            create_rule: false,
+            default_charge_account: supplier.default_charge_account || "",
+            default_vat_account: supplier.default_vat_account || "4454",
+            default_tax_rate: supplier.default_tax_rate || 18,
+            ocr_keywords: supplier.ocr_keywords?.join(", ") || ""
+        });
         setShowModal(true);
     };
 
@@ -160,20 +234,41 @@ export default function FournisseursPage() {
         setFormData({
             code: "",
             name: "",
-            auxiliary_account: "",
+            nif: "",
             contact_name: "",
             email: "",
             phone: "",
-            address: ""
+            address: "",
+            create_auxiliary_account: true,
+            create_rule: false,
+            default_charge_account: "",
+            default_vat_account: "4454",
+            default_tax_rate: 18,
+            ocr_keywords: ""
         });
         setError(null);
     };
 
-    const generateAuxiliaryAccount = (name: string) => {
-        // Génère automatiquement un compte auxiliaire type 401XXXX
-        const prefix = name.substring(0, 4).toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const generateAuxiliaryCode = (name: string) => {
+        // Génère automatiquement un code compte auxiliaire type 401XXXX
+        const prefix = name.substring(0, 6).toUpperCase().replace(/[^A-Z0-9]/g, '');
         return `401${prefix}`;
     };
+
+    // Comptes de charge courants SYSCOHADA
+    const CHARGE_ACCOUNTS = [
+        { code: "6061", name: "Électricité" },
+        { code: "6062", name: "Eau" },
+        { code: "6063", name: "Carburants" },
+        { code: "6064", name: "Fournitures de bureau" },
+        { code: "6261", name: "Télécommunications" },
+        { code: "601", name: "Achats de marchandises" },
+        { code: "602", name: "Achats de matières premières" },
+        { code: "604", name: "Achats stockés" },
+        { code: "605", name: "Autres achats" },
+        { code: "627", name: "Services bancaires" },
+        { code: "631", name: "Impôts et taxes" },
+    ];
 
     return (
         <>
@@ -244,7 +339,7 @@ export default function FournisseursPage() {
                                             Compte auxiliaire
                                         </th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Nb factures
+                                            Règle active
                                         </th>
                                         <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Actions
@@ -269,12 +364,28 @@ export default function FournisseursPage() {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                                <span className="font-mono text-blue-600 font-medium">
-                                                    {supplier.auxiliary_account}
-                                                </span>
+                                                {supplier.auxiliary_account_code ? (
+                                                    <span className="font-mono text-blue-600 font-medium bg-blue-50 px-2 py-1 rounded">
+                                                        {supplier.auxiliary_account_code}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-gray-400 text-xs">Non créé</span>
+                                                )}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {supplier.invoice_count || 0}
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                {supplier.has_active_rule ? (
+                                                    <div className="flex items-center gap-1 text-green-600">
+                                                        <CheckCircle className="h-4 w-4" />
+                                                        <span className="text-xs">
+                                                            {supplier.default_charge_account && `→ ${supplier.default_charge_account}`}
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center gap-1 text-gray-400">
+                                                        <XCircle className="h-4 w-4" />
+                                                        <span className="text-xs">Non</span>
+                                                    </div>
+                                                )}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                                                 <button
@@ -283,6 +394,13 @@ export default function FournisseursPage() {
                                                     title="Modifier"
                                                 >
                                                     <Edit2 className="h-4 w-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => router.push(`/settings/rules?supplier=${supplier.id}`)}
+                                                    className="text-purple-600 hover:text-purple-900 inline-flex items-center gap-1"
+                                                    title="Gérer la règle"
+                                                >
+                                                    <Settings className="h-4 w-4" />
                                                 </button>
                                                 <button
                                                     onClick={() => handleDelete(supplier.id)}
@@ -328,7 +446,7 @@ export default function FournisseursPage() {
                                 </div>
                             </div>
 
-                            <div className="px-6 py-4 space-y-4">
+                            <div className="px-6 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
                                 {error && (
                                     <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700 text-sm">
                                         <AlertCircle className="h-4 w-4" />
@@ -336,95 +454,244 @@ export default function FournisseursPage() {
                                     </div>
                                 )}
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
+                                {/* Section: Informations générales */}
+                                <div className="border-b pb-4">
+                                    <h4 className="font-medium text-gray-900 mb-3">Informations générales</h4>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Code fournisseur
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={formData.code || ""}
+                                                onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                                                placeholder="Ex: SBEE, MTN..."
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Nom *
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={formData.name || ""}
+                                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                                placeholder="Ex: SBEE"
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="mt-3">
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Code fournisseur
+                                            NIF / IFU
                                         </label>
                                         <input
                                             type="text"
-                                            value={formData.code || ""}
-                                            onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                                            placeholder="Ex: SBEE, MTN..."
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Nom *
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={formData.name || ""}
-                                            onChange={(e) => {
-                                                const name = e.target.value;
-                                                setFormData({ 
-                                                    ...formData, 
-                                                    name,
-                                                    auxiliary_account: formData.auxiliary_account || generateAuxiliaryAccount(name)
-                                                });
-                                            }}
-                                            placeholder="Ex: SBEE"
+                                            value={formData.nif || ""}
+                                            onChange={(e) => setFormData({ ...formData, nif: e.target.value })}
+                                            placeholder="Numéro d'identification fiscale"
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                                         />
                                     </div>
                                 </div>
 
+                                {/* Section: Compte auxiliaire */}
+                                {!editingSupplier && (
+                                    <div className="border-b pb-4">
+                                        <h4 className="font-medium text-gray-900 mb-3">Compte auxiliaire</h4>
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <input
+                                                type="checkbox"
+                                                id="create_auxiliary"
+                                                checked={formData.create_auxiliary_account}
+                                                onChange={(e) => setFormData({ ...formData, create_auxiliary_account: e.target.checked })}
+                                                className="h-4 w-4 text-[#1e3a5f] rounded"
+                                            />
+                                            <label htmlFor="create_auxiliary" className="text-sm text-gray-700">
+                                                Créer automatiquement un compte auxiliaire
+                                            </label>
+                                        </div>
+                                        {formData.create_auxiliary_account && formData.name && (
+                                            <div className="bg-blue-50 p-3 rounded-lg">
+                                                <p className="text-sm text-blue-700">
+                                                    Compte généré: <span className="font-mono font-bold">{generateAuxiliaryCode(formData.name)}</span>
+                                                </p>
+                                                <p className="text-xs text-blue-600 mt-1">
+                                                    Ce compte sera créé dans le plan comptable sous 401 - Fournisseurs
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Section: Règle d'imputation */}
+                                {!editingSupplier && (
+                                    <div className="border-b pb-4">
+                                        <h4 className="font-medium text-gray-900 mb-3">Règle d'imputation</h4>
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <input
+                                                type="checkbox"
+                                                id="create_rule"
+                                                checked={formData.create_rule}
+                                                onChange={(e) => setFormData({ ...formData, create_rule: e.target.checked })}
+                                                className="h-4 w-4 text-[#1e3a5f] rounded"
+                                            />
+                                            <label htmlFor="create_rule" className="text-sm text-gray-700">
+                                                Créer une règle d'imputation automatique
+                                            </label>
+                                        </div>
+                                        {formData.create_rule && (
+                                            <div className="space-y-3 pl-7">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                        Compte de charge *
+                                                    </label>
+                                                    <select
+                                                        value={formData.default_charge_account}
+                                                        onChange={(e) => setFormData({ ...formData, default_charge_account: e.target.value })}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                                    >
+                                                        <option value="">Sélectionner un compte...</option>
+                                                        {CHARGE_ACCOUNTS.map(acc => (
+                                                            <option key={acc.code} value={acc.code}>
+                                                                {acc.code} - {acc.name}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                            Compte TVA
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            value={formData.default_vat_account}
+                                                            onChange={(e) => setFormData({ ...formData, default_vat_account: e.target.value })}
+                                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                            Taux TVA (%)
+                                                        </label>
+                                                        <input
+                                                            type="number"
+                                                            value={formData.default_tax_rate}
+                                                            onChange={(e) => setFormData({ ...formData, default_tax_rate: parseFloat(e.target.value) || 18 })}
+                                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                        Mots-clés OCR (séparés par virgule)
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={formData.ocr_keywords}
+                                                        onChange={(e) => setFormData({ ...formData, ocr_keywords: e.target.value })}
+                                                        placeholder="SBEE, Société Béninoise d'Énergie..."
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                                    />
+                                                    <p className="text-xs text-gray-500 mt-1">
+                                                        Ces mots-clés permettent de reconnaître automatiquement les factures
+                                                    </p>
+                                                </div>
+                                                
+                                                {/* Aperçu de l'écriture */}
+                                                {formData.default_charge_account && (
+                                                    <div className="bg-green-50 p-3 rounded-lg mt-3">
+                                                        <p className="text-sm font-medium text-green-800 mb-2">Aperçu de l'écriture générée:</p>
+                                                        <table className="w-full text-xs">
+                                                            <thead>
+                                                                <tr className="text-green-700">
+                                                                    <th className="text-left">Compte</th>
+                                                                    <th className="text-right">Débit</th>
+                                                                    <th className="text-right">Crédit</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody className="text-green-900 font-mono">
+                                                                <tr>
+                                                                    <td>{formData.default_charge_account}</td>
+                                                                    <td className="text-right">HT</td>
+                                                                    <td className="text-right">-</td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td>{formData.default_vat_account}</td>
+                                                                    <td className="text-right">TVA</td>
+                                                                    <td className="text-right">-</td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td>{generateAuxiliaryCode(formData.name || "XXX")}</td>
+                                                                    <td className="text-right">-</td>
+                                                                    <td className="text-right">TTC</td>
+                                                                </tr>
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Section: Contact */}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Compte auxiliaire (401XXX) *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={formData.auxiliary_account || ""}
-                                        onChange={(e) => setFormData({ ...formData, auxiliary_account: e.target.value })}
-                                        placeholder="Ex: 401SBEE"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono"
-                                    />
-                                    <p className="mt-1 text-xs text-gray-500">
-                                        Généré automatiquement à partir du nom
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Nom du contact
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={formData.contact_name || ""}
-                                        onChange={(e) => setFormData({ ...formData, contact_name: e.target.value })}
-                                        placeholder="Ex: Jean Dupont"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                                    />
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Email
-                                        </label>
-                                        <input
-                                            type="email"
-                                            value={formData.email || ""}
-                                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                            placeholder="contact@exemple.com"
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Téléphone
-                                        </label>
-                                        <input
-                                            type="tel"
-                                            value={formData.phone || ""}
-                                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                            placeholder="+229 XX XX XX XX"
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                                        />
+                                    <h4 className="font-medium text-gray-900 mb-3">Coordonnées</h4>
+                                    <div className="space-y-3">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Nom du contact
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={formData.contact_name || ""}
+                                                onChange={(e) => setFormData({ ...formData, contact_name: e.target.value })}
+                                                placeholder="Ex: Jean Dupont"
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                    Email
+                                                </label>
+                                                <input
+                                                    type="email"
+                                                    value={formData.email || ""}
+                                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                                    placeholder="contact@exemple.com"
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                    Téléphone
+                                                </label>
+                                                <input
+                                                    type="tel"
+                                                    value={formData.phone || ""}
+                                                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                                    placeholder="+229 XX XX XX XX"
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Adresse
+                                            </label>
+                                            <textarea
+                                                value={formData.address || ""}
+                                                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                                                placeholder="Adresse complète..."
+                                                rows={2}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             </div>

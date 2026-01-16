@@ -46,9 +46,48 @@ export function NotificationCenter() {
   }, [API_BASE_URL, getHeaders]);
 
   useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          console.log('✅ Notifications autorisées');
+        }
+      });
+    }
+  }, []);
+
+  useEffect(() => {
     fetchNotifications();
     
     const interval = setInterval(fetchNotifications, 30000);
+    
+    const handleDuplicateDetected = (event: CustomEvent) => {
+      const { detail } = event;
+      
+      const localNotification: Notification = {
+        id: `duplicate-${Date.now()}`,
+        title: detail.title || '🛑 Doublon détecté',
+        message: detail.message || detail.reason,
+        type: detail.severity || 'warning',
+        entity_type: 'duplicate',
+        entity_id: detail.newDocumentId,
+        action_url: `/documents/${detail.newDocumentId}/validate`,
+        is_read: false,
+        created_at: detail.timestamp || new Date().toISOString()
+      };
+      
+      setNotifications(prev => [localNotification, ...prev]);
+      setUnreadCount(prev => prev + 1);
+      
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(localNotification.title, {
+          body: localNotification.message,
+          icon: '/favicon.ico',
+          tag: `duplicate-${detail.newDocumentId}`
+        });
+      }
+    };
+    
+    window.addEventListener('seka:duplicate-detected', handleDuplicateDetected as EventListener);
     
     const userId = localStorage.getItem("seka_user_id");
     if (userId) {
@@ -66,13 +105,17 @@ export function NotificationCenter() {
         return () => {
           ws.close();
           clearInterval(interval);
+          window.removeEventListener('seka:duplicate-detected', handleDuplicateDetected as EventListener);
         };
       } catch (e) {
         console.log("WebSocket non disponible");
       }
     }
     
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('seka:duplicate-detected', handleDuplicateDetected as EventListener);
+    };
   }, [fetchNotifications, API_BASE_URL]);
 
   const markAsRead = async (id: string) => {
@@ -124,7 +167,8 @@ export function NotificationCenter() {
       lead: "bg-primary-500",
       opportunity: "bg-indigo-500",
       task: "bg-orange-500",
-      email: "bg-pink-500"
+      email: "bg-pink-500",
+      duplicate: "bg-amber-500"
     };
     return colors[type] || "bg-gray-500";
   };

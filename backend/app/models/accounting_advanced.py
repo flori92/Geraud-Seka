@@ -75,6 +75,11 @@ class ChartOfAccounts(Base, TimestampMixin):
     """
     Plan comptable - Structure hiérarchique des comptes
     Conforme OHADA/SYSCOHADA
+    
+    Logique d'interconnexion SEKA Business:
+    - Comptes généraux: comptes standard SYSCOHADA (401, 411, 6061, etc.)
+    - Comptes auxiliaires: sous-comptes liés à un tiers (401SBEE, 411CLI01)
+    - Comptes collectifs: comptes de regroupement (401, 411) qui agrègent les auxiliaires
     """
     __tablename__ = "chart_of_accounts"
 
@@ -91,6 +96,19 @@ class ChartOfAccounts(Base, TimestampMixin):
     level = Column(Integer, default=1)  # Niveau dans la hiérarchie
     is_group = Column(Boolean, default=False)  # Compte de regroupement
     is_detail = Column(Boolean, default=True)  # Compte de détail (mouvementé)
+    
+    # ===== TYPES DE COMPTES SPÉCIAUX =====
+    # Compte auxiliaire (lié à un tiers: fournisseur ou client)
+    is_auxiliary = Column(Boolean, default=False)
+    # Compte collectif (401 Fournisseurs, 411 Clients) - agrège les auxiliaires
+    is_collective = Column(Boolean, default=False)
+    
+    # Lien vers le tiers (fournisseur ou client) si compte auxiliaire
+    linked_supplier_id = Column(UUID(as_uuid=True), ForeignKey("suppliers.id", ondelete="SET NULL"), nullable=True)
+    linked_client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id", ondelete="SET NULL"), nullable=True)
+    
+    # Code du compte collectif parent pour les auxiliaires (ex: "401" pour 401SBEE)
+    collective_parent_code = Column(String(10), nullable=True)
     
     is_active = Column(Boolean, default=True)
     is_reconcilable = Column(Boolean, default=False)  # Lettrable
@@ -110,6 +128,9 @@ class ChartOfAccounts(Base, TimestampMixin):
     parent = relationship("ChartOfAccounts", remote_side=[id], backref="children")
     tenant = relationship("Tenant")
     entries = relationship("JournalEntryLine", back_populates="account")
+    
+    # Relations vers les tiers liés
+    linked_supplier = relationship("Supplier", foreign_keys=[linked_supplier_id], backref="linked_accounts")
 
     __table_args__ = (
         Index('ix_coa_tenant_number', 'tenant_id', 'account_number', unique=True),
@@ -121,6 +142,14 @@ class ChartOfAccounts(Base, TimestampMixin):
         if self.account_type in ['asset', 'expense']:
             return (self.current_debit or 0) - (self.current_credit or 0)
         return (self.current_credit or 0) - (self.current_debit or 0)
+    
+    @property
+    def display_name(self) -> str:
+        """Nom d'affichage avec indication du type"""
+        prefix = ""
+        if self.is_auxiliary:
+            prefix = "└─ "
+        return f"{prefix}{self.name}"
 
 
 

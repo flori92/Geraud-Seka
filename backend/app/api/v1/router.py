@@ -44,6 +44,9 @@ from app.api.v1.routes import (
     sales_credit_notes,
     settings_audit,
     settings,
+    tiers_interconnection,
+    rules_advanced,
+    duplicates,
 )
 
 api_router = APIRouter()
@@ -103,3 +106,6 @@ api_router.include_router(sales_credit_notes.router, prefix="/sales/credit-notes
 
 api_router.include_router(settings_audit.router, prefix="/settings/audit-trail", tags=["settings", "audit"])
 api_router.include_router(settings.router, prefix="/settings", tags=["settings"])
+api_router.include_router(tiers_interconnection.router, prefix="/interconnection", tags=["tiers-interconnection"])
+api_router.include_router(rules_advanced.router, prefix="/rules-advanced", tags=["rules-advanced"])
+api_router.include_router(duplicates.router, prefix="/duplicates", tags=["duplicates"])

@@ -162,36 +162,114 @@ class AccountingRulesEngine:
         return result
 
     def _default_suggestions(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Suggestions par défaut basées sur le type de document"""
+        """
+        Suggestions par défaut basées sur le type de document.
         
-        supplier = data.get("supplier_name", "").lower()
+        Utilise le système d'interconnexion pour trouver le fournisseur
+        et sa règle d'imputation associée.
+        """
+        supplier_name = data.get("supplier_name", "").lower()
+        raw_text = data.get("raw_text", "")
         
-        if any(keyword in supplier for keyword in ["edf", "energie", "water", "gaz", "sonede", "steg"]):
+        # Essayer de trouver le fournisseur via l'interconnexion
+        try:
+            from app.services.tiers_interconnection import TiersInterconnectionService
+            service = TiersInterconnectionService(self.db, self.tenant_id)
+            
+            supplier, confidence = service.find_supplier_by_ocr_text(
+                raw_text or supplier_name,
+                supplier_name
+            )
+            
+            if supplier and supplier.has_active_rule:
+                # Utiliser la règle du fournisseur
+                auxiliary_code = supplier.auxiliary_account_code or f"401{supplier.code or supplier.name[:4].upper()}"
+                return {
+                    "confidence": confidence,
+                    "auto_apply": confidence >= 0.7,
+                    "suggested_debit_account": supplier.default_charge_account or "601000",
+                    "suggested_credit_account": auxiliary_code,
+                    "suggested_vat_account": supplier.default_vat_account or "4454",
+                    "suggested_vat_rate": float(supplier.default_tax_rate or 18),
+                    "suggested_label": f"Facture {supplier.name}",
+                    "supplier_id": str(supplier.id),
+                    "supplier_name": supplier.name,
+                    "source": "interconnection"
+                }
+            elif supplier:
+                # Fournisseur trouvé mais sans règle
+                auxiliary_code = supplier.auxiliary_account_code or "401000"
+                return {
+                    "confidence": confidence * 0.8,
+                    "auto_apply": False,
+                    "suggested_debit_account": supplier.default_charge_account or "601000",
+                    "suggested_credit_account": auxiliary_code,
+                    "suggested_label": f"Facture {supplier.name}",
+                    "supplier_id": str(supplier.id),
+                    "supplier_name": supplier.name,
+                    "source": "supplier_found_no_rule",
+                    "message": f"Fournisseur '{supplier.name}' trouvé mais sans règle d'imputation"
+                }
+        except Exception as e:
+            print(f"Interconnection lookup failed: {e}")
+        
+        # Fallback: heuristiques basées sur le nom
+        # Électricité / Énergie
+        if any(keyword in supplier_name for keyword in ["sbee", "edf", "energie", "électricité", "sonelec"]):
             return {
                 "confidence": 0.5,
                 "auto_apply": False,
-                "suggested_debit_account": "606100",  # Fournitures énergétiques
-                "suggested_credit_account": "401000",  # Fournisseurs
-                "suggested_label": f"Facture {supplier}",
+                "suggested_debit_account": "6061",  # Électricité
+                "suggested_credit_account": "401",  # Fournisseurs
+                "suggested_vat_account": "4454",
+                "suggested_label": f"Facture électricité - {supplier_name}",
                 "source": "heuristic"
             }
         
-        if any(keyword in supplier for keyword in ["orange", "mtn", "moov", "telecom"]):
+        # Eau
+        if any(keyword in supplier_name for keyword in ["soneb", "water", "eau"]):
             return {
                 "confidence": 0.5,
                 "auto_apply": False,
-                "suggested_debit_account": "626000",  # Frais postaux et télécommunications
-                "suggested_credit_account": "401000",
-                "suggested_label": f"Facture {supplier}",
+                "suggested_debit_account": "6062",  # Eau
+                "suggested_credit_account": "401",
+                "suggested_vat_account": "4454",
+                "suggested_label": f"Facture eau - {supplier_name}",
+                "source": "heuristic"
+            }
+        
+        # Télécommunications
+        if any(keyword in supplier_name for keyword in ["mtn", "moov", "orange", "telecom", "glo"]):
+            return {
+                "confidence": 0.5,
+                "auto_apply": False,
+                "suggested_debit_account": "6261",  # Télécommunications
+                "suggested_credit_account": "401",
+                "suggested_vat_account": "4454",
+                "suggested_label": f"Facture télécom - {supplier_name}",
+                "source": "heuristic"
+            }
+        
+        # Carburant
+        if any(keyword in supplier_name for keyword in ["oryx", "total", "shell", "carburant", "essence"]):
+            return {
+                "confidence": 0.5,
+                "auto_apply": False,
+                "suggested_debit_account": "6063",  # Carburants
+                "suggested_credit_account": "401",
+                "suggested_vat_account": "4454",
+                "suggested_label": f"Facture carburant - {supplier_name}",
                 "source": "heuristic"
             }
 
+        # Par défaut
         return {
             "confidence": 0.3,
             "auto_apply": False,
-            "suggested_debit_account": "607000",  # Achats de marchandises
-            "suggested_credit_account": "401000",  # Fournisseurs
-            "suggested_label": f"Achat - {supplier}",
+            "suggested_debit_account": "601",  # Achats de marchandises
+            "suggested_credit_account": "401",  # Fournisseurs
+            "suggested_vat_account": "4454",
+            "suggested_label": f"Achat - {supplier_name}",
             "source": "default"
         }
 
