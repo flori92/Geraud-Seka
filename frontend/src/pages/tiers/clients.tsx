@@ -107,7 +107,7 @@ export default function ClientsPage() {
         const filtered = clients.filter(c =>
             c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             c.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.auxiliary_account?.toLowerCase().includes(searchTerm.toLowerCase())
+            c.auxiliary_account_code?.toLowerCase().includes(searchTerm.toLowerCase())
         );
         setFilteredClients(filtered);
     };
