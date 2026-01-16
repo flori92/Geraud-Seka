@@ -312,7 +312,15 @@ async def list_rules(
         AccountingRule.tenant_id == current_tenant.id
     ).order_by(AccountingRule.priority.desc()).all()
     
-    return rules
+    result = []
+    for rule in rules:
+        try:
+            result.append(AccountingRuleResponse.model_validate(rule))
+        except Exception as e:
+            print(f"⚠️ Error validating rule {rule.id}: {e}")
+            continue
+    
+    return result
 
 
 @router.post("/rules", response_model=AccountingRuleResponse)
