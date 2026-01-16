@@ -117,6 +117,7 @@ async def preview_batch_validation(
 async def validate_all_eligible(
     min_confidence: float = 0.8,
     dry_run: bool = False,
+    only_auto_validable: bool = False,
     current_user: User = Depends(get_current_user),
     current_tenant: Tenant = Depends(get_current_tenant),
     db: Session = Depends(get_db)
@@ -127,18 +128,24 @@ async def validate_all_eligible(
     Critères d'éligibilité:
     - Status: pending, pre_processed, ou ocr_completed
     - OCR confidence >= min_confidence
-    - Règle comptable applicable trouvée
+    - Règle comptable applicable trouvée (si only_auto_validable=True)
     - Fournisseur et montant présents
     
+    only_auto_validable=True: Ne valide QUE les documents marqués auto_validable
     dry_run=True: Simule sans valider réellement
     """
     start_time = datetime.utcnow()
     
-    pending_docs = db.query(Document).filter(
+    query = db.query(Document).filter(
         Document.tenant_id == current_tenant.id,
         Document.status.in_(["pending", "pre_processed", "ocr_completed"]),
         Document.ocr_confidence >= min_confidence
-    ).all()
+    )
+    
+    if only_auto_validable:
+        query = query.filter(Document.auto_validable == True)
+    
+    pending_docs = query.all()
     
     rules_service = AccountingRulesService(db, str(current_tenant.id))
     

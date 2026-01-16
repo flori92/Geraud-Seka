@@ -131,6 +131,10 @@ class Document(Base, TimestampMixin):
     validated_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     validated_at = Column(Date)
     
+    auto_validable = Column(Boolean, default=False)
+    matched_rule_id = Column(String(255), nullable=True)
+    matched_rule_name = Column(String(255), nullable=True)
+    
     folder_id = Column(UUID(as_uuid=True), ForeignKey("document_folders.id", ondelete="SET NULL"))
     client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id", ondelete="SET NULL"), nullable=True)
     supplier_id = Column(UUID(as_uuid=True), ForeignKey("suppliers.id", ondelete="SET NULL"), nullable=True)

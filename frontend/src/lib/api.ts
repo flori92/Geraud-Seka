@@ -240,6 +240,9 @@ export interface Document {
   created_at: string;
   client_id: string;
   type?: string;
+  auto_validable?: boolean;
+  matched_rule_id?: string;
+  matched_rule_name?: string;
 }
 
 export type DocumentStatus = 'UPLOADED' | 'OCR_PROCESSING' | 'OCR_COMPLETED' | 'VALIDATED' | 'REJECTED' | 'ARCHIVED';

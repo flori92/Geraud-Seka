@@ -138,6 +138,45 @@ async def upload_document(
 
                 print(f"📋 Classification: {invoice_type} | Fournisseur: {ocr_data.get('supplier_name')} | Montant: {ocr_data.get('amount_ttc')}")
 
+                # Vérifier si le document correspond à une règle active
+                try:
+                    from app.services.accounting_rules import AccountingRulesService
+                    from app.models.accounting_rules import AccountingRule
+                    
+                    rules_service = AccountingRulesService(db, str(current_user.tenant_id))
+                    
+                    # Récupérer toutes les règles actives
+                    active_rules = db.query(AccountingRule).filter(
+                        AccountingRule.tenant_id == current_user.tenant_id,
+                        AccountingRule.is_active == True
+                    ).all()
+                    
+                    if active_rules and ocr_data.get('supplier_name'):
+                        # Appliquer les règles au document
+                        result = rules_service.apply_rules_to_document({
+                            "supplier_name": ocr_data.get('supplier_name', ''),
+                            "reference_number": ocr_data.get('reference_number', ''),
+                            "amount_ttc": float(ocr_data.get('amount_ttc', 0)),
+                            "document_date": ocr_data.get('date'),
+                            "description": ocr_data.get('description', '')
+                        })
+                        
+                        if result.get("matched"):
+                            # Marquer comme auto-validable
+                            db_obj.auto_validable = True
+                            db_obj.matched_rule_id = str(result.get('rule_id', ''))
+                            db_obj.matched_rule_name = result.get('rule_name', 'Règle sans nom')
+                            print(f"✅ Document correspond à la règle: {result.get('rule_name')}")
+                        else:
+                            db_obj.auto_validable = False
+                            print(f"ℹ️  Aucune règle active ne correspond à ce document")
+                    else:
+                        db_obj.auto_validable = False
+                        
+                except Exception as rule_err:
+                    print(f"⚠️ Erreur vérification règles: {rule_err}")
+                    db_obj.auto_validable = False
+
                 # Flush nested changes; commit below will persist them.
                 db.flush()
 

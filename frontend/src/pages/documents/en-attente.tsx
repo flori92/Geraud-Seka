@@ -245,7 +245,7 @@ export default function DocumentsEnAttentePage() {
         setIsValidating(true);
         
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/batch-validation/validate-all?min_confidence=0.8`, {
+            const response = await fetch(`${API_BASE_URL}/api/v1/batch-validation/validate-all?min_confidence=0.8&only_auto_validable=true`, {
                 method: "POST",
                 headers: { 
                     "Authorization": `Bearer ${token}`,
@@ -540,10 +540,21 @@ export default function DocumentsEnAttentePage() {
                                                             </span>
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap">
-                                                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${statusConfig.color}`}>
-                                                                <StatusIcon className={`h-3 w-3 ${doc.status === 'OCR_PROCESSING' ? 'animate-spin' : ''}`} />
-                                                                {statusConfig.label}
-                                                            </span>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${statusConfig.color}`}>
+                                                                    <StatusIcon className={`h-3 w-3 ${doc.status === 'OCR_PROCESSING' ? 'animate-spin' : ''}`} />
+                                                                    {statusConfig.label}
+                                                                </span>
+                                                                {doc.auto_validable && (
+                                                                    <span 
+                                                                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-purple-100 to-indigo-100 text-purple-700 border border-purple-200"
+                                                                        title={`Règle: ${doc.matched_rule_name || 'Règle active'}`}
+                                                                    >
+                                                                        <Zap className="h-3 w-3" />
+                                                                        Auto
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap">
                                                             <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${doc.type === 'INVOICE_PURCHASE' ? 'bg-orange-100 text-orange-700' :
