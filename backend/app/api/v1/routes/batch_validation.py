@@ -223,7 +223,7 @@ async def validate_all_eligible(
                 continue
             
             if not dry_run:
-doc.status = DocumentStatus.VALIDEE
+                doc.status = DocumentStatus.VALIDEE
                 doc.validated_at = datetime.utcnow()
                 doc.validated_by_id = current_user.id
                 
