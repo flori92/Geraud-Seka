@@ -18,6 +18,7 @@ from sqlalchemy.exc import IntegrityError
 from app.db.session import SessionLocal
 from app.models.tenant import Tenant
 from app.models.user import User
+from app.models.client import Client
 from app.core.security import get_password_hash
 
 
@@ -68,7 +69,39 @@ def create_test_accounts():
         else:
             print("  ℹ️  Tenant 'Cabinet KOUTON & Associés' existe déjà")
         
-        # 2. Définir les comptes de test
+        # 2. Créer un client de démo pour le tenant Entreprise
+        print("\n📂 Création du client de démo...")
+        
+        # On vérifie si le client existe pour ce tenant spécifique
+        demo_client = db.query(Client).filter(
+            Client.name == "Seka Demo Client",
+            Client.tenant_id == enterprise_tenant.id
+        ).first()
+
+        if not demo_client:
+            demo_client = Client(
+                id=uuid.uuid4(),
+                name="Seka Demo Client",
+                slug="seka-demo-client",
+                code="CLI-DEMO",
+                sector="Services",
+                nif="1234567890123",
+                rccm="RC-ABC-09876",
+                contact_name="Géraud DE SOUZA",
+                email="contact@sekademo.com",
+                phone="+229 97000000",
+                address="Cotonou, Bénin",
+                country="Bénin",
+                tenant_id=enterprise_tenant.id
+            )
+            # Générer le code auxiliaire
+            demo_client.auxiliary_account_code = demo_client.generate_auxiliary_code()
+            db.add(demo_client)
+            print("  ✅ Client 'Seka Demo Client' créé pour le tenant Entreprise")
+        else:
+            print("  ℹ️  Client 'Seka Demo Client' existe déjà pour ce tenant")
+
+        # 3. Définir les comptes de test
         test_accounts = [
             # === MODE ENTREPRISE ===
             {
@@ -129,7 +162,7 @@ def create_test_accounts():
             },
         ]
         
-        # 3. Créer les utilisateurs
+        # 4. Créer les utilisateurs
         print("\n👥 Création des comptes utilisateurs...")
         
         for account in test_accounts:
@@ -169,7 +202,7 @@ def create_test_accounts():
         
         db.commit()
         
-        # 4. Afficher le récapitulatif
+        # 5. Afficher le récapitulatif
         print("\n" + "=" * 60)
         print("📋 RÉCAPITULATIF DES COMPTES DE TEST")
         print("=" * 60)
