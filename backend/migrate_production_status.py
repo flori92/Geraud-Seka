@@ -62,6 +62,10 @@ def migrate_production_status():
                     if "already exists" not in str(e):
                         logger.warning(f"Impossible d'ajouter {value}: {e}")
         
+        # Commit après l'ajout des valeurs d'enum
+        conn.commit()
+        logger.info("✅ Nouvelles valeurs d'enum commitées")
+        
         # 3. Compter les documents avec l'ancien statut
         cursor.execute("SELECT COUNT(*) FROM documents WHERE status = 'VALIDATED'")
         validated_count = cursor.fetchone()[0]
