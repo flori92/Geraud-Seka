@@ -2,10 +2,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
 import {
-    FileText, Filter, Search, CheckSquare, Square,
-    AlertCircle, Clock, CheckCircle, Eye, Trash2,
-    MoreVertical, Download, Upload, Loader2, ChevronRight, CheckCheck,
-    Zap, X, AlertTriangle, Calendar, User, Building
+    FileText, Search, CheckCircle, Eye, Trash2,
+    Download, Upload, Loader2, CheckCheck, Calendar
 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api";
 import { getValidatedDocuments, deleteDocument, type Document } from "@/lib/api";
@@ -24,9 +22,7 @@ export default function DocumentsValideesPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
     const [isDeleting, setIsDeleting] = useState(false);
-    const [showFilters, setShowFilters] = useState(false);
     const [documentType, setDocumentType] = useState<string>('all');
-    const [dateRange, setDateRange] = useState<string>('all');
 
     useEffect(() => {
         fetchDocuments();
@@ -370,7 +366,7 @@ export default function DocumentsValideesPage() {
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                    {formatDate(doc.document_date || doc.created_at)}
+                                                    {formatDate(doc.date || doc.created_at)}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                     {formatAmount(doc.amount_ttc)}
