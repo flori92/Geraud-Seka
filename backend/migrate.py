@@ -215,6 +215,8 @@ def ensure_clients_columns():
                 'sector': 'VARCHAR(128)',
                 'nif': 'VARCHAR(50)',
                 'rccm': 'VARCHAR(50)',
+                'contact_name': 'VARCHAR(255)',
+                'country': "VARCHAR(100) DEFAULT 'Bénin'",
                 'auxiliary_account_id': 'UUID',
                 'auxiliary_account_code': 'VARCHAR(20)',
                 'collective_account_code': "VARCHAR(10) DEFAULT '411'",
