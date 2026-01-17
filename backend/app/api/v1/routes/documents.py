@@ -867,12 +867,13 @@ def validate_document(
     supplier_id = None
     supplier_default_account = None
     supplier_default_journal = None
+    supplier_auxiliary_account = None
     try:
         try:
             row = db.execute(
                 text(
                     """
-                    SELECT id, default_account, default_journal
+                    SELECT id, default_account, default_journal, auxiliary_account_code
                     FROM suppliers
                     WHERE name = :name AND client_id = :client_id
                     LIMIT 1
@@ -884,6 +885,7 @@ def validate_document(
                 supplier_id = row[0]
                 supplier_default_account = row[1]
                 supplier_default_journal = row[2]
+                supplier_auxiliary_account = row[3]
         except Exception:
             row = db.execute(
                 text(
@@ -984,10 +986,23 @@ def validate_document(
         print("✅ Écriture dépense ajoutée")
     
         if tax_amount and tax_amount > 0:
+            # Récupérer le compte TVA du fournisseur ou utiliser la valeur par défaut
+            supplier_vat_account = None
+            if supplier_id:
+                try:
+                    vat_row = db.execute(
+                        text("SELECT default_vat_account FROM suppliers WHERE id = :id"),
+                        {"id": supplier_id}
+                    ).fetchone()
+                    if vat_row and vat_row[0]:
+                        supplier_vat_account = vat_row[0]
+                except Exception:
+                    pass
+            
             entry_vat = AccountingEntry(
                 document_id=document.id,
                 entry_type=EntryType.DEBIT,
-                account_number="445200", # TVA Récupérable
+                account_number=supplier_vat_account or "445200", # Compte TVA fournisseur ou par défaut
                 label=f"TVA sur {entry_label}",
                 debit=tax_amount,
                 credit=0,
@@ -1001,7 +1016,7 @@ def validate_document(
         entry_payable = AccountingEntry(
             document_id=document.id,
             entry_type=EntryType.CREDIT,
-            account_number="401100", # Fournisseurs
+            account_number=supplier_auxiliary_account or "401100", # Compte auxiliaire fournisseur ou collectif par défaut
             label=f"Facture {supplier_name}",
             debit=0,
             credit=total_amount,
@@ -1011,6 +1026,7 @@ def validate_document(
             tenant_id=current_user.tenant_id
         )
         db.add(entry_payable)
+        print(f"✅ Écriture fournisseur ajoutée: {supplier_auxiliary_account or '401100'} ({supplier_name})")
 
         db.commit()
         db.refresh(document)
