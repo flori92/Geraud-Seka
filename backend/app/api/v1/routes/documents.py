@@ -168,7 +168,7 @@ async def upload_document(
                         )
                         
                         # Marquer le document comme doublon potentiel
-                        db_obj.status = DocumentStatus.PENDING  # En attente de résolution
+                        db_obj.status = DocumentStatus.A_TRAITER  # En attente de résolution
                         
                         print(f"🛑 DOUBLON DÉTECTÉ! Raison: {detection_reason.value}")
                         print(f"   Nouveau: {db_obj.supplier_name} - {db_obj.reference_number}")
