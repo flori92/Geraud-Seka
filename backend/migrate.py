@@ -135,6 +135,7 @@ def ensure_documents_columns():
                 'amount_vat': 'FLOAT',
                 'amount_ttc': 'FLOAT',
                 'currency': 'VARCHAR(3) DEFAULT \'XOF\'',
+                'supplier_name': 'VARCHAR(255)',  # Nom du fournisseur extrait par OCR
                 'version': 'INTEGER DEFAULT 1',
                 'parent_document_id': 'UUID',
                 'is_latest_version': 'BOOLEAN DEFAULT TRUE',
@@ -147,6 +148,9 @@ def ensure_documents_columns():
                 'requires_validation': 'BOOLEAN DEFAULT FALSE',
                 'validated_by': 'UUID',
                 'validated_at': 'DATE',
+                'auto_validable': 'BOOLEAN DEFAULT FALSE',  # Document validable automatiquement
+                'matched_rule_id': 'UUID',  # Règle de classification matchée
+                'matched_rule_name': 'VARCHAR(255)',  # Nom de la règle matchée
                 'folder_id': 'UUID',
                 'client_id': 'UUID NULL',
                 'supplier_id': 'UUID NULL',
@@ -189,6 +193,115 @@ def ensure_documents_columns():
 
     except Exception as e:
         print(f"⚠️  Erreur lors de la vérification du schéma documents: {e}")
+
+
+def ensure_clients_columns():
+    """Ajoute les colonnes manquantes à la table clients si nécessaire.
+    
+    Colonnes ajoutées pour l'interconnexion Plan Comptable et Règles.
+    """
+    try:
+        with engine.connect() as conn:
+            table_exists = conn.execute(text(
+                "SELECT 1 FROM information_schema.tables WHERE table_name = 'clients'"
+            )).fetchone()
+            if not table_exists:
+                return
+
+            print("🔧 Vérification du schéma clients...")
+
+            columns_to_check = {
+                'code': 'VARCHAR(20)',
+                'sector': 'VARCHAR(128)',
+                'nif': 'VARCHAR(50)',
+                'rccm': 'VARCHAR(50)',
+                'auxiliary_account_id': 'UUID',
+                'auxiliary_account_code': 'VARCHAR(20)',
+                'collective_account_code': "VARCHAR(10) DEFAULT '411'",
+                'default_rule_id': 'UUID',
+                'has_active_rule': 'BOOLEAN DEFAULT FALSE',
+                'default_revenue_account': 'VARCHAR(20)',
+                'default_vat_account': "VARCHAR(20) DEFAULT '4457'",
+                'default_tax_rate': 'NUMERIC(5,2) DEFAULT 18.00',
+                'default_journal': "VARCHAR(10) DEFAULT 'VTE'",
+                'default_description': 'VARCHAR(255)',
+                'ocr_keywords': 'JSON',
+                'client_metadata': 'JSON',
+            }
+
+            for column_name, column_type in columns_to_check.items():
+                result = conn.execute(text(f"""
+                    SELECT column_name FROM information_schema.columns
+                    WHERE table_name = 'clients' AND column_name = '{column_name}'
+                """))
+                if not result.fetchone():
+                    try:
+                        conn.execute(text(f"ALTER TABLE clients ADD COLUMN {column_name} {column_type}"))
+                        conn.commit()
+                        print(f"✅ Colonne clients.{column_name} ajoutée")
+                    except Exception as e:
+                        print(f"⚠️  Erreur colonne clients.{column_name}: {e}")
+                        conn.rollback()
+
+            print("✅ Schéma clients vérifié")
+
+    except Exception as e:
+        print(f"⚠️  Erreur lors de la vérification du schéma clients: {e}")
+
+
+def ensure_suppliers_columns():
+    """Ajoute les colonnes manquantes à la table suppliers si nécessaire.
+    
+    Colonnes ajoutées pour l'interconnexion Plan Comptable et Règles.
+    """
+    try:
+        with engine.connect() as conn:
+            table_exists = conn.execute(text(
+                "SELECT 1 FROM information_schema.tables WHERE table_name = 'suppliers'"
+            )).fetchone()
+            if not table_exists:
+                return
+
+            print("🔧 Vérification du schéma suppliers...")
+
+            columns_to_check = {
+                'code': 'VARCHAR(20)',
+                'sector': 'VARCHAR(128)',
+                'nif': 'VARCHAR(50)',
+                'rccm': 'VARCHAR(50)',
+                'contact_name': 'VARCHAR(255)',
+                'auxiliary_account_id': 'UUID',
+                'auxiliary_account_code': 'VARCHAR(20)',
+                'collective_account_code': "VARCHAR(10) DEFAULT '401'",
+                'default_rule_id': 'UUID',
+                'has_active_rule': 'BOOLEAN DEFAULT FALSE',
+                'default_expense_account': 'VARCHAR(20)',
+                'default_vat_account': "VARCHAR(20) DEFAULT '4456'",
+                'default_tax_rate': 'NUMERIC(5,2) DEFAULT 18.00',
+                'default_journal': "VARCHAR(10) DEFAULT 'ACH'",
+                'default_description': 'VARCHAR(255)',
+                'ocr_keywords': 'JSON',
+                'supplier_metadata': 'JSON',
+            }
+
+            for column_name, column_type in columns_to_check.items():
+                result = conn.execute(text(f"""
+                    SELECT column_name FROM information_schema.columns
+                    WHERE table_name = 'suppliers' AND column_name = '{column_name}'
+                """))
+                if not result.fetchone():
+                    try:
+                        conn.execute(text(f"ALTER TABLE suppliers ADD COLUMN {column_name} {column_type}"))
+                        conn.commit()
+                        print(f"✅ Colonne suppliers.{column_name} ajoutée")
+                    except Exception as e:
+                        print(f"⚠️  Erreur colonne suppliers.{column_name}: {e}")
+                        conn.rollback()
+
+            print("✅ Schéma suppliers vérifié")
+
+    except Exception as e:
+        print(f"⚠️  Erreur lors de la vérification du schéma suppliers: {e}")
 
 
 def ensure_accounting_entries_columns():
@@ -314,6 +427,12 @@ def run_migrations():
 
         # Assurer que les colonnes documents existent (fallback prod si Alembic est bloqué)
         ensure_documents_columns()
+
+        # Assurer que les colonnes clients existent (interconnexion plan comptable)
+        ensure_clients_columns()
+
+        # Assurer que les colonnes suppliers existent (interconnexion plan comptable)
+        ensure_suppliers_columns()
 
         # Vérifier que les tables existent
         with engine.connect() as conn:
