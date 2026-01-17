@@ -10,13 +10,15 @@ import {
 import { API_BASE_URL } from "@/lib/api";
 import { getPendingDocuments, deleteDocument, type Document } from "@/lib/api";
 
-type TabFilter = 'all' | 'uploaded' | 'ocr_processing' | 'ocr_completed';
+type TabFilter = 'all' | 'uploaded' | 'ocr_processing' | 'ocr_completed' | 'a_traiter' | 'pre_traitees';
 
 interface DocumentStats {
     total: number;
     uploaded: number;
     processing: number;
     completed: number;
+    a_traiter: number;
+    pre_traitees: number;
 }
 
 export default function DocumentsEnAttentePage() {
@@ -61,6 +63,8 @@ export default function DocumentsEnAttentePage() {
             uploaded: documents.filter(d => d.status === 'UPLOADED').length,
             processing: documents.filter(d => d.status === 'OCR_PROCESSING').length,
             completed: documents.filter(d => d.status === 'OCR_COMPLETED').length,
+            a_traiter: documents.filter(d => d.status === 'A_TRAITER').length,
+            pre_traitees: documents.filter(d => d.status === 'PRE_TRAITEE').length,
         };
     };
 
@@ -70,6 +74,8 @@ export default function DocumentsEnAttentePage() {
         if (activeTab === 'uploaded' && doc.status !== 'UPLOADED') return false;
         if (activeTab === 'ocr_processing' && doc.status !== 'OCR_PROCESSING') return false;
         if (activeTab === 'ocr_completed' && doc.status !== 'OCR_COMPLETED') return false;
+        if (activeTab === 'a_traiter' && doc.status !== 'A_TRAITER') return false;
+        if (activeTab === 'pre_traitees' && doc.status !== 'PRE_TRAITEE') return false;
 
         if (searchQuery) {
             const q = searchQuery.toLowerCase();
@@ -279,6 +285,8 @@ export default function DocumentsEnAttentePage() {
         { id: 'uploaded', label: 'Uploadés', count: stats.uploaded },
         { id: 'ocr_processing', label: 'En traitement', count: stats.processing },
         { id: 'ocr_completed', label: 'Prêts à valider', count: stats.completed },
+        { id: 'a_traiter', label: 'À traiter', count: stats.a_traiter },
+        { id: 'pre_traitees', label: 'Pré-traitées', count: stats.pre_traitees },
     ];
 
     return (
