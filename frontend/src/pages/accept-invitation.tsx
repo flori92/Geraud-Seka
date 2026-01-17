@@ -17,7 +17,7 @@ export default function AcceptInvitationPage() {
 
   const handleAcceptInvitation = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!token) {
       setError("Token d'invitation manquant");
       return;
@@ -44,7 +44,7 @@ export default function AcceptInvitationPage() {
       });
 
       setSuccess(true);
-      
+
       setTimeout(() => {
         router.push("/login");
       }, 3000);
@@ -61,7 +61,7 @@ export default function AcceptInvitationPage() {
         <Head>
           <title>Invitation acceptée - SEKA</title>
         </Head>
-        <div className="min-h-screen bg-gradient-to-br from-[#1e3a5f] to-[#2c5282] flex items-center justify-center p-4">
+        <div className="min-h-screen bg-[#1e3a5f] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="h-10 w-10 text-green-600" />
@@ -84,7 +84,7 @@ export default function AcceptInvitationPage() {
       <Head>
         <title>Accepter l&apos;invitation - SEKA</title>
       </Head>
-      <div className="min-h-screen bg-gradient-to-br from-[#1e3a5f] to-[#2c5282] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#1e3a5f] flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">

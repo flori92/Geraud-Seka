@@ -70,7 +70,7 @@ export default function AILearningPage() {
                         {/* Header */}
                         <div className="flex items-center justify-between gap-3 mb-6">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl shadow-lg">
+                                <div className="p-2 bg-purple-600 rounded-xl shadow-lg">
                                     <Brain className="h-7 w-7 text-white" />
                                 </div>
                                 <div>
@@ -98,7 +98,7 @@ export default function AILearningPage() {
                             <>
                                 {/* Stats */}
                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                                    <div className="bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl p-5 text-white">
+                                    <div className="bg-purple-600 rounded-xl p-5 text-white">
                                         <div className="flex items-center justify-between mb-2">
                                             <Brain className="h-6 w-6 opacity-80" />
                                             <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">Global</span>
@@ -170,7 +170,7 @@ export default function AILearningPage() {
                                                                     <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
                                                                         <div
                                                                             className={`h-full rounded-full ${model.accuracy >= 90 ? "bg-green-500" :
-                                                                                    model.accuracy >= 80 ? "bg-yellow-500" : "bg-red-500"
+                                                                                model.accuracy >= 80 ? "bg-yellow-500" : "bg-red-500"
                                                                                 }`}
                                                                             style={{ width: `${model.accuracy}%` }}
                                                                         />
@@ -212,7 +212,7 @@ export default function AILearningPage() {
                                 </div>
 
                                 {/* Tips */}
-                                <div className="mt-6 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-100 p-6">
+                                <div className="mt-6 bg-purple-50 rounded-xl border border-purple-100 p-6">
                                     <div className="flex items-start gap-4">
                                         <div className="p-2 bg-purple-100 rounded-lg">
                                             <Zap className="h-5 w-5 text-purple-600" />

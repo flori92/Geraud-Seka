@@ -68,15 +68,15 @@ const trendColors = {
   stable: 'text-gray-500'
 };
 
-export function MetricCard({ 
-  title, 
-  value, 
-  change, 
-  icon, 
-  color, 
+export function MetricCard({
+  title,
+  value,
+  change,
+  icon,
+  color,
   trend,
   subtitle,
-  loading = false 
+  loading = false
 }: MetricCardProps) {
   const classes = colorClasses[color];
   const TrendIcon = trend ? trendIcons[trend] : null;
@@ -111,19 +111,19 @@ export function MetricCard({
             <h3 className="text-sm font-medium text-gray-600 mb-1 group-hover:text-gray-800 transition-colors">
               {title}
             </h3>
-            
+
             {/* Valeur principale */}
             <div className="text-2xl font-bold text-gray-900 mb-2 group-hover:scale-105 transition-transform">
               {typeof value === 'number' ? value.toLocaleString('fr-FR') : value}
             </div>
-            
+
             {/* Variation et sous-titre */}
             <div className="flex items-center space-x-2">
               {change !== undefined && change !== 0 && (
                 <div className={`
                   flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium
-                  ${change > 0 
-                    ? 'bg-green-100 text-green-800' 
+                  ${change > 0
+                    ? 'bg-green-100 text-green-800'
                     : 'bg-red-100 text-red-800'
                   }
                 `}>
@@ -135,7 +135,7 @@ export function MetricCard({
                   </span>
                 </div>
               )}
-              
+
               {subtitle && (
                 <span className="text-xs text-gray-500">
                   {subtitle}
@@ -143,7 +143,7 @@ export function MetricCard({
               )}
             </div>
           </div>
-          
+
           {/* Icône */}
           <div className={`
             p-3 rounded-lg transition-all duration-300
@@ -153,41 +153,41 @@ export function MetricCard({
             {icon}
           </div>
         </div>
-        
+
         {/* Barre de progression si applicable */}
         {change !== undefined && (
           <div className="mt-4">
             <div className="w-full bg-gray-200 rounded-full h-1.5">
-              <div 
+              <div
                 className={`
                   h-1.5 rounded-full transition-all duration-1000 ease-out
                   ${change >= 0 ? 'bg-green-500' : 'bg-red-500'}
                 `}
-                style={{ 
-                  width: `${Math.min(Math.abs(change) * 2, 100)}%` 
+                style={{
+                  width: `${Math.min(Math.abs(change) * 2, 100)}%`
                 }}
               ></div>
             </div>
           </div>
         )}
       </div>
-      
+
       {/* Effet de glow au survol */}
       <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-        <div className={`absolute inset-0 rounded-xl bg-gradient-to-r from-transparent via-white/5 to-transparent`}></div>
+        <div className={`absolute inset-0 rounded-xl bg-white/5`}></div>
       </div>
     </div>
   );
 }
 
-export function CompactMetricCard({ 
-  title, 
-  value, 
-  icon, 
-  color = 'gray' 
+export function CompactMetricCard({
+  title,
+  value,
+  icon,
+  color = 'gray'
 }: Omit<MetricCardProps, 'change' | 'trend' | 'subtitle'>) {
   const classes = colorClasses[color];
-  
+
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow">
       <div className="flex items-center space-x-3">
@@ -205,32 +205,32 @@ export function CompactMetricCard({
   );
 }
 
-export function SparklineMetricCard({ 
-  title, 
-  value, 
+export function SparklineMetricCard({
+  title,
+  value,
   change,
-  icon, 
+  icon,
   color,
   sparklineData = []
 }: MetricCardProps & { sparklineData?: number[] }) {
   const classes = colorClasses[color];
-  
+
   const generateSparklinePath = (data: number[]): string => {
     if (data.length < 2) return '';
-    
+
     const max = Math.max(...data);
     const min = Math.min(...data);
     const range = max - min || 1;
-    
+
     const points = data.map((value, index) => {
       const x = (index / (data.length - 1)) * 100;
       const y = 100 - ((value - min) / range) * 100;
       return `${x},${y}`;
     });
-    
+
     return `M ${points.join(' L ')}`;
   };
-  
+
   return (
     <div className={`bg-white rounded-xl border-2 p-6 transition-all duration-300 hover:shadow-lg ${classes.border}`}>
       <div className="flex items-center justify-between mb-4">
@@ -239,11 +239,11 @@ export function SparklineMetricCard({
           {icon}
         </div>
       </div>
-      
+
       <div className="text-2xl font-bold text-gray-900 mb-2">
         {typeof value === 'number' ? value.toLocaleString('fr-FR') : value}
       </div>
-      
+
       <div className="flex items-center justify-between">
         {change !== undefined && (
           <div className={`
@@ -253,7 +253,7 @@ export function SparklineMetricCard({
             {change >= 0 ? '+' : ''}{change.toFixed(1)}%
           </div>
         )}
-        
+
         {sparklineData.length > 0 && (
           <svg width="60" height="20" className="text-gray-400">
             <path

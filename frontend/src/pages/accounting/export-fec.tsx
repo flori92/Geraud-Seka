@@ -84,7 +84,7 @@ export default function ExportFECPage() {
                     <div className="max-w-5xl mx-auto">
                         {/* Header */}
                         <div className="flex items-center gap-3 mb-6">
-                            <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
+                            <div className="p-2 bg-blue-600 rounded-xl shadow-lg">
                                 <Download className="h-7 w-7 text-white" />
                             </div>
                             <div>
@@ -147,8 +147,8 @@ export default function ExportFECPage() {
                                                 type="button"
                                                 onClick={() => setConfig({ ...config, format: fmt.value as any })}
                                                 className={`p-4 rounded-lg border-2 text-left transition-all ${config.format === fmt.value
-                                                        ? "border-blue-500 bg-blue-50"
-                                                        : "border-gray-200 hover:border-gray-300"
+                                                    ? "border-blue-500 bg-blue-50"
+                                                    : "border-gray-200 hover:border-gray-300"
                                                     }`}
                                             >
                                                 <fmt.icon className={`h-5 w-5 mb-2 ${config.format === fmt.value ? "text-blue-600" : "text-gray-400"}`} />
@@ -241,7 +241,7 @@ export default function ExportFECPage() {
                                 </div>
 
                                 {/* Export Button */}
-                                <div className="flex items-center justify-between p-6 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl text-white">
+                                <div className="flex items-center justify-between p-6 bg-blue-600 rounded-xl text-white">
                                     <div>
                                         <p className="font-semibold text-lg">Prêt à exporter ?</p>
                                         <p className="text-sm text-white/80">Le fichier sera généré au format {config.format.toUpperCase()}</p>

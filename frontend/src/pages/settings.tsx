@@ -38,23 +38,29 @@ export default function SettingsPage() {
   ];
 
   const hubSections = [
-    { title: "Paramètres", items: [
-      { label: "Connexions bancaires", href: "/treasury/accounts" },
-      { label: "Transmission de factures", href: "/accounting/import-statements" },
-      { label: "Facturation client", href: "/ventes/factures-clients" },
-      { label: "Centre de règles", href: "/settings/rules" },
-      { label: "Connectivité", href: "/settings/integrations" },
-      { label: "Plan comptable", href: "/accounting/chart-of-accounts" },
-    ]},
-    { title: "", items: [
-      { label: "Informations entreprise", href: "/settings?tab=company" },
-      { label: "Gestion de l&apos;équipe", href: "/settings/team" },
-      { label: "Gestion d&apos;abonnement", href: "/billing" },
-    ]},
-    { title: "Historique", items: [
-      { label: "Imports", href: "/settings/import" },
-      { label: "Exports", href: "/exports" },
-    ]}
+    {
+      title: "Paramètres", items: [
+        { label: "Connexions bancaires", href: "/treasury/accounts" },
+        { label: "Transmission de factures", href: "/accounting/import-statements" },
+        { label: "Facturation client", href: "/ventes/factures-clients" },
+        { label: "Centre de règles", href: "/settings/rules" },
+        { label: "Connectivité", href: "/settings/integrations" },
+        { label: "Plan comptable", href: "/accounting/chart-of-accounts" },
+      ]
+    },
+    {
+      title: "", items: [
+        { label: "Informations entreprise", href: "/settings?tab=company" },
+        { label: "Gestion de l&apos;équipe", href: "/settings/team" },
+        { label: "Gestion d&apos;abonnement", href: "/billing" },
+      ]
+    },
+    {
+      title: "Historique", items: [
+        { label: "Imports", href: "/settings/import" },
+        { label: "Exports", href: "/exports" },
+      ]
+    }
   ];
 
   const handleSave = () => { setSuccess("Paramètres sauvegardés avec succès"); setTimeout(() => setSuccess(null), 3000); };
@@ -237,7 +243,7 @@ export default function SettingsPage() {
                     <div className="bg-white rounded-lg border border-gray-200 p-6">
                       <h2 className="text-lg font-semibold text-gray-900 mb-6">Facturation et abonnement</h2>
                       <div className="space-y-6">
-                        <div className="bg-gradient-to-r from-[#1e3a5f] to-[#2d5a8f] rounded-lg p-6 text-white">
+                        <div className="bg-[#1e3a5f] rounded-lg p-6 text-white">
                           <p className="text-sm opacity-90 mb-2">Plan actuel</p>
                           <h3 className="text-2xl font-bold mb-4">Business</h3>
                           <div className="flex items-baseline gap-2">

@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
-import { 
-    FileText, Filter, Search, CheckSquare, Square, 
+import {
+    FileText, Filter, Search, CheckSquare, Square,
     AlertCircle, Clock, CheckCircle, Eye, Trash2,
     MoreVertical, Download, Upload, Loader2, ChevronRight, CheckCheck,
     Zap, X, AlertTriangle
@@ -120,7 +120,7 @@ export default function DocumentsEnAttentePage() {
         setIsDeleting(true);
         const deletedIds: string[] = [];
         const errors: string[] = [];
-        
+
         try {
             // Delete sequentially to avoid rate limiting (429)
             for (const id of selectedDocs) {
@@ -136,10 +136,10 @@ export default function DocumentsEnAttentePage() {
                     await new Promise(r => setTimeout(r, 100));
                 }
             }
-            
+
             setDocuments(prev => prev.filter(doc => !deletedIds.includes(doc.id)));
             setSelectedDocs([]);
-            
+
             if (errors.length > 0) {
                 alert(`${deletedIds.length} document(s) supprimé(s), ${errors.length} échec(s)`);
             }
@@ -151,77 +151,20 @@ export default function DocumentsEnAttentePage() {
         }
     };
 
+
+
     const handleValidateAll = async () => {
-        const token = localStorage.getItem("seka_access_token");
-        if (!token) return;
-
-        const docsToValidate = documents.filter(d => d.status === 'OCR_COMPLETED' || d.status === 'ocr_completed');
-        if (docsToValidate.length === 0) {
-            alert("Aucun document prêt à valider");
-            return;
-        }
-
-        const confirmed = window.confirm(`Valider ${docsToValidate.length} document(s) prêts à être validés ?`);
-        if (!confirmed) return;
-
-        setIsValidating(true);
-        let successCount = 0;
-        let errorCount = 0;
-
-        try {
-            for (const doc of docsToValidate) {
-                try {
-                    const response = await fetch(`${API_BASE_URL}/api/v1/documents/${doc.id}/validate`, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        }
-                    });
-                    
-                    if (response.ok) {
-                        successCount++;
-                    } else {
-                        errorCount++;
-                    }
-                } catch (err) {
-                    errorCount++;
-                    console.error(`Failed to validate ${doc.id}:`, err);
-                }
-                await new Promise(r => setTimeout(r, 100));
-            }
-
-            if (successCount > 0) {
-                setDocuments(prev => prev.filter(d => 
-                    !(d.status === 'OCR_COMPLETED' || d.status === 'ocr_completed')
-                ));
-            }
-
-            if (errorCount > 0) {
-                alert(`${successCount} document(s) validé(s), ${errorCount} échec(s)`);
-            } else {
-                alert(`${successCount} document(s) validé(s) avec succès !`);
-            }
-        } catch (error) {
-            console.error("Error validating documents:", error);
-            alert("Erreur lors de la validation");
-        } finally {
-            setIsValidating(false);
-        }
-    };
-
-    const handleAutoValidateClick = async () => {
         const token = localStorage.getItem("seka_access_token");
         if (!token) return;
 
         setLoadingPreview(true);
         setShowBatchModal(true);
-        
+
         try {
             const response = await fetch(`${API_BASE_URL}/api/v1/batch-validation/preview?min_confidence=0.8`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
-            
+
             if (response.ok) {
                 const data = await response.json();
                 setBatchPreview(data);
@@ -243,16 +186,16 @@ export default function DocumentsEnAttentePage() {
         if (!token) return;
 
         setIsValidating(true);
-        
+
         try {
             const response = await fetch(`${API_BASE_URL}/api/v1/batch-validation/validate-all?min_confidence=0.8&only_auto_validable=true`, {
                 method: "POST",
-                headers: { 
+                headers: {
                     "Authorization": `Bearer ${token}`,
                     "Content-Type": "application/json"
                 }
             });
-            
+
             if (response.ok) {
                 const result = await response.json();
                 alert(`✅ Validation terminée!\n\n✓ ${result.validated_count} validés\n✗ ${result.failed_count} échoués\n⏸ ${result.skipped_count} ignorés\n\nTemps: ${result.processing_time.toFixed(1)}s`);
@@ -298,23 +241,11 @@ export default function DocumentsEnAttentePage() {
                                     <>
                                         <button
                                             onClick={handleValidateAll}
-                                            disabled={isValidating}
-                                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 text-sm font-medium disabled:opacity-50"
-                                        >
-                                            {isValidating ? (
-                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                            ) : (
-                                                <CheckCheck className="h-4 w-4" />
-                                            )}
-                                            {isValidating ? "Validation..." : `Valider tout (${stats.completed})`}
-                                        </button>
-                                        <button
-                                            onClick={handleAutoValidateClick}
                                             disabled={isValidating || loadingPreview}
-                                            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 flex items-center gap-2 text-sm font-medium disabled:opacity-50 shadow-lg"
+                                            className="px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#172e4d] flex items-center gap-2 text-sm font-medium disabled:opacity-50 shadow-sm"
                                         >
                                             <Zap className="h-4 w-4" />
-                                            {loadingPreview ? "Chargement..." : "Validation intelligente"}
+                                            {loadingPreview ? "Chargement..." : "Lancer la validation"}
                                         </button>
                                     </>
                                 )}
@@ -553,8 +484,8 @@ export default function DocumentsEnAttentePage() {
                                                                     </span>
                                                                 )}
                                                                 {doc.auto_validable && (
-                                                                    <span 
-                                                                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-purple-100 to-indigo-100 text-purple-700 border border-purple-200"
+                                                                    <span
+                                                                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700 border border-purple-200"
                                                                         title={`Règle: ${doc.matched_rule_name || 'Règle active'}`}
                                                                     >
                                                                         <Zap className="h-3 w-3" />
@@ -590,7 +521,7 @@ export default function DocumentsEnAttentePage() {
             {showBatchModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-6 text-white">
+                        <div className="bg-[#1e3a5f] p-6 text-white">
                             <div className="flex justify-between items-start">
                                 <div>
                                     <h2 className="text-2xl font-bold flex items-center gap-2">
@@ -661,12 +592,12 @@ export default function DocumentsEnAttentePage() {
                                         </div>
                                     )}
 
-                                    <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg p-4 mb-6 border border-purple-100">
+                                    <div className="bg-purple-50 rounded-lg p-4 mb-6 border border-purple-100">
                                         <div className="flex items-start gap-3">
                                             <Zap className="h-5 w-5 text-purple-600 flex-shrink-0 mt-0.5" />
                                             <div>
                                                 <p className="text-sm font-medium text-gray-900">
-                                                    {batchPreview.eligible_documents > 0 
+                                                    {batchPreview.eligible_documents > 0
                                                         ? `${batchPreview.eligible_documents} document(s) seront validés automatiquement`
                                                         : "Aucun document éligible pour la validation automatique"
                                                     }
@@ -698,7 +629,7 @@ export default function DocumentsEnAttentePage() {
                                         <button
                                             onClick={handleConfirmBatchValidation}
                                             disabled={batchPreview.eligible_documents === 0 || isValidating}
-                                            className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
+                                            className="flex-1 px-4 py-3 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#172e4d] font-medium disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
                                         >
                                             {isValidating ? (
                                                 <>

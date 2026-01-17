@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
-import { 
+import {
     FolderTree, Plus, Edit2, Trash2, ChevronRight, ChevronDown,
     Building2, Users, TrendingUp, Search, Filter, CheckCircle
 } from 'lucide-react';
@@ -35,7 +35,7 @@ export default function ChartOfAccountsPage() {
             setLoading(true);
             const response = await api.get('/ledger-accounts');
             const accountsData = response.data;
-            
+
             // Organiser en hiérarchie
             const hierarchy = buildHierarchy(accountsData);
             setAccounts(hierarchy);
@@ -88,9 +88,8 @@ export default function ChartOfAccountsPage() {
         return (
             <div key={account.id}>
                 <div
-                    className={`flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition cursor-pointer ${
-                        account.is_auxiliary ? 'bg-purple-50/30' : ''
-                    }`}
+                    className={`flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition cursor-pointer ${account.is_auxiliary ? 'bg-purple-50/30' : ''
+                        }`}
                     style={{ paddingLeft: `${indent + 16}px` }}
                 >
                     <div className="flex items-center gap-3 flex-1">
@@ -115,7 +114,7 @@ export default function ChartOfAccountsPage() {
                                     {account.account_code}
                                 </code>
                                 <span className="text-sm text-gray-900">{account.account_name}</span>
-                                
+
                                 {account.is_collective && (
                                     <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">
                                         Collectif
@@ -169,16 +168,16 @@ export default function ChartOfAccountsPage() {
     };
 
     const filteredAccounts = accounts.filter(acc => {
-        const matchesSearch = 
+        const matchesSearch =
             acc.account_code.toLowerCase().includes(searchQuery.toLowerCase()) ||
             acc.account_name.toLowerCase().includes(searchQuery.toLowerCase());
-        
-        const matchesFilter = 
+
+        const matchesFilter =
             filterType === 'all' ||
             (filterType === 'auxiliary' && acc.is_auxiliary) ||
             (filterType === 'collective' && acc.is_collective) ||
             (filterType === 'general' && !acc.is_auxiliary && !acc.is_collective);
-        
+
         return matchesSearch && matchesFilter;
     });
 
@@ -212,7 +211,7 @@ export default function ChartOfAccountsPage() {
                                 </p>
                             </div>
                             <button
-                                onClick={() => {/* TODO: handleCreate */}}
+                                onClick={() => {/* TODO: handleCreate */ }}
                                 className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-lg transition"
                             >
                                 <Plus className="h-5 w-5" />
@@ -227,15 +226,15 @@ export default function ChartOfAccountsPage() {
                             <div className="text-sm text-gray-600 mb-1">Total comptes</div>
                             <div className="text-3xl font-bold text-gray-900">{stats.total}</div>
                         </div>
-                        <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg border border-blue-200 p-4">
+                        <div className="bg-blue-50 rounded-lg border border-blue-200 p-4">
                             <div className="text-sm text-blue-700 mb-1">Comptes généraux</div>
                             <div className="text-3xl font-bold text-blue-900">{stats.general}</div>
                         </div>
-                        <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-lg border border-purple-200 p-4">
+                        <div className="bg-purple-50 rounded-lg border border-purple-200 p-4">
                             <div className="text-sm text-purple-700 mb-1">Comptes auxiliaires</div>
                             <div className="text-3xl font-bold text-purple-900">{stats.auxiliary}</div>
                         </div>
-                        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-200 p-4">
+                        <div className="bg-green-50 rounded-lg border border-green-200 p-4">
                             <div className="text-sm text-green-700 mb-1">Comptes collectifs</div>
                             <div className="text-3xl font-bold text-green-900">{stats.collective}</div>
                         </div>

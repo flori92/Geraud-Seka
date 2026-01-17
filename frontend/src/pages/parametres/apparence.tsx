@@ -13,7 +13,7 @@ export default function ApparenceSettingsPage() {
     const [theme, setTheme] = useState<"light" | "dark" | "auto">("light");
     const [primaryColor, setPrimaryColor] = useState("#1e3a5f");
     const [saving, setSaving] = useState(false);
-    const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
+    const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
     const handleSave = async () => {
         setSaving(true);
@@ -32,10 +32,10 @@ export default function ApparenceSettingsPage() {
 
             if (!response.ok) throw new Error("Erreur lors de la sauvegarde");
 
-            setMessage({type: 'success', text: 'Paramètres d\'apparence enregistrés !'});
+            setMessage({ type: 'success', text: 'Paramètres d\'apparence enregistrés !' });
             setTimeout(() => setMessage(null), 3000);
         } catch (error: any) {
-            setMessage({type: 'error', text: error.message});
+            setMessage({ type: 'error', text: error.message });
         } finally {
             setSaving(false);
         }
@@ -60,9 +60,8 @@ export default function ApparenceSettingsPage() {
                     </div>
 
                     {message && (
-                        <div className={`mb-6 p-4 rounded-lg flex items-center gap-2 ${
-                            message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
-                        }`}>
+                        <div className={`mb-6 p-4 rounded-lg flex items-center gap-2 ${message.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+                            }`}>
                             {message.type === 'success' ? <CheckCircle className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
                             {message.text}
                         </div>
@@ -73,9 +72,8 @@ export default function ApparenceSettingsPage() {
                             <div>
                                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Thème</h2>
                                 <div className="grid grid-cols-3 gap-4">
-                                    <label className={`flex flex-col items-center p-4 border-2 rounded-lg cursor-pointer ${
-                                        theme === 'light' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-                                    }`}>
+                                    <label className={`flex flex-col items-center p-4 border-2 rounded-lg cursor-pointer ${theme === 'light' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                                        }`}>
                                         <div className="w-16 h-16 bg-white border border-gray-300 rounded-lg mb-2"></div>
                                         <span className="text-sm font-medium">Clair</span>
                                         <input
@@ -87,9 +85,8 @@ export default function ApparenceSettingsPage() {
                                             className="sr-only"
                                         />
                                     </label>
-                                    <label className={`flex flex-col items-center p-4 border-2 rounded-lg cursor-pointer ${
-                                        theme === 'dark' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-                                    }`}>
+                                    <label className={`flex flex-col items-center p-4 border-2 rounded-lg cursor-pointer ${theme === 'dark' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                                        }`}>
                                         <div className="w-16 h-16 bg-gray-900 border border-gray-700 rounded-lg mb-2"></div>
                                         <span className="text-sm font-medium">Sombre</span>
                                         <input
@@ -101,10 +98,9 @@ export default function ApparenceSettingsPage() {
                                             className="sr-only"
                                         />
                                     </label>
-                                    <label className={`flex flex-col items-center p-4 border-2 rounded-lg cursor-pointer ${
-                                        theme === 'auto' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-                                    }`}>
-                                        <div className="w-16 h-16 bg-gradient-to-r from-white to-gray-900 border border-gray-400 rounded-lg mb-2"></div>
+                                    <label className={`flex flex-col items-center p-4 border-2 rounded-lg cursor-pointer ${theme === 'auto' ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                                        }`}>
+                                        <div className="w-16 h-16 bg-gray-500 border border-gray-400 rounded-lg mb-2"></div>
                                         <span className="text-sm font-medium">Auto</span>
                                         <input
                                             type="radio"

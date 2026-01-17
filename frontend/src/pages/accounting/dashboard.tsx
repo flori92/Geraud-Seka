@@ -152,7 +152,7 @@ export default function AccountingDashboardPage() {
 
                 {/* Key Metrics - Row 1 */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
-                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 sm:p-6 text-white shadow-lg">
+                    <div className="bg-blue-600 rounded-xl p-4 sm:p-6 text-white shadow-lg">
                         <div className="flex items-center justify-between mb-2 sm:mb-3">
                             <div className="p-1.5 sm:p-2 bg-white/20 rounded-lg">
                                 <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />

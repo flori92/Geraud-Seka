@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { 
-    Zap, Plus, Edit2, Trash2, ToggleLeft, ToggleRight, 
+import {
+    Zap, Plus, Edit2, Trash2, ToggleLeft, ToggleRight,
     CheckCircle, XCircle, TrendingUp, FileText, Search,
     AlertCircle, Save, X as XIcon, Info
 } from 'lucide-react';
@@ -189,7 +189,7 @@ export default function AccountingRulesPage() {
                             </div>
                             <button
                                 onClick={handleCreateRule}
-                                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 shadow-lg transition"
+                                className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 shadow-lg transition"
                             >
                                 <Plus className="h-5 w-5" />
                                 Nouvelle règle
@@ -203,15 +203,15 @@ export default function AccountingRulesPage() {
                             <div className="text-sm text-gray-600 mb-1">Total de règles</div>
                             <div className="text-3xl font-bold text-gray-900">{rules.length}</div>
                         </div>
-                        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-200 p-4">
+                        <div className="bg-green-50 rounded-lg border border-green-200 p-4">
                             <div className="text-sm text-green-700 mb-1">Règles actives</div>
                             <div className="text-3xl font-bold text-green-900">{activeRulesCount}</div>
                         </div>
-                        <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-lg border border-purple-200 p-4">
+                        <div className="bg-purple-50 rounded-lg border border-purple-200 p-4">
                             <div className="text-sm text-purple-700 mb-1">Documents traités</div>
                             <div className="text-3xl font-bold text-purple-900">{totalMatches}</div>
                         </div>
-                        <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg border border-blue-200 p-4">
+                        <div className="bg-blue-50 rounded-lg border border-blue-200 p-4">
                             <div className="text-sm text-blue-700 mb-1">Taux d'automatisation</div>
                             <div className="text-3xl font-bold text-blue-900">
                                 {rules.length > 0 ? Math.round((activeRulesCount / rules.length) * 100) : 0}%
@@ -246,7 +246,7 @@ export default function AccountingRulesPage() {
                                     {searchQuery ? 'Aucune règle trouvée' : 'Aucune règle créée'}
                                 </h3>
                                 <p className="text-gray-600 mb-6">
-                                    {searchQuery 
+                                    {searchQuery
                                         ? 'Essayez avec un autre terme de recherche'
                                         : 'Créez votre première règle pour automatiser votre comptabilité'
                                     }
@@ -265,15 +265,14 @@ export default function AccountingRulesPage() {
                             <div className="space-y-3">
                                 {filteredRules.map((rule) => {
                                     const ruleStat = stats.find(s => s.rule_id === rule.id);
-                                    
+
                                     return (
                                         <div
                                             key={rule.id}
-                                            className={`bg-white rounded-lg border-2 p-5 transition ${
-                                                rule.is_active 
-                                                    ? 'border-purple-200 hover:border-purple-300' 
-                                                    : 'border-gray-200 opacity-60'
-                                            }`}
+                                            className={`bg-white rounded-lg border-2 p-5 transition ${rule.is_active
+                                                ? 'border-purple-200 hover:border-purple-300'
+                                                : 'border-gray-200 opacity-60'
+                                                }`}
                                         >
                                             <div className="flex items-start justify-between">
                                                 <div className="flex-1">
@@ -299,11 +298,11 @@ export default function AccountingRulesPage() {
                                                             </span>
                                                         )}
                                                     </div>
-                                                    
+
                                                     {rule.description && (
                                                         <p className="text-sm text-gray-600 mb-3">{rule.description}</p>
                                                     )}
-                                                    
+
                                                     <div className="flex items-center gap-4 text-xs text-gray-500">
                                                         <span className="flex items-center gap-1">
                                                             <TrendingUp className="h-3 w-3" />
@@ -324,11 +323,10 @@ export default function AccountingRulesPage() {
                                                 <div className="flex items-center gap-2 ml-4">
                                                     <button
                                                         onClick={() => handleToggleActive(rule.id, rule.is_active)}
-                                                        className={`p-2 rounded-lg transition ${
-                                                            rule.is_active
-                                                                ? 'bg-green-100 text-green-600 hover:bg-green-200'
-                                                                : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
-                                                        }`}
+                                                        className={`p-2 rounded-lg transition ${rule.is_active
+                                                            ? 'bg-green-100 text-green-600 hover:bg-green-200'
+                                                            : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                                                            }`}
                                                         title={rule.is_active ? 'Désactiver' : 'Activer'}
                                                     >
                                                         {rule.is_active ? (
@@ -366,7 +364,7 @@ export default function AccountingRulesPage() {
             {showCreateModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-6 text-white">
+                        <div className="bg-purple-600 p-6 text-white">
                             <div className="flex justify-between items-start">
                                 <div>
                                     <h2 className="text-2xl font-bold">
@@ -479,7 +477,7 @@ export default function AccountingRulesPage() {
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
                                 <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
                                 <div className="text-sm text-blue-800">
-                                    <strong>Note:</strong> Les conditions et actions détaillées peuvent être configurées via l'API. 
+                                    <strong>Note:</strong> Les conditions et actions détaillées peuvent être configurées via l'API.
                                     Cette interface permet de gérer le nom, l'activation et les paramètres principaux.
                                 </div>
                             </div>
@@ -496,7 +494,7 @@ export default function AccountingRulesPage() {
                             <button
                                 onClick={handleSaveRule}
                                 disabled={saving || !formData.name.trim()}
-                                className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
+                                className="flex-1 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
                             >
                                 {saving ? (
                                     <>

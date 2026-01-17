@@ -62,7 +62,7 @@ export default function LoginPage() {
           {/* Login Card - Premium Glassmorphism */}
           <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-sm transition-all duration-300 hover:border-white/20">
             {/* Subtle light effect */}
-            <div className="absolute -inset-px rounded-2xl bg-gradient-to-b from-white/5 to-white/0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"></div>
+            <div className="absolute -inset-px rounded-2xl bg-white/5 opacity-0 transition-opacity duration-500 group-hover:opacity-100"></div>
             <div className="absolute -top-24 -right-24 h-48 w-48 rounded-full bg-white opacity-0 blur-3xl transition-opacity duration-500 group-hover:opacity-5"></div>
 
             <div className="relative">
@@ -122,7 +122,7 @@ export default function LoginPage() {
                   disabled={loading}
                   className="group/btn relative w-full overflow-hidden rounded-lg bg-white px-4 py-3 text-base font-semibold text-gray-900 shadow-lg transition-all hover:shadow-xl hover:shadow-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-white via-gray-100 to-white opacity-0 transition-opacity group-hover/btn:opacity-100"></div>
+                  <div className="absolute inset-0 bg-white opacity-0 transition-opacity group-hover/btn:opacity-10"></div>
                   <span className="relative">
                     {loading ? "Connexion..." : "Se connecter"}
                   </span>

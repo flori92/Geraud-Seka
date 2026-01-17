@@ -32,7 +32,7 @@ export function PennylaneLayout({ title, children }: PennylaneLayoutProps) {
                 <span className="text-xs font-medium text-gray-500">AS</span>
                 <span className="text-xs sm:text-sm font-medium text-gray-700 truncate">IACCOUNTING...</span>
               </div>
-              
+
               {/* Current Dossier - Responsive */}
               <div className="flex items-center gap-1 sm:gap-2 min-w-0">
                 <span className="text-xs sm:text-sm text-gray-900 truncate">{currentDossier}</span>
@@ -45,7 +45,7 @@ export function PennylaneLayout({ title, children }: PennylaneLayoutProps) {
 
             <div className="flex items-center gap-2 sm:gap-3">
               {/* Notifications - Responsive */}
-              <button 
+              <button
                 onClick={() => setShowNotifications(!showNotifications)}
                 className="relative p-1.5 sm:p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
               >
@@ -55,7 +55,7 @@ export function PennylaneLayout({ title, children }: PennylaneLayoutProps) {
 
               {/* User Avatar - Responsive */}
               <div className="flex items-center gap-1 sm:gap-2">
-                <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs sm:text-sm font-medium">
+                <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-[#1e3a5f] flex items-center justify-center text-white text-xs sm:text-sm font-medium">
                   GM
                 </div>
               </div>

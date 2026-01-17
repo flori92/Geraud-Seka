@@ -180,7 +180,7 @@ export default function BankStatementImportPage() {
                         {/* Header */}
                         <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
+                                <div className="p-2 bg-blue-600 rounded-xl shadow-lg">
                                     <Upload className="h-7 w-7 text-white" />
                                 </div>
                                 <div>
@@ -201,7 +201,7 @@ export default function BankStatementImportPage() {
                             {["upload", "preview", "result"].map((s, idx) => (
                                 <div key={s} className="flex items-center gap-2">
                                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${step === s ? "bg-primary-600 text-white" :
-                                            ["preview", "result"].indexOf(step) > idx ? "bg-green-500 text-white" : "bg-gray-200 text-gray-500"
+                                        ["preview", "result"].indexOf(step) > idx ? "bg-green-500 text-white" : "bg-gray-200 text-gray-500"
                                         }`}>
                                         {["preview", "result"].indexOf(step) > idx ? <CheckCircle className="h-4 w-4" /> : idx + 1}
                                     </div>
