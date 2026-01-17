@@ -134,7 +134,7 @@ class Document(Base, TimestampMixin):
     validated_at = Column(Date)
     
     auto_validable = Column(Boolean, default=False)
-    matched_rule_id = Column(String(255), nullable=True)
+    matched_rule_id = Column(UUID(as_uuid=True), ForeignKey("accounting_rules.id"), nullable=True)
     matched_rule_name = Column(String(255), nullable=True)
     
     folder_id = Column(UUID(as_uuid=True), ForeignKey("document_folders.id", ondelete="SET NULL"))
@@ -155,6 +155,7 @@ class Document(Base, TimestampMixin):
     parent_document = relationship("Document", remote_side=[id], backref="versions")
     accounting_entries = relationship("AccountingEntry", back_populates="document", cascade="all, delete-orphan")
     classifications = relationship("DocumentClassification", back_populates="document", cascade="all, delete-orphan")
+    matched_rule = relationship("AccountingRule", backref="matched_documents")
 
     @property
     def file_size_formatted(self) -> str:

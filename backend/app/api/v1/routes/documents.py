@@ -164,7 +164,7 @@ async def upload_document(
                         if result.get("matched"):
                             # Marquer comme auto-validable
                             db_obj.auto_validable = True
-                            db_obj.matched_rule_id = str(result.get('rule_id', ''))
+                            db_obj.matched_rule_id = result.get('rule_id')
                             db_obj.matched_rule_name = result.get('rule_name', 'Règle sans nom')
                             print(f"✅ Document correspond à la règle: {result.get('rule_name')}")
                         else:
