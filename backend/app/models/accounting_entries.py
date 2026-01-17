@@ -72,7 +72,7 @@ class AccountingEntryHeader(Base, TimestampMixin):
     posted_at = Column(Date, nullable=True)
     
     lines = relationship("AccountingEntryLine", back_populates="entry", cascade="all, delete-orphan")
-    document = relationship("Document")
+    document = relationship("Document", foreign_keys=[document_id])
 
 
 
