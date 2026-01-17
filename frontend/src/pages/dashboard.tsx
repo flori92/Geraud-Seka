@@ -55,6 +55,41 @@ export default function DashboardSimple() {
     fetchData();
   }, [fetchData]);
 
+  // Rafraîchir les données quand la page redevient visible (après navigation)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchData();
+      }
+    };
+    
+    const handleFocus = () => {
+      fetchData();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [fetchData]);
+
+  // Rafraîchir quand on navigue vers cette page (via router events)
+  useEffect(() => {
+    const handleRouteChange = (url: string) => {
+      if (url === '/dashboard' || url === '/') {
+        fetchData();
+      }
+    };
+
+    router.events.on('routeChangeComplete', handleRouteChange);
+    return () => {
+      router.events.off('routeChangeComplete', handleRouteChange);
+    };
+  }, [router.events, fetchData]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
