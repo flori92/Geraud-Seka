@@ -9,10 +9,13 @@ from app.db.base import Base, TimestampMixin
 
 
 class DocumentStatus(str, enum.Enum):
+    """Statuts des documents selon logique SEKA Business"""
     UPLOADED = "UPLOADED"
     OCR_PROCESSING = "OCR_PROCESSING"
     OCR_COMPLETED = "OCR_COMPLETED"
-    VALIDATED = "VALIDATED"
+    A_TRAITER = "A_TRAITER"              # 🔴 Fournisseur non reconnu (pas de règle)
+    PRE_TRAITEE = "PRE_TRAITEE"          # 🟡 Règle appliquée, peut être validée
+    VALIDEE = "VALIDEE"                  # 🟢 Validée, prête pour export
     REJECTED = "REJECTED"
     ARCHIVED = "ARCHIVED"
 

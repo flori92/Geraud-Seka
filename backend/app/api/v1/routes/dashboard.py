@@ -153,12 +153,12 @@ def get_dashboard_stats(
                 
                 first_day_of_month = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
                 documents_processed = doc_query.filter(
-                    Document.status == DocumentStatus.VALIDATED,
+                    Document.status == DocumentStatus.VALIDEE,
                     Document.updated_at >= first_day_of_month
                 ).count()
                 
                 revenue_result = doc_query.filter(
-                    Document.status == DocumentStatus.VALIDATED
+                    Document.status == DocumentStatus.VALIDEE
                 ).with_entities(func.sum(Document.amount_ttc)).scalar()
                 total_revenue = revenue_result or 0
             except Exception:
@@ -255,14 +255,14 @@ def get_dashboard_stats_extended(
             try:
                 invoiced_result = db.query(func.sum(Document.amount_ht)).filter(
                     Document.tenant_id == tenant_id,
-                    Document.status == DocumentStatus.VALIDATED
+                    Document.status == DocumentStatus.VALIDEE
                 ).scalar()
                 total_facture_ht = float(invoiced_result or 0)
                 
                 factures_en_retard = db.query(Document).filter(
                     Document.tenant_id == tenant_id,
                     Document.due_date < datetime.utcnow(),
-                    Document.status != DocumentStatus.VALIDATED
+                    Document.status != DocumentStatus.VALIDEE
                 ).count()
             except Exception as e:
                 print(f"Error fetching invoice data: {e}")
@@ -270,7 +270,7 @@ def get_dashboard_stats_extended(
             try:
                 purchases_result = db.query(func.sum(Document.amount_ttc)).filter(
                     Document.tenant_id == tenant_id,
-                    Document.status == DocumentStatus.VALIDATED
+                    Document.status == DocumentStatus.VALIDEE
                 ).scalar()
                 total_achats_ttc = float(purchases_result or 0)
             except Exception as e:

@@ -203,15 +203,19 @@ async def upload_document(
                         })
                         
                         if result.get("matched"):
-                            # Marquer comme auto-validable
+                            # 🟡 Règle trouvée → Statut PRE_TRAITEE (prête à valider)
+                            db_obj.status = DocumentStatus.PRE_TRAITEE
                             db_obj.auto_validable = True
                             db_obj.matched_rule_id = result.get('rule_id')
                             db_obj.matched_rule_name = result.get('rule_name', 'Règle sans nom')
-                            print(f"✅ Document correspond à la règle: {result.get('rule_name')}")
+                            print(f"✅ Document correspond à la règle: {result.get('rule_name')} → Statut PRE_TRAITEE")
                         else:
+                            # 🔴 Aucune règle → Statut A_TRAITER (nécessite intervention manuelle)
+                            db_obj.status = DocumentStatus.A_TRAITER
                             db_obj.auto_validable = False
-                            print(f"ℹ️  Aucune règle active ne correspond à ce document")
+                            print(f"ℹ️  Aucune règle active ne correspond → Statut A_TRAITER")
                     else:
+                        db_obj.status = DocumentStatus.A_TRAITER
                         db_obj.auto_validable = False
                         
                 except Exception as rule_err:
@@ -826,7 +830,8 @@ def validate_document(
         print(f"📋 Traceback:\n{traceback.format_exc()}")
         raise
 
-    document.status = DocumentStatus.VALIDATED
+    # 🟢 Validation utilisateur → Statut VALIDEE (prête pour export)
+    document.status = DocumentStatus.VALIDEE
     document.reference_number = validation_data.reference_number or document.reference_number
     
     # Classification automatique du type de document si non spécifié
@@ -1287,12 +1292,12 @@ def get_validated_documents(
     client_id: Optional[UUID] = None,
 ) -> Any:
     """
-    Récupère les documents validés (status = VALIDATED).
+    Récupère les documents validés (status = VALIDEE).
     """
     try:
         query = db.query(Document).filter(
             Document.tenant_id == current_user.tenant_id,
-            Document.status == DocumentStatus.VALIDATED
+            Document.status == DocumentStatus.VALIDEE
         )
         
         if client_id:
