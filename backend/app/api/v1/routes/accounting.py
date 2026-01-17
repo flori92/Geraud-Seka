@@ -622,6 +622,11 @@ async def get_advanced_accounts(
     """
     Récupère la liste complète du plan comptable (Chart of Accounts) du tenant
     avec les soldes actuels.
+    
+    Retourne les comptes avec indication:
+    - is_collective: Compte collectif (401, 411) qui agrège les auxiliaires
+    - is_auxiliary: Compte auxiliaire (401SBEE, 411CLI01) lié à un tiers
+    - collective_parent_code: Code du compte collectif parent (ex: "401" pour 401SBEE)
     """
     from app.models.accounting_advanced import ChartOfAccounts
     
@@ -644,6 +649,14 @@ async def get_advanced_accounts(
                 "is_group": acc.is_group,
                 "is_bank_account": acc.is_bank_account,
                 "is_reconcilable": acc.is_reconcilable,
+                # Champs d'interconnexion
+                "is_collective": getattr(acc, 'is_collective', False) or False,
+                "is_auxiliary": getattr(acc, 'is_auxiliary', False) or False,
+                "collective_parent_code": getattr(acc, 'collective_parent_code', None),
+                "linked_supplier_id": str(acc.linked_supplier_id) if getattr(acc, 'linked_supplier_id', None) else None,
+                "linked_client_id": str(acc.linked_client_id) if getattr(acc, 'linked_client_id', None) else None,
+                "parent_id": str(acc.parent_id) if acc.parent_id else None,
+                "level": acc.level if acc.level else 1,
             }
             for acc in accounts
         ]
@@ -652,6 +665,193 @@ async def get_advanced_accounts(
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Erreur lors de la récupération des comptes: {str(e)}")
+
+
+@router.post("/chart-of-accounts/initialize")
+async def initialize_chart_of_accounts(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    current_tenant = Depends(get_current_tenant),
+):
+    """
+    Initialise le plan comptable SYSCOHADA de base s'il est vide.
+    Crée les comptes généraux et collectifs essentiels.
+    """
+    from app.models.accounting_advanced import ChartOfAccounts
+    
+    try:
+        # Vérifier si des comptes existent déjà
+        existing_count = db.query(func.count(ChartOfAccounts.id)).filter(
+            ChartOfAccounts.tenant_id == current_tenant.id
+        ).scalar()
+        
+        if existing_count > 0:
+            return {"message": "Plan comptable déjà initialisé", "count": existing_count}
+        
+        # Plan comptable SYSCOHADA de base
+        syscohada_accounts = [
+            # Classe 4 - Comptes de tiers
+            {"code": "401", "name": "Fournisseurs", "class": "4", "type": "liability", "is_collective": True, "level": 2},
+            {"code": "411", "name": "Clients", "class": "4", "type": "asset", "is_collective": True, "level": 2},
+            {"code": "445", "name": "TVA", "class": "4", "type": "liability", "is_collective": True, "level": 2},
+            {"code": "4452", "name": "TVA récupérable sur immobilisations", "class": "4", "type": "asset", "level": 3},
+            {"code": "4454", "name": "TVA récupérable sur achats", "class": "4", "type": "asset", "level": 3},
+            {"code": "4457", "name": "TVA collectée", "class": "4", "type": "liability", "level": 3},
+            
+            # Classe 5 - Comptes financiers
+            {"code": "512", "name": "Banques", "class": "5", "type": "asset", "is_collective": True, "level": 2},
+            {"code": "531", "name": "Caisse", "class": "5", "type": "asset", "level": 2},
+            
+            # Classe 6 - Comptes de charges
+            {"code": "601", "name": "Achats de marchandises", "class": "6", "type": "expense", "level": 2},
+            {"code": "602", "name": "Achats de matières premières", "class": "6", "type": "expense", "level": 2},
+            {"code": "6061", "name": "Électricité", "class": "6", "type": "expense", "level": 3},
+            {"code": "6062", "name": "Eau", "class": "6", "type": "expense", "level": 3},
+            {"code": "6063", "name": "Carburants", "class": "6", "type": "expense", "level": 3},
+            {"code": "6064", "name": "Fournitures de bureau", "class": "6", "type": "expense", "level": 3},
+            {"code": "613", "name": "Locations", "class": "6", "type": "expense", "level": 2},
+            {"code": "615", "name": "Entretien et réparations", "class": "6", "type": "expense", "level": 2},
+            {"code": "616", "name": "Assurances", "class": "6", "type": "expense", "level": 2},
+            {"code": "622", "name": "Honoraires", "class": "6", "type": "expense", "level": 2},
+            {"code": "625", "name": "Déplacements et missions", "class": "6", "type": "expense", "level": 2},
+            {"code": "626", "name": "Frais postaux et télécommunications", "class": "6", "type": "expense", "level": 2},
+            {"code": "6261", "name": "Télécommunications", "class": "6", "type": "expense", "level": 3},
+            {"code": "627", "name": "Services bancaires", "class": "6", "type": "expense", "level": 2},
+            
+            # Classe 7 - Comptes de produits
+            {"code": "701", "name": "Ventes de marchandises", "class": "7", "type": "revenue", "level": 2},
+            {"code": "706", "name": "Prestations de services", "class": "7", "type": "revenue", "level": 2},
+            {"code": "707", "name": "Ventes de produits finis", "class": "7", "type": "revenue", "level": 2},
+        ]
+        
+        created_accounts = []
+        for acc_data in syscohada_accounts:
+            account = ChartOfAccounts(
+                tenant_id=current_tenant.id,
+                account_number=acc_data["code"],
+                name=acc_data["name"],
+                account_class=acc_data["class"],
+                account_type=acc_data["type"],
+                is_collective=acc_data.get("is_collective", False),
+                is_auxiliary=False,
+                level=acc_data.get("level", 2),
+                is_active=True,
+                is_detail=acc_data.get("level", 2) >= 3,
+                is_group=acc_data.get("level", 2) < 3,
+                balance=0,
+            )
+            db.add(account)
+            created_accounts.append(acc_data["code"])
+        
+        db.commit()
+        return {"message": "Plan comptable SYSCOHADA initialisé", "created": len(created_accounts), "accounts": created_accounts}
+        
+    except Exception as e:
+        db.rollback()
+        print(f"Error initializing chart of accounts: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class ChartOfAccountCreate(BaseModel):
+    code: str
+    name: str
+    description: Optional[str] = None
+    account_class: str
+    account_type: str = "asset"  # asset, liability, equity, revenue, expense
+    parent_code: Optional[str] = None
+    is_collective: bool = False
+    is_auxiliary: bool = False
+    collective_parent_code: Optional[str] = None
+    linked_supplier_id: Optional[str] = None
+    linked_client_id: Optional[str] = None
+
+
+@router.post("/chart-of-accounts")
+async def create_chart_of_account(
+    account_data: ChartOfAccountCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    current_tenant = Depends(get_current_tenant),
+):
+    """
+    Crée un nouveau compte dans le plan comptable.
+    
+    Peut créer:
+    - Un compte général (is_collective=False, is_auxiliary=False)
+    - Un compte collectif (is_collective=True) ex: 401, 411
+    - Un compte auxiliaire (is_auxiliary=True) ex: 401SBEE, 411CLI01
+    """
+    from app.models.accounting_advanced import ChartOfAccounts
+    
+    try:
+        # Vérifier si le compte existe déjà
+        existing = db.query(ChartOfAccounts).filter(
+            ChartOfAccounts.tenant_id == current_tenant.id,
+            ChartOfAccounts.account_number == account_data.code
+        ).first()
+        
+        if existing:
+            raise HTTPException(status_code=400, detail=f"Le compte {account_data.code} existe déjà")
+        
+        # Trouver le compte parent si spécifié
+        parent_id = None
+        if account_data.parent_code:
+            parent = db.query(ChartOfAccounts).filter(
+                ChartOfAccounts.tenant_id == current_tenant.id,
+                ChartOfAccounts.account_number == account_data.parent_code
+            ).first()
+            if parent:
+                parent_id = parent.id
+        
+        # Déterminer le niveau
+        level = len(account_data.code) if len(account_data.code) <= 4 else 3
+        if account_data.is_auxiliary:
+            level = 4
+        
+        # Créer le compte
+        account = ChartOfAccounts(
+            tenant_id=current_tenant.id,
+            account_number=account_data.code,
+            name=account_data.name,
+            description=account_data.description,
+            account_class=account_data.account_class,
+            account_type=account_data.account_type,
+            parent_id=parent_id,
+            level=level,
+            is_collective=account_data.is_collective,
+            is_auxiliary=account_data.is_auxiliary,
+            collective_parent_code=account_data.collective_parent_code,
+            linked_supplier_id=account_data.linked_supplier_id if account_data.linked_supplier_id else None,
+            linked_client_id=account_data.linked_client_id if account_data.linked_client_id else None,
+            is_active=True,
+            is_detail=not account_data.is_collective,
+            is_group=account_data.is_collective,
+            balance=0,
+        )
+        
+        db.add(account)
+        db.commit()
+        db.refresh(account)
+        
+        return {
+            "id": str(account.id),
+            "code": account.account_number,
+            "name": account.name,
+            "is_collective": account.is_collective,
+            "is_auxiliary": account.is_auxiliary,
+            "message": "Compte créé avec succès"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        print(f"Error creating account: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/advanced/stats")

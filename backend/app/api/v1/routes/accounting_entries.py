@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Response
 from fastapi.responses import StreamingResponse
-from app.services.fec_importer import FECImporterService
-import logging
+from app.services.journal_validation import validate_journal_entry
+from app.services.fiscal_year_closing import FiscalYearClosingService
+from app.services.accounting_controls import run_accounting_controls
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, and_, or_
 from typing import List, Optional
@@ -249,6 +250,20 @@ def validate_entry(
     if entry.status != EntryStatus.DRAFT:
         raise HTTPException(status_code=400, detail="Cette écriture ne peut pas être validée")
     
+    # Validation des règles du journal
+    validation_result = validate_journal_entry(db, str(current_user.tenant_id), entry)
+    
+    if not validation_result["is_valid"]:
+        # Collecter les erreurs critiques
+        critical_errors = [e for e in validation_result["errors"] if e["severity"] == "error"]
+        if critical_errors:
+            error_messages = [e["message"] for e in critical_errors]
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Erreurs de validation: {'; '.join(error_messages)}"
+            )
+    
+    # Vérification de l'équilibre (double vérification)
     total_debit = sum(line.debit for line in entry.lines)
     total_credit = sum(line.credit for line in entry.lines)
     
@@ -272,7 +287,11 @@ def validate_entry(
     
     db.commit()
     
-    return {"message": "Écriture validée avec succès", "entry_id": str(entry.id)}
+    return {
+        "message": "Écriture validée avec succès", 
+        "entry_id": str(entry.id),
+        "warnings": [e for e in validation_result["errors"] if e["severity"] == "warning"]
+    }
 
 
 @router.post("/entries/search", response_model=List[AccountingEntryHeaderResponse])
@@ -877,3 +896,54 @@ async def import_fec_file(
     except Exception as e:
         logger.error(f"Erreur import FEC: {e}")
         raise HTTPException(status_code=400, detail=str(e))
+
+
+# ============================================================================
+# FISCAL YEAR CLOSING ROUTES
+# ============================================================================
+
+@router.get("/fiscal-years/{fiscal_year_id}/closing-preview")
+def get_fiscal_year_closing_preview(
+    fiscal_year_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Obtient un aperçu de la clôture d'exercice"""
+    service = FiscalYearClosingService(db, str(current_user.tenant_id), str(current_user.id))
+    return service.get_closing_preview(fiscal_year_id)
+
+
+@router.post("/fiscal-years/{fiscal_year_id}/close")
+def close_fiscal_year(
+    fiscal_year_id: str,
+    force: bool = Query(False, description="Forcer la clôture même avec des avertissements"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Exécute la clôture d'exercice fiscal"""
+    service = FiscalYearClosingService(db, str(current_user.tenant_id), str(current_user.id))
+    return service.close_fiscal_year(fiscal_year_id, force)
+
+
+@router.post("/fiscal-years/{closed_fiscal_year_id}/generate-opening/{new_fiscal_year_id}")
+def generate_opening_entries(
+    closed_fiscal_year_id: str,
+    new_fiscal_year_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Génère les écritures d'ouverture pour le nouvel exercice"""
+    service = FiscalYearClosingService(db, str(current_user.tenant_id), str(current_user.id))
+    return service.generate_opening_entries(closed_fiscal_year_id, new_fiscal_year_id)
+
+
+@router.get("/controls/run")
+def run_accounting_controls_endpoint(
+    fiscal_year_id: Optional[str] = Query(None, description="ID de l'exercice fiscal"),
+    date_from: Optional[date] = Query(None, description="Date de début"),
+    date_to: Optional[date] = Query(None, description="Date de fin"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Exécute tous les contrôles de cohérence comptable"""
+    return run_accounting_controls(db, str(current_user.tenant_id), fiscal_year_id, date_from, date_to)

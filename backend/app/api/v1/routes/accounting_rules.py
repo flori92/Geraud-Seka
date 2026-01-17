@@ -36,22 +36,26 @@ class SupplierRuleCreate(BaseModel):
     is_active: bool = True
 
 
-class SupplierRuleResponse(BaseModel):
-    id: str
-    supplier_name: str
-    supplier_code: Optional[str]
-    charge_account: str
-    charge_account_label: Optional[str]
-    vat_account: str
-    vat_account_label: Optional[str]
-    supplier_account: str
-    supplier_account_label: Optional[str]
-    vat_rate: float
-    journal_code: str
-    is_active: bool
+class AccountingRuleCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    priority: float = 0
+    is_active: bool = True
+    conditions: List[dict]
+    actions: List[dict]
+    auto_apply: bool = False
+    confidence_threshold: float = 0.8
 
-    class Config:
-        from_attributes = True
+
+class AccountingRuleUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    priority: Optional[float] = None
+    is_active: Optional[bool] = None
+    conditions: Optional[List[dict]] = None
+    actions: Optional[List[dict]] = None
+    auto_apply: Optional[bool] = None
+    confidence_threshold: Optional[float] = None
 
 
 @router.get("/supplier-rules", response_model=List[SupplierRuleResponse])
@@ -613,3 +617,147 @@ async def validate_classification(
     db.commit()
 
     return {"message": "Classification validée", "feedback_recorded": True}
+
+
+@router.get("/", response_model=List[AccountingRuleResponse])
+async def list_accounting_rules(
+    current_tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Liste toutes les règles comptables d'imputation"""
+    rules = db.query(AccountingRule).filter(
+        AccountingRule.tenant_id == current_tenant.id
+    ).order_by(AccountingRule.priority.desc()).all()
+    
+    result = []
+    for rule in rules:
+        # Résumé des conditions
+        conditions_summary = []
+        for cond in rule.conditions:
+            if cond.get('type') == 'supplier_name':
+                conditions_summary.append(f"Fournisseur: {cond.get('value')}")
+            elif cond.get('type') == 'document_type':
+                conditions_summary.append(f"Type doc: {cond.get('value')}")
+            elif cond.get('type') == 'amount_range':
+                conditions_summary.append(f"Montant: {cond.get('min', 0)} - {cond.get('max', '∞')}")
+        
+        # Résumé des actions
+        actions_summary = []
+        for action in rule.actions:
+            if action.get('type') == 'assign_account':
+                actions_summary.append(f"Comptes: {action.get('debit_account')} / {action.get('credit_account')}")
+            elif action.get('type') == 'set_vat_rate':
+                actions_summary.append(f"TVA: {action.get('vat_rate')}%")
+        
+        result.append({
+            "id": str(rule.id),
+            "name": rule.name,
+            "description": rule.description,
+            "priority": rule.priority,
+            "is_active": rule.is_active,
+            "conditions_summary": "; ".join(conditions_summary) if conditions_summary else "Aucune",
+            "actions_summary": "; ".join(actions_summary) if actions_summary else "Aucune",
+            "conditions": rule.conditions,
+            "actions": rule.actions,
+            "auto_apply": rule.auto_apply,
+            "confidence_threshold": rule.confidence_threshold
+        })
+    
+    return result
+
+
+@router.post("/", response_model=AccountingRuleResponse)
+async def create_accounting_rule(
+    rule_data: AccountingRuleCreate,
+    current_tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Crée une nouvelle règle comptable d'imputation"""
+    rule = AccountingRule(
+        tenant_id=current_tenant.id,
+        name=rule_data.name,
+        description=rule_data.description,
+        priority=rule_data.priority,
+        is_active=rule_data.is_active,
+        conditions=rule_data.conditions,
+        actions=rule_data.actions,
+        auto_apply=rule_data.auto_apply,
+        confidence_threshold=rule_data.confidence_threshold
+    )
+    
+    db.add(rule)
+    db.commit()
+    db.refresh(rule)
+    
+    return AccountingRuleResponse(
+        id=str(rule.id),
+        name=rule.name,
+        description=rule.description,
+        priority=rule.priority,
+        is_active=rule.is_active,
+        conditions=rule.conditions,
+        actions=rule.actions,
+        auto_apply=rule.auto_apply,
+        confidence_threshold=rule.confidence_threshold
+    )
+
+
+@router.put("/{rule_id}", response_model=AccountingRuleResponse)
+async def update_accounting_rule(
+    rule_id: UUID,
+    rule_data: AccountingRuleUpdate,
+    current_tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Met à jour une règle comptable d'imputation"""
+    rule = db.query(AccountingRule).filter(
+        AccountingRule.id == rule_id,
+        AccountingRule.tenant_id == current_tenant.id
+    ).first()
+    
+    if not rule:
+        raise HTTPException(status_code=404, detail="Règle non trouvée")
+    
+    # Mise à jour des champs fournis
+    for field, value in rule_data.dict(exclude_unset=True).items():
+        setattr(rule, field, value)
+    
+    db.commit()
+    db.refresh(rule)
+    
+    return AccountingRuleResponse(
+        id=str(rule.id),
+        name=rule.name,
+        description=rule.description,
+        priority=rule.priority,
+        is_active=rule.is_active,
+        conditions=rule.conditions,
+        actions=rule.actions,
+        auto_apply=rule.auto_apply,
+        confidence_threshold=rule.confidence_threshold
+    )
+
+
+@router.delete("/{rule_id}")
+async def delete_accounting_rule(
+    rule_id: UUID,
+    current_tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Supprime une règle comptable d'imputation"""
+    rule = db.query(AccountingRule).filter(
+        AccountingRule.id == rule_id,
+        AccountingRule.tenant_id == current_tenant.id
+    ).first()
+    
+    if not rule:
+        raise HTTPException(status_code=404, detail="Règle non trouvée")
+    
+    db.delete(rule)
+    db.commit()
+    
+    return {"message": "Règle supprimée"}
