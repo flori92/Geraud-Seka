@@ -14,7 +14,7 @@ from app.db.session import get_db
 from app.core.deps import get_current_user, get_current_tenant
 from app.models.user import User
 from app.models.tenant import Tenant
-from app.models.document import Document
+from app.models.document import Document, DocumentStatus
 from app.models.accounting_rules import AccountingRule
 from app.services.accounting_rules import AccountingRulesEngine
 
@@ -223,7 +223,7 @@ async def validate_all_eligible(
                 continue
             
             if not dry_run:
-                doc.status = "validated"
+doc.status = DocumentStatus.VALIDEE
                 doc.validated_at = datetime.utcnow()
                 doc.validated_by_id = current_user.id
                 
@@ -301,7 +301,7 @@ async def validate_by_specific_rule(
         })
         
         if result.get("matched"):
-            doc.status = "validated"
+            doc.status = DocumentStatus.VALIDEE
             doc.validated_at = datetime.utcnow()
             doc.validated_by_id = current_user.id
             validated_count += 1
