@@ -301,6 +301,31 @@ export async function getValidatedDocuments(accessToken: string): Promise<Docume
   return docs.filter((d: Document) => d.status === 'VALIDEE');
 }
 
+export async function getAccountingDocuments(accessToken: string): Promise<Document[]> {
+  const docs = await getDocuments(accessToken);
+  return docs.filter((d: Document) => d.status === 'EXPORTED' || d.status === 'IN_ACCOUNTING');
+}
+
+export async function exportDocuments(accessToken: string, documentIds: string[]): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/documents/export`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify({
+        document_ids: documentIds
+      })
+    });
+    
+    return response.ok;
+  } catch (error) {
+    console.error('Error exporting documents:', error);
+    return false;
+  }
+}
+
 export async function getPurchaseInvoices(accessToken: string): Promise<Document[]> {
   const docs = await getDocuments(accessToken);
   return docs.filter((d: Document) =>

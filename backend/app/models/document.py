@@ -16,6 +16,8 @@ class DocumentStatus(str, enum.Enum):
     A_TRAITER = "A_TRAITER"              # 🔴 Fournisseur non reconnu (pas de règle)
     PRE_TRAITEE = "PRE_TRAITEE"          # 🟡 Règle appliquée, peut être validée
     VALIDEE = "VALIDEE"                  # 🟢 Validée, prête pour export
+    EXPORTED = "EXPORTED"                # 📤 Exporté vers comptabilité
+    IN_ACCOUNTING = "IN_ACCOUNTING"      # 📊 Intégré en comptabilité
     REJECTED = "REJECTED"
     ARCHIVED = "ARCHIVED"
 
@@ -139,6 +141,11 @@ class Document(Base, TimestampMixin):
     auto_validable = Column(Boolean, default=False)
     matched_rule_id = Column(UUID(as_uuid=True), ForeignKey("accounting_rules.id"), nullable=True)
     matched_rule_name = Column(String(255), nullable=True)
+    
+    # Export et comptabilité
+    exported_at = Column(DateTime, nullable=True)  # Date d'export vers comptabilité
+    accounting_entry_id = Column(UUID(as_uuid=True), ForeignKey("accounting_entries_header.id"), nullable=True)
+    journal_type = Column(String(50), nullable=True)  # Type de journal comptable
     
     folder_id = Column(UUID(as_uuid=True), ForeignKey("document_folders.id", ondelete="SET NULL"))
     client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id", ondelete="SET NULL"), nullable=True)

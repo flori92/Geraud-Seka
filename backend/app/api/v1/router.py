@@ -112,6 +112,9 @@ api_router.include_router(team.router, prefix="/team", tags=["team"])
 from app.api.v1.routes import batch_validation
 api_router.include_router(batch_validation.router, prefix="/batch-validation", tags=["batch-validation"])
 
+from app.api.v1.routes import export
+api_router.include_router(export.router, prefix="/documents", tags=["export"])
+
 from app.api.v1.routes import accounting_rules_stats
 api_router.include_router(accounting_rules_stats.router, prefix="/accounting-rules", tags=["accounting-rules"])
 
