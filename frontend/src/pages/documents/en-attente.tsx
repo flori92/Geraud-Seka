@@ -158,11 +158,33 @@ export default function DocumentsEnAttentePage() {
         const token = localStorage.getItem("seka_access_token");
         if (!token || selectedDocs.length === 0) return;
 
-        const confirmed = window.confirm(`Valider immédiatement ${selectedDocs.length} document(s) ?`);
-        if (!confirmed) return;
-
         setIsValidating(true);
         try {
+            // 1. Get Preview first
+            const previewResponse = await fetch(`${API_BASE_URL}/api/v1/batch-validation/preview`, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ document_ids: selectedDocs, min_confidence: 0.1 })
+            });
+
+            if (previewResponse.ok) {
+                const preview = await previewResponse.json();
+                const confirmed = window.confirm(
+                    `📊 Aperçu de la validation (${selectedDocs.length} sélectionnés) :\n\n` +
+                    `✓ Éligibles (règles trouvées) : ${preview.eligible_documents}\n` +
+                    `⏸ Ignorés (sans règles) : ${preview.documents_without_rules}\n\n` +
+                    `Confirmer la validation des documents éligibles ?`
+                );
+                if (!confirmed) return;
+            } else {
+                const confirmed = window.confirm(`Valider immédiatement ${selectedDocs.length} document(s) ?`);
+                if (!confirmed) return;
+            }
+
+            // 2. Execute validation
             const response = await fetch(`${API_BASE_URL}/api/v1/batch-validation/validate-all?min_confidence=0.1`, {
                 method: "POST",
                 headers: {
@@ -174,16 +196,11 @@ export default function DocumentsEnAttentePage() {
 
             if (response.ok) {
                 const result = await response.json();
-                alert(`✅ Validation terminée!\n\n✓ ${result.validated_count} validés\n✗ ${result.failed_count} échoués\n⏸ ${result.skipped_count} ignorés\n\nTemps: ${result.processing_time.toFixed(1)}s`);
+                alert(`✅ Validation terminée!\n\n✓ ${result.validated_count} validés\n✗ ${result.failed_count} échoués\n⏸ ${result.skipped_count} ignorés`);
                 setSelectedDocs([]);
-
-                // Refresh documents
                 await fetchDocuments();
-
-                // Refresh stats
-                // stats are derived from documents, so fetchDocuments does it
             } else {
-                alert("Erreur lors de la validation en masse");
+                alert("Erreur lors de la validation");
             }
         } catch (err) {
             console.error("Bulk validation error:", err);
@@ -201,8 +218,13 @@ export default function DocumentsEnAttentePage() {
         setShowBatchModal(true);
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/v1/batch-validation/preview?min_confidence=0.8`, {
-                headers: { "Authorization": `Bearer ${token}` }
+            const response = await fetch(`${API_BASE_URL}/api/v1/batch-validation/preview`, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ min_confidence: 0.8 })
             });
 
             if (response.ok) {

@@ -65,7 +65,7 @@ interface FilterChip {
   id: string;
   label: string;
   value: string;
-  type: 'date' | 'status' | 'due' | 'sent' | 'client';
+  type: 'date' | 'status' | 'due' | 'sent' | 'client' | 'client_id';
 }
 
 export default function FacturesClientsPage() {
@@ -125,6 +125,24 @@ export default function FacturesClientsPage() {
       setLoading(false);
     }
   }, [router, activeTab, searchQuery, filters]);
+
+  useEffect(() => {
+    if (router.isReady && router.query.client) {
+      const clientId = router.query.client as string;
+      // Check if filter already exists
+      if (!filters.find(f => f.type === 'client_id' && f.value === clientId)) {
+        setFilters(prev => [
+          ...prev.filter(f => f.type !== 'client_id'), // Remove existing client filter
+          {
+            id: 'filter-client-url',
+            label: `Client ID: ${clientId.substring(0, 8)}...`,
+            value: clientId,
+            type: 'client_id'
+          }
+        ]);
+      }
+    }
+  }, [router.isReady, router.query.client]);
 
   useEffect(() => {
     fetchData();
@@ -225,7 +243,7 @@ export default function FacturesClientsPage() {
     }
     const status = calculateInvoiceStatus(invoice);
     const needsForce = status === 'paid';
-    
+
     if (needsForce && !force) {
       const confirmed = window.confirm(
         "Cette facture est payée. Êtes-vous sûr de vouloir la supprimer ? Cette action est irréversible."
@@ -243,7 +261,7 @@ export default function FacturesClientsPage() {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       if (response.ok || response.status === 204) {
         fetchData();
       } else {
@@ -349,11 +367,10 @@ export default function FacturesClientsPage() {
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id as TabFilter)}
-                      className={`px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                        activeTab === tab.id
-                          ? 'border-[#1e3a5f] text-[#1e3a5f]'
-                          : 'border-transparent text-gray-600 hover:text-gray-900'
-                      }`}
+                      className={`px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === tab.id
+                        ? 'border-[#1e3a5f] text-[#1e3a5f]'
+                        : 'border-transparent text-gray-600 hover:text-gray-900'
+                        }`}
                     >
                       {tab.label}
                       {tab.count > 0 && (

@@ -52,9 +52,13 @@ class DocumentValidationDetail(BaseModel):
     reason: Optional[str]
 
 
-@router.get("/preview", response_model=BatchValidationPreview)
+class BatchValidationRequest(BaseModel):
+    min_confidence: float = 0.8
+    document_ids: Optional[List[UUID]] = None
+
+@router.post("/preview", response_model=BatchValidationPreview)
 async def preview_batch_validation(
-    min_confidence: float = 0.8,
+    request: BatchValidationRequest,
     current_user: User = Depends(get_current_user),
     current_tenant: Tenant = Depends(get_current_tenant),
     db: Session = Depends(get_db)
@@ -63,11 +67,19 @@ async def preview_batch_validation(
     Preview quels documents seront validés automatiquement.
     Retourne les statistiques sans effectuer la validation.
     """
-    pending_docs = db.query(Document).filter(
+    min_confidence = request.min_confidence
+    document_ids = request.document_ids
+    
+    query = db.query(Document).filter(
         Document.tenant_id == current_tenant.id,
         Document.status.in_(["pending", "pre_processed", "ocr_completed"]),
         Document.ocr_confidence >= min_confidence
-    ).all()
+    )
+    
+    if document_ids:
+        query = query.filter(Document.id.in_(document_ids))
+        
+    pending_docs = query.all()
     
     rules_service = AccountingRulesEngine(db, str(current_tenant.id))
     
