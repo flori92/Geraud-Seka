@@ -73,7 +73,7 @@ async def preview_batch_validation(
         
         query = db.query(Document).filter(
             Document.tenant_id == current_tenant.id,
-            Document.status.in_(["pending", "pre_processed", "ocr_completed"]),
+            Document.status.in_(["PENDING", "OCR_PROCESSING", "OCR_COMPLETED"]),
             Document.ocr_confidence >= min_confidence
         )
         
@@ -171,7 +171,7 @@ async def validate_all_eligible(
     
     query = db.query(Document).filter(
         Document.tenant_id == current_tenant.id,
-        Document.status.in_(["pending", "pre_processed", "ocr_completed"]),
+        Document.status.in_(["PENDING", "OCR_PROCESSING", "OCR_COMPLETED"]),
         Document.ocr_confidence >= min_confidence
     )
     
@@ -283,7 +283,7 @@ async def validate_by_specific_rule(
     
     pending_docs = db.query(Document).filter(
         Document.tenant_id == current_tenant.id,
-        Document.status.in_(["pending", "pre_processed", "ocr_completed"])
+        Document.status.in_(["PENDING", "OCR_PROCESSING", "OCR_COMPLETED"])
     ).all()
     
     rules_service = AccountingRulesEngine(db, str(current_tenant.id))

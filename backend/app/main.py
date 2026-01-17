@@ -426,6 +426,38 @@ def create_application() -> FastAPI:
                         """))
                         logger.info("✅ Added suppliers.default_description")
 
+                    if 'default_charge_account' not in supplier_columns:
+                        logger.info("🔧 Adding missing suppliers.default_charge_account column...")
+                        conn.execute(text("""
+                            ALTER TABLE suppliers
+                            ADD COLUMN IF NOT EXISTS default_charge_account VARCHAR(20)
+                        """))
+                        logger.info("✅ Added suppliers.default_charge_account")
+
+                    if 'default_vat_account' not in supplier_columns:
+                        logger.info("🔧 Adding missing suppliers.default_vat_account column...")
+                        conn.execute(text("""
+                            ALTER TABLE suppliers
+                            ADD COLUMN IF NOT EXISTS default_vat_account VARCHAR(20) DEFAULT '4454'
+                        """))
+                        logger.info("✅ Added suppliers.default_vat_account")
+
+                    if 'ocr_keywords' not in supplier_columns:
+                        logger.info("🔧 Adding missing suppliers.ocr_keywords column...")
+                        conn.execute(text("""
+                            ALTER TABLE suppliers
+                            ADD COLUMN IF NOT EXISTS ocr_keywords JSON
+                        """))
+                        logger.info("✅ Added suppliers.ocr_keywords")
+
+                    if 'has_active_rule' not in supplier_columns:
+                        logger.info("🔧 Adding missing suppliers.has_active_rule column...")
+                        conn.execute(text("""
+                            ALTER TABLE suppliers
+                            ADD COLUMN IF NOT EXISTS has_active_rule BOOLEAN DEFAULT FALSE
+                        """))
+                        logger.info("✅ Added suppliers.has_active_rule")
+
         except Exception as e:
             logger.error(f"❌ Error during startup database check: {e}")
         
