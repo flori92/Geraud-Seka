@@ -1,386 +1,353 @@
 import { useState, useEffect } from "react";
-import Head from "next/head";
 import { useRouter } from "next/router";
+import Head from "next/head";
 import {
-  Loader2,
-  AlertCircle,
-  Upload
+    FileText, Search, CheckCircle, Download, Loader2,
+    ArrowRight, Database, TrendingDown
 } from "lucide-react";
-import { deleteDocument, getDocuments, type Document } from "@/lib/api";
+import { API_BASE_URL } from "@/lib/api";
+import { getValidatedPurchaseDocuments, type Document } from "@/lib/api";
 
-type InvoiceStatus = "aucune" | "autoliquid" | "extracom" | "validee" | "20%" | "10%" | "carb_80%";
-
-interface DisplayInvoice {
-  id: string;
-  emission: string;
-  tiers: string;
-  numeroFacture: string;
-  montantHT?: number;
-  montantTTC?: number;
-  tauxTVA: InvoiceStatus;
-  status: string;
-  type?: string;
+interface DocumentStats {
+    total: number;
+    invoices: number;
+    ready_for_accounting: number;
 }
 
-export default function FacturesFournisseurs() {
-  const router = useRouter();
-  const [invoices, setInvoices] = useState<DisplayInvoice[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [tvaFilter, setTvaFilter] = useState<InvoiceStatus | "all">("all");
-  const [statusFilter, setStatusFilter] = useState<"all" | "validee" | "import">("all");
-  const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [pendingCount, setPendingCount] = useState(0);
+export default function AchatsFacturesPage() {
+    const router = useRouter();
+    const [documents, setDocuments] = useState<Document[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
+    const [isExporting, setIsExporting] = useState(false);
 
-  useEffect(() => {
-    const token = localStorage.getItem("seka_access_token");
-    if (!token) {
-      router.push("/login");
-      return;
-    }
+    useEffect(() => {
+        fetchDocuments();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
-    const fetchInvoices = async () => {
-      setLoading(true);
-      try {
-        const documents = await getDocuments(token);
+    const fetchDocuments = async () => {
+        const token = localStorage.getItem("seka_access_token");
+        if (!token) {
+            router.push("/login");
+            return;
+        }
 
-        const purchaseInvoices = documents.filter((doc: Document) =>
-          doc.status === 'VALIDATED' && doc.type === 'INVOICE_PURCHASE'
+        setLoading(true);
+        try {
+            const docs = await getValidatedPurchaseDocuments(token);
+            setDocuments(docs);
+        } catch (error) {
+            console.error("Erreur lors du chargement des factures d'achats:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const filteredDocuments = documents.filter(doc => {
+        const matchesSearch = searchQuery === '' || 
+            doc.filename?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            doc.supplier_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            doc.reference_number?.toLowerCase().includes(searchQuery.toLowerCase());
+        
+        return matchesSearch;
+    });
+
+    const handleSelectDoc = (docId: string) => {
+        setSelectedDocs(prev => 
+            prev.includes(docId) 
+                ? prev.filter(id => id !== docId)
+                : [...prev, docId]
         );
+    };
 
-        const pending = documents.filter((doc: Document) =>
-          doc.status === 'UPLOADED' || doc.status === 'OCR_PROCESSING' || doc.status === 'OCR_COMPLETED'
-        );
-        setPendingCount(pending.length);
+    const handleSelectAll = () => {
+        if (selectedDocs.length === filteredDocuments.length) {
+            setSelectedDocs([]);
+        } else {
+            setSelectedDocs(filteredDocuments.map(d => d.id));
+        }
+    };
 
-        const displayInvoices: DisplayInvoice[] = purchaseInvoices.map((doc: Document) => {
-          const ocr = (doc.ocr_data ?? {}) as Record<string, unknown>;
-          const ocrStr = (key: string) => (typeof ocr[key] === "string" ? (ocr[key] as string) : "");
-          const ocrNum = (key: string) => {
-            const v = ocr[key];
-            if (typeof v === "number") return v;
-            if (typeof v === "string") {
-              const normalized = v.replace(/\s/g, "").replace(",", ".");
-              const n = parseFloat(normalized);
-              return Number.isFinite(n) ? n : undefined;
+    const handleExportToAccounting = async () => {
+        if (selectedDocs.length === 0) {
+            alert("Veuillez sélectionner au moins une facture à exporter");
+            return;
+        }
+
+        setIsExporting(true);
+        try {
+            const token = localStorage.getItem("seka_access_token");
+            const response = await fetch(`${API_BASE_URL}/documents/export`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    document_ids: selectedDocs
+                })
+            });
+
+            if (response.ok) {
+                alert(`${selectedDocs.length} facture(s) exportée(s) avec succès vers la comptabilité`);
+                setSelectedDocs([]);
+                fetchDocuments(); // Rafraîchir la liste
+            } else {
+                throw new Error('Erreur lors de l\'export');
             }
-            return undefined;
-          };
-
-          const date = doc.date || ocrStr("date");
-          const supplierName = doc.supplier_name || ocrStr("supplier_name");
-          const referenceNumber = doc.reference_number || ocrStr("reference_number") || doc.filename;
-          const amountHT = doc.amount_ht ?? ocrNum("amount_ht");
-          const amountTTC = doc.amount_ttc ?? ocrNum("amount_ttc");
-          const amountVAT = doc.amount_vat ?? ocrNum("amount_vat");
-
-          return {
-            id: doc.id,
-            emission: date ? new Date(date).toLocaleDateString("fr-FR") : "-",
-            tiers: supplierName || "",
-            numeroFacture: referenceNumber,
-            montantHT: amountHT,
-            montantTTC: amountTTC,
-            tauxTVA: determineTVARate(amountVAT, amountHT),
-            status: doc.status,
-            type: doc.type,
-          };
-        });
-        setInvoices(displayInvoices);
-      } catch (error) {
-        console.error("Error fetching invoices:", error);
-      } finally {
-        setLoading(false);
-      }
+        } catch (error) {
+            console.error("Erreur lors de l'export:", error);
+            alert("Erreur lors de l&apos;export des factures");
+        } finally {
+            setIsExporting(false);
+        }
     };
 
-    fetchInvoices();
-  }, [router]);
-
-  const handleToggleSelectAll = (checked: boolean, ids: string[]) => {
-    if (checked) {
-      setSelectedInvoices(ids);
-    } else {
-      setSelectedInvoices([]);
-    }
-  };
-
-  const handleToggleSelectOne = (id: string, checked: boolean) => {
-    if (checked) {
-      setSelectedInvoices((prev) => (prev.includes(id) ? prev : [...prev, id]));
-    } else {
-      setSelectedInvoices((prev) => prev.filter((x) => x !== id));
-    }
-  };
-
-  const handleBulkDelete = async () => {
-    const token = localStorage.getItem("seka_access_token");
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-
-    if (selectedInvoices.length === 0) return;
-
-    const confirmed = window.confirm(`Supprimer ${selectedInvoices.length} document(s) ?`);
-    if (!confirmed) return;
-
-    setIsDeleting(true);
-    try {
-      await Promise.all(selectedInvoices.map((id) => deleteDocument(id, token)));
-      setInvoices((prev) => prev.filter((inv) => !selectedInvoices.includes(inv.id)));
-      setSelectedInvoices([]);
-    } catch (error) {
-      console.error("Error deleting documents:", error);
-      alert("Erreur lors de la suppression");
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  const determineTVARate = (vat?: number, ht?: number): InvoiceStatus => {
-    if (!vat || !ht || ht === 0) return "aucune";
-    const rate = (vat / ht) * 100;
-    if (rate >= 19 && rate <= 21) return "20%";
-    if (rate >= 9 && rate <= 11) return "10%";
-    return "aucune";
-  };
-
-  const getTVABadge = (tva: InvoiceStatus) => {
-    const styles: Record<InvoiceStatus, string> = {
-      "aucune": "bg-gray-100 text-gray-600",
-      "autoliquid": "bg-purple-100 text-purple-700",
-      "extracom": "bg-blue-100 text-blue-700",
-      "validee": "bg-blue-100 text-blue-700",
-      "20%": "bg-teal-100 text-teal-700",
-      "10%": "bg-teal-100 text-teal-700",
-      "carb_80%": "bg-orange-100 text-orange-700",
+    const getStats = (): DocumentStats => {
+        return {
+            total: documents.length,
+            invoices: documents.filter(d => d.type === 'INVOICE_PURCHASE').length,
+            ready_for_accounting: documents.length,
+        };
     };
-    const labels: Record<InvoiceStatus, string> = {
-      "aucune": "Aucune",
-      "autoliquid": "Autoliquid...",
-      "extracom": "Extracom...",
-      "validee": "Validée",
-      "20%": "20%",
-      "10%": "10%",
-      "carb_80%": "Carb 80%",
-    };
-    return <span className={`px-2 py-1 rounded text-xs font-medium ${styles[tva]}`}>{labels[tva]}</span>;
-  };
 
-  const filteredInvoices = invoices.filter((inv) => {
-    const q = searchQuery.toLowerCase();
-    if (q) {
-      const match =
-        inv.tiers.toLowerCase().includes(q) ||
-        inv.numeroFacture.toLowerCase().includes(q);
-      if (!match) return false;
+    const stats = getStats();
+
+    const getStatusConfig = (status: string) => {
+        switch (status) {
+            case 'VALIDEE':
+                return { label: 'Validée', color: 'bg-green-100 text-green-800', icon: CheckCircle };
+            default:
+                return { label: status, color: 'bg-gray-100 text-gray-800', icon: FileText };
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-[#1e3a5f] mx-auto" />
+                <p className="text-sm text-gray-600 mt-3">Chargement des factures d&apos;achats...</p>
+            </div>
+        );
     }
 
-    if (tvaFilter !== "all" && inv.tauxTVA !== tvaFilter) return false;
+    return (
+        <>
+            <Head>
+                <title>Factures Achats - SEKA</title>
+            </Head>
+            <div className="min-h-screen bg-gray-50">
+                {/* Header */}
+                <div className="bg-white shadow-sm border-b">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex justify-between items-center py-4">
+                            <div className="flex items-center space-x-3">
+                                <TrendingDown className="h-6 w-6 text-[#1e3a5f]" />
+                                <h1 className="text-2xl font-bold text-gray-900">Factures Achats</h1>
+                                <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                                    Validées
+                                </span>
+                            </div>
+                            <div className="flex items-center space-x-3">
+                                <button
+                                    onClick={() => router.push('/exports')}
+                                    className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                                >
+                                    <Database className="h-4 w-4 mr-2" />
+                                    Voir les exports
+                                </button>
+                                <button
+                                    onClick={handleExportToAccounting}
+                                    disabled={isExporting || selectedDocs.length === 0}
+                                    className="flex items-center px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#2a4a7f] disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isExporting ? (
+                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    ) : (
+                                        <ArrowRight className="h-4 w-4 mr-2" />
+                                    )}
+                                    Envoyer en comptabilité ({selectedDocs.length})
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-    return true;
-  });
+                {/* Stats Cards */}
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="bg-white p-4 rounded-lg shadow">
+                            <div className="flex items-center">
+                                <FileText className="h-8 w-8 text-blue-500" />
+                                <div className="ml-4">
+                                    <p className="text-sm font-medium text-gray-600">Total</p>
+                                    <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg shadow">
+                            <div className="flex items-center">
+                                <CheckCircle className="h-8 w-8 text-green-500" />
+                                <div className="ml-4">
+                                    <p className="text-sm font-medium text-gray-600">Validées</p>
+                                    <p className="text-2xl font-bold text-gray-900">{stats.invoices}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg shadow">
+                            <div className="flex items-center">
+                                <ArrowRight className="h-8 w-8 text-orange-500" />
+                                <div className="ml-4">
+                                    <p className="text-sm font-medium text-gray-600">Prêtes comptabilité</p>
+                                    <p className="text-2xl font-bold text-gray-900">{stats.ready_for_accounting}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-  return (
-    <>
-      <Head><title>Factures fournisseurs - SEKA</title></Head>
-      <div className="min-h-screen bg-gray-50">
-        <div>
+                {/* Filters */}
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                    <div className="bg-white p-4 rounded-lg shadow">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0 sm:space-x-4">
+                            <div className="flex items-center space-x-4">
+                                <div className="relative">
+                                    <Search className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                                    <input
+                                        type="text"
+                                        placeholder="Rechercher..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a5f] focus:border-transparent"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-          <header className="sticky top-0 z-40 min-h-[56px] bg-white border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 px-4 sm:px-6 py-2 sm:py-0">
-            <div className="flex items-center gap-2 sm:gap-4">
-              <h1 className="text-lg font-semibold text-gray-900">Factures d&apos;achat</h1>
-              <span className="text-xs text-gray-500">(validées)</span>
+                {/* Documents Table */}
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                    <div className="bg-white shadow rounded-lg">
+                        <div className="px-6 py-4 border-b border-gray-200">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-lg font-medium text-gray-900">Factures d&apos;achats validées</h2>
+                                <div className="flex items-center space-x-2">
+                                    <span className="text-sm text-gray-500">
+                                        {filteredDocuments.length} facture(s)
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {filteredDocuments.length === 0 ? (
+                            <div className="p-12 text-center">
+                                <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                                <p className="text-gray-600 mb-4">Aucune facture d&apos;achat validée</p>
+                                <button
+                                    onClick={() => router.push('/documents/en-attente')}
+                                    className="text-[#1e3a5f] hover:text-[#2a4a7f] font-medium"
+                                >
+                                    Voir les documents en attente
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-6 py-3 text-left">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedDocs.length === filteredDocuments.length}
+                                                    onChange={handleSelectAll}
+                                                    className="rounded border-gray-300 text-[#1e3a5f] focus:ring-[#1e3a5f]"
+                                                />
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Document
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Fournisseur
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Montant TTC
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Statut
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Actions
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {filteredDocuments.map((doc) => {
+                                            const statusConfig = getStatusConfig(doc.status);
+                                            const StatusIcon = statusConfig.icon;
+                                            
+                                            return (
+                                                <tr key={doc.id} className="hover:bg-gray-50">
+                                                    <td className="px-6 py-4">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedDocs.includes(doc.id)}
+                                                            onChange={() => handleSelectDoc(doc.id)}
+                                                            className="rounded border-gray-300 text-[#1e3a5f] focus:ring-[#1e3a5f]"
+                                                        />
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex items-center">
+                                                            <FileText className="h-5 w-5 text-gray-400 mr-3" />
+                                                            <div>
+                                                                <div className="text-sm font-medium text-gray-900">
+                                                                    {doc.filename}
+                                                                </div>
+                                                                <div className="text-xs text-gray-500">
+                                                                    {doc.reference_number}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="text-sm text-gray-900">
+                                                            {doc.supplier_name || 'N/A'}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="text-sm font-medium text-gray-900">
+                                                            {doc.amount_ttc ? `${doc.amount_ttc.toFixed(2)} €` : 'N/A'}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusConfig.color}`}>
+                                                            <StatusIcon className="h-3 w-3 mr-1" />
+                                                            {statusConfig.label}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex items-center space-x-2">
+                                                            <button
+                                                                onClick={() => window.open(`/api/v1/documents/${doc.id}/download`, '_blank')}
+                                                                className="text-gray-400 hover:text-gray-600"
+                                                                title="Télécharger"
+                                                            >
+                                                                <Download className="h-4 w-4" />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3">
-              {pendingCount > 0 && (
-                <button
-                  onClick={() => router.push('/documents/en-attente')}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-orange-50 text-orange-700 rounded-lg text-xs sm:text-sm font-medium hover:bg-orange-100"
-                >
-                  <AlertCircle className="w-4 h-4" />
-                  <span>{pendingCount} en attente</span>
-                </button>
-              )}
-              <button
-                onClick={() => router.push('/documents/upload')}
-                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-[#1e3a5f] text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-[#172e4d]"
-              >
-                <Upload className="w-4 h-4" />
-                <span className="hidden sm:inline">Importer des factures</span>
-                <span className="sm:hidden">Importer</span>
-              </button>
-            </div>
-          </header>
-
-          <div className="p-4 sm:p-6">
-
-            <div className="bg-white rounded-xl border border-gray-200 mb-6">
-              {selectedInvoices.length > 0 && (
-                <div className="px-4 py-3 bg-blue-50 border-b border-blue-200 flex items-center justify-between">
-                  <span className="text-sm text-blue-900">
-                    {selectedInvoices.length} document(s) sélectionné(s)
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setSelectedInvoices([])}
-                      className="px-3 py-1.5 text-sm text-blue-700 hover:text-blue-900"
-                      disabled={isDeleting}
-                    >
-                      Annuler
-                    </button>
-                    <button
-                      onClick={handleBulkDelete}
-                      className="px-3 py-1.5 text-sm bg-white border border-blue-300 text-blue-700 rounded hover:bg-blue-50 disabled:opacity-50"
-                      disabled={isDeleting}
-                    >
-                      {isDeleting ? "Suppression..." : "Supprimer"}
-                    </button>
-                  </div>
-                </div>
-              )}
-              <div className="p-3 sm:p-4 border-b border-gray-200 space-y-3">
-
-                <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-3">
-                  <div className="flex-1 min-w-0 sm:min-w-[220px]">
-                    <input
-                      type="text"
-                      placeholder="Rechercher une facture..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <select
-                      value={tvaFilter}
-                      onChange={(e) => setTvaFilter(e.target.value as InvoiceStatus | "all")}
-                      className="flex-1 sm:flex-none px-2 sm:px-3 py-2 border border-gray-200 rounded-lg text-xs sm:text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                    >
-                      <option value="all">TVA</option>
-                      <option value="20%">20%</option>
-                      <option value="10%">10%</option>
-                      <option value="autoliquid">Autoliq.</option>
-                      <option value="extracom">Extracom.</option>
-                    </select>
-                    <select
-                      value={statusFilter}
-                      onChange={(e) => setStatusFilter(e.target.value as "all" | "validee" | "import")}
-                      className="flex-1 sm:flex-none px-2 sm:px-3 py-2 border border-gray-200 rounded-lg text-xs sm:text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                    >
-                      <option value="all">Statut</option>
-                      <option value="validee">Validées</option>
-                      <option value="import">À valider</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Ligne de configuration des colonnes (statique) - masquée sur mobile */}
-                <div className="hidden sm:flex items-center gap-2 sm:gap-3 flex-wrap overflow-x-auto pb-1">
-                  <button className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm text-gray-600 hover:bg-gray-50 whitespace-nowrap">
-                    Émission
-                  </button>
-                  <button className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm text-gray-600 hover:bg-gray-50 whitespace-nowrap">
-                    Fournisseur
-                  </button>
-                  <button className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm text-gray-600 hover:bg-gray-50 whitespace-nowrap">
-                    N° facture
-                  </button>
-                  <button className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm text-gray-600 hover:bg-gray-50 whitespace-nowrap">
-                    Montant HT
-                  </button>
-                  <button className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm text-gray-600 hover:bg-gray-50 whitespace-nowrap">
-                    TVA
-                  </button>
-                  <button className="flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 border border-gray-200 rounded-lg text-xs sm:text-sm text-gray-600 hover:bg-gray-50 whitespace-nowrap">
-                    Montant TTC
-                  </button>
-                </div>
-              </div>
-
-              {/* Table */}
-              <div className="overflow-x-auto">
-                {loading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-8 h-8 animate-spin text-teal-600" />
-                    <span className="ml-2 text-gray-500">Chargement des factures...</span>
-                  </div>
-                ) : filteredInvoices.length === 0 ? (
-                  <div className="text-center py-12">
-                    <p className="text-gray-500">Aucune facture fournisseur trouvée</p>
-                    <p className="text-sm text-gray-400 mt-1">Importez vos premières factures pour commencer</p>
-                  </div>
-                ) : (
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-gray-200 bg-gray-50">
-                        <th className="w-10 px-4 py-3">
-                          <input
-                            type="checkbox"
-                            className="rounded border-gray-300"
-                            checked={filteredInvoices.length > 0 && selectedInvoices.length === filteredInvoices.length}
-                            onChange={(e) => handleToggleSelectAll(e.target.checked, filteredInvoices.map((i) => i.id))}
-                          />
-                        </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Émission</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fournisseur</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">N° de facture</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Montant HT</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Taux TVA</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Montant TTC</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {filteredInvoices.map((inv) => (
-                        <tr
-                          key={inv.id}
-                          className="hover:bg-gray-50 cursor-pointer"
-                          onClick={() => router.push(`/documents/${inv.id}/validate`)}
-                        >
-                          <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                            <input
-                              type="checkbox"
-                              className="rounded border-gray-300"
-                              checked={selectedInvoices.includes(inv.id)}
-                              onChange={(e) => handleToggleSelectOne(inv.id, e.target.checked)}
-                            />
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-900">{inv.emission}</td>
-                          <td className="px-4 py-3 text-sm text-gray-900">{inv.tiers || "-"}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{inv.numeroFacture}</td>
-                          <td className="px-4 py-3 text-sm text-gray-900">{inv.montantHT ? `${inv.montantHT.toLocaleString('fr-FR')} €` : "-"}</td>
-                          <td className="px-4 py-3">{getTVABadge(inv.tauxTVA)}</td>
-                          <td className="px-4 py-3 text-sm text-gray-900 font-medium">{inv.montantTTC ? `${inv.montantTTC.toLocaleString('fr-FR')} €` : "-"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-
-              {/* Pagination */}
-              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
-                <div className="flex items-center gap-2">
-                  <button className="px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded">25</button>
-                  <button className="px-2 py-1 text-sm bg-[#1e3a5f]/10 text-[#1e3a5f] rounded font-medium">50</button>
-                  <button className="px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded">100</button>
-                  <span className="text-sm text-gray-500 ml-2">éléments par page</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500">1-17 sur 17</span>
-                  <div className="flex items-center gap-1">
-                    <button className="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-400">&lt;</button>
-                    <button className="w-8 h-8 flex items-center justify-center rounded bg-[#1e3a5f] text-white font-medium">1</button>
-                    <button className="w-8 h-8 flex items-center justify-center rounded border border-gray-200 text-gray-400">&gt;</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
-  );
+        </>
+    );
 }

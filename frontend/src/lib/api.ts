@@ -306,6 +306,16 @@ export async function getAccountingDocuments(accessToken: string): Promise<Docum
   return docs.filter((d: Document) => d.status === 'EXPORTED' || d.status === 'IN_ACCOUNTING');
 }
 
+export async function getValidatedPurchaseDocuments(accessToken: string): Promise<Document[]> {
+  const docs = await getDocuments(accessToken);
+  return docs.filter((d: Document) => d.status === 'VALIDEE' && d.type === 'INVOICE_PURCHASE');
+}
+
+export async function getValidatedSalesDocuments(accessToken: string): Promise<Document[]> {
+  const docs = await getDocuments(accessToken);
+  return docs.filter((d: Document) => d.status === 'VALIDEE' && d.type === 'INVOICE_SALES');
+}
+
 export async function exportDocuments(accessToken: string, documentIds: string[]): Promise<boolean> {
   try {
     const response = await fetch(`${API_BASE_URL}/documents/export`, {

@@ -3,7 +3,8 @@ import { useRouter } from "next/router";
 import Head from "next/head";
 import {
     FileText, Search, CheckCircle, Eye, Trash2,
-    Download, Upload, Loader2, CheckCheck, Calendar
+    Download, Upload, Loader2, CheckCheck, Calendar,
+    TrendingUp, TrendingDown
 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api";
 import { getValidatedDocuments, deleteDocument, type Document } from "@/lib/api";
@@ -94,6 +95,58 @@ export default function DocumentsValideesPage() {
             console.error("Erreur lors de la suppression:", error);
         } finally {
             setIsDeleting(false);
+        }
+    };
+
+    const handleReassignToPurchase = async (docId: string) => {
+        const token = localStorage.getItem("seka_access_token");
+        try {
+            const response = await fetch(`${API_BASE_URL}/documents/${docId}/reassign`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    type: 'INVOICE_PURCHASE'
+                })
+            });
+
+            if (response.ok) {
+                alert("Facture réaffectée vers les achats");
+                fetchDocuments();
+            } else {
+                throw new Error('Erreur lors de la réaffectation');
+            }
+        } catch (error) {
+            console.error("Erreur lors de la réaffectation:", error);
+            alert("Erreur lors de la réaffectation");
+        }
+    };
+
+    const handleReassignToSales = async (docId: string) => {
+        const token = localStorage.getItem("seka_access_token");
+        try {
+            const response = await fetch(`${API_BASE_URL}/documents/${docId}/reassign`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    type: 'INVOICE_SALES'
+                })
+            });
+
+            if (response.ok) {
+                alert("Facture réaffectée vers les ventes");
+                fetchDocuments();
+            } else {
+                throw new Error('Erreur lors de la réaffectation');
+            }
+        } catch (error) {
+            console.error("Erreur lors de la réaffectation:", error);
+            alert("Erreur lors de la réaffectation");
         }
     };
 
@@ -393,6 +446,24 @@ export default function DocumentsValideesPage() {
                                                         >
                                                             <Download className="h-4 w-4" />
                                                         </button>
+                                                        {doc.type !== 'INVOICE_PURCHASE' && (
+                                                            <button
+                                                                onClick={() => handleReassignToPurchase(doc.id)}
+                                                                className="text-orange-600 hover:text-orange-900"
+                                                                title="Envoyer vers les achats"
+                                                            >
+                                                                <TrendingDown className="h-4 w-4" />
+                                                            </button>
+                                                        )}
+                                                        {doc.type !== 'INVOICE_SALES' && (
+                                                            <button
+                                                                onClick={() => handleReassignToSales(doc.id)}
+                                                                className="text-green-600 hover:text-green-900"
+                                                                title="Envoyer vers les ventes"
+                                                            >
+                                                                <TrendingUp className="h-4 w-4" />
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </td>
                                             </tr>
