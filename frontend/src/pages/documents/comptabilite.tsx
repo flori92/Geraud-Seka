@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
 import {
-    FileText, Search, CheckCircle, Eye, Trash2,
-    Download, Upload, Loader2, CheckCheck, Calendar,
+    FileText, Search, CheckCircle, Download, Loader2,
     Database, FileSpreadsheet, TrendingUp, Users
 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api";
