@@ -52,7 +52,7 @@ async def get_pending_duplicates(
                 "supplier_name": new_doc.supplier_name,
                 "reference_number": new_doc.reference_number,
                 "document_date": new_doc.document_date.isoformat() if new_doc.document_date else None,
-                "amount_ttc": float(new_doc.amount_ttc) if new_doc.amount_ttc else None,
+                "amount_ttc": float(new_doc.amount_ttc) if new_doc.amount_ttc is not None else None,
                 "file_path": new_doc.file_path
             },
             "existing_document": {
@@ -61,7 +61,7 @@ async def get_pending_duplicates(
                 "supplier_name": existing_doc.supplier_name,
                 "reference_number": existing_doc.reference_number,
                 "document_date": existing_doc.document_date.isoformat() if existing_doc.document_date else None,
-                "amount_ttc": float(existing_doc.amount_ttc) if existing_doc.amount_ttc else None,
+                "amount_ttc": float(existing_doc.amount_ttc) if existing_doc.amount_ttc is not None else None,
                 "status": existing_doc.status.value if hasattr(existing_doc.status, 'value') else existing_doc.status,
                 "file_path": existing_doc.file_path,
                 "created_at": existing_doc.created_at.isoformat() if existing_doc.created_at else None
@@ -158,7 +158,7 @@ async def get_duplicate_history(
                 "filename": new_doc.original_filename,
                 "supplier_name": new_doc.supplier_name,
                 "reference_number": new_doc.reference_number,
-                "amount_ttc": float(new_doc.amount_ttc) if new_doc.amount_ttc else None
+                "amount_ttc": float(new_doc.amount_ttc) if new_doc.amount_ttc is not None else None
             },
             "existing_document": {
                 "id": str(existing_doc.id),

@@ -211,7 +211,7 @@ async def validate_all_eligible(
             result = rules_service.apply_rules({
                 "supplier_name": doc.supplier_name,
                 "reference_number": doc.reference_number or "",
-                "amount_ttc": float(doc.amount_ttc),
+                "amount_ttc": float(doc.amount_ttc or 0),
                 "document_date": doc.document_date.isoformat() if doc.document_date else None,
                 "description": doc.description or ""
             })
@@ -296,7 +296,7 @@ async def validate_by_specific_rule(
         result = rules_service.apply_single_rule(rule, {
             "supplier_name": doc.supplier_name,
             "reference_number": doc.reference_number or "",
-            "amount_ttc": float(doc.amount_ttc),
+            "amount_ttc": float(doc.amount_ttc or 0),
             "document_date": doc.document_date.isoformat() if doc.document_date else None
         })
         
