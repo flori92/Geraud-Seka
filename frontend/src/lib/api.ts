@@ -551,6 +551,33 @@ export async function verifyKKiaPayTransaction(
   return response.data;
 }
 
+export interface KKiaPayTransaction {
+  id: string;
+  requestId: string;
+  status: 'SUCCESS' | 'PENDING' | 'FAILED' | 'CANCELLED';
+  amount: number;
+  fees: number;
+  currency: string;
+  reason: string;
+  phone: string;
+  customer: string;
+  created_at: string;
+  updated_at: string;
+  provider: string;
+}
+
+export async function getKKiaPayTransactions(accessToken: string): Promise<KKiaPayTransaction[]> {
+  try {
+    const response = await api.get<{transactions: KKiaPayTransaction[]}>("/payments/kkiapay/transactions", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    return response.data.transactions || [];
+  } catch (error) {
+    console.error("Error fetching KKIAPAY transactions:", error);
+    return [];
+  }
+}
+
 
 const CRM_DISABLED_ERROR = "CRM supprimé";
 

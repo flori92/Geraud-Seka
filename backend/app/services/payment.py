@@ -152,6 +152,55 @@ class KKiaPayService:
                 "url": f"https://kkiapay.me/mock/{amount}",
                 "transaction_id": "mock_txn"
             }
+    
+    async def get_transactions(self) -> list:
+        """Récupérer les transactions depuis l'API KKIAPAY."""
+        if not self.private_key:
+            # Retourner des données mockées si les clés ne sont pas configurées
+            return [
+                {
+                    "id": "txn_001",
+                    "requestId": "REQ_001",
+                    "status": "SUCCESS",
+                    "amount": 50000,
+                    "fees": 250,
+                    "currency": "XOF",
+                    "reason": "Paiement facture",
+                    "phone": "+22912345678",
+                    "customer": "Client A",
+                    "created_at": "2024-01-15T10:30:00Z",
+                    "updated_at": "2024-01-15T10:35:00Z",
+                    "provider": "orange"
+                },
+                {
+                    "id": "txn_002", 
+                    "requestId": "REQ_002",
+                    "status": "PENDING",
+                    "amount": 25000,
+                    "fees": 150,
+                    "currency": "XOF",
+                    "reason": "Transfert fonds",
+                    "phone": "+22987654321",
+                    "customer": "Fournisseur B",
+                    "created_at": "2024-01-15T14:20:00Z",
+                    "updated_at": "2024-01-15T14:20:00Z",
+                    "provider": "mtn"
+                }
+            ]
+        
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    f"{self.base_url}/transactions",
+                    headers={
+                        "x-api-key": self.private_key
+                    }
+                )
+                data = response.json()
+                return data.get("data", [])
+        except Exception as e:
+            print(f"Erreur KKiaPay get_transactions: {e}")
+            return []
 
 
 stripe_service = StripeService()

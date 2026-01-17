@@ -130,3 +130,24 @@ async def kkiapay_webhook(request: Request):
         pass
         
     return {"status": "success"}
+
+
+@router.get("/kkiapay/transactions")
+async def get_kkiapay_transactions(
+    current_user: User = Depends(get_current_user)
+):
+    """Récupérer les transactions KKIAPAY."""
+    try:
+        # Appeler l'API KKIAPAY pour récupérer les transactions
+        transactions = await kkiapay_service.get_transactions()
+        return {
+            "transactions": transactions,
+            "total": len(transactions)
+        }
+    except Exception as e:
+        print(f"Erreur récupération transactions KKIAPAY: {e}")
+        return {
+            "transactions": [],
+            "total": 0,
+            "error": str(e)
+        }

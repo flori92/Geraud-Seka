@@ -6,26 +6,7 @@ import {
     Search, Plus, Eye, Download,
     DollarSign, Activity, Loader2, ArrowUpRight, ArrowDownRight
 } from "lucide-react";
-
-interface MobileMoneyTransaction {
-    id: string;
-    transaction_id: string;
-    provider: 'orange' | 'mtn' | 'moov' | 'wave' | 'other';
-    transaction_type: 'deposit' | 'withdrawal' | 'transfer';
-    amount: number;
-    currency: string;
-    sender_name?: string;
-    sender_phone?: string;
-    receiver_name?: string;
-    receiver_phone?: string;
-    reference?: string;
-    description?: string;
-    status: 'pending' | 'completed' | 'failed' | 'cancelled';
-    transaction_date: string;
-    created_at: string;
-    fees?: number;
-    balance_after?: number;
-}
+import { getKKiaPayTransactions, type KKiaPayTransaction } from "@/lib/api";
 
 interface MobileMoneyStats {
     total_transactions: number;
@@ -39,7 +20,7 @@ interface MobileMoneyStats {
 
 export default function MobileMoneyPage() {
     const router = useRouter();
-    const [transactions, setTransactions] = useState<MobileMoneyTransaction[]>([]);
+    const [transactions, setTransactions] = useState<KKiaPayTransaction[]>([]);
     const [stats, setStats] = useState<MobileMoneyStats | null>(null);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
@@ -61,59 +42,32 @@ export default function MobileMoneyPage() {
 
         setLoading(true);
         try {
-            // Simuler des données - à remplacer par de vrais appels API
-            const mockTransactions: MobileMoneyTransaction[] = [
-                {
-                    id: "1",
-                    transaction_id: "TXN001",
-                    provider: "orange",
-                    transaction_type: "deposit",
-                    amount: 50000,
-                    currency: "XOF",
-                    sender_name: "Client A",
-                    sender_phone: "+22912345678",
-                    reference: "FACT-2024-001",
-                    status: "completed",
-                    transaction_date: "2024-01-15T10:30:00Z",
-                    created_at: "2024-01-15T10:30:00Z",
-                    fees: 250,
-                    balance_after: 150000
-                },
-                {
-                    id: "2",
-                    transaction_id: "TXN002",
-                    provider: "mtn",
-                    transaction_type: "withdrawal",
-                    amount: 25000,
-                    currency: "XOF",
-                    receiver_name: "Fournisseur B",
-                    receiver_phone: "+22987654321",
-                    description: "Paiement facture",
-                    status: "pending",
-                    transaction_date: "2024-01-15T14:20:00Z",
-                    created_at: "2024-01-15T14:20:00Z",
-                    fees: 150
-                }
-            ];
+            // Utiliser l'API KKIAPAY réelle
+            const kkiapayTransactions = await getKKiaPayTransactions(token);
+            setTransactions(kkiapayTransactions);
 
-            const mockStats: MobileMoneyStats = {
-                total_transactions: 156,
-                total_volume: 2500000,
-                total_fees: 12500,
-                successful_transactions: 142,
-                pending_transactions: 8,
-                failed_transactions: 6,
-                provider_breakdown: {
-                    orange: { count: 89, volume: 1500000 },
-                    mtn: { count: 45, volume: 750000 },
-                    moov: { count: 22, volume: 250000 }
-                }
+            // Calculer les statistiques
+            const statsData: MobileMoneyStats = {
+                total_transactions: kkiapayTransactions.length,
+                total_volume: kkiapayTransactions.reduce((sum, t) => sum + t.amount, 0),
+                total_fees: kkiapayTransactions.reduce((sum, t) => sum + t.fees, 0),
+                successful_transactions: kkiapayTransactions.filter(t => t.status === 'SUCCESS').length,
+                pending_transactions: kkiapayTransactions.filter(t => t.status === 'PENDING').length,
+                failed_transactions: kkiapayTransactions.filter(t => t.status === 'FAILED').length,
+                provider_breakdown: kkiapayTransactions.reduce((acc, t) => {
+                    const provider = t.provider.toLowerCase();
+                    if (!acc[provider]) {
+                        acc[provider] = { count: 0, volume: 0 };
+                    }
+                    acc[provider].count += 1;
+                    acc[provider].volume += t.amount;
+                    return acc;
+                }, {} as Record<string, { count: number; volume: number }>)
             };
 
-            setTransactions(mockTransactions);
-            setStats(mockStats);
+            setStats(statsData);
         } catch (error) {
-            console.error("Erreur lors du chargement des données mobile money:", error);
+            console.error("Erreur lors du chargement des données KKIAPAY:", error);
         } finally {
             setLoading(false);
         }
@@ -121,16 +75,14 @@ export default function MobileMoneyPage() {
 
     const filteredTransactions = transactions.filter(transaction => {
         const matchesSearch = searchQuery === '' || 
-            transaction.transaction_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            transaction.sender_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            transaction.receiver_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            transaction.reference?.toLowerCase().includes(searchQuery.toLowerCase());
+            transaction.requestId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            transaction.customer.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            transaction.reason.toLowerCase().includes(searchQuery.toLowerCase());
         
         const matchesProvider = selectedProvider === 'all' || transaction.provider === selectedProvider;
         const matchesStatus = selectedStatus === 'all' || transaction.status === selectedStatus;
-        const matchesType = selectedType === 'all' || transaction.transaction_type === selectedType;
         
-        return matchesSearch && matchesProvider && matchesStatus && matchesType;
+        return matchesSearch && matchesProvider && matchesStatus;
     });
 
     const getProviderLabel = (provider: string) => {
@@ -155,30 +107,21 @@ export default function MobileMoneyPage() {
 
     const getStatusLabel = (status: string) => {
         switch (status) {
-            case 'completed': return 'Complété';
-            case 'pending': return 'En attente';
-            case 'failed': return 'Échoué';
-            case 'cancelled': return 'Annulé';
+            case 'SUCCESS': return 'Complété';
+            case 'PENDING': return 'En attente';
+            case 'FAILED': return 'Échoué';
+            case 'CANCELLED': return 'Annulé';
             default: return status;
         }
     };
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'completed': return 'bg-green-100 text-green-800';
-            case 'pending': return 'bg-yellow-100 text-yellow-800';
-            case 'failed': return 'bg-red-100 text-red-800';
-            case 'cancelled': return 'bg-gray-100 text-gray-800';
+            case 'SUCCESS': return 'bg-green-100 text-green-800';
+            case 'PENDING': return 'bg-yellow-100 text-yellow-800';
+            case 'FAILED': return 'bg-red-100 text-red-800';
+            case 'CANCELLED': return 'bg-gray-100 text-gray-800';
             default: return 'bg-gray-100 text-gray-800';
-        }
-    };
-
-    const getTypeLabel = (type: string) => {
-        switch (type) {
-            case 'deposit': return 'Dépôt';
-            case 'withdrawal': return 'Retrait';
-            case 'transfer': return 'Transfert';
-            default: return type;
         }
     };
 
@@ -414,13 +357,11 @@ export default function MobileMoneyPage() {
                                                         <Smartphone className="h-5 w-5 text-gray-400 mr-3" />
                                                         <div>
                                                             <div className="text-sm font-medium text-gray-900">
-                                                                {transaction.transaction_id}
+                                                                {transaction.requestId}
                                                             </div>
-                                                            {transaction.reference && (
-                                                                <div className="text-sm text-gray-500">
-                                                                    {transaction.reference}
-                                                                </div>
-                                                            )}
+                                                            <div className="text-sm text-gray-500">
+                                                                {transaction.reason}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </td>
@@ -431,22 +372,18 @@ export default function MobileMoneyPage() {
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="flex items-center">
-                                                        {transaction.transaction_type === 'deposit' ? (
-                                                            <ArrowDownRight className="h-4 w-4 text-green-600 mr-1" />
-                                                        ) : (
-                                                            <ArrowUpRight className="h-4 w-4 text-red-600 mr-1" />
-                                                        )}
+                                                        <ArrowDownRight className="h-4 w-4 text-blue-600 mr-1" />
                                                         <span className="text-sm text-gray-900">
-                                                            {getTypeLabel(transaction.transaction_type)}
+                                                            Paiement
                                                         </span>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="text-sm text-gray-900">
-                                                        {transaction.sender_name || transaction.receiver_name || '-'}
+                                                        {transaction.customer}
                                                     </div>
                                                     <div className="text-sm text-gray-500">
-                                                        {transaction.sender_phone || transaction.receiver_phone || '-'}
+                                                        {transaction.phone}
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
@@ -465,7 +402,7 @@ export default function MobileMoneyPage() {
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                    {formatDate(transaction.transaction_date)}
+                                                    {formatDate(transaction.created_at)}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                     <div className="flex items-center space-x-2">
