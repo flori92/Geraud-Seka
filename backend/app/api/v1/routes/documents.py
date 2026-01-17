@@ -1276,3 +1276,37 @@ async def test_ocr_service(
             result["groq_connection_error"] = str(e)
     
     return result
+
+
+@router.get("/validees", response_model=List[DocumentSchema])
+def get_validated_documents(
+    db: Session = Depends(deps.get_db_session),
+    skip: int = 0,
+    limit: int = 100,
+    current_user: User = Depends(deps.get_current_user),
+    client_id: Optional[UUID] = None,
+) -> Any:
+    """
+    Récupère les documents validés (status = VALIDATED).
+    """
+    try:
+        query = db.query(Document).filter(
+            Document.tenant_id == current_user.tenant_id,
+            Document.status == DocumentStatus.VALIDATED
+        )
+        
+        if client_id:
+            query = query.filter(Document.client_id == client_id)
+        
+        results = query.order_by(Document.created_at.desc()).offset(skip).limit(limit).all()
+        print(f"Found {len(results)} validated documents")
+        return results
+        
+    except Exception as e:
+        print(f"Error fetching validated documents: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erreur lors de la récupération des documents validés: {str(e)}"
+        )
