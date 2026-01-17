@@ -211,11 +211,15 @@ def ensure_clients_columns():
             print("🔧 Vérification du schéma clients...")
 
             columns_to_check = {
+                'slug': 'VARCHAR(150)',
                 'code': 'VARCHAR(20)',
                 'sector': 'VARCHAR(128)',
                 'nif': 'VARCHAR(50)',
                 'rccm': 'VARCHAR(50)',
                 'contact_name': 'VARCHAR(255)',
+                'email': 'VARCHAR(255)',
+                'phone': 'VARCHAR(50)',
+                'address': 'TEXT',
                 'country': "VARCHAR(100) DEFAULT 'Bénin'",
                 'auxiliary_account_id': 'UUID',
                 'auxiliary_account_code': 'VARCHAR(20)',
