@@ -1,7 +1,3 @@
-"""
-Service de détection et gestion des doublons de factures
-Selon la spécification SEKA Business
-"""
 from typing import Optional, Dict, Any, Tuple
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
@@ -12,12 +8,6 @@ from app.models.duplicate import DocumentDuplicate, DuplicateDetectionReason
 
 
 class DuplicateDetectionService:
-    """
-    Service de détection des doublons selon les règles SEKA:
-    
-    CRITÈRE 1: Même fournisseur + Même N° facture
-    CRITÈRE 2: Même fournisseur + Même montant TTC + Même date
-    """
     
     def __init__(self, db: Session, tenant_id: str):
         self.db = db
@@ -30,12 +20,6 @@ class DuplicateDetectionService:
         amount_ttc: Optional[float],
         document_date: Optional[date]
     ) -> Optional[Tuple[Document, DuplicateDetectionReason]]:
-        """
-        Détecte si un document est un doublon.
-        
-        Returns:
-            Tuple (Document existant, Raison) si doublon détecté, None sinon
-        """
         
         # CRITÈRE 1: Même fournisseur + Même N° facture
         if supplier_name and invoice_number:
