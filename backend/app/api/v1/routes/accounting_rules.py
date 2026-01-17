@@ -36,7 +36,20 @@ class SupplierRuleCreate(BaseModel):
     is_active: bool = True
 
 
-class AccountingRuleCreate(BaseModel):
+class SupplierRuleResponse(BaseModel):
+    """Réponse pour les règles fournisseurs"""
+    id: str
+    supplier_name: str
+    supplier_code: Optional[str] = None
+    charge_account: str
+    charge_account_label: Optional[str] = None
+    vat_account: str
+    vat_account_label: Optional[str] = None
+    supplier_account: str
+    supplier_account_label: Optional[str] = None
+    vat_rate: float
+    journal_code: str
+    is_active: bool
     name: str
     description: Optional[str] = None
     priority: float = 0

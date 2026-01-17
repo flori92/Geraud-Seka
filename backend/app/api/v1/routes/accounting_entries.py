@@ -12,6 +12,7 @@ from decimal import Decimal
 import json
 import csv
 import io
+import logging
 from weasyprint import HTML
 
 from app.db.session import get_db
