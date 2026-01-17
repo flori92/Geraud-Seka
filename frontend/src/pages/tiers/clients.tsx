@@ -5,7 +5,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
-import { 
+import {
     Plus, Search, Edit2, Trash2, Users, FileText,
     Save, X, AlertCircle, Eye
 } from "lucide-react";
@@ -126,7 +126,7 @@ export default function ClientsPage() {
             const url = editingClient?.id
                 ? `${API_BASE_URL}/api/v1/clients/${editingClient.id}`
                 : `${API_BASE_URL}/api/v1/clients`;
-            
+
             const method = editingClient?.id ? "PUT" : "POST";
 
             const response = await fetch(url, {
@@ -344,6 +344,13 @@ export default function ClientsPage() {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                                                 <button
+                                                    onClick={() => router.push(`/clients/${client.id}/rapport`)}
+                                                    className="text-green-600 hover:text-green-900 inline-flex items-center gap-1"
+                                                    title="Voir rapport"
+                                                >
+                                                    <Eye className="h-4 w-4" />
+                                                </button>
+                                                <button
                                                     onClick={() => handleEdit(client)}
                                                     className="text-blue-600 hover:text-blue-900 inline-flex items-center gap-1"
                                                     title="Modifier"
@@ -377,7 +384,7 @@ export default function ClientsPage() {
             {showModal && (
                 <div className="fixed inset-0 z-50 overflow-y-auto">
                     <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-                        <div 
+                        <div
                             className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
                             onClick={handleCloseModal}
                         />
@@ -425,8 +432,8 @@ export default function ClientsPage() {
                                             value={formData.name || ""}
                                             onChange={(e) => {
                                                 const name = e.target.value;
-                                                setFormData({ 
-                                                    ...formData, 
+                                                setFormData({
+                                                    ...formData,
                                                     name
                                                 });
                                             }}
