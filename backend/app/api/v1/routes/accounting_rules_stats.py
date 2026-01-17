@@ -26,43 +26,57 @@ async def get_accounting_rules_stats(
     Statistiques globales sur les règles comptables.
     Retourne le nombre de documents matchés par règle.
     """
-    
-    # Récupérer toutes les règles
-    rules = db.query(AccountingRule).filter(
-        AccountingRule.tenant_id == current_tenant.id
-    ).all()
-    
-    stats = []
-    
-    for rule in rules:
-        # Compter les documents qui ont matché cette règle
-        matched_count = db.query(func.count(Document.id)).filter(
-            Document.tenant_id == current_tenant.id,
-            Document.matched_rule_id == str(rule.id)
-        ).scalar() or 0
+    try:
+        # Récupérer toutes les règles
+        rules = db.query(AccountingRule).filter(
+            AccountingRule.tenant_id == current_tenant.id
+        ).all()
         
-        # Compter les documents validés avec cette règle
-        validated_count = db.query(func.count(Document.id)).filter(
-            Document.tenant_id == current_tenant.id,
-            Document.matched_rule_id == str(rule.id),
-            Document.status == "VALIDATED"
-        ).scalar() or 0
+        stats = []
         
-        # Date du dernier match
-        last_match = db.query(func.max(Document.created_at)).filter(
-            Document.tenant_id == current_tenant.id,
-            Document.matched_rule_id == str(rule.id)
-        ).scalar()
+        for rule in rules:
+            try:
+                # Compter les documents qui ont matché cette règle (UUID comparison)
+                matched_count = db.query(func.count(Document.id)).filter(
+                    Document.tenant_id == current_tenant.id,
+                    Document.matched_rule_id == rule.id
+                ).scalar() or 0
+                
+                # Compter les documents validés avec cette règle
+                validated_count = db.query(func.count(Document.id)).filter(
+                    Document.tenant_id == current_tenant.id,
+                    Document.matched_rule_id == rule.id,
+                    Document.status == "VALIDATED"
+                ).scalar() or 0
+                
+                # Date du dernier match
+                last_match = db.query(func.max(Document.created_at)).filter(
+                    Document.tenant_id == current_tenant.id,
+                    Document.matched_rule_id == rule.id
+                ).scalar()
+                
+                stats.append({
+                    "rule_id": str(rule.id),
+                    "rule_name": rule.name,
+                    "matched_count": matched_count,
+                    "validated_count": validated_count,
+                    "last_match": last_match.isoformat() if last_match else None
+                })
+            except Exception as e:
+                # Si une règle pose problème, on continue avec les autres
+                print(f"Error processing rule {rule.id}: {e}")
+                stats.append({
+                    "rule_id": str(rule.id),
+                    "rule_name": rule.name,
+                    "matched_count": 0,
+                    "validated_count": 0,
+                    "last_match": None
+                })
         
-        stats.append({
-            "rule_id": str(rule.id),
-            "rule_name": rule.name,
-            "matched_count": matched_count,
-            "validated_count": validated_count,
-            "last_match": last_match.isoformat() if last_match else None
-        })
-    
-    return stats
+        return stats
+    except Exception as e:
+        print(f"Error in get_accounting_rules_stats: {e}")
+        return []
 
 
 @router.get("/usage-summary")
