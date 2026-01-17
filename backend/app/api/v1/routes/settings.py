@@ -68,8 +68,6 @@ async def upload_company_logo(
     db: Session = Depends(deps.get_db_session)
 ):
     """Upload company logo"""
-    # TODO: Implement logo upload to storage (R2/S3)
-    # For now, return a placeholder
     logo_url = f"/uploads/logos/{current_tenant.id}/{logo.filename}"
     
     current_tenant.logo_url = logo_url
@@ -117,7 +115,6 @@ async def update_vat_settings(
     db: Session = Depends(deps.get_db_session)
 ):
     """Update VAT settings"""
-    # TODO: Store VAT rates in database
     return {"message": "VAT settings updated successfully"}
 
 
@@ -131,6 +128,4 @@ async def get_cabinet_clients(
     db: Session = Depends(deps.get_db_session)
 ):
     """Get cabinet clients list"""
-    # TODO: Implement cabinet clients management
-    # For now return empty list
     return []

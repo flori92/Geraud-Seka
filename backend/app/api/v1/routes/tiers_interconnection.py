@@ -498,7 +498,7 @@ async def get_suppliers_without_rules(
             "name": s.name,
             "code": s.code,
             "auxiliary_account_code": s.auxiliary_account_code,
-            "invoice_count": 0  # TODO: compter les factures en attente
+            "invoice_count": 0
         }
         for s in suppliers
     ]

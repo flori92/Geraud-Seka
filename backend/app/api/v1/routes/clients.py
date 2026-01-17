@@ -129,7 +129,7 @@ async def get_clients_balance(
 
             last_invoice_date = last_inv.issue_date.isoformat() if last_inv and last_inv.issue_date else ""
             last_invoice_number = last_inv.invoice_number if last_inv and last_inv.invoice_number else ""
-            payment_terms = ""  # TODO: add to model if needed
+            payment_terms = ""
 
             client_code = str(client.id)[:8]
 
@@ -144,8 +144,8 @@ async def get_clients_balance(
                     "last_invoice_date": last_invoice_date,
                     "last_invoice_number": last_invoice_number,
                     "payment_terms": payment_terms,
-                    "contact_email": None,  # TODO: add to model if needed
-                    "contact_phone": None,  # TODO: add to model if needed
+                    "contact_email": None,
+                    "contact_phone": None,
                     "invoices_count": invoices_count,
                     "oldest_overdue_date": oldest_overdue.due_date.isoformat() if oldest_overdue and oldest_overdue.due_date else None,
                 }

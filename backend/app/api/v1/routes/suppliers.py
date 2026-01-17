@@ -116,7 +116,7 @@ async def list_suppliers(
     - has_rule: Filtrer les fournisseurs avec/sans règle d'imputation
     """
     try:
-        query = db.query(Supplier).filter(Supplier.client_id == current_user.tenant_id)
+        query = db.query(Supplier).filter(Supplier.tenant_id == current_user.tenant_id)
         
         if search:
             search_filter = f"%{search}%"
@@ -216,7 +216,7 @@ async def get_suppliers_balance(
         reverse = order != "asc"
 
         suppliers = db.query(Supplier).filter(
-            Supplier.client_id == current_user.tenant_id
+            Supplier.tenant_id == current_user.tenant_id
         ).all()
 
         rows: list[dict] = []
@@ -317,7 +317,7 @@ async def get_suppliers_balance_stats(
 
         supplier_ids = [
             s[0]
-            for s in db.query(Supplier.id).filter(Supplier.client_id == current_user.tenant_id).all()
+            for s in db.query(Supplier.id).filter(Supplier.tenant_id == current_user.tenant_id).all()
         ]
 
         if not supplier_ids:
@@ -396,7 +396,7 @@ async def get_supplier(
     """
     supplier = db.query(Supplier).filter(
         Supplier.id == supplier_id,
-        Supplier.client_id == current_user.tenant_id
+        Supplier.tenant_id == current_user.tenant_id
     ).first()
     
     if not supplier:
@@ -501,8 +501,8 @@ async def create_supplier(
                 default_journal=supplier_data.default_journal,
                 default_description=supplier_data.default_description,
                 ocr_keywords=supplier_data.ocr_keywords,
-                client_id=current_user.tenant_id,
-                tenant_id=current_user.tenant_id
+                tenant_id=current_user.tenant_id,
+                client_id=None
             )
             
             if hasattr(supplier, 'contact_name'):
@@ -563,7 +563,7 @@ async def update_supplier(
     """
     supplier = db.query(Supplier).filter(
         Supplier.id == supplier_id,
-        Supplier.client_id == current_user.tenant_id
+        Supplier.tenant_id == current_user.tenant_id
     ).first()
     
     if not supplier:
@@ -618,7 +618,7 @@ async def delete_supplier(
     """
     supplier = db.query(Supplier).filter(
         Supplier.id == supplier_id,
-        Supplier.client_id == current_user.tenant_id
+        Supplier.tenant_id == current_user.tenant_id
     ).first()
 
     if not supplier:
