@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime
 import uuid
+from pydantic import BaseModel
 
 from app.api.deps import get_db_session, get_current_user
 from app.models.user import User
@@ -12,7 +13,7 @@ from app.services.accounting_entry_generator import AccountingEntryGenerator
 
 router = APIRouter()
 
-class ExportRequest:
+class ExportRequest(BaseModel):
     document_ids: List[str]
 
 @router.post("/export")
