@@ -9,7 +9,7 @@ from uuid import UUID
 
 from app.models.document import Document
 from app.models.supplier import Supplier
-from app.models.accounting_entry import AccountingEntry, AccountingJournal
+from app.models.accounting_entries import AccountingEntry, AccountingJournal
 from app.models.ledger_account import LedgerAccount
 from app.models.accounting_rules import AccountingRule
 
