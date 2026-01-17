@@ -26,16 +26,18 @@ COPY alembic.ini ./
 COPY alembic ./alembic
 COPY migrate.py ./
 COPY start.sh ./
+COPY start_with_migration.sh ./
+COPY migrate_production_status.py ./
 
 # Install dependencies
 COPY requirements.txt ./
 RUN pip install --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
-# Rendre le script de démarrage exécutable
-RUN chmod +x start.sh
+# Rendre les scripts de démarrage exécutables
+RUN chmod +x start.sh start_with_migration.sh
 
 EXPOSE 8000
 
-# Default command: Run migrations then start server
-CMD ["./start.sh"]
+# Default command: Run status migration then start server
+CMD ["./start_with_migration.sh"]
