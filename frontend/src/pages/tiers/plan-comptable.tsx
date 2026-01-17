@@ -1,389 +1,614 @@
 /**
- * Plan Comptable SYSCOHADA - Version améliorée avec hiérarchie visuelle
- * Conforme aux spécifications client:
+ * Plan Comptable SYSCOHADA - Conforme cahier des charges client
+ * 
+ * Fonctionnalités:
+ * - Chargement depuis l'API /accounting/chart-of-accounts
  * - Indication visuelle des comptes collectifs (401, 411)
  * - Indentation des comptes auxiliaires (401SBEE sous 401)
  * - Badges de type (Général / Auxiliaire / Collectif)
- * - Filtre par type de compte
+ * - Filtre par type et classe de compte
+ * - Création de nouveaux comptes
+ * - Initialisation du plan SYSCOHADA si vide
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
-import { Book, Plus, Search, Eye, Save, X, ChevronRight, ChevronDown } from "lucide-react";
+import { 
+    Book, Plus, Search, Eye, Save, X, ChevronRight, ChevronDown,
+    RefreshCw, Loader2, AlertCircle, Building, Users, Zap
+} from "lucide-react";
 import { API_BASE_URL } from "@/lib/api";
 
 interface Account {
+    id: string;
     code: string;
     name: string;
-    type: "class" | "account" | "collective" | "auxiliary";
-    parent_code?: string;
-    children?: Account[];
+    description?: string;
+    account_class: string;
+    account_type: string;
+    balance: number;
+    is_collective: boolean;
+    is_auxiliary: boolean;
+    collective_parent_code?: string;
+    linked_supplier_id?: string;
+    linked_client_id?: string;
+    parent_id?: string;
+    level: number;
 }
 
-// Base SYSCOHADA avec indication des comptes collectifs
-const SYSCOHADA_BASE: Account[] = [
-    {
-        code: "4",
-        name: "Classe 4 - Comptes de tiers",
-        type: "class",
-        children: [
-            { code: "401", name: "Fournisseurs", type: "collective" },
-            { code: "401SBEE", name: "Fournisseur SBEE", type: "auxiliary", parent_code: "401" },
-            { code: "401MTN", name: "Fournisseur MTN Bénin", type: "auxiliary", parent_code: "401" },
-            { code: "411", name: "Clients", type: "collective" },
-            { code: "411CLI01", name: "Client Entreprise ABC", type: "auxiliary", parent_code: "411" },
-            { code: "445", name: "TVA", type: "collective" },
-            { code: "4452", name: "TVA récupérable sur immobilisations", type: "account", parent_code: "445" },
-            { code: "4454", name: "TVA récupérable sur achats", type: "account", parent_code: "445" },
-            { code: "4457", name: "TVA collectée", type: "account", parent_code: "445" },
-        ]
-    },
-    {
-        code: "6",
-        name: "Classe 6 - Comptes de charges",
-        type: "class",
-        children: [
-            { code: "601", name: "Achats de marchandises", type: "account" },
-            { code: "6061", name: "Électricité", type: "account" },
-            { code: "6062", name: "Eau", type: "account" },
-            { code: "6063", name: "Carburants", type: "account" },
-            { code: "6261", name: "Télécommunications", type: "account" },
-        ]
-    },
-    {
-        code: "7",
-        name: "Classe 7 - Comptes de produits",
-        type: "class",
-        children: [
-            { code: "701", name: "Ventes de marchandises", type: "account" },
-            { code: "706", name: "Prestations de services", type: "account" },
-        ]
-    }
-];
+const ACCOUNT_TYPES = {
+    asset: "Actif",
+    liability: "Passif",
+    equity: "Capitaux",
+    revenue: "Produit",
+    expense: "Charge"
+};
 
-export default function PlanComptableEnhanced() {
+export default function PlanComptablePage() {
     const router = useRouter();
-    const [accounts, setAccounts] = useState<Account[]>(SYSCOHADA_BASE);
+    const [accounts, setAccounts] = useState<Account[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [classFilter, setClassFilter] = useState("all");
     const [typeFilter, setTypeFilter] = useState("all");
-    const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set(["4", "6", "7"]));
+    const [expandedClasses, setExpandedClasses] = useState<Set<string>>(new Set(["4", "5", "6", "7"]));
+    
+    // Modal state
     const [showModal, setShowModal] = useState(false);
-
     const [formData, setFormData] = useState({
         code: "",
         name: "",
+        description: "",
+        account_class: "6",
+        account_type: "expense",
         parent_code: "",
-        type: "account"
+        is_collective: false,
+        is_auxiliary: false,
+        collective_parent_code: ""
     });
+    const [saving, setSaving] = useState(false);
 
-    // Flatten accounts for display
-    const flattenAccounts = (accounts: Account[]): Account[] => {
-        const result: Account[] = [];
-        accounts.forEach(account => {
-            result.push(account);
-            if (account.children && expandedNodes.has(account.code)) {
-                result.push(...flattenAccounts(account.children));
+    const fetchAccounts = useCallback(async () => {
+        const token = localStorage.getItem("seka_access_token");
+        if (!token) {
+            router.push("/login");
+            return;
+        }
+
+        setLoading(true);
+        setError(null);
+        
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/v1/accounting/chart-of-accounts`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (!response.ok) {
+                throw new Error("Erreur lors du chargement du plan comptable");
             }
+
+            const data = await response.json();
+            setAccounts(data);
+            
+            // Si le plan comptable est vide, proposer l'initialisation
+            if (data.length === 0) {
+                setError("Plan comptable vide. Cliquez sur 'Initialiser SYSCOHADA' pour créer les comptes de base.");
+            }
+        } catch (err) {
+            console.error("Erreur:", err);
+            setError(err instanceof Error ? err.message : "Erreur inconnue");
+        } finally {
+            setLoading(false);
+        }
+    }, [router]);
+
+    useEffect(() => {
+        fetchAccounts();
+    }, [fetchAccounts]);
+
+    const initializeSYSCOHADA = async () => {
+        const token = localStorage.getItem("seka_access_token");
+        if (!token) return;
+
+        setSaving(true);
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/v1/accounting/chart-of-accounts/initialize`, {
+                method: "POST",
+                headers: { 
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error("Erreur lors de l'initialisation");
+            }
+
+            const result = await response.json();
+            alert(`✅ ${result.message} - ${result.created || result.count} comptes`);
+            fetchAccounts();
+        } catch (err) {
+            alert("❌ Erreur: " + (err instanceof Error ? err.message : "Erreur inconnue"));
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const createAccount = async () => {
+        const token = localStorage.getItem("seka_access_token");
+        if (!token) return;
+
+        if (!formData.code || !formData.name) {
+            alert("Code et nom sont obligatoires");
+            return;
+        }
+
+        setSaving(true);
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/v1/accounting/chart-of-accounts`, {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(formData)
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.detail || "Erreur lors de la création");
+            }
+
+            const result = await response.json();
+            alert(`✅ Compte ${result.code} créé avec succès`);
+            setShowModal(false);
+            setFormData({
+                code: "",
+                name: "",
+                description: "",
+                account_class: "6",
+                account_type: "expense",
+                parent_code: "",
+                is_collective: false,
+                is_auxiliary: false,
+                collective_parent_code: ""
+            });
+            fetchAccounts();
+        } catch (err) {
+            alert("❌ Erreur: " + (err instanceof Error ? err.message : "Erreur inconnue"));
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    // Organiser les comptes par classe et hiérarchie
+    const organizeAccounts = () => {
+        const classes: { [key: string]: Account[] } = {};
+        
+        accounts.forEach(account => {
+            const accountClass = account.account_class || account.code.charAt(0);
+            if (!classes[accountClass]) {
+                classes[accountClass] = [];
+            }
+            classes[accountClass].push(account);
         });
-        return result;
+
+        // Trier chaque classe par code
+        Object.keys(classes).forEach(key => {
+            classes[key].sort((a, b) => a.code.localeCompare(b.code));
+        });
+
+        return classes;
     };
 
-    // Filter accounts
-    const filteredAccounts = flattenAccounts(accounts).filter(account => {
-        const matchSearch = account.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          account.code.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchClass = classFilter === "all" || account.code.startsWith(classFilter);
-        
-        let matchType = true;
-        if (typeFilter === "collective") {
-            matchType = account.type === "collective";
-        } else if (typeFilter === "auxiliary") {
-            matchType = account.type === "auxiliary";
-        } else if (typeFilter === "general") {
-            matchType = account.type === "account";
-        }
-        
-        return matchSearch && matchClass && matchType;
-    });
+    // Filtrer les comptes
+    const filterAccounts = (accountList: Account[]) => {
+        return accountList.filter(account => {
+            const matchSearch = 
+                account.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                account.code.toLowerCase().includes(searchTerm.toLowerCase());
+            
+            let matchType = true;
+            if (typeFilter === "collective") matchType = account.is_collective;
+            else if (typeFilter === "auxiliary") matchType = account.is_auxiliary;
+            else if (typeFilter === "general") matchType = !account.is_collective && !account.is_auxiliary;
 
-    const toggleNode = (code: string) => {
-        const newExpanded = new Set(expandedNodes);
-        if (newExpanded.has(code)) {
-            newExpanded.delete(code);
+            return matchSearch && matchType;
+        });
+    };
+
+    const toggleClass = (classCode: string) => {
+        const newExpanded = new Set(expandedClasses);
+        if (newExpanded.has(classCode)) {
+            newExpanded.delete(classCode);
         } else {
-            newExpanded.add(code);
+            newExpanded.add(classCode);
         }
-        setExpandedNodes(newExpanded);
+        setExpandedClasses(newExpanded);
     };
 
-    const getTypeBadge = (type: string) => {
-        switch (type) {
-            case "class":
-                return <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">Classe</span>;
-            case "collective":
-                return <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">Collectif</span>;
-            case "auxiliary":
-                return <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-medium">Auxiliaire</span>;
-            default:
-                return <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">Général</span>;
+    const getTypeBadge = (account: Account) => {
+        if (account.is_collective) {
+            return <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">Collectif</span>;
         }
+        if (account.is_auxiliary) {
+            return <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-medium">Auxiliaire</span>;
+        }
+        return <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">Général</span>;
     };
 
-    const getIndentation = (account: Account) => {
-        if (account.type === "auxiliary") return "pl-8";
-        if (account.parent_code && account.type === "account") return "pl-8";
-        return "";
+    const getAccountIcon = (account: Account) => {
+        if (account.is_collective) return <Users className="w-4 h-4 text-green-600" />;
+        if (account.is_auxiliary) return <Building className="w-4 h-4 text-purple-600" />;
+        return <Book className="w-4 h-4 text-gray-500" />;
     };
+
+    const organizedAccounts = organizeAccounts();
+    const classNames: { [key: string]: string } = {
+        "1": "Classe 1 - Ressources durables",
+        "2": "Classe 2 - Actif immobilisé",
+        "3": "Classe 3 - Stocks",
+        "4": "Classe 4 - Tiers",
+        "5": "Classe 5 - Trésorerie",
+        "6": "Classe 6 - Charges",
+        "7": "Classe 7 - Produits",
+        "8": "Classe 8 - Comptes spéciaux"
+    };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-[#1e3a5f]" />
+            </div>
+        );
+    }
 
     return (
         <>
             <Head>
-                <title>Plan Comptable - SEKA</title>
+                <title>Plan Comptable SYSCOHADA - SEKA</title>
             </Head>
 
             <div className="min-h-screen bg-gray-50">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     {/* Header */}
-                    <div className="mb-6 flex items-center justify-between">
+                    <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div>
                             <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                                <Book className="h-6 w-6 text-[#1e3a5f]" />
+                                <Book className="w-7 h-7 text-[#1e3a5f]" />
                                 Plan Comptable
                             </h1>
-                            <p className="mt-1 text-sm text-gray-500">
-                                Comptes généraux, collectifs et auxiliaires
+                            <p className="text-sm text-gray-600 mt-1">
+                                Structure des comptes SYSCOHADA avec comptes auxiliaires
                             </p>
                         </div>
-                        <button
-                            onClick={() => setShowModal(true)}
-                            className="flex items-center gap-2 px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#172e4d] font-medium"
-                        >
-                            <Plus className="h-5 w-5" />
-                            Nouveau compte
-                        </button>
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={fetchAccounts}
+                                className="p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100"
+                                title="Rafraîchir"
+                            >
+                                <RefreshCw className="w-5 h-5" />
+                            </button>
+                            {accounts.length === 0 && (
+                                <button
+                                    onClick={initializeSYSCOHADA}
+                                    disabled={saving}
+                                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                                >
+                                    <Zap className="w-4 h-4" />
+                                    Initialiser SYSCOHADA
+                                </button>
+                            )}
+                            <button
+                                onClick={() => setShowModal(true)}
+                                className="flex items-center gap-2 px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#2d5a8f]"
+                            >
+                                <Plus className="w-4 h-4" />
+                                Nouveau compte
+                            </button>
+                        </div>
                     </div>
 
                     {/* Filters */}
-                    <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-                        <div className="flex items-center gap-4">
-                            <div className="flex-1 relative">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                                <input
-                                    type="text"
-                                    placeholder="Rechercher un compte..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a5f]"
-                                />
+                    <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
+                        <div className="flex flex-col sm:flex-row gap-4">
+                            <div className="flex-1">
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                    <input
+                                        type="text"
+                                        placeholder="Rechercher par code ou libellé..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a5f] focus:border-transparent"
+                                    />
+                                </div>
                             </div>
-
                             <select
                                 value={classFilter}
                                 onChange={(e) => setClassFilter(e.target.value)}
-                                className="px-4 py-2 border border-gray-300 rounded-lg"
+                                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a5f]"
                             >
                                 <option value="all">Toutes les classes</option>
-                                <option value="4">Classe 4 - Tiers</option>
-                                <option value="6">Classe 6 - Charges</option>
-                                <option value="7">Classe 7 - Produits</option>
+                                {Object.keys(classNames).map(c => (
+                                    <option key={c} value={c}>Classe {c}</option>
+                                ))}
                             </select>
-
                             <select
                                 value={typeFilter}
                                 onChange={(e) => setTypeFilter(e.target.value)}
-                                className="px-4 py-2 border border-gray-300 rounded-lg"
+                                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a5f]"
                             >
-                                <option value="all">Tous types</option>
-                                <option value="collective">Comptes collectifs</option>
-                                <option value="auxiliary">Comptes auxiliaires</option>
-                                <option value="general">Comptes généraux</option>
+                                <option value="all">Tous les types</option>
+                                <option value="collective">Collectifs (401, 411)</option>
+                                <option value="auxiliary">Auxiliaires (401SBEE)</option>
+                                <option value="general">Généraux</option>
                             </select>
-                        </div>
-
-                        {/* Legend */}
-                        <div className="mt-4 pt-4 border-t flex items-center gap-6 text-sm">
-                            <span className="text-gray-600 font-medium">Légende:</span>
-                            <div className="flex items-center gap-2">
-                                {getTypeBadge("collective")}
-                                <span className="text-gray-600">= Compte de regroupement (401, 411)</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                {getTypeBadge("auxiliary")}
-                                <span className="text-gray-600">= Sous-compte spécifique (401SBEE, 411CLI01)</span>
-                            </div>
                         </div>
                     </div>
 
-                    {/* Table */}
-                    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Compte</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Libellé</th>
-                                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Type</th>
-                                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Collectif</th>
-                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200">
-                                {filteredAccounts.map((account) => {
-                                    const isClass = account.type === "class";
-                                    const isAuxiliary = account.type === "auxiliary";
-                                    const isCollective = account.type === "collective";
-                                    const hasChildren = account.children && account.children.length > 0;
-                                    const isExpanded = expandedNodes.has(account.code);
-                                    
-                                    return (
-                                        <tr 
-                                            key={account.code}
-                                            className={`${
-                                                isClass ? 'bg-blue-50 font-semibold' :
-                                                isAuxiliary ? 'bg-purple-50/20' :
-                                                isCollective ? 'bg-green-50/30' :
-                                                'hover:bg-gray-50'
-                                            }`}
-                                        >
-                                            <td className={`px-4 py-3 font-mono text-sm ${getIndentation(account)}`}>
-                                                <div className="flex items-center gap-2">
-                                                    {hasChildren && (
-                                                        <button 
-                                                            onClick={() => toggleNode(account.code)}
-                                                            className="text-gray-400 hover:text-gray-600"
-                                                        >
-                                                            {isExpanded ? (
-                                                                <ChevronDown className="h-4 w-4" />
-                                                            ) : (
-                                                                <ChevronRight className="h-4 w-4" />
-                                                            )}
-                                                        </button>
-                                                    )}
-                                                    {isAuxiliary && <span className="text-gray-400">└─</span>}
-                                                    <span className={isClass ? "font-bold" : ""}>{account.code}</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-3 text-sm text-gray-900">
-                                                {account.name}
-                                            </td>
-                                            <td className="px-4 py-3 text-center">
-                                                {getTypeBadge(account.type)}
-                                            </td>
-                                            <td className="px-4 py-3 text-center text-sm text-gray-500">
-                                                {isCollective ? "Oui" : account.parent_code || "-"}
-                                            </td>
-                                            <td className="px-4 py-3 text-right">
-                                                <button className="text-blue-600 hover:text-blue-800">
-                                                    <Eye className="h-4 w-4" />
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-
-                        <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
-                            <p className="text-sm text-gray-500">
-                                {filteredAccounts.length} compte(s) affiché(s)
-                            </p>
+                    {/* Error message */}
+                    {error && (
+                        <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center gap-3">
+                            <AlertCircle className="w-5 h-5 text-yellow-600" />
+                            <span className="text-yellow-800">{error}</span>
                         </div>
+                    )}
+
+                    {/* Stats */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+                        <div className="bg-white rounded-lg border border-gray-200 p-4">
+                            <p className="text-2xl font-bold text-gray-900">{accounts.length}</p>
+                            <p className="text-sm text-gray-600">Total comptes</p>
+                        </div>
+                        <div className="bg-white rounded-lg border border-gray-200 p-4">
+                            <p className="text-2xl font-bold text-green-600">
+                                {accounts.filter(a => a.is_collective).length}
+                            </p>
+                            <p className="text-sm text-gray-600">Collectifs</p>
+                        </div>
+                        <div className="bg-white rounded-lg border border-gray-200 p-4">
+                            <p className="text-2xl font-bold text-purple-600">
+                                {accounts.filter(a => a.is_auxiliary).length}
+                            </p>
+                            <p className="text-sm text-gray-600">Auxiliaires</p>
+                        </div>
+                        <div className="bg-white rounded-lg border border-gray-200 p-4">
+                            <p className="text-2xl font-bold text-gray-600">
+                                {accounts.filter(a => !a.is_collective && !a.is_auxiliary).length}
+                            </p>
+                            <p className="text-sm text-gray-600">Généraux</p>
+                        </div>
+                    </div>
+
+                    {/* Accounts List */}
+                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                        {Object.entries(organizedAccounts)
+                            .filter(([classCode]) => classFilter === "all" || classFilter === classCode)
+                            .sort(([a], [b]) => a.localeCompare(b))
+                            .map(([classCode, classAccounts]) => {
+                                const filteredAccounts = filterAccounts(classAccounts);
+                                if (filteredAccounts.length === 0 && searchTerm) return null;
+                                
+                                return (
+                                    <div key={classCode} className="border-b border-gray-200 last:border-b-0">
+                                        {/* Class Header */}
+                                        <button
+                                            onClick={() => toggleClass(classCode)}
+                                            className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors"
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                {expandedClasses.has(classCode) ? (
+                                                    <ChevronDown className="w-5 h-5 text-gray-500" />
+                                                ) : (
+                                                    <ChevronRight className="w-5 h-5 text-gray-500" />
+                                                )}
+                                                <span className="font-semibold text-gray-900">
+                                                    {classNames[classCode] || `Classe ${classCode}`}
+                                                </span>
+                                            </div>
+                                            <span className="text-sm text-gray-500">
+                                                {filteredAccounts.length} comptes
+                                            </span>
+                                        </button>
+
+                                        {/* Class Accounts */}
+                                        {expandedClasses.has(classCode) && (
+                                            <div className="divide-y divide-gray-100">
+                                                {filteredAccounts.map(account => (
+                                                    <div
+                                                        key={account.id}
+                                                        className={`flex items-center justify-between px-4 py-3 hover:bg-gray-50 ${
+                                                            account.is_auxiliary ? "pl-12 bg-purple-50/30" : ""
+                                                        }`}
+                                                    >
+                                                        <div className="flex items-center gap-3">
+                                                            {getAccountIcon(account)}
+                                                            <div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="font-mono font-medium text-gray-900">
+                                                                        {account.code}
+                                                                    </span>
+                                                                    {getTypeBadge(account)}
+                                                                </div>
+                                                                <p className="text-sm text-gray-600">
+                                                                    {account.name}
+                                                                    {account.collective_parent_code && (
+                                                                        <span className="text-purple-600 ml-2">
+                                                                            (sous {account.collective_parent_code})
+                                                                        </span>
+                                                                    )}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-4">
+                                                            <span className={`text-sm font-medium ${
+                                                                account.balance >= 0 ? "text-gray-900" : "text-red-600"
+                                                            }`}>
+                                                                {account.balance.toLocaleString('fr-FR')} FCFA
+                                                            </span>
+                                                            <button
+                                                                className="p-1.5 text-gray-400 hover:text-gray-600 rounded"
+                                                                title="Voir détails"
+                                                            >
+                                                                <Eye className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
                     </div>
                 </div>
             </div>
 
-            {/* Modal */}
+            {/* Modal Création de compte */}
             {showModal && (
-                <div className="fixed inset-0 z-50 overflow-y-auto">
-                    <div className="flex items-center justify-center min-h-screen px-4">
-                        <div 
-                            className="fixed inset-0 bg-gray-500 bg-opacity-75"
-                            onClick={() => setShowModal(false)}
-                        />
-
-                        <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full">
-                            <div className="px-6 py-4 border-b">
-                                <div className="flex items-center justify-between">
-                                    <h3 className="text-lg font-medium">Nouveau compte</h3>
-                                    <button onClick={() => setShowModal(false)}>
-                                        <X className="h-5 w-5 text-gray-400" />
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="px-6 py-4 space-y-4">
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center justify-between p-4 border-b">
+                            <h2 className="text-lg font-semibold text-gray-900">Nouveau compte</h2>
+                            <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-4 space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Code compte *
+                                        Code du compte *
                                     </label>
                                     <input
                                         type="text"
                                         value={formData.code}
-                                        onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                                        placeholder="Ex: 401SBEE"
+                                        onChange={(e) => setFormData({...formData, code: e.target.value})}
+                                        placeholder="Ex: 6065"
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono"
                                     />
                                 </div>
-
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Libellé *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={formData.name}
-                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        placeholder="Ex: Fournisseur SBEE"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Type de compte *
+                                        Classe
                                     </label>
                                     <select
-                                        value={formData.type}
-                                        onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                                        value={formData.account_class}
+                                        onChange={(e) => setFormData({...formData, account_class: e.target.value})}
                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                                     >
-                                        <option value="account">Général</option>
-                                        <option value="auxiliary">Auxiliaire</option>
-                                        <option value="collective">Collectif</option>
+                                        {Object.entries(classNames).map(([code, name]) => (
+                                            <option key={code} value={code}>{code} - {name.split(" - ")[1]}</option>
+                                        ))}
                                     </select>
                                 </div>
+                            </div>
 
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Libellé *
+                                </label>
+                                <input
+                                    type="text"
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                                    placeholder="Ex: Internet et abonnements"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Type de compte
+                                </label>
+                                <select
+                                    value={formData.account_type}
+                                    onChange={(e) => setFormData({...formData, account_type: e.target.value})}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                >
+                                    {Object.entries(ACCOUNT_TYPES).map(([value, label]) => (
+                                        <option key={value} value={value}>{label}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="flex items-center gap-4">
+                                <label className="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.is_collective}
+                                        onChange={(e) => setFormData({
+                                            ...formData, 
+                                            is_collective: e.target.checked,
+                                            is_auxiliary: e.target.checked ? false : formData.is_auxiliary
+                                        })}
+                                        className="rounded"
+                                    />
+                                    <span className="text-sm text-gray-700">Compte collectif</span>
+                                </label>
+                                <label className="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.is_auxiliary}
+                                        onChange={(e) => setFormData({
+                                            ...formData, 
+                                            is_auxiliary: e.target.checked,
+                                            is_collective: e.target.checked ? false : formData.is_collective
+                                        })}
+                                        className="rounded"
+                                    />
+                                    <span className="text-sm text-gray-700">Compte auxiliaire</span>
+                                </label>
+                            </div>
+
+                            {formData.is_auxiliary && (
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Compte parent (si auxiliaire)
+                                        Compte collectif parent
                                     </label>
-                                    <input
-                                        type="text"
-                                        value={formData.parent_code}
-                                        onChange={(e) => setFormData({ ...formData, parent_code: e.target.value })}
-                                        placeholder="Ex: 401"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono"
-                                    />
-                                    <p className="mt-1 text-xs text-gray-500">
-                                        Laissez vide si compte général ou collectif
-                                    </p>
+                                    <select
+                                        value={formData.collective_parent_code}
+                                        onChange={(e) => setFormData({...formData, collective_parent_code: e.target.value})}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                    >
+                                        <option value="">Sélectionner...</option>
+                                        <option value="401">401 - Fournisseurs</option>
+                                        <option value="411">411 - Clients</option>
+                                        <option value="512">512 - Banques</option>
+                                    </select>
                                 </div>
-                            </div>
+                            )}
 
-                            <div className="px-6 py-4 bg-gray-50 border-t flex justify-end gap-3">
-                                <button
-                                    onClick={() => setShowModal(false)}
-                                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100"
-                                >
-                                    Annuler
-                                </button>
-                                <button
-                                    className="px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#172e4d] flex items-center gap-2"
-                                >
-                                    <Save className="h-4 w-4" />
-                                    Créer le compte
-                                </button>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Description (optionnel)
+                                </label>
+                                <textarea
+                                    value={formData.description}
+                                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                                    rows={2}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                />
                             </div>
+                        </div>
+                        <div className="flex items-center justify-end gap-3 p-4 border-t bg-gray-50">
+                            <button
+                                onClick={() => setShowModal(false)}
+                                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg"
+                            >
+                                Annuler
+                            </button>
+                            <button
+                                onClick={createAccount}
+                                disabled={saving || !formData.code || !formData.name}
+                                className="flex items-center gap-2 px-4 py-2 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#2d5a8f] disabled:opacity-50"
+                            >
+                                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                Créer le compte
+                            </button>
                         </div>
                     </div>
                 </div>
