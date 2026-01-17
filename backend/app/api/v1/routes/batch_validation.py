@@ -67,70 +67,84 @@ async def preview_batch_validation(
     Preview quels documents seront validés automatiquement.
     Retourne les statistiques sans effectuer la validation.
     """
-    min_confidence = request.min_confidence
-    document_ids = request.document_ids
-    
-    query = db.query(Document).filter(
-        Document.tenant_id == current_tenant.id,
-        Document.status.in_(["pending", "pre_processed", "ocr_completed"]),
-        Document.ocr_confidence >= min_confidence
-    )
-    
-    if document_ids:
-        query = query.filter(Document.id.in_(document_ids))
+    try:
+        min_confidence = request.min_confidence
+        document_ids = request.document_ids
         
-    pending_docs = query.all()
-    
-    rules_service = AccountingRulesEngine(db, str(current_tenant.id))
-    
-    eligible_count = 0
-    with_rules = 0
-    without_rules = 0
-    rules_used = {}
-    
-    for doc in pending_docs:
-        if not doc.supplier_name or not doc.amount_ttc:
-            continue
+        query = db.query(Document).filter(
+            Document.tenant_id == current_tenant.id,
+            Document.status.in_(["pending", "pre_processed", "ocr_completed"]),
+            Document.ocr_confidence >= min_confidence
+        )
+        
+        if document_ids:
+            query = query.filter(Document.id.in_(document_ids))
             
-        result = rules_service.apply_rules({
-            "supplier_name": doc.supplier_name,
-            "reference_number": doc.reference_number or "",
-            "amount_ttc": float(doc.amount_ttc or 0),
-            "document_date": doc.document_date.isoformat() if doc.document_date else None,
-            "description": doc.description or ""
-        })
+        pending_docs = query.all()
         
-        if result.get("matched"):
-            eligible_count += 1
-            with_rules += 1
-            rule_name = result.get("rule_name", "Unknown")
-            rules_used[rule_name] = rules_used.get(rule_name, 0) + 1
-        else:
-            without_rules += 1
-    
-    rules_summary = [
-        {"rule_name": name, "document_count": count}
-        for name, count in rules_used.items()
-    ]
-    
-    estimated_time = eligible_count * 0.5
-    
-    return BatchValidationPreview(
-        total_documents=len(pending_docs),
-        eligible_documents=eligible_count,
-        documents_with_rules=with_rules,
-        documents_without_rules=without_rules,
-        estimated_time=estimated_time,
-        rules_applied=rules_summary
-    )
+        rules_service = AccountingRulesEngine(db, str(current_tenant.id))
+        
+        eligible_count = 0
+        with_rules = 0
+        without_rules = 0
+        rules_used = {}
+        
+        for doc in pending_docs:
+            if not doc.supplier_name or not doc.amount_ttc:
+                without_rules += 1
+                continue
+                
+            try:
+                result = rules_service.apply_rules({
+                    "supplier_name": doc.supplier_name,
+                    "reference_number": doc.reference_number or "",
+                    "amount_ttc": float(doc.amount_ttc or 0),
+                    "document_date": doc.document_date.isoformat() if doc.document_date else None,
+                    "description": doc.description or "",
+                    "raw_text": doc.ocr_data or "" # Useful for some heuristics
+                })
+                
+                if result.get("matched") or result.get("source") in ["interconnection", "heuristic"]:
+                    eligible_count += 1
+                    with_rules += 1
+                    rule_name = result.get("rule_name") or f"Source: {result.get('source', 'Unknown')}"
+                    rules_used[rule_name] = rules_used.get(rule_name, 0) + 1
+                else:
+                    without_rules += 1
+            except Exception as e:
+                print(f"Error applying rules to doc {doc.id}: {e}")
+                without_rules += 1
+        
+        rules_summary = [
+            {"rule_name": name, "document_count": count}
+            for name, count in rules_used.items()
+        ]
+        
+        estimated_time = eligible_count * 0.5
+        
+        return BatchValidationPreview(
+            total_documents=len(pending_docs),
+            eligible_documents=eligible_count,
+            documents_with_rules=with_rules,
+            documents_without_rules=without_rules,
+            estimated_time=estimated_time,
+            rules_applied=rules_summary
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
+
+class BatchValidationExecutionRequest(BaseModel):
+    min_confidence: float = 0.8
+    dry_run: bool = False
+    only_auto_validable: bool = False
+    document_ids: Optional[List[UUID]] = None
 
 @router.post("/validate-all", response_model=BatchValidationResult)
 async def validate_all_eligible(
-    min_confidence: float = 0.8,
-    dry_run: bool = False,
-    only_auto_validable: bool = False,
-    document_ids: List[UUID] = None,
+    request: BatchValidationExecutionRequest,
     current_user: User = Depends(get_current_user),
     current_tenant: Tenant = Depends(get_current_tenant),
     db: Session = Depends(get_db)
@@ -148,6 +162,11 @@ async def validate_all_eligible(
     dry_run=True: Simule sans valider réellement
     document_ids: Liste d'IDs spécifiques à valider (filtre optionnel)
     """
+    min_confidence = request.min_confidence
+    dry_run = request.dry_run
+    only_auto_validable = request.only_auto_validable
+    document_ids = request.document_ids
+    
     start_time = datetime.utcnow()
     
     query = db.query(Document).filter(

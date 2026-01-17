@@ -676,7 +676,7 @@ class TiersInterconnectionService:
             is_detail=True,
             is_auxiliary=True,
             is_collective=False,
-            linked_customer_id=client.id,
+            linked_client_id=client.id,
             collective_parent_code=collective_account_code,
             is_active=True,
             is_reconcilable=True,  # Lettrable
