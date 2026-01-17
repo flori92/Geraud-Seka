@@ -312,6 +312,35 @@ def create_application() -> FastAPI:
                         """))
                     logger.info("✅ Added accounting_entries.entry_type")
 
+            if 'chart_of_accounts' in existing_tables:
+                coa_columns = {col['name']: col for col in inspector.get_columns('chart_of_accounts')}
+                from sqlalchemy import text
+                with engine.begin() as conn:
+                    if 'linked_client_id' not in coa_columns:
+                        logger.info("🔧 Adding missing chart_of_accounts.linked_client_id column...")
+                        conn.execute(text("ALTER TABLE chart_of_accounts ADD COLUMN IF NOT EXISTS linked_client_id UUID"))
+                        logger.info("✅ Added chart_of_accounts.linked_client_id")
+
+                    if 'linked_supplier_id' not in coa_columns:
+                        logger.info("🔧 Adding missing chart_of_accounts.linked_supplier_id column...")
+                        conn.execute(text("ALTER TABLE chart_of_accounts ADD COLUMN IF NOT EXISTS linked_supplier_id UUID"))
+                        logger.info("✅ Added chart_of_accounts.linked_supplier_id")
+
+                    if 'is_collective' not in coa_columns:
+                        logger.info("🔧 Adding missing chart_of_accounts.is_collective column...")
+                        conn.execute(text("ALTER TABLE chart_of_accounts ADD COLUMN IF NOT EXISTS is_collective BOOLEAN DEFAULT FALSE"))
+                        logger.info("✅ Added chart_of_accounts.is_collective")
+
+                    if 'is_auxiliary' not in coa_columns:
+                        logger.info("🔧 Adding missing chart_of_accounts.is_auxiliary column...")
+                        conn.execute(text("ALTER TABLE chart_of_accounts ADD COLUMN IF NOT EXISTS is_auxiliary BOOLEAN DEFAULT FALSE"))
+                        logger.info("✅ Added chart_of_accounts.is_auxiliary")
+                    
+                    if 'collective_parent_code' not in coa_columns:
+                         logger.info("🔧 Adding missing chart_of_accounts.collective_parent_code column...")
+                         conn.execute(text("ALTER TABLE chart_of_accounts ADD COLUMN IF NOT EXISTS collective_parent_code VARCHAR(10)"))
+                         logger.info("✅ Added chart_of_accounts.collective_parent_code")
+
             if 'suppliers' in existing_tables:
                 supplier_columns = {col['name']: col for col in inspector.get_columns('suppliers')}
 

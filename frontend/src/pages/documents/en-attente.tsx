@@ -153,6 +153,46 @@ export default function DocumentsEnAttentePage() {
 
 
 
+
+    const handleBulkValidate = async () => {
+        const token = localStorage.getItem("seka_access_token");
+        if (!token || selectedDocs.length === 0) return;
+
+        const confirmed = window.confirm(`Valider immédiatement ${selectedDocs.length} document(s) ?`);
+        if (!confirmed) return;
+
+        setIsValidating(true);
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/v1/batch-validation/validate-all?min_confidence=0.1`, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ document_ids: selectedDocs })
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                alert(`✅ Validation terminée!\n\n✓ ${result.validated_count} validés\n✗ ${result.failed_count} échoués\n⏸ ${result.skipped_count} ignorés\n\nTemps: ${result.processing_time.toFixed(1)}s`);
+                setSelectedDocs([]);
+
+                // Refresh documents
+                await fetchDocuments();
+
+                // Refresh stats
+                // stats are derived from documents, so fetchDocuments does it
+            } else {
+                alert("Erreur lors de la validation en masse");
+            }
+        } catch (err) {
+            console.error("Bulk validation error:", err);
+            alert("Erreur lors de la validation");
+        } finally {
+            setIsValidating(false);
+        }
+    };
+
     const handleValidateAll = async () => {
         const token = localStorage.getItem("seka_access_token");
         if (!token) return;
@@ -345,10 +385,28 @@ export default function DocumentsEnAttentePage() {
                                     </span>
                                     <div className="flex items-center gap-2">
                                         <button
-                                            onClick={handleBulkDelete}
-                                            className="px-3 py-1.5 text-sm bg-white border border-red-300 text-red-700 rounded hover:bg-red-50"
-                                            disabled={isDeleting}
+                                            onClick={handleBulkValidate}
+                                            className="px-3 py-1.5 text-sm bg-white border border-green-300 text-green-700 rounded hover:bg-green-50 flex items-center gap-1"
+                                            disabled={isValidating || isDeleting}
                                         >
+                                            {isValidating ? (
+                                                <>
+                                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                                    Validation...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <CheckCircle className="h-3 w-3" />
+                                                    Valider la sélection
+                                                </>
+                                            )}
+                                        </button>
+                                        <button
+                                            onClick={handleBulkDelete}
+                                            className="px-3 py-1.5 text-sm bg-white border border-red-300 text-red-700 rounded hover:bg-red-50 flex items-center gap-1"
+                                            disabled={isDeleting || isValidating}
+                                        >
+                                            <Trash2 className="h-3 w-3" />
                                             {isDeleting ? "Suppression..." : "Supprimer"}
                                         </button>
                                         <button

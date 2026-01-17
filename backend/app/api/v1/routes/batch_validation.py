@@ -118,6 +118,7 @@ async def validate_all_eligible(
     min_confidence: float = 0.8,
     dry_run: bool = False,
     only_auto_validable: bool = False,
+    document_ids: List[UUID] = None,
     current_user: User = Depends(get_current_user),
     current_tenant: Tenant = Depends(get_current_tenant),
     db: Session = Depends(get_db)
@@ -133,6 +134,7 @@ async def validate_all_eligible(
     
     only_auto_validable=True: Ne valide QUE les documents marqués auto_validable
     dry_run=True: Simule sans valider réellement
+    document_ids: Liste d'IDs spécifiques à valider (filtre optionnel)
     """
     start_time = datetime.utcnow()
     
@@ -141,6 +143,9 @@ async def validate_all_eligible(
         Document.status.in_(["pending", "pre_processed", "ocr_completed"]),
         Document.ocr_confidence >= min_confidence
     )
+    
+    if document_ids:
+        query = query.filter(Document.id.in_(document_ids))
     
     if only_auto_validable:
         query = query.filter(Document.auto_validable == True)
