@@ -165,7 +165,7 @@ export default function DocumentsATraiterPage() {
                             </div>
                             <div className="ml-3">
                                 <h3 className="text-sm font-medium text-yellow-800">
-                                    Documents sans règle d'imputation
+                                    Documents sans règle d&apos;imputation
                                 </h3>
                                 <div className="mt-2 text-sm text-yellow-700">
                                     <p>Ces documents n&apos;ont pas de règle d&apos;imputation associée. Vous devez :</p>

@@ -219,7 +219,7 @@ export default function DocumentsPreTraiteesPage() {
                             </div>
                             <div className="ml-3">
                                 <h3 className="text-sm font-medium text-green-800">
-                                    Documents avec règle d'imputation
+                                    Documents avec règle d&apos;imputation
                                 </h3>
                                 <div className="mt-2 text-sm text-green-700">
                                     <p>Ces documents ont une règle d&apos;imputation associée et sont prêts à être validés.</p>
