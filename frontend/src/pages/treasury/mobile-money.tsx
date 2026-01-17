@@ -4,7 +4,7 @@ import Head from "next/head";
 import {
     Smartphone, CreditCard, TrendingUp, 
     Search, Plus, Eye, Download,
-    DollarSign, Activity, Loader2, ArrowUpRight, ArrowDownRight
+    DollarSign, Activity, Loader2, ArrowDownRight
 } from "lucide-react";
 import { getKKiaPayTransactions, type KKiaPayTransaction } from "@/lib/api";
 
