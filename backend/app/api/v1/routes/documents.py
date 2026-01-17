@@ -138,6 +138,47 @@ async def upload_document(
 
                 print(f"📋 Classification: {invoice_type} | Fournisseur: {ocr_data.get('supplier_name')} | Montant: {ocr_data.get('amount_ttc')}")
 
+                # ===== DÉTECTION DES DOUBLONS =====
+                try:
+                    from app.services.duplicate_detection import DuplicateDetectionService
+                    import json
+                    
+                    duplicate_service = DuplicateDetectionService(db, str(current_user.tenant_id))
+                    
+                    # Détecter si c'est un doublon
+                    duplicate_result = duplicate_service.detect_duplicate(
+                        supplier_name=ocr_data.get('supplier_name'),
+                        invoice_number=ocr_data.get('reference_number'),
+                        amount_ttc=ocr_data.get('amount_ttc'),
+                        document_date=db_obj.document_date
+                    )
+                    
+                    if duplicate_result:
+                        existing_doc, detection_reason = duplicate_result
+                        
+                        # Comparer les documents
+                        comparison = duplicate_service.compare_documents(db_obj, existing_doc)
+                        
+                        # Créer l'enregistrement de doublon
+                        duplicate_service.create_duplicate_record(
+                            new_document_id=str(db_obj.id),
+                            existing_document_id=str(existing_doc.id),
+                            detection_reason=detection_reason,
+                            comparison_data=json.dumps(comparison)
+                        )
+                        
+                        # Marquer le document comme doublon potentiel
+                        db_obj.status = DocumentStatus.PENDING  # En attente de résolution
+                        
+                        print(f"🛑 DOUBLON DÉTECTÉ! Raison: {detection_reason.value}")
+                        print(f"   Nouveau: {db_obj.supplier_name} - {db_obj.reference_number}")
+                        print(f"   Existant: {existing_doc.supplier_name} - {existing_doc.reference_number}")
+                    
+                except Exception as dup_err:
+                    print(f"⚠️ Erreur détection doublons: {dup_err}")
+                    import traceback
+                    traceback.print_exc()
+
                 # Vérifier si le document correspond à une règle active
                 try:
                     from app.services.accounting_rules import AccountingRulesEngine
