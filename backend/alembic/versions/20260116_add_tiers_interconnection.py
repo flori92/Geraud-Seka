@@ -13,7 +13,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '20260116_add_tiers_interconnection'
+revision = '20260116_tiers'
 down_revision = '20260109_file_hash'
 branch_labels = None
 depends_on = None
