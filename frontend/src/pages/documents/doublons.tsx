@@ -1,138 +1,145 @@
 /**
- * Page de Gestion des Doublons
- * 
- * Affiche:
- * - Liste des doublons en attente de traitement
- * - Interface de confrontation (PDF côte à côte)
- * - Historique des doublons traités
+ * Page de gestion des doublons
+ * Liste des doublons en attente + Historique
  */
-import { useState, useEffect } from 'react';
-import Head from 'next/head';
-import { useRouter } from 'next/router';
-import {
-    AlertTriangle, FileText, Check, X, RefreshCw, Eye,
-    ChevronRight, History, Clock, CheckCircle, XCircle,
-    Replace, Files, AlertCircle
-} from 'lucide-react';
-import { API_BASE_URL } from '@/lib/api';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/router";
+import Head from "next/head";
+import { AlertCircle, CheckCircle, Clock, Eye, History as HistoryIcon } from "lucide-react";
+import { API_BASE_URL } from "@/lib/api";
+import DuplicateConfrontationModal from "@/components/duplicates/DuplicateConfrontationModal";
 
-interface PendingDuplicate {
+interface Duplicate {
     id: string;
-    supplier_name: string;
-    reference_number: string;
-    document_date: string;
-    amount_ttc: number;
+    detection_reason: string;
     created_at: string;
-    duplicate_of_id: string;
-    reason: string;
-    reason_text: string;
+    new_document: any;
+    existing_document: any;
+    comparison: any;
 }
 
 interface HistoryItem {
     id: string;
-    reference_number: string;
-    supplier_name: string;
-    amount_ttc: number;
-    action: string;
-    existing_document_id: string;
-    reason: string;
-    resolved_by: string;
+    detection_reason: string;
+    resolution: string;
+    resolution_reason: string | null;
     resolved_at: string;
+    resolved_by_name: string | null;
+    new_document: any;
+    existing_document: any;
 }
 
-interface DuplicateStats {
-    total_detected: number;
-    pending: number;
-    resolved: number;
-    by_action: {
-        rejected: number;
-        kept_both: number;
-        replaced: number;
-    };
-}
-
-export default function DoublonsPage() {
+export default function DuplicatesPage() {
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'pending' | 'history'>('pending');
-    const [pendingDuplicates, setPendingDuplicates] = useState<PendingDuplicate[]>([]);
+    const [activeTab, setActiveTab] = useState<"pending" | "history">("pending");
+    const [pendingDuplicates, setPendingDuplicates] = useState<Duplicate[]>([]);
     const [history, setHistory] = useState<HistoryItem[]>([]);
-    const [stats, setStats] = useState<DuplicateStats | null>(null);
     const [loading, setLoading] = useState(true);
-    const [selectedDuplicate, setSelectedDuplicate] = useState<PendingDuplicate | null>(null);
+    const [selectedDuplicate, setSelectedDuplicate] = useState<Duplicate | null>(null);
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [activeTab]);
 
     const fetchData = async () => {
-        const token = localStorage.getItem('seka_access_token');
+        const token = localStorage.getItem("seka_access_token");
         if (!token) {
-            router.push('/login');
+            router.push("/login");
             return;
         }
 
         setLoading(true);
         try {
-            const [pendingRes, historyRes, statsRes] = await Promise.all([
-                fetch(`${API_BASE_URL}/api/v1/duplicates/pending`, {
+            if (activeTab === "pending") {
+                const response = await fetch(`${API_BASE_URL}/api/v1/duplicates/pending`, {
                     headers: { Authorization: `Bearer ${token}` }
-                }),
-                fetch(`${API_BASE_URL}/api/v1/duplicates/history`, {
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    setPendingDuplicates(data.duplicates || []);
+                }
+            } else {
+                const response = await fetch(`${API_BASE_URL}/api/v1/duplicates/history`, {
                     headers: { Authorization: `Bearer ${token}` }
-                }),
-                fetch(`${API_BASE_URL}/api/v1/duplicates/stats`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                })
-            ]);
-
-            if (pendingRes.ok) setPendingDuplicates(await pendingRes.json());
-            if (historyRes.ok) setHistory(await historyRes.json());
-            if (statsRes.ok) setStats(await statsRes.json());
-        } catch (err) {
-            console.error('Error fetching data:', err);
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    setHistory(data.history || []);
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching duplicates:", error);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleOpenConfrontation = (duplicate: PendingDuplicate) => {
-        // Ouvrir le modal de confrontation
-        router.push(`/documents/confrontation?new=${duplicate.id}&existing=${duplicate.duplicate_of_id}`);
-    };
+    const handleResolve = async (duplicateId: string, resolution: string, reason?: string) => {
+        const token = localStorage.getItem("seka_access_token");
 
-    const getActionIcon = (action: string) => {
-        switch (action) {
-            case 'reject':
-                return <XCircle className="h-4 w-4 text-red-500" />;
-            case 'keep_both':
-                return <Files className="h-4 w-4 text-blue-500" />;
-            case 'replace':
-                return <Replace className="h-4 w-4 text-orange-500" />;
-            default:
-                return <AlertCircle className="h-4 w-4 text-gray-500" />;
+        try {
+            const response = await fetch(
+                `${API_BASE_URL}/api/v1/duplicates/${duplicateId}/resolve`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        resolution,
+                        resolution_reason: reason
+                    })
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error("Failed to resolve duplicate");
+            }
+
+            // Refresh data
+            await fetchData();
+            setSelectedDuplicate(null);
+        } catch (error) {
+            console.error("Error resolving duplicate:", error);
+            throw error;
         }
-    };
-
-    const getActionLabel = (action: string) => {
-        switch (action) {
-            case 'reject':
-                return 'Rejeté';
-            case 'keep_both':
-                return 'Conservé';
-            case 'replace':
-                return 'Remplacé';
-            default:
-                return action;
-        }
-    };
-
-    const formatAmount = (amount: number) => {
-        return new Intl.NumberFormat('fr-FR').format(amount) + ' FCFA';
     };
 
     const formatDate = (dateStr: string) => {
-        if (!dateStr) return '-';
-        return new Date(dateStr).toLocaleDateString('fr-FR');
+        return new Date(dateStr).toLocaleDateString("fr-FR", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit"
+        });
+    };
+
+    const formatCurrency = (amount: number | null) => {
+        if (!amount) return "-";
+        return new Intl.NumberFormat("fr-FR", {
+            style: "currency",
+            currency: "XOF",
+            minimumFractionDigits: 0
+        }).format(amount);
+    };
+
+    const getReasonLabel = (reason: string) => {
+        const labels: Record<string, string> = {
+            same_invoice_number: "Même N° facture",
+            same_amount_date: "Même montant + date"
+        };
+        return labels[reason] || reason;
+    };
+
+    const getResolutionLabel = (resolution: string) => {
+        const labels: Record<string, { label: string; color: string }> = {
+            rejected: { label: "Rejeté", color: "text-red-700 bg-red-100" },
+            kept_both: { label: "Conservés", color: "text-blue-700 bg-blue-100" },
+            replaced: { label: "Remplacé", color: "text-green-700 bg-green-100" }
+        };
+        return labels[resolution] || { label: resolution, color: "text-gray-700 bg-gray-100" };
     };
 
     return (
@@ -144,254 +151,217 @@ export default function DoublonsPage() {
             <div className="min-h-screen bg-gray-50">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     {/* Header */}
-                    <div className="mb-8">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                                    <AlertTriangle className="h-6 w-6 text-orange-500" />
-                                    GESTION DES DOUBLONS
-                                </h1>
-                                <p className="mt-1 text-sm text-gray-500">
-                                    Détection et résolution des factures en doublon
-                                </p>
-                            </div>
-                            <button
-                                onClick={fetchData}
-                                className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                            >
-                                <RefreshCw className="h-4 w-4" />
-                                Actualiser
-                            </button>
-                        </div>
+                    <div className="mb-6">
+                        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                            <AlertCircle className="h-6 w-6 text-[#1e3a5f]" />
+                            Gestion des Doublons
+                        </h1>
+                        <p className="mt-1 text-sm text-gray-500">
+                            Détection et résolution des factures en doublon
+                        </p>
                     </div>
 
-                    {/* Stats */}
-                    {stats && (
-                        <div className="grid grid-cols-5 gap-4 mb-6">
-                            <div className="bg-white rounded-lg border border-gray-200 p-4">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-sm text-gray-500">Total détectés</p>
-                                        <p className="text-2xl font-bold text-gray-900">{stats.total_detected}</p>
-                                    </div>
-                                    <div className="p-3 bg-gray-100 rounded-lg">
-                                        <AlertTriangle className="h-6 w-6 text-gray-600" />
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="bg-white rounded-lg border border-orange-200 p-4">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-sm text-gray-500">En attente</p>
-                                        <p className="text-2xl font-bold text-orange-600">{stats.pending}</p>
-                                    </div>
-                                    <div className="p-3 bg-orange-100 rounded-lg">
-                                        <Clock className="h-6 w-6 text-orange-600" />
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="bg-white rounded-lg border border-red-200 p-4">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-sm text-gray-500">Rejetés</p>
-                                        <p className="text-2xl font-bold text-red-600">{stats.by_action.rejected}</p>
-                                    </div>
-                                    <div className="p-3 bg-red-100 rounded-lg">
-                                        <XCircle className="h-6 w-6 text-red-600" />
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="bg-white rounded-lg border border-blue-200 p-4">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-sm text-gray-500">Conservés</p>
-                                        <p className="text-2xl font-bold text-blue-600">{stats.by_action.kept_both}</p>
-                                    </div>
-                                    <div className="p-3 bg-blue-100 rounded-lg">
-                                        <Files className="h-6 w-6 text-blue-600" />
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="bg-white rounded-lg border border-green-200 p-4">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <p className="text-sm text-gray-500">Remplacés</p>
-                                        <p className="text-2xl font-bold text-green-600">{stats.by_action.replaced}</p>
-                                    </div>
-                                    <div className="p-3 bg-green-100 rounded-lg">
-                                        <Replace className="h-6 w-6 text-green-600" />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
                     {/* Tabs */}
-                    <div className="mb-6 flex border-b border-gray-200">
-                        <button
-                            onClick={() => setActiveTab('pending')}
-                            className={`px-6 py-3 text-sm font-medium border-b-2 -mb-px ${
-                                activeTab === 'pending'
-                                    ? 'border-orange-500 text-orange-600'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                            }`}
-                        >
-                            <span className="flex items-center gap-2">
-                                <Clock className="h-4 w-4" />
-                                En attente ({pendingDuplicates.length})
-                            </span>
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('history')}
-                            className={`px-6 py-3 text-sm font-medium border-b-2 -mb-px ${
-                                activeTab === 'history'
-                                    ? 'border-orange-500 text-orange-600'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                            }`}
-                        >
-                            <span className="flex items-center gap-2">
-                                <History className="h-4 w-4" />
-                                Historique ({history.length})
-                            </span>
-                        </button>
+                    <div className="mb-6 border-b border-gray-200">
+                        <nav className="-mb-px flex space-x-8">
+                            <button
+                                onClick={() => setActiveTab("pending")}
+                                className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === "pending"
+                                        ? "border-[#1e3a5f] text-[#1e3a5f]"
+                                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                                    }`}
+                            >
+                                <div className="flex items-center gap-2">
+                                    <Clock className="w-4 h-4" />
+                                    En attente
+                                    {pendingDuplicates.length > 0 && (
+                                        <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-xs font-semibold">
+                                            {pendingDuplicates.length}
+                                        </span>
+                                    )}
+                                </div>
+                            </button>
+                            <button
+                                onClick={() => setActiveTab("history")}
+                                className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === "history"
+                                        ? "border-[#1e3a5f] text-[#1e3a5f]"
+                                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                                    }`}
+                            >
+                                <div className="flex items-center gap-2">
+                                    <HistoryIcon className="w-4 h-4" />
+                                    Historique
+                                </div>
+                            </button>
+                        </nav>
                     </div>
 
                     {/* Content */}
-                    <div className="bg-white rounded-lg border border-gray-200">
-                        {loading ? (
-                            <div className="p-8 text-center">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto"></div>
-                                <p className="text-gray-500 mt-2">Chargement...</p>
-                            </div>
-                        ) : activeTab === 'pending' ? (
-                            /* Doublons en attente */
-                            pendingDuplicates.length === 0 ? (
-                                <div className="p-8 text-center">
-                                    <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-3" />
-                                    <h3 className="font-semibold text-gray-900">Aucun doublon en attente</h3>
-                                    <p className="text-gray-500 mt-1">Toutes les factures ont été traitées</p>
-                                </div>
-                            ) : (
-                                <div className="divide-y">
-                                    {pendingDuplicates.map((dup) => (
-                                        <div key={dup.id} className="p-4 hover:bg-orange-50 transition-colors">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="p-3 bg-orange-100 rounded-lg">
-                                                        <AlertTriangle className="h-6 w-6 text-orange-600" />
-                                                    </div>
-                                                    <div>
-                                                        <div className="flex items-center gap-2">
-                                                            <h3 className="font-semibold text-gray-900">
-                                                                {dup.supplier_name}
-                                                            </h3>
-                                                            <span className="text-sm text-gray-500">
-                                                                N° {dup.reference_number}
-                                                            </span>
-                                                        </div>
-                                                        <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
-                                                            <span>{formatDate(dup.document_date)}</span>
-                                                            <span className="font-medium text-gray-900">
-                                                                {formatAmount(dup.amount_ttc)}
-                                                            </span>
-                                                        </div>
-                                                        <div className="mt-2 px-2 py-1 bg-orange-100 rounded text-xs text-orange-800 inline-block">
-                                                            {dup.reason_text}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <button
-                                                    onClick={() => handleOpenConfrontation(dup)}
-                                                    className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
-                                                >
-                                                    <Eye className="h-4 w-4" />
-                                                    Traiter
-                                                    <ChevronRight className="h-4 w-4" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )
-                        ) : (
-                            /* Historique */
-                            history.length === 0 ? (
-                                <div className="p-8 text-center">
-                                    <History className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                                    <h3 className="font-semibold text-gray-900">Aucun historique</h3>
-                                    <p className="text-gray-500 mt-1">Les doublons traités apparaîtront ici</p>
-                                </div>
-                            ) : (
-                                <table className="w-full">
-                                    <thead className="bg-gray-50">
-                                        <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                                Date
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                                Facture
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                                Montant
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                                Action
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                                                Motif
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y">
-                                        {history.map((item) => (
-                                            <tr key={item.id} className="hover:bg-gray-50">
-                                                <td className="px-6 py-4 text-sm text-gray-500">
-                                                    {formatDate(item.resolved_at)}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="text-sm font-medium text-gray-900">
-                                                        {item.supplier_name}
-                                                    </div>
-                                                    <div className="text-xs text-gray-500">
-                                                        N° {item.reference_number}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                                                    {item.amount_ttc ? formatAmount(item.amount_ttc) : '-'}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-100">
-                                                        {getActionIcon(item.action)}
-                                                        {getActionLabel(item.action)}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4 text-sm text-gray-500">
-                                                    {item.reason || '-'}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            )
-                        )}
-                    </div>
-
-                    {/* Info */}
-                    <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                        <div className="flex items-start gap-3">
-                            <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
-                            <div>
-                                <h4 className="font-medium text-blue-900">Règles de détection</h4>
-                                <ul className="text-sm text-blue-700 mt-2 space-y-1">
-                                    <li>• <strong>Même fournisseur + Même N° facture</strong> → Doublon bloquant</li>
-                                    <li>• <strong>Même fournisseur + Même montant + Même date</strong> → Doublon bloquant</li>
-                                    <li>• Les abonnements récurrents (Canal+, MTN...) avec N° différents ne sont <strong>pas</strong> des doublons</li>
-                                </ul>
-                            </div>
+                    {loading ? (
+                        <div className="flex items-center justify-center py-12">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1e3a5f]"></div>
                         </div>
-                    </div>
+                    ) : activeTab === "pending" ? (
+                        /* Pending Duplicates */
+                        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+                            {pendingDuplicates.length === 0 ? (
+                                <div className="p-12 text-center">
+                                    <CheckCircle className="w-16 h-16 mx-auto mb-4 text-green-500" />
+                                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                                        Aucun doublon en attente
+                                    </h3>
+                                    <p className="text-gray-500">
+                                        Tous les doublons ont été traités
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full divide-y divide-gray-200">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                                    Date détection
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                                    Fournisseur
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                                    N° Facture
+                                                </th>
+                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                                                    Montant
+                                                </th>
+                                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                                                    Raison
+                                                </th>
+                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                                                    Action
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white divide-y divide-gray-200">
+                                            {pendingDuplicates.map((dup) => (
+                                                <tr key={dup.id} className="hover:bg-gray-50">
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                        {formatDate(dup.created_at)}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                                                        {dup.new_document.supplier_name}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-sm font-mono text-gray-700">
+                                                        {dup.new_document.reference_number || "-"}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-gray-900">
+                                                        {formatCurrency(dup.new_document.amount_ttc)}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                                            {getReasonLabel(dup.detection_reason)}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                                                        <button
+                                                            onClick={() => setSelectedDuplicate(dup)}
+                                                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#1e3a5f] text-white rounded-lg hover:bg-[#172e4d] text-sm font-medium"
+                                                        >
+                                                            <Eye className="w-4 h-4" />
+                                                            Traiter
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        /* History */
+                        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+                            {history.length === 0 ? (
+                                <div className="p-12 text-center">
+                                    <HistoryIcon className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                                        Aucun historique
+                                    </h3>
+                                    <p className="text-gray-500">
+                                        Aucun doublon n'a encore été traité
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full divide-y divide-gray-200">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                                    Date résolution
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                                    Facture
+                                                </th>
+                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                                                    Montant
+                                                </th>
+                                                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                                                    Résolution
+                                                </th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                                                    Par
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white divide-y divide-gray-200">
+                                            {history.map((item) => {
+                                                const resolutionInfo = getResolutionLabel(item.resolution);
+                                                return (
+                                                    <tr key={item.id} className="hover:bg-gray-50">
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                            {formatDate(item.resolved_at)}
+                                                        </td>
+                                                        <td className="px-6 py-4 text-sm">
+                                                            <div className="font-medium text-gray-900">
+                                                                {item.new_document.supplier_name}
+                                                            </div>
+                                                            <div className="text-xs text-gray-500 font-mono">
+                                                                {item.new_document.reference_number || "-"}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-medium text-gray-900">
+                                                            {formatCurrency(item.new_document.amount_ttc)}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${resolutionInfo.color}`}>
+                                                                {resolutionInfo.label}
+                                                            </span>
+                                                            {item.resolution_reason && (
+                                                                <div className="text-xs text-gray-500 mt-1">
+                                                                    {item.resolution_reason}
+                                                                </div>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                            {item.resolved_by_name || "-"}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
+
+            {/* Confrontation Modal */}
+            {selectedDuplicate && (
+                <DuplicateConfrontationModal
+                    duplicate={selectedDuplicate}
+                    onClose={() => setSelectedDuplicate(null)}
+                    onResolve={handleResolve}
+                />
+            )}
         </>
     );
 }
