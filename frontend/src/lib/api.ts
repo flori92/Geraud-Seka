@@ -245,7 +245,7 @@ export interface Document {
   matched_rule_name?: string;
 }
 
-export type DocumentStatus = 'UPLOADED' | 'OCR_PROCESSING' | 'OCR_COMPLETED' | 'VALIDATED' | 'REJECTED' | 'ARCHIVED';
+export type DocumentStatus = 'UPLOADED' | 'OCR_PROCESSING' | 'OCR_COMPLETED' | 'A_TRAITER' | 'PRE_TRAITEE' | 'VALIDEE' | 'REJECTED' | 'ARCHIVED';
 export type DocumentType = 'INVOICE_PURCHASE' | 'INVOICE_SALES' | 'RECEIPT' | 'EXPENSE_REPORT' | 'QUOTE' | 'DELIVERY_NOTE' | 'PURCHASE_ORDER' | 'OTHER';
 
 export interface DocumentFilters {
@@ -282,22 +282,32 @@ export async function getPendingDocuments(accessToken: string): Promise<Document
   );
 }
 
+export async function getATraiterDocuments(accessToken: string): Promise<Document[]> {
+  const docs = await getDocuments(accessToken);
+  return docs.filter((d: Document) => d.status === 'A_TRAITER');
+}
+
+export async function getPreTraiteesDocuments(accessToken: string): Promise<Document[]> {
+  const docs = await getDocuments(accessToken);
+  return docs.filter((d: Document) => d.status === 'PRE_TRAITEE');
+}
+
 export async function getValidatedDocuments(accessToken: string): Promise<Document[]> {
   const docs = await getDocuments(accessToken);
-  return docs.filter((d: Document) => d.status === 'VALIDATED');
+  return docs.filter((d: Document) => d.status === 'VALIDEE');
 }
 
 export async function getPurchaseInvoices(accessToken: string): Promise<Document[]> {
   const docs = await getDocuments(accessToken);
   return docs.filter((d: Document) =>
-    d.type === 'INVOICE_PURCHASE' && d.status === 'VALIDATED'
+    d.type === 'INVOICE_PURCHASE' && d.status === 'VALIDEE'
   );
 }
 
 export async function getSalesInvoices(accessToken: string): Promise<Document[]> {
   const docs = await getDocuments(accessToken);
   return docs.filter((d: Document) =>
-    d.type === 'INVOICE_SALES' && d.status === 'VALIDATED'
+    d.type === 'INVOICE_SALES' && d.status === 'VALIDEE'
   );
 }
 
