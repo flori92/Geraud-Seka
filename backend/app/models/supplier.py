@@ -82,4 +82,10 @@ class Supplier(Base, TimestampMixin):
         """Génère le code du compte auxiliaire basé sur le code fournisseur"""
         base_code = self.collective_account_code or "401"
         supplier_code = (self.code or self.name[:6]).upper().replace(" ", "")
+        
+        # Ensure total length <= 20 (Account number limit)
+        max_len = 20 - len(base_code)
+        if len(supplier_code) > max_len:
+            supplier_code = supplier_code[:max_len]
+            
         return f"{base_code}{supplier_code}"

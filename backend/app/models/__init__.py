@@ -4,9 +4,10 @@ try:
     from app.models.tenant import Tenant
     from app.models.user import User
     from app.models.team_invitation import TeamInvitation
-    from app.models.accounting_entry import AccountingEntry, AccountingJournal
+    # from app.models.accounting_entry import AccountingEntry, AccountingJournal # Removed
     from app.models.activity import Activity
     from app.models.product import Product
+    from app.models.accounting_advanced import AccountingJournal
 except Exception as e:
     print(f"⚠️  Model import failed (HR likely removed): {e}")
     Tenant = None
@@ -15,6 +16,7 @@ except Exception as e:
     Document = None
     Activity = None
     Product = None
+    AccountingJournal = None
 from app.models.quote import Quote, QuoteItem
 from app.models.sales_invoice import SalesInvoice, SalesInvoiceItem, Payment
 from app.models.purchase_order import PurchaseOrder, PurchaseOrderItem, DeliveryNote, DeliveryNoteItem

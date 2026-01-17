@@ -153,7 +153,7 @@ async def upload_document(
                     
                     if active_rules and ocr_data.get('supplier_name'):
                         # Appliquer les règles au document
-                        result = rules_service.apply_rules_to_document({
+                        result = rules_service.apply_rules({
                             "supplier_name": ocr_data.get('supplier_name', ''),
                             "reference_number": ocr_data.get('reference_number', ''),
                             "amount_ttc": float(ocr_data.get('amount_ttc', 0)),

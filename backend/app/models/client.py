@@ -81,4 +81,10 @@ class Client(Base, TimestampMixin):
         """Génère le code du compte auxiliaire basé sur le code client"""
         base_code = self.collective_account_code or "411"
         client_code = (self.code or self.name[:6]).upper().replace(" ", "")
+        
+        # Ensure total length <= 20 (Account number limit)
+        max_len = 20 - len(base_code)
+        if len(client_code) > max_len:
+            client_code = client_code[:max_len]
+            
         return f"{base_code}{client_code}"

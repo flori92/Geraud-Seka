@@ -80,7 +80,7 @@ async def preview_batch_validation(
         if not doc.supplier_name or not doc.amount_ttc:
             continue
             
-        result = rules_service.apply_rules_to_document({
+        result = rules_service.apply_rules({
             "supplier_name": doc.supplier_name,
             "reference_number": doc.reference_number or "",
             "amount_ttc": float(doc.amount_ttc or 0),
@@ -172,7 +172,7 @@ async def validate_all_eligible(
             continue
         
         try:
-            result = rules_service.apply_rules_to_document({
+            result = rules_service.apply_rules({
                 "supplier_name": doc.supplier_name,
                 "reference_number": doc.reference_number or "",
                 "amount_ttc": float(doc.amount_ttc),
