@@ -86,6 +86,33 @@ def migrate_production_status():
         tables_to_check = ['document_classifications']
         for table in tables_to_check:
             try:
+                # Vérifier d'abord si la table existe
+                cursor.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_name = %s
+                    )
+                """, (table,))
+                table_exists = cursor.fetchone()[0]
+                
+                if not table_exists:
+                    logger.info(f"Table {table} non trouvée")
+                    continue
+                
+                # Vérifier si la colonne status existe
+                cursor.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.columns 
+                        WHERE table_name = %s AND column_name = 'status'
+                    )
+                """, (table,))
+                column_exists = cursor.fetchone()[0]
+                
+                if not column_exists:
+                    logger.info(f"Table {table} n'a pas de colonne status")
+                    continue
+                
+                # Faire la migration seulement si tout existe
                 cursor.execute(f"SELECT COUNT(*) FROM {table} WHERE status = 'VALIDATED'")
                 count = cursor.fetchone()[0]
                 if count > 0:
@@ -95,8 +122,9 @@ def migrate_production_status():
                         WHERE status = 'VALIDATED'
                     """)
                     logger.info(f"✅ {count} lignes migrées dans {table}")
+                    
             except Exception as e:
-                logger.info(f"Table {table} non trouvée ou pas de colonne status: {e}")
+                logger.info(f"Erreur avec table {table}: {e}")
         
         conn.commit()
         logger.info("✅ Migration terminée avec succès")
