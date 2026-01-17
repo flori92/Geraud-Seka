@@ -4,10 +4,7 @@ import { cn } from "@/lib/utils";
 /**
  * Form Container - Wraps all form elements
  */
-interface FormProps extends HTMLAttributes<HTMLFormElement> {
-}
-
-export function Form({ className, children, ...props }: FormProps) {
+export function Form({ className, children, ...props }: HTMLAttributes<HTMLFormElement>) {
   return (
     <form className={cn("space-y-6", className)} {...props}>
       {children}
