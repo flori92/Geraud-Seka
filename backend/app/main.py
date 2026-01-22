@@ -1,3 +1,4 @@
+# SEKA Backend API - Updated 2026-01-22
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
