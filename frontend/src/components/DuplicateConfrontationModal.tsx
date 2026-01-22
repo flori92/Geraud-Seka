@@ -49,8 +49,14 @@ export default function DuplicateConfrontationModal({
   onResolve,
   isLoading = false
 }: DuplicateConfrontationModalProps) {
-  const [resolution, setResolution] = useState<'rejected' | 'kept_both' | 'replaced'>('rejected');
-  const [reason, setReason] = useState('');
+  const [resolution, setResolution] = useState<string>('keep_both');
+  const [reason, setReason] = useState<string>('');
+
+  // Validation des données
+  if (!duplicate || !duplicate.id || !duplicate.new_document || !duplicate.existing_document) {
+    console.error('DuplicateConfrontationModal: Données invalides', duplicate);
+    return null;
+  }
 
   const handleSubmit = () => {
     if (resolution === 'kept_both' && !reason.trim()) {
