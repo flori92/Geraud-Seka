@@ -238,6 +238,7 @@ export interface Document {
   tax_amount?: number;
   ocr_data?: Record<string, unknown> | null;
   created_at: string;
+  exported_at?: string;
   client_id: string;
   type?: string;
   auto_validable?: boolean;
@@ -298,7 +299,7 @@ export async function getPreTraiteesDocuments(accessToken: string): Promise<Docu
 
 export async function getValidatedDocuments(accessToken: string): Promise<Document[]> {
   const docs = await getDocuments(accessToken);
-  return docs.filter((d: Document) => d.status === 'VALIDEE');
+  return docs.filter((d: Document) => d.status === 'VALIDEE' || d.status === 'EXPORTED');
 }
 
 export async function getAccountingDocuments(accessToken: string): Promise<Document[]> {
@@ -308,12 +309,18 @@ export async function getAccountingDocuments(accessToken: string): Promise<Docum
 
 export async function getValidatedPurchaseDocuments(accessToken: string): Promise<Document[]> {
   const docs = await getDocuments(accessToken);
-  return docs.filter((d: Document) => d.status === 'VALIDEE' && d.type === 'INVOICE_PURCHASE');
+  return docs.filter((d: Document) => 
+    (d.status === 'VALIDEE' || d.status === 'EXPORTED') && 
+    d.type === 'INVOICE_PURCHASE'
+  );
 }
 
 export async function getValidatedSalesDocuments(accessToken: string): Promise<Document[]> {
   const docs = await getDocuments(accessToken);
-  return docs.filter((d: Document) => d.status === 'VALIDEE' && d.type === 'INVOICE_SALES');
+  return docs.filter((d: Document) => 
+    (d.status === 'VALIDEE' || d.status === 'EXPORTED') && 
+    d.type === 'INVOICE_SALES'
+  );
 }
 
 export async function exportDocuments(accessToken: string, documentIds: string[]): Promise<boolean> {
@@ -339,14 +346,16 @@ export async function exportDocuments(accessToken: string, documentIds: string[]
 export async function getPurchaseInvoices(accessToken: string): Promise<Document[]> {
   const docs = await getDocuments(accessToken);
   return docs.filter((d: Document) =>
-    d.type === 'INVOICE_PURCHASE' && d.status === 'VALIDEE'
+    d.type === 'INVOICE_PURCHASE' && 
+    (d.status === 'VALIDEE' || d.status === 'EXPORTED')
   );
 }
 
 export async function getSalesInvoices(accessToken: string): Promise<Document[]> {
   const docs = await getDocuments(accessToken);
   return docs.filter((d: Document) =>
-    d.type === 'INVOICE_SALES' && d.status === 'VALIDEE'
+    d.type === 'INVOICE_SALES' && 
+    (d.status === 'VALIDEE' || d.status === 'EXPORTED')
   );
 }
 

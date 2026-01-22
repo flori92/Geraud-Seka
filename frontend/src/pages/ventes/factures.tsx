@@ -55,6 +55,11 @@ export default function VentesFacturesPage() {
     });
 
     const handleSelectDoc = (docId: string) => {
+        const doc = documents.find(d => d.id === docId);
+        // Ne pas permettre la sélection des documents déjà exportés
+        if (doc && doc.status === 'EXPORTED') {
+            return;
+        }
         setSelectedDocs(prev => 
             prev.includes(docId) 
                 ? prev.filter(id => id !== docId)
@@ -63,10 +68,11 @@ export default function VentesFacturesPage() {
     };
 
     const handleSelectAll = () => {
-        if (selectedDocs.length === filteredDocuments.length) {
+        const selectableDocs = filteredDocuments.filter(doc => doc.status !== 'EXPORTED');
+        if (selectedDocs.length === selectableDocs.length) {
             setSelectedDocs([]);
         } else {
-            setSelectedDocs(filteredDocuments.map(d => d.id));
+            setSelectedDocs(selectableDocs.map(d => d.id));
         }
     };
 
@@ -113,12 +119,16 @@ export default function VentesFacturesPage() {
         };
     };
 
-    const stats = getStats();
+    const selectableDocs = filteredDocuments.filter(doc => doc.status !== 'EXPORTED');
+const isAllSelected = selectedDocs.length === selectableDocs.length && selectableDocs.length > 0;
+const stats = getStats();
 
     const getStatusConfig = (status: string) => {
         switch (status) {
             case 'VALIDEE':
                 return { label: 'Validée', color: 'bg-green-100 text-green-800', icon: CheckCircle };
+            case 'EXPORTED':
+                return { label: 'Exportée', color: 'bg-blue-100 text-blue-800', icon: Database };
             default:
                 return { label: status, color: 'bg-gray-100 text-gray-800', icon: FileText };
         }
@@ -261,7 +271,7 @@ export default function VentesFacturesPage() {
                                             <th className="px-6 py-3 text-left">
                                                 <input
                                                     type="checkbox"
-                                                    checked={selectedDocs.length === filteredDocuments.length}
+                                                    checked={isAllSelected}
                                                     onChange={handleSelectAll}
                                                     className="rounded border-gray-300 text-[#1e3a5f] focus:ring-[#1e3a5f]"
                                                 />
@@ -289,13 +299,16 @@ export default function VentesFacturesPage() {
                                             const StatusIcon = statusConfig.icon;
                                             
                                             return (
-                                                <tr key={doc.id} className="hover:bg-gray-50">
+                                                <tr key={doc.id} className={doc.status === 'EXPORTED' ? 'hover:bg-gray-50 opacity-75' : 'hover:bg-gray-50'}>
                                                     <td className="px-6 py-4">
                                                         <input
                                                             type="checkbox"
                                                             checked={selectedDocs.includes(doc.id)}
                                                             onChange={() => handleSelectDoc(doc.id)}
-                                                            className="rounded border-gray-300 text-[#1e3a5f] focus:ring-[#1e3a5f]"
+                                                            disabled={doc.status === 'EXPORTED'}
+                                                            className={`rounded border-gray-300 text-[#1e3a5f] focus:ring-[#1e3a5f] ${
+                                                                doc.status === 'EXPORTED' ? 'opacity-50 cursor-not-allowed' : ''
+                                                            }`}
                                                         />
                                                     </td>
                                                     <td className="px-6 py-4">
@@ -315,6 +328,11 @@ export default function VentesFacturesPage() {
                                                         <div className="text-sm text-gray-900">
                                                             {doc.supplier_name || 'N/A'}
                                                         </div>
+                                                        {doc.status === 'EXPORTED' && doc.exported_at && (
+                                                            <div className="text-xs text-gray-500 mt-1">
+                                                                Exporté le {new Date(doc.exported_at).toLocaleDateString('fr-FR')}
+                                                            </div>
+                                                        )}
                                                     </td>
                                                     <td className="px-6 py-4">
                                                         <div className="text-sm font-medium text-gray-900">
