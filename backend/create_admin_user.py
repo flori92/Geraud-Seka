@@ -10,7 +10,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent))
 
 from app.db.session import SessionLocal
-from app.crud.user import user_crud
+from app.crud.user import create as user_create, get_by_email
 from app.schemas.user import UserCreate
 from sqlalchemy.exc import IntegrityError
 
@@ -21,7 +21,7 @@ def create_admin():
     
     try:
         # Vérifier si l'utilisateur existe déjà
-        existing_user = user_crud.get_by_email(db, email="admin@seka.app")
+        existing_user = get_by_email(db, email="admin@seka.app")
         
         if existing_user:
             print("✅ L'utilisateur admin@seka.app existe déjà")
@@ -31,9 +31,9 @@ def create_admin():
             return
         
         # Créer l'utilisateur
-        user = user_crud.create(
+        user = user_create(
             db,
-            UserCreate(
+            obj_in=UserCreate(
                 email="admin@seka.app",
                 password="Admin123!",
                 full_name="Admin SEKA",

@@ -4,6 +4,7 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 import os
 from contextlib import suppress
+import logging
 
 from pydantic import BaseModel
 from pydantic import model_validator
@@ -23,6 +24,7 @@ from app.services.ocr import ocr_service
 from app.services.storage import storage_service
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.post("/", response_model=DocumentSchema)
@@ -510,6 +512,9 @@ async def upload_multipage_pdf(
         )
 
 
+MAX_PAGE_SIZE = 200
+
+
 @router.get("/", response_model=List[DocumentSchema])
 def read_documents(
     db: Session = Depends(deps.get_db_session),
@@ -524,26 +529,57 @@ def read_documents(
     Retrieve documents filtered by tenant.
     """
     try:
+        safe_skip = max(0, skip)
+        safe_limit = max(1, min(limit or 1, MAX_PAGE_SIZE))
+
         query = db.query(Document).filter(Document.tenant_id == current_user.tenant_id)
-        
+
         if client_id:
             query = query.filter(Document.client_id == client_id)
-        
+
         if status:
-            query = query.filter(Document.status == status)
-        
+            try:
+                status_enum = DocumentStatus(status)
+            except ValueError as exc:
+                logger.warning("Invalid status filter provided", extra={"status": status, "user_id": str(current_user.id)})
+                raise HTTPException(status_code=400, detail=f"Statut invalide: {status}") from exc
+            query = query.filter(Document.status == status_enum)
+
         if document_type:
-            print(f"Filtering by document_type: {document_type}")
-            query = query.filter(Document.type == document_type)
-        
-        results = query.order_by(Document.created_at.desc()).offset(skip).limit(limit).all()
-        print(f"Found {len(results)} documents with type={document_type}, status={status}")
+            try:
+                type_enum = DocumentType(document_type)
+            except ValueError as exc:
+                logger.warning("Invalid document_type filter provided", extra={"document_type": document_type, "user_id": str(current_user.id)})
+                raise HTTPException(status_code=400, detail=f"Type de document invalide: {document_type}") from exc
+            query = query.filter(Document.type == type_enum)
+
+        results = (
+            query
+            .order_by(Document.created_at.desc())
+            .offset(safe_skip)
+            .limit(safe_limit)
+            .all()
+        )
+        logger.info(
+            "Documents fetched",
+            extra={
+                "tenant_id": str(current_user.tenant_id),
+                "filters": {
+                    "client_id": str(client_id) if client_id else None,
+                    "status": status,
+                    "document_type": document_type,
+                    "skip": safe_skip,
+                    "limit": safe_limit,
+                },
+                "count": len(results),
+            },
+        )
         return results
-        
+
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"Error fetching documents: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        logger.error("Error fetching documents", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail=f"Erreur lors de la récupération des documents: {str(e)}"

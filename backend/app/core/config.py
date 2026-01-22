@@ -61,7 +61,7 @@ class Settings(BaseSettings):
     frontend_url: str = "https://www.sekagestion.com"
 
     model_config = SettingsConfigDict(
-        env_file=("../.env", ".env"),
+        env_file=("../.env.local", "../.env", ".env.local", ".env"),
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
