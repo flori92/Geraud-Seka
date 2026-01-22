@@ -62,9 +62,10 @@ export function useDuplicateConfrontation() {
       setError(null);
       const response = await api.get('/duplicates/pending');
       setPendingDuplicates(response.data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erreur chargement doublons en attente:', err);
-      setError(err.response?.data?.detail || 'Erreur lors du chargement des doublons');
+      const error = err as { response?: { data?: { detail?: string } } };
+      setError(error.response?.data?.detail || 'Erreur lors du chargement des doublons');
     } finally {
       setIsLoading(false);
     }
@@ -77,9 +78,10 @@ export function useDuplicateConfrontation() {
       setError(null);
       const response = await api.get(`/duplicates/${duplicateId}/confrontation`);
       setCurrentDuplicate(response.data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erreur chargement confrontation doublon:', err);
-      setError(err.response?.data?.detail || 'Erreur lors du chargement du doublon');
+      const error = err as { response?: { data?: { detail?: string } } };
+      setError(error.response?.data?.detail || 'Erreur lors du chargement du doublon');
       throw err;
     } finally {
       setIsLoading(false);
@@ -103,9 +105,10 @@ export function useDuplicateConfrontation() {
       setCurrentDuplicate(null);
       
       return true;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erreur résolution doublon:', err);
-      setError(err.response?.data?.detail || 'Erreur lors de la résolution du doublon');
+      const error = err as { response?: { data?: { detail?: string } } };
+      setError(error.response?.data?.detail || 'Erreur lors de la résolution du doublon');
       throw err;
     } finally {
       setIsLoading(false);
