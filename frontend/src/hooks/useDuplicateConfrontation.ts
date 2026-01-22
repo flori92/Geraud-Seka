@@ -60,7 +60,7 @@ export function useDuplicateConfrontation() {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await api.get('/api/v1/duplicates/pending');
+      const response = await api.get('/duplicates/pending');
       setPendingDuplicates(response.data);
     } catch (err: any) {
       console.error('Erreur chargement doublons en attente:', err);
@@ -75,7 +75,7 @@ export function useDuplicateConfrontation() {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await api.get(`/api/v1/duplicates/${duplicateId}/confrontation`);
+      const response = await api.get(`/duplicates/${duplicateId}/confrontation`);
       setCurrentDuplicate(response.data);
     } catch (err: any) {
       console.error('Erreur chargement confrontation doublon:', err);
@@ -91,7 +91,7 @@ export function useDuplicateConfrontation() {
     try {
       setIsLoading(true);
       setError(null);
-      await api.post(`/api/v1/duplicates/${duplicateId}/resolve`, {
+      await api.post(`/duplicates/${duplicateId}/resolve`, {
         resolution,
         resolution_reason: reason
       });
