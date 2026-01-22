@@ -28,8 +28,8 @@ interface Duplicate {
     fields: Array<{
       field: string;
       label: string;
-      new_value: any;
-      existing_value: any;
+      new_value: unknown;
+      existing_value: unknown;
       identical: boolean;
     }>;
     all_identical: boolean;
@@ -122,7 +122,7 @@ export default function DuplicateConfrontationModal({
             {/* New document */}
             <div className="border rounded-lg p-4">
               <h3 className="font-medium text-gray-900 mb-3">📄 NOUVELLE FACTURE</h3>
-              <div className="text-xs text-gray-500 mb-3">(vient d'être uploadée)</div>
+              <div className="text-xs text-gray-500 mb-3">(vient d&apos;être uploadée)</div>
               
               <div className="space-y-3">
                 <div className="border rounded p-3 bg-gray-50">
@@ -195,8 +195,8 @@ export default function DuplicateConfrontationModal({
                   {duplicate.comparison.fields.map((field, index) => (
                     <tr key={index}>
                       <td className="px-4 py-2 text-sm text-gray-900">{field.label}</td>
-                      <td className="px-4 py-2 text-sm text-gray-900">{field.new_value || 'N/A'}</td>
-                      <td className="px-4 py-2 text-sm text-gray-900">{field.existing_value || 'N/A'}</td>
+                      <td className="px-4 py-2 text-sm text-gray-900">{String(field.new_value) || 'N/A'}</td>
+                      <td className="px-4 py-2 text-sm text-gray-900">{String(field.existing_value) || 'N/A'}</td>
                       <td className="px-4 py-2 text-sm">
                         {field.identical ? (
                           <span className="text-green-600">✓</span>
@@ -228,11 +228,11 @@ export default function DuplicateConfrontationModal({
                 name="resolution"
                 value="rejected"
                 checked={resolution === 'rejected'}
-                onChange={(e) => setResolution(e.target.value as any)}
+                onChange={(e) => setResolution(e.target.value)}
                 className="mt-1"
               />
               <div>
-                <div className="font-medium text-gray-900">C'est un doublon → Rejeter la nouvelle facture</div>
+                <div className="font-medium text-gray-900">C&apos;est un doublon → Rejeter la nouvelle facture</div>
                 <div className="text-sm text-gray-500">(la facture existante sera conservée)</div>
               </div>
             </label>
@@ -243,11 +243,11 @@ export default function DuplicateConfrontationModal({
                 name="resolution"
                 value="kept_both"
                 checked={resolution === 'kept_both'}
-                onChange={(e) => setResolution(e.target.value as any)}
+                onChange={(e) => setResolution(e.target.value)}
                 className="mt-1"
               />
               <div className="flex-1">
-                <div className="font-medium text-gray-900">Ce n'est PAS un doublon → Conserver les deux</div>
+                <div className="font-medium text-gray-900">Ce n&apos;est PAS un doublon → Conserver les deux</div>
                 <div className="text-sm text-gray-500">Motif obligatoire :</div>
                 <input
                   type="text"
@@ -266,12 +266,12 @@ export default function DuplicateConfrontationModal({
                 name="resolution"
                 value="replaced"
                 checked={resolution === 'replaced'}
-                onChange={(e) => setResolution(e.target.value as any)}
+                onChange={(e) => setResolution(e.target.value)}
                 className="mt-1"
               />
               <div>
-                <div className="font-medium text-gray-900">Remplacer l'existante → Utiliser la nouvelle version</div>
-                <div className="text-sm text-gray-500">(l'ancienne sera archivée)</div>
+                <div className="font-medium text-gray-900">Remplacer l&apos;existante → Utiliser la nouvelle version</div>
+                <div className="text-sm text-gray-500">(l&apos;ancienne sera archivée)</div>
               </div>
             </label>
           </div>
