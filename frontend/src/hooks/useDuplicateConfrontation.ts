@@ -55,17 +55,26 @@ export function useDuplicateConfrontation() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Charger les doublons en attente
+  // Charger les doublons en attente avec protection
   const loadPendingDuplicates = async () => {
     try {
       setIsLoading(true);
       setError(null);
       const response = await api.get('/duplicates/pending');
-      setPendingDuplicates(response.data);
+      
+      // Validation et fallback
+      const duplicates = Array.isArray(response.data) ? response.data : [];
+      const validDuplicates = duplicates.filter((dup: unknown) => 
+        dup && typeof dup === 'object' && 'id' in dup && 'new_document' in dup
+      );
+      
+      setPendingDuplicates(validDuplicates);
     } catch (err: unknown) {
       console.error('Erreur chargement doublons en attente:', err);
       const error = err as { response?: { data?: { detail?: string } } };
       setError(error.response?.data?.detail || 'Erreur lors du chargement des doublons');
+      // Fallback vide pour éviter les crashes
+      setPendingDuplicates([]);
     } finally {
       setIsLoading(false);
     }
@@ -121,9 +130,18 @@ export function useDuplicateConfrontation() {
   // Effacer le doublon courant
   const clearCurrentDuplicate = () => setCurrentDuplicate(null);
 
-  // Auto-chargement au montage
+  // Auto-chargement au montage avec gestion d'erreur
   useEffect(() => {
-    loadPendingDuplicates();
+    const initializeDuplicates = async () => {
+      try {
+        await loadPendingDuplicates();
+      } catch (err) {
+        // Silencieux en cas d'erreur pour ne pas crasher l'app
+        console.warn('Erreur lors de l\'initialisation des doublons:', err);
+      }
+    };
+    
+    initializeDuplicates();
   }, []);
 
   return {

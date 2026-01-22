@@ -25,9 +25,9 @@ export default function AchatsFacturesPage() {
     const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
     const [isExporting, setIsExporting] = useState(false);
     
-    // Hook pour la gestion des doublons
+    // Hook pour la gestion des doublons avec fallback
     const {
-        pendingDuplicates,
+        pendingDuplicates = [],
         currentDuplicate,
         isLoading: duplicateLoading,
         loadDuplicateForConfrontation,
