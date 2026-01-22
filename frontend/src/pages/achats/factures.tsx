@@ -7,6 +7,9 @@ import {
 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api";
 import { getValidatedPurchaseDocuments, type Document } from "@/lib/api";
+import DuplicateAlertBanner from "@/components/DuplicateAlertBanner";
+import DuplicateConfrontationModal from "@/components/DuplicateConfrontationModal";
+import { useDuplicateConfrontation } from "@/hooks/useDuplicateConfrontation";
 
 interface DocumentStats {
     total: number;
@@ -21,6 +24,17 @@ export default function AchatsFacturesPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
     const [isExporting, setIsExporting] = useState(false);
+    
+    // Hook pour la gestion des doublons
+    const {
+        pendingDuplicates,
+        currentDuplicate,
+        isLoading: duplicateLoading,
+        error: duplicateError,
+        loadDuplicateForConfrontation,
+        resolveDuplicate,
+        clearCurrentDuplicate
+    } = useDuplicateConfrontation();
 
     useEffect(() => {
         fetchDocuments();
@@ -95,13 +109,37 @@ export default function AchatsFacturesPage() {
                 setSelectedDocs([]);
                 fetchDocuments(); // Rafraîchir la liste
             } else {
-                throw new Error('Erreur lors de l\'export');
+                const errorData = await response.json();
+                if (response.status === 422 && errorData.detail?.includes('doublon')) {
+                    alert("Impossible d'exporter : des doublons sont en attente de résolution.");
+                } else {
+                    throw new Error('Erreur lors de l\'export');
+                }
             }
         } catch (error) {
             console.error("Erreur lors de l'export:", error);
             alert("Erreur lors de l&apos;export des factures");
         } finally {
             setIsExporting(false);
+        }
+    };
+
+    const handleResolveDuplicate = async (duplicateId: string) => {
+        try {
+            await loadDuplicateForConfrontation(duplicateId);
+        } catch (error) {
+            console.error('Erreur lors du chargement du doublon:', error);
+            alert('Erreur lors du chargement du doublon');
+        }
+    };
+
+    const handleDuplicateResolution = async (duplicateId: string, resolution: string, reason?: string) => {
+        try {
+            await resolveDuplicate(duplicateId, resolution, reason);
+            fetchDocuments(); // Rafraîchir la liste des documents
+        } catch (error) {
+            console.error('Erreur lors de la résolution du doublon:', error);
+            alert('Erreur lors de la résolution du doublon');
         }
     };
 
@@ -139,6 +177,21 @@ export default function AchatsFacturesPage() {
                 <title>Factures Achats - SEKA</title>
             </Head>
             <div className="min-h-screen bg-gray-50">
+                {/* Alert banner pour les doublons */}
+                <DuplicateAlertBanner
+                    pendingDuplicates={pendingDuplicates}
+                    onResolve={handleResolveDuplicate}
+                />
+
+                {/* Modal de confrontation des doublons */}
+                {currentDuplicate && (
+                    <DuplicateConfrontationModal
+                        duplicate={currentDuplicate}
+                        onClose={clearCurrentDuplicate}
+                        onResolve={handleDuplicateResolution}
+                        isLoading={duplicateLoading}
+                    />
+                )}
                 {/* Header */}
                 <div className="bg-white shadow-sm border-b">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

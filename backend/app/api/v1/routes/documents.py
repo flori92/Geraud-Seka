@@ -170,7 +170,7 @@ async def upload_document(
                         )
                         
                         # Marquer le document comme doublon potentiel
-                        db_obj.status = DocumentStatus.A_TRAITER  # En attente de résolution
+                        db_obj.status = DocumentStatus.A_TRAITER_DOUBLON  # En attente de résolution
                         
                         print(f"🛑 DOUBLON DÉTECTÉ! Raison: {detection_reason.value}")
                         print(f"   Nouveau: {db_obj.supplier_name} - {db_obj.reference_number}")
@@ -867,6 +867,18 @@ def validate_document(
         raise
 
     # 🟢 Validation utilisateur → Statut VALIDEE (prête pour export)
+    # Vérifier qu'aucun doublon en attente de résolution n'existe pour ce document
+    from app.models.duplicate import DocumentDuplicate
+    pending_duplicate = db.query(DocumentDuplicate).filter(
+        DocumentDuplicate.new_document_id == document_id,
+        DocumentDuplicate.resolution.is_(None)
+    ).first()
+    if pending_duplicate:
+        raise HTTPException(
+            status_code=422,
+            detail="Impossible de valider un document avec un doublon en attente de résolution."
+        )
+
     document.status = DocumentStatus.VALIDEE
     document.reference_number = validation_data.reference_number or document.reference_number
     
@@ -1111,7 +1123,11 @@ def validate_document(
         print(f"✅ Écriture fournisseur ajoutée: {supplier_auxiliary_account or '401100'} ({supplier_name})")
 
         db.commit()
-        db.refresh(document)
+        
+        # Invalider le cache des stats pour mise à jour immédiate
+        from app.core.cache import clear_cache
+        clear_cache(pattern="dashboard")
+        
         return document
     except Exception as e:
         db.rollback()

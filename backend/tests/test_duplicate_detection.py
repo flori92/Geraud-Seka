@@ -21,12 +21,8 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from app.services.duplicate_detection import (
-    DuplicateDetectionService,
-    DuplicateAction,
-    DuplicateReason,
-    get_duplicate_detection_service
-)
+from app.services.duplicate_detection import DuplicateDetectionService
+from app.models.duplicate import DuplicateDetectionReason, DuplicateResolution
 
 
 # =============================================================================

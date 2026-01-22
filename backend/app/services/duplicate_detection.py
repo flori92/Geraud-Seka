@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 from datetime import date
 
-from app.models.document import Document
+from app.models.document import Document, DocumentStatus
 from app.models.duplicate import DocumentDuplicate, DuplicateDetectionReason
 
 
@@ -28,7 +28,7 @@ class DuplicateDetectionService:
                     Document.tenant_id == self.tenant_id,
                     Document.supplier_name.ilike(f"%{supplier_name}%"),
                     Document.reference_number == invoice_number,
-                    Document.status != "REJECTED"  # Ignorer les documents rejetés
+                    Document.status != DocumentStatus.REJECTED  # Ignorer les documents rejetés
                 )
             ).first()
             
@@ -43,7 +43,7 @@ class DuplicateDetectionService:
                     Document.supplier_name.ilike(f"%{supplier_name}%"),
                     Document.amount_ttc == amount_ttc,
                     Document.document_date == document_date,
-                    Document.status != "REJECTED"
+                    Document.status != DocumentStatus.REJECTED
                 )
             ).first()
             
@@ -114,7 +114,7 @@ class DuplicateDetectionService:
                 Document.id == duplicate.new_document_id
             ).first()
             if new_doc:
-                new_doc.status = "REJECTED"
+                new_doc.status = DocumentStatus.REJECTED
         
         elif resolution == "replaced":
             # Archiver l'ancien, activer le nouveau
@@ -123,12 +123,66 @@ class DuplicateDetectionService:
             ).first()
             if existing_doc:
                 existing_doc.is_archived = True
-                existing_doc.status = "ARCHIVED"
+                existing_doc.status = DocumentStatus.ARCHIVED
+        
+        elif resolution == "kept_both":
+            # Conserver les deux : passer le nouveau à PRE_TRAITEE
+            new_doc = self.db.query(Document).filter(
+                Document.id == duplicate.new_document_id
+            ).first()
+            if new_doc:
+                new_doc.status = DocumentStatus.PRE_TRAITEE
         
         # Si kept_both, on ne fait rien de spécial
         
         self.db.flush()
         return duplicate
+    
+    def compare_documents(
+        self,
+        new_doc: Document,
+        existing_doc: Document
+    ) -> dict:
+        """
+        Compare deux documents pour la modal de confrontation.
+        """
+        comparison_fields = [
+            {
+                "field": "supplier_name",
+                "label": "Fournisseur",
+                "new_value": new_doc.supplier_name or "N/A",
+                "existing_value": existing_doc.supplier_name or "N/A",
+                "identical": (new_doc.supplier_name or "").lower() == (existing_doc.supplier_name or "").lower()
+            },
+            {
+                "field": "reference_number",
+                "label": "N° Facture",
+                "new_value": new_doc.reference_number or "N/A",
+                "existing_value": existing_doc.reference_number or "N/A",
+                "identical": (new_doc.reference_number or "").lower() == (existing_doc.reference_number or "").lower()
+            },
+            {
+                "field": "document_date",
+                "label": "Date facture",
+                "new_value": new_doc.document_date.strftime("%d/%m/%Y") if new_doc.document_date else "N/A",
+                "existing_value": existing_doc.document_date.strftime("%d/%m/%Y") if existing_doc.document_date else "N/A",
+                "identical": new_doc.document_date == existing_doc.document_date
+            },
+            {
+                "field": "amount_ttc",
+                "label": "Montant TTC",
+                "new_value": f"{float(new_doc.amount_ttc):.2f} FCFA" if new_doc.amount_ttc else "N/A",
+                "existing_value": f"{float(existing_doc.amount_ttc):.2f} FCFA" if existing_doc.amount_ttc else "N/A",
+                "identical": new_doc.amount_ttc == existing_doc.amount_ttc
+            }
+        ]
+        
+        all_identical = all(field["identical"] for field in comparison_fields)
+        
+        return {
+            "fields": comparison_fields,
+            "all_identical": all_identical
+        }
     
     def get_duplicate_history(
         self,

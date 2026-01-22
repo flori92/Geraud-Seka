@@ -41,6 +41,18 @@ def export_documents(
                 detail="Some documents are not valid for export"
             )
         
+        # Bloquer l'export si un doublon est en attente pour un des documents
+        from app.models.duplicate import DocumentDuplicate
+        pending_duplicates = db.query(DocumentDuplicate).filter(
+            DocumentDuplicate.new_document_id.in_(export_request.document_ids),
+            DocumentDuplicate.resolution.is_(None)
+        ).all()
+        if pending_duplicates:
+            raise HTTPException(
+                status_code=422,
+                detail="Impossible d'exporter des documents avec des doublons en attente de résolution."
+            )
+        
         exported_count = 0
         errors = []
         
@@ -160,6 +172,10 @@ def export_documents(
                 continue
         
         db.commit()
+        
+        # Invalider le cache des stats pour mise à jour immédiate
+        from app.core.cache import clear_cache
+        clear_cache(pattern="dashboard")
         
         if errors:
             print(f"⚠️ Export completed with {len(errors)} errors")

@@ -28,7 +28,7 @@ def get_alerts(db: Session, tenant_id: str) -> List[dict]:
         try:
             pending_docs = db.query(Document).filter(
                 Document.tenant_id == tenant_id,
-                Document.status.in_([DocumentStatus.UPLOADED, DocumentStatus.OCR_PROCESSING])
+                Document.status.in_([DocumentStatus.UPLOADED, DocumentStatus.OCR_PROCESSING, DocumentStatus.A_TRAITER, DocumentStatus.A_TRAITER_DOUBLON])
             ).count()
             
             if pending_docs > 5:
@@ -148,7 +148,7 @@ def get_dashboard_stats(
                 doc_query = db.query(Document).filter(Document.tenant_id == tenant_id)
                 
                 documents_pending = doc_query.filter(
-                    Document.status.in_([DocumentStatus.UPLOADED, DocumentStatus.OCR_PROCESSING])
+                    Document.status.in_([DocumentStatus.UPLOADED, DocumentStatus.OCR_PROCESSING, DocumentStatus.A_TRAITER, DocumentStatus.A_TRAITER_DOUBLON])
                 ).count()
                 
                 first_day_of_month = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)

@@ -14,6 +14,7 @@ class DocumentStatus(str, enum.Enum):
     OCR_PROCESSING = "OCR_PROCESSING"
     OCR_COMPLETED = "OCR_COMPLETED"
     A_TRAITER = "A_TRAITER"              # 🔴 Fournisseur non reconnu (pas de règle)
+    A_TRAITER_DOUBLON = "A_TRAITER_DOUBLON"  # 🛑 Doublon détecté, confrontation obligatoire
     PRE_TRAITEE = "PRE_TRAITEE"          # 🟡 Règle appliquée, peut être validée
     VALIDEE = "VALIDEE"                  # 🟢 Validée, prête pour export
     EXPORTED = "EXPORTED"                # 📤 Exporté vers comptabilité

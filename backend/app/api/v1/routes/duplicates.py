@@ -108,12 +108,11 @@ async def resolve_duplicate(
         
         db.commit()
         
-        return {
-            "success": True,
-            "duplicate_id": str(duplicate.id),
-            "resolution": duplicate.resolution.value,
-            "message": "Doublon résolu avec succès"
-        }
+        # Invalider le cache des stats pour mise à jour immédiate
+        from app.core.cache import clear_cache
+        clear_cache(pattern="dashboard")
+        
+        return duplicate
     
     except ValueError as e:
         raise HTTPException(
