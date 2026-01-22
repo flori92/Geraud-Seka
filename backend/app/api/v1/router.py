@@ -11,6 +11,7 @@ from app.api.v1.routes import (
     clients,
     activities,
     products,
+    export,
     exports,
     analytics,
     notifications,
@@ -61,6 +62,7 @@ api_router.include_router(clients.router, prefix="/clients", tags=["clients"])
 api_router.include_router(suppliers.router, prefix="/suppliers", tags=["suppliers"])
 api_router.include_router(activities.router, prefix="/activities", tags=["activities"])
 api_router.include_router(products.router, prefix="/products", tags=["products"])
+api_router.include_router(export.router, prefix="/documents", tags=["documents", "export"])
 api_router.include_router(exports.router, prefix="/exports", tags=["exports"])
 api_router.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
 api_router.include_router(notifications.router, prefix="/notifications", tags=["notifications"])
