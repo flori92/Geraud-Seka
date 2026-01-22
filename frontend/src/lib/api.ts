@@ -318,7 +318,7 @@ export async function getValidatedSalesDocuments(accessToken: string): Promise<D
 
 export async function exportDocuments(accessToken: string, documentIds: string[]): Promise<boolean> {
   try {
-    const response = await fetch(`${API_BASE_URL}/documents/export`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/documents/export`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

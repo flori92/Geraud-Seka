@@ -79,7 +79,7 @@ export default function AchatsFacturesPage() {
         setIsExporting(true);
         try {
             const token = localStorage.getItem("seka_access_token");
-            const response = await fetch(`${API_BASE_URL}/documents/export`, {
+            const response = await fetch(`${API_BASE_URL}/api/v1/documents/export`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
