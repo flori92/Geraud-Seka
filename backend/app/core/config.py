@@ -22,7 +22,13 @@ class Settings(BaseSettings):
         "https://api.sekagestion.com"
     ]
 
-    database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/seka"
+    db_user: str = "postgres"
+    db_password: str = "postgres"
+    db_host: str = "localhost"
+    db_port: int = 5432
+    db_name: str = "seka"
+    database_url: Optional[str] = None
+
     redis_url: str = "redis://localhost:6379/0"
 
     secret_key: str = "CHANGE_ME"
@@ -61,7 +67,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    from pydantic import field_validator
+    from pydantic import field_validator, model_validator
 
     @field_validator("backend_cors_origins", mode="before")
     @classmethod
@@ -76,15 +82,30 @@ class Settings(BaseSettings):
                 return [origin.strip() for origin in v.split(",") if origin.strip()]
         return v
 
-    @field_validator("database_url", mode="before")
+    @model_validator(mode='before')
     @classmethod
-    def assemble_db_connection(cls, v: Optional[str]) -> str:
-        if isinstance(v, str):
-            if v.startswith("postgres://"):
-                return v.replace("postgres://", "postgresql+psycopg://", 1)
-            if v.startswith("postgresql://") and "psycopg" not in v:
-                return v.replace("postgresql://", "postgresql+psycopg://", 1)
-        return v
+    def assemble_db_connection(cls, values: dict) -> dict:
+        """
+        Assembles the database_url from components if it's not provided.
+        Ensures the correct psycopg driver is used.
+        """
+        db_url = values.get('database_url')
+
+        if not db_url:
+            db_url = (
+                f"postgresql+psycopg://{values.get('db_user', 'postgres')}:"
+                f"{values.get('db_password', 'postgres')}@{values.get('db_host', 'localhost')}:"
+                f"{values.get('db_port', 5432)}/{values.get('db_name', 'seka')}"
+            )
+        
+        # Ensure correct driver is used
+        if db_url.startswith("postgres://"):
+            db_url = db_url.replace("postgres://", "postgresql+psycopg://", 1)
+        elif db_url.startswith("postgresql://") and "psycopg" not in db_url:
+            db_url = db_url.replace("postgresql://", "postgresql+psycopg://", 1)
+            
+        values['database_url'] = db_url
+        return values
 
 
 @lru_cache

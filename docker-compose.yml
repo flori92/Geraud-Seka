@@ -43,7 +43,7 @@ services:
     env_file:
       - ./backend/.env
     environment:
-      DATABASE_URL: "postgresql+psycopg://postgres:postgres@db:5432/seka"
+      DB_HOST: "db"
       SECRET_KEY: "changeme"
     ports:
       - "8000:8000"

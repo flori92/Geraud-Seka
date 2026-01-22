@@ -48,3 +48,10 @@ create_test_user.py
 WEBHOOK_SETUP_COMPLETE.md
 .sentryclirc
 RAILWAY_CONFIG.txt
+
+# Logs
+seka.log
+
+# Gemini/Claude temp files
+.claude/
+
