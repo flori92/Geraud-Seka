@@ -12,7 +12,8 @@
     "test:e2e:journaux": "playwright test e2e/journaux.spec.ts",
     "test:e2e:revision": "playwright test e2e/revision.spec.ts",
     "test:e2e:fiscalite": "playwright test e2e/fiscalite.spec.ts",
-    "test:e2e:cloture": "playwright test e2e/cloture.spec.ts"
+    "test:e2e:cloture": "playwright test e2e/cloture.spec.ts",
+    "test:e2e:doublons": "playwright test e2e/doublons.spec.ts"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

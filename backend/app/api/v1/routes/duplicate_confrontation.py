@@ -1,17 +1,20 @@
 """
 API Routes pour la confrontation des doublons (modal obligatoire)
 """
-from typing import Any, List, Optional
+import logging
+from typing import Any, List, Optional, Literal
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.core import deps
 from app.models.user import User
 from app.models.document import Document
 from app.models.duplicate import DocumentDuplicate
 from app.services.duplicate_detection import DuplicateDetectionService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -25,9 +28,15 @@ class ConfrontationResponse(BaseModel):
     comparison: dict
 
 
+class ConfrontationResolutionRequest(BaseModel):
+    """Request body pour résolution de confrontation (sécurisé)"""
+    resolution: Literal["rejected", "kept_both", "replaced"]
+    resolution_reason: Optional[str] = Field(None, max_length=500)
+
+
 @router.get("/{duplicate_id}/confrontation")
 async def get_duplicate_confrontation(
-    duplicate_id: str,
+    duplicate_id: UUID,
     current_user: User = Depends(deps.get_current_user),
     db: Session = Depends(deps.get_db_session)
 ) -> ConfrontationResponse:
@@ -35,7 +44,7 @@ async def get_duplicate_confrontation(
     Retourne les détails d'un doublon pour la modal de confrontation.
     """
     duplicate = db.query(DocumentDuplicate).filter(
-        DocumentDuplicate.id == duplicate_id,
+        DocumentDuplicate.id == str(duplicate_id),
         DocumentDuplicate.tenant_id == current_user.tenant_id,
         DocumentDuplicate.resolution.is_(None)
     ).first()
@@ -123,58 +132,59 @@ async def get_pending_duplicates_for_confrontation(
 
 @router.post("/{duplicate_id}/resolve")
 async def resolve_duplicate_from_confrontation(
-    duplicate_id: str,
-    resolution: str,
-    resolution_reason: Optional[str] = None,
+    duplicate_id: UUID,
+    request: ConfrontationResolutionRequest,
     current_user: User = Depends(deps.get_current_user),
     db: Session = Depends(deps.get_db_session)
 ) -> dict:
     """
     Résout un doublon depuis la modal de confrontation.
+
+    Security:
+    - UUID validation sur duplicate_id
+    - Request body au lieu de query params (évite log exposure)
+    - Validation Pydantic stricte (Literal type)
+    - Tenant isolation via service
     """
-    if resolution not in ["rejected", "kept_both", "replaced"]:
+    # Validation supplémentaire pour kept_both
+    if request.resolution == "kept_both" and not request.resolution_reason:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Resolution must be 'rejected', 'kept_both', or 'replaced'"
+            detail="Justification requise pour conserver les deux documents"
         )
-    
-    if resolution == "kept_both" and not resolution_reason:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Resolution reason is required when keeping both documents"
-        )
-    
+
     service = DuplicateDetectionService(db, str(current_user.tenant_id))
-    
+
     try:
         duplicate = service.resolve_duplicate(
-            duplicate_id=duplicate_id,
-            resolution=resolution,
+            duplicate_id=str(duplicate_id),
+            resolution=request.resolution,
             user_id=str(current_user.id),
-            resolution_reason=resolution_reason
+            resolution_reason=request.resolution_reason
         )
-        
+
         db.commit()
-        
+
         # Invalider le cache des stats pour mise à jour immédiate
         from app.core.cache import clear_cache
         clear_cache(pattern="dashboard")
-        
+
         return {
             "success": True,
             "duplicate_id": str(duplicate.id),
             "resolution": duplicate.resolution.value,
             "message": "Doublon résolu avec succès"
         }
-    
-    except ValueError as e:
+
+    except ValueError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
+            detail="Doublon non trouvé ou déjà résolu"
         )
     except Exception as e:
         db.rollback()
+        logger.error(f"Error resolving duplicate {duplicate_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error resolving duplicate: {str(e)}"
+            detail="Erreur lors de la résolution du doublon"
         )

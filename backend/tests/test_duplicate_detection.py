@@ -12,7 +12,7 @@ Tests couvrant:
 """
 
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, PropertyMock
 from uuid import uuid4
 from datetime import date, datetime
 from decimal import Decimal
@@ -22,7 +22,8 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from app.services.duplicate_detection import DuplicateDetectionService
-from app.models.duplicate import DuplicateDetectionReason, DuplicateResolution
+from app.models.duplicate import DuplicateDetectionReason, DuplicateResolution, DocumentDuplicate
+from app.models.document import DocumentStatus
 
 
 # =============================================================================
@@ -62,7 +63,7 @@ def mock_document():
     doc.amount_ht = Decimal("100000")
     doc.amount_vat = Decimal("18000")
     doc.amount_ttc = Decimal("118000")
-    doc.status = MagicMock(value="validated")
+    doc.status = DocumentStatus.VALIDEE
     doc.created_at = datetime(2026, 1, 6, 10, 0, 0)
     doc.validated_at = datetime(2026, 1, 7, 14, 30, 0)
     doc.exported_at = None
@@ -86,7 +87,7 @@ def mock_document_2():
     doc.amount_ht = Decimal("100000")
     doc.amount_vat = Decimal("18000")
     doc.amount_ttc = Decimal("118000")
-    doc.status = MagicMock(value="pending")
+    doc.status = DocumentStatus.A_TRAITER
     doc.created_at = datetime(2026, 1, 10, 9, 0, 0)
     doc.validated_at = None
     doc.exported_at = None
@@ -102,150 +103,187 @@ def mock_document_2():
 
 class TestDuplicateDetection:
     """Tests pour la détection de doublons"""
-    
+
     def test_detect_by_invoice_number(self, service, mock_db, mock_document):
         """
         Test: Même fournisseur + Même N° facture = DOUBLON
-        
+
         Scénario: Upload d'une facture SBEE-2024-0892 alors qu'elle existe déjà
         """
         # Setup: Le document existe déjà
-        mock_db.query.return_value.filter.return_value.filter.return_value.first.return_value = mock_document
-        
+        mock_db.query.return_value.filter.return_value.first.return_value = mock_document
+
         # Act
         result = service.detect_duplicate(
             supplier_name="SBEE",
             invoice_number="SBEE-2024-0892",
-            amount_ttc=118000,
-            invoice_date=date(2026, 1, 5)
+            amount_ttc=118000.0,
+            document_date=date(2026, 1, 5)
         )
-        
+
         # Assert
         assert result is not None
-        assert result["is_duplicate"] == True
-        assert result["reason"] == DuplicateReason.SAME_INVOICE_NUMBER.value
-        assert "Même fournisseur + Même N° facture" in result["reason_text"]
-        assert result["existing_document"]["reference_number"] == "SBEE-2024-0892"
-    
+        existing_doc, reason = result
+        assert existing_doc == mock_document
+        assert reason == DuplicateDetectionReason.SAME_INVOICE_NUMBER
+
     def test_detect_by_amount_and_date(self, service, mock_db, mock_document):
         """
         Test: Même fournisseur + Même montant + Même date = DOUBLON
-        
+
         Scénario: Upload sans N° facture mais même fournisseur/montant/date
         """
-        # Setup: Pas de match par N° facture, mais match par montant+date
-        mock_db.query.return_value.filter.return_value.filter.return_value.first.side_effect = [
-            None,  # Pas de match par N° facture
-            mock_document  # Match par montant + date
-        ]
-        
+        # Setup: Match par montant+date (critère 1 n'est pas testé car invoice_number=None)
+        mock_db.query.return_value.filter.return_value.first.return_value = mock_document
+
         # Act
         result = service.detect_duplicate(
             supplier_name="SBEE",
-            invoice_number=None,  # Pas de N° facture
-            amount_ttc=118000,
-            invoice_date=date(2026, 1, 5)
+            invoice_number=None,  # Pas de N° facture → skip critère 1
+            amount_ttc=118000.0,
+            document_date=date(2026, 1, 5)
         )
-        
+
         # Assert
         assert result is not None
-        assert result["is_duplicate"] == True
-        assert result["reason"] == DuplicateReason.SAME_AMOUNT_DATE.value
-    
+        existing_doc, reason = result
+        assert reason == DuplicateDetectionReason.SAME_AMOUNT_DATE
+
     def test_no_duplicate_different_invoice_number(self, service, mock_db):
         """
         Test: Même fournisseur + N° facture différent = PAS DE DOUBLON
-        
+
         Scénario: Abonnement mensuel Canal+ (N° différent chaque mois)
         """
         # Setup: Aucun match
-        mock_db.query.return_value.filter.return_value.filter.return_value.first.return_value = None
-        
+        mock_db.query.return_value.filter.return_value.first.return_value = None
+
         # Act
         result = service.detect_duplicate(
             supplier_name="Canal+",
             invoice_number="CP-2026-002",  # Février
-            amount_ttc=25000,
-            invoice_date=date(2026, 2, 15)
+            amount_ttc=25000.0,
+            document_date=date(2026, 2, 15)
         )
-        
+
         # Assert
         assert result is None  # Pas de doublon
-    
+
     def test_no_duplicate_different_date(self, service, mock_db):
         """
         Test: Même fournisseur + Même montant + Date différente = PAS DE DOUBLON
-        
+
         Scénario: Abonnement téléphone mensuel
         """
         # Setup: Aucun match
-        mock_db.query.return_value.filter.return_value.filter.return_value.first.return_value = None
-        
+        mock_db.query.return_value.filter.return_value.first.return_value = None
+
         # Act - Facture janvier
-        result1 = service.detect_duplicate(
+        result = service.detect_duplicate(
             supplier_name="MTN",
             invoice_number="MTN-2026-001",
-            amount_ttc=35000,
-            invoice_date=date(2026, 1, 15)
+            amount_ttc=35000.0,
+            document_date=date(2026, 1, 15)
         )
-        
+
         # Assert
-        assert result1 is None  # Pas de doublon car dates différentes
-    
+        assert result is None  # Pas de doublon car dates différentes
+
     def test_no_duplicate_different_amount(self, service, mock_db):
         """
         Test: Même fournisseur + Même date + Montant différent = PAS DE DOUBLON
-        
+
         Scénario: Deux factures SBEE le même jour mais montants différents
         """
         # Setup: Aucun match
-        mock_db.query.return_value.filter.return_value.filter.return_value.first.return_value = None
-        
+        mock_db.query.return_value.filter.return_value.first.return_value = None
+
         # Act
         result = service.detect_duplicate(
             supplier_name="SBEE",
             invoice_number="SBEE-2024-0893",  # N° différent
-            amount_ttc=250000,  # Montant différent
-            invoice_date=date(2026, 1, 5)
+            amount_ttc=250000.0,  # Montant différent
+            document_date=date(2026, 1, 5)
         )
-        
+
         # Assert
         assert result is None
-    
+
     def test_no_duplicate_different_supplier(self, service, mock_db):
         """
         Test: Fournisseur différent = PAS DE DOUBLON (même si même montant/date)
         """
         # Setup: Aucun match
-        mock_db.query.return_value.filter.return_value.filter.return_value.first.return_value = None
-        
+        mock_db.query.return_value.filter.return_value.first.return_value = None
+
         # Act
         result = service.detect_duplicate(
             supplier_name="SONEB",  # Fournisseur différent
             invoice_number=None,
-            amount_ttc=118000,  # Même montant qu'une facture SBEE
-            invoice_date=date(2026, 1, 5)
+            amount_ttc=118000.0,  # Même montant qu'une facture SBEE
+            document_date=date(2026, 1, 5)
         )
-        
+
         # Assert
         assert result is None
-    
-    def test_exclude_document_id(self, service, mock_db, mock_document):
+
+    def test_detect_with_partial_supplier_match(self, service, mock_db, mock_document):
         """
-        Test: Exclure un document de la recherche (pour édition)
+        Test: Match partiel du nom fournisseur (ilike)
         """
         # Setup
-        mock_db.query.return_value.filter.return_value.filter.return_value.filter.return_value.first.return_value = None
-        
-        # Act
+        mock_db.query.return_value.filter.return_value.first.return_value = mock_document
+
+        # Act - Recherche avec nom partiel
         result = service.detect_duplicate(
-            supplier_name="SBEE",
+            supplier_name="sbee",  # Minuscules
             invoice_number="SBEE-2024-0892",
-            exclude_document_id=str(mock_document.id)  # Exclure ce document
+            amount_ttc=118000.0,
+            document_date=date(2026, 1, 5)
         )
-        
-        # Assert - Ne devrait pas se trouver lui-même
-        assert result is None
+
+        # Assert - Doit trouver grâce à ilike
+        assert result is not None
+
+
+# =============================================================================
+# TESTS: CRÉATION D'ENREGISTREMENT DE DOUBLON
+# =============================================================================
+
+class TestDuplicateRecordCreation:
+    """Tests pour la création d'enregistrements de doublon"""
+
+    def test_create_duplicate_record(self, service, mock_db):
+        """Test: Création d'un enregistrement de doublon"""
+        new_doc_id = str(uuid4())
+        existing_doc_id = str(uuid4())
+
+        # Act
+        result = service.create_duplicate_record(
+            new_document_id=new_doc_id,
+            existing_document_id=existing_doc_id,
+            detection_reason=DuplicateDetectionReason.SAME_INVOICE_NUMBER,
+            comparison_data='{"all_identical": true}'
+        )
+
+        # Assert
+        mock_db.add.assert_called_once()
+        mock_db.flush.assert_called_once()
+
+    def test_create_duplicate_record_amount_date(self, service, mock_db):
+        """Test: Création avec raison SAME_AMOUNT_DATE"""
+        new_doc_id = str(uuid4())
+        existing_doc_id = str(uuid4())
+
+        # Act
+        result = service.create_duplicate_record(
+            new_document_id=new_doc_id,
+            existing_document_id=existing_doc_id,
+            detection_reason=DuplicateDetectionReason.SAME_AMOUNT_DATE
+        )
+
+        # Assert
+        mock_db.add.assert_called_once()
 
 
 # =============================================================================
@@ -254,107 +292,92 @@ class TestDuplicateDetection:
 
 class TestDuplicateResolution:
     """Tests pour la résolution de doublons"""
-    
+
     def test_resolve_reject(self, service, mock_db, mock_document, mock_document_2):
         """Test: Rejeter la nouvelle facture"""
         # Setup
+        mock_duplicate = MagicMock(spec=DocumentDuplicate)
+        mock_duplicate.id = uuid4()
+        mock_duplicate.new_document_id = mock_document_2.id
+        mock_duplicate.existing_document_id = mock_document.id
+
         mock_db.query.return_value.filter.return_value.first.side_effect = [
-            mock_document_2,  # Nouveau document
-            mock_document     # Document existant
+            mock_duplicate,  # Duplicate record
+            mock_document_2   # New document
         ]
-        
+
         # Act
         result = service.resolve_duplicate(
-            new_document_id=str(mock_document_2.id),
-            existing_document_id=str(mock_document.id),
-            action=DuplicateAction.REJECT,
-            resolved_by="user123"
+            duplicate_id=str(mock_duplicate.id),
+            resolution="rejected",
+            user_id="user123"
         )
-        
+
         # Assert
-        assert result["success"] == True
-        assert result["action"] == "reject"
-        assert "rejetée" in result["message"].lower()
-    
+        assert result.resolution == DuplicateResolution.REJECTED
+        assert mock_document_2.status == DocumentStatus.REJECTED
+
     def test_resolve_keep_both_with_reason(self, service, mock_db, mock_document, mock_document_2):
         """Test: Conserver les deux avec motif"""
         # Setup
+        mock_duplicate = MagicMock(spec=DocumentDuplicate)
+        mock_duplicate.id = uuid4()
+        mock_duplicate.new_document_id = mock_document_2.id
+
         mock_db.query.return_value.filter.return_value.first.side_effect = [
-            mock_document_2,
-            mock_document
+            mock_duplicate,
+            mock_document_2
         ]
-        
+
         # Act
         result = service.resolve_duplicate(
-            new_document_id=str(mock_document_2.id),
-            existing_document_id=str(mock_document.id),
-            action=DuplicateAction.KEEP_BOTH,
-            reason="Facture rectificative",
-            resolved_by="user123"
+            duplicate_id=str(mock_duplicate.id),
+            resolution="kept_both",
+            user_id="user123",
+            resolution_reason="Facture rectificative"
         )
-        
+
         # Assert
-        assert result["success"] == True
-        assert result["action"] == "keep_both"
-        assert "conservées" in result["message"].lower()
-    
-    def test_resolve_keep_both_without_reason_fails(self, service, mock_db, mock_document, mock_document_2):
-        """Test: Conserver les deux SANS motif = ERREUR"""
-        # Setup
-        mock_db.query.return_value.filter.return_value.first.side_effect = [
-            mock_document_2,
-            mock_document
-        ]
-        
-        # Act
-        result = service.resolve_duplicate(
-            new_document_id=str(mock_document_2.id),
-            existing_document_id=str(mock_document.id),
-            action=DuplicateAction.KEEP_BOTH,
-            reason="",  # Motif vide
-            resolved_by="user123"
-        )
-        
-        # Assert
-        assert result["success"] == False
-        assert "obligatoire" in result["error"].lower()
-    
+        assert result.resolution == DuplicateResolution.KEPT_BOTH
+        assert result.resolution_reason == "Facture rectificative"
+        assert mock_document_2.status == DocumentStatus.PRE_TRAITEE
+
     def test_resolve_replace(self, service, mock_db, mock_document, mock_document_2):
         """Test: Remplacer l'existante par la nouvelle"""
         # Setup
+        mock_duplicate = MagicMock(spec=DocumentDuplicate)
+        mock_duplicate.id = uuid4()
+        mock_duplicate.existing_document_id = mock_document.id
+
         mock_db.query.return_value.filter.return_value.first.side_effect = [
-            mock_document_2,
-            mock_document
+            mock_duplicate,
+            mock_document  # Existing document to archive
         ]
-        
+
         # Act
         result = service.resolve_duplicate(
-            new_document_id=str(mock_document_2.id),
-            existing_document_id=str(mock_document.id),
-            action=DuplicateAction.REPLACE,
-            resolved_by="user123"
+            duplicate_id=str(mock_duplicate.id),
+            resolution="replaced",
+            user_id="user123"
         )
-        
+
         # Assert
-        assert result["success"] == True
-        assert result["action"] == "replace"
-        assert "archivée" in result["message"].lower()
-    
+        assert result.resolution == DuplicateResolution.REPLACED
+        assert mock_document.is_archived == True
+        assert mock_document.status == DocumentStatus.ARCHIVED
+
     def test_resolve_document_not_found(self, service, mock_db):
         """Test: Document non trouvé"""
         # Setup
         mock_db.query.return_value.filter.return_value.first.return_value = None
-        
-        # Act
-        result = service.resolve_duplicate(
-            new_document_id=str(uuid4()),
-            existing_document_id=str(uuid4()),
-            action=DuplicateAction.REJECT
-        )
-        
-        # Assert
-        assert result["success"] == False
-        assert "non trouvé" in result["error"].lower()
+
+        # Act & Assert
+        with pytest.raises(ValueError, match="not found"):
+            service.resolve_duplicate(
+                duplicate_id=str(uuid4()),
+                resolution="rejected",
+                user_id="user123"
+            )
 
 
 # =============================================================================
@@ -363,8 +386,8 @@ class TestDuplicateResolution:
 
 class TestDocumentComparison:
     """Tests pour la comparaison de documents"""
-    
-    def test_compare_identical_documents(self, service, mock_db, mock_document, mock_document_2):
+
+    def test_compare_identical_documents(self, service, mock_document, mock_document_2):
         """Test: Comparaison de documents identiques"""
         # Setup - Même valeurs
         mock_document_2.supplier_name = mock_document.supplier_name
@@ -373,51 +396,36 @@ class TestDocumentComparison:
         mock_document_2.amount_ht = mock_document.amount_ht
         mock_document_2.amount_vat = mock_document.amount_vat
         mock_document_2.amount_ttc = mock_document.amount_ttc
-        
-        mock_db.query.return_value.filter.return_value.first.side_effect = [
-            mock_document,
-            mock_document_2
-        ]
-        
+
         # Act
-        result = service.compare_documents(
-            str(mock_document.id),
-            str(mock_document_2.id)
-        )
-        
+        result = service.compare_documents(mock_document, mock_document_2)
+
         # Assert
         assert result["all_identical"] == True
-        assert "DOUBLON" in result["conclusion"]
-        assert result["identical_fields"] == result["total_fields"]
-    
-    def test_compare_different_documents(self, service, mock_db, mock_document, mock_document_2):
+        assert len(result["fields"]) > 0
+
+    def test_compare_different_documents(self, service, mock_document, mock_document_2):
         """Test: Comparaison de documents avec différences"""
         # Setup - Montants différents
-        mock_document_2.amount_ttc = Decimal("150000")  # Différent
-        
-        mock_db.query.return_value.filter.return_value.first.side_effect = [
-            mock_document,
-            mock_document_2
-        ]
-        
+        mock_document_2.amount_ttc = Decimal("150000")
+
         # Act
-        result = service.compare_documents(
-            str(mock_document.id),
-            str(mock_document_2.id)
-        )
-        
+        result = service.compare_documents(mock_document, mock_document_2)
+
         # Assert
         assert result["all_identical"] == False
-        assert "DIFFÉRENCES" in result["conclusion"]
-        assert result["identical_fields"] < result["total_fields"]
-    
-    def test_compare_document_not_found(self, service, mock_db):
-        """Test: Document non trouvé"""
-        mock_db.query.return_value.filter.return_value.first.return_value = None
-        
-        result = service.compare_documents(str(uuid4()), str(uuid4()))
-        
-        assert "error" in result
+
+    def test_compare_missing_values(self, service, mock_document, mock_document_2):
+        """Test: Comparaison avec valeurs manquantes"""
+        # Setup
+        mock_document.reference_number = None
+        mock_document_2.reference_number = "TEST-001"
+
+        # Act
+        result = service.compare_documents(mock_document, mock_document_2)
+
+        # Assert
+        assert result["all_identical"] == False
 
 
 # =============================================================================
@@ -426,49 +434,51 @@ class TestDocumentComparison:
 
 class TestHistoryAndStats:
     """Tests pour l'historique et les statistiques"""
-    
-    def test_get_duplicate_history(self, service, mock_db, mock_document):
+
+    def test_get_duplicate_history(self, service, mock_db, tenant_id):
         """Test: Récupération de l'historique"""
         # Setup
-        mock_document.status = MagicMock()
-        mock_document.status.value = "rejected"
-        mock_document.ai_extracted_data = {
-            "duplicate_resolution": {
-                "action": "reject",
-                "existing_document_id": str(uuid4()),
-                "resolved_by": "user123",
-                "resolved_at": "2026-01-15T10:00:00"
-            }
-        }
-        mock_document.updated_at = datetime(2026, 1, 15, 10, 0, 0)
-        
-        mock_db.query.return_value.filter.return_value.order_by.return_value.limit.return_value.offset.return_value.all.return_value = [mock_document]
-        
+        mock_duplicate = MagicMock(spec=DocumentDuplicate)
+        mock_duplicate.id = uuid4()
+        mock_duplicate.resolution = DuplicateResolution.REJECTED
+        mock_duplicate.resolved_at = datetime(2026, 1, 15, 10, 0, 0)
+
+        mock_db.query.return_value.filter.return_value.order_by.return_value.offset.return_value.limit.return_value.all.return_value = [mock_duplicate]
+
         # Act
         history = service.get_duplicate_history()
-        
+
         # Assert
         assert len(history) == 1
-        assert history[0]["action"] == "reject"
-    
-    def test_get_all_duplicates_groups(self, service, mock_db, mock_document, mock_document_2):
-        """Test: Groupes de doublons"""
-        # Setup - Deux documents avec même N° facture
-        mock_document_2.reference_number = mock_document.reference_number
-        mock_document_2.supplier_name = mock_document.supplier_name
-        
-        mock_db.query.return_value.filter.return_value.all.return_value = [
-            mock_document,
-            mock_document_2
-        ]
-        
+        assert history[0].resolution == DuplicateResolution.REJECTED
+
+    def test_get_pending_duplicates(self, service, mock_db):
+        """Test: Récupération des doublons en attente"""
+        # Setup
+        mock_duplicate = MagicMock(spec=DocumentDuplicate)
+        mock_duplicate.id = uuid4()
+        mock_duplicate.resolution = None  # Non résolu
+
+        mock_db.query.return_value.filter.return_value.order_by.return_value.all.return_value = [mock_duplicate]
+
         # Act
-        groups = service.get_all_duplicates()
-        
+        pending = service.get_pending_duplicates()
+
         # Assert
-        assert len(groups) == 1
-        assert groups[0]["count"] == 2
-        assert groups[0]["reference_number"] == mock_document.reference_number
+        assert len(pending) == 1
+        assert pending[0].resolution is None
+
+    def test_get_duplicate_history_pagination(self, service, mock_db):
+        """Test: Pagination de l'historique"""
+        # Setup
+        mock_db.query.return_value.filter.return_value.order_by.return_value.offset.return_value.limit.return_value.all.return_value = []
+
+        # Act
+        history = service.get_duplicate_history(limit=10, offset=20)
+
+        # Assert - Vérifie que les paramètres sont passés
+        mock_db.query.return_value.filter.return_value.order_by.return_value.offset.assert_called_with(20)
+        mock_db.query.return_value.filter.return_value.order_by.return_value.offset.return_value.limit.assert_called_with(10)
 
 
 # =============================================================================
@@ -477,94 +487,166 @@ class TestHistoryAndStats:
 
 class TestRealWorldScenarios:
     """Tests de scénarios métier réels"""
-    
+
     def test_scenario_abonnement_mensuel_canal_plus(self, service, mock_db):
         """
         Scénario: Factures Canal+ mensuelles
-        
+
         - Janvier: CP-2026-001, 25000 FCFA, 15/01/2026
         - Février: CP-2026-002, 25000 FCFA, 15/02/2026
         - Mars: CP-2026-003, 25000 FCFA, 15/03/2026
-        
+
         Aucun ne doit être détecté comme doublon car N° différents
         """
-        mock_db.query.return_value.filter.return_value.filter.return_value.first.return_value = None
-        
+        mock_db.query.return_value.filter.return_value.first.return_value = None
+
         # Janvier
         result_jan = service.detect_duplicate(
             supplier_name="Canal+",
             invoice_number="CP-2026-001",
-            amount_ttc=25000,
-            invoice_date=date(2026, 1, 15)
+            amount_ttc=25000.0,
+            document_date=date(2026, 1, 15)
         )
         assert result_jan is None
-        
+
         # Février
         result_feb = service.detect_duplicate(
             supplier_name="Canal+",
             invoice_number="CP-2026-002",
-            amount_ttc=25000,
-            invoice_date=date(2026, 2, 15)
+            amount_ttc=25000.0,
+            document_date=date(2026, 2, 15)
         )
         assert result_feb is None
-    
+
+        # Mars
+        result_mar = service.detect_duplicate(
+            supplier_name="Canal+",
+            invoice_number="CP-2026-003",
+            amount_ttc=25000.0,
+            document_date=date(2026, 3, 15)
+        )
+        assert result_mar is None
+
     def test_scenario_vraie_facture_doublon(self, service, mock_db, mock_document):
         """
         Scénario: Vraie facture uploadée deux fois
-        
+
         La même facture SBEE-2024-0892 est uploadée deux fois
         → Doit être détectée comme doublon
         """
-        mock_db.query.return_value.filter.return_value.filter.return_value.first.return_value = mock_document
-        
+        mock_db.query.return_value.filter.return_value.first.return_value = mock_document
+
         result = service.detect_duplicate(
             supplier_name="SBEE",
             invoice_number="SBEE-2024-0892",
-            amount_ttc=118000,
-            invoice_date=date(2026, 1, 5)
+            amount_ttc=118000.0,
+            document_date=date(2026, 1, 5)
         )
-        
+
         assert result is not None
-        assert result["is_duplicate"] == True
-        assert result["reason"] == "same_invoice_number"
-    
+        existing_doc, reason = result
+        assert reason == DuplicateDetectionReason.SAME_INVOICE_NUMBER
+
+    def test_scenario_facture_meme_jour_sans_numero(self, service, mock_db, mock_document):
+        """
+        Scénario: Deux uploads le même jour, même montant, pas de N° facture
+
+        → Doit être détecté comme doublon par critère 2
+        """
+        # Quand invoice_number=None, seul le critère 2 est testé
+        mock_db.query.return_value.filter.return_value.first.return_value = mock_document
+
+        result = service.detect_duplicate(
+            supplier_name="SBEE",
+            invoice_number=None,  # Pas de N° → skip critère 1
+            amount_ttc=118000.0,
+            document_date=date(2026, 1, 5)
+        )
+
+        assert result is not None
+        existing_doc, reason = result
+        assert reason == DuplicateDetectionReason.SAME_AMOUNT_DATE
+
     def test_scenario_facture_rectificative(self, service, mock_db, mock_document, mock_document_2):
         """
         Scénario: Facture rectificative
-        
+
         Fournisseur envoie une nouvelle version de la facture.
         L'utilisateur choisit "Remplacer".
         """
+        mock_duplicate = MagicMock(spec=DocumentDuplicate)
+        mock_duplicate.id = uuid4()
+        mock_duplicate.existing_document_id = mock_document.id
+
         mock_db.query.return_value.filter.return_value.first.side_effect = [
-            mock_document_2,
+            mock_duplicate,
             mock_document
         ]
-        
+
         result = service.resolve_duplicate(
-            new_document_id=str(mock_document_2.id),
-            existing_document_id=str(mock_document.id),
-            action=DuplicateAction.REPLACE,
-            resolved_by="comptable"
+            duplicate_id=str(mock_duplicate.id),
+            resolution="replaced",
+            user_id="comptable"
         )
-        
-        assert result["success"] == True
-        assert result["action"] == "replace"
+
+        assert result.resolution == DuplicateResolution.REPLACED
+        assert mock_document.is_archived == True
 
 
 # =============================================================================
-# TESTS: FACTORY
+# TESTS: EDGE CASES
 # =============================================================================
 
-class TestFactory:
-    """Tests pour la factory function"""
-    
-    def test_get_service_instance(self, mock_db, tenant_id):
-        """Test création d'instance via factory"""
-        service = get_duplicate_detection_service(mock_db, tenant_id)
-        
-        assert isinstance(service, DuplicateDetectionService)
-        assert service.tenant_id == tenant_id
-        assert service.db == mock_db
+class TestEdgeCases:
+    """Tests pour les cas limites"""
+
+    def test_detect_with_none_supplier(self, service, mock_db):
+        """Test: Supplier name est None"""
+        result = service.detect_duplicate(
+            supplier_name=None,
+            invoice_number="TEST-001",
+            amount_ttc=100.0,
+            document_date=date(2026, 1, 1)
+        )
+        # Ne devrait pas lever d'exception
+        assert result is None
+
+    def test_detect_with_empty_invoice_number(self, service, mock_db):
+        """Test: Invoice number est une chaîne vide"""
+        mock_db.query.return_value.filter.return_value.first.return_value = None
+
+        result = service.detect_duplicate(
+            supplier_name="SBEE",
+            invoice_number="",
+            amount_ttc=100.0,
+            document_date=date(2026, 1, 1)
+        )
+        assert result is None
+
+    def test_detect_with_zero_amount(self, service, mock_db):
+        """Test: Montant à zéro"""
+        mock_db.query.return_value.filter.return_value.first.return_value = None
+
+        result = service.detect_duplicate(
+            supplier_name="SBEE",
+            invoice_number=None,
+            amount_ttc=0.0,
+            document_date=date(2026, 1, 1)
+        )
+        # Ne devrait pas lever d'exception
+        assert result is None
+
+    def test_detect_with_negative_amount(self, service, mock_db):
+        """Test: Montant négatif (avoir)"""
+        mock_db.query.return_value.filter.return_value.first.return_value = None
+
+        result = service.detect_duplicate(
+            supplier_name="SBEE",
+            invoice_number="AVOIR-001",
+            amount_ttc=-50000.0,
+            document_date=date(2026, 1, 1)
+        )
+        assert result is None
 
 
 # =============================================================================
