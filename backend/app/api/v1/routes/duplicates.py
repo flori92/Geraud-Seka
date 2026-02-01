@@ -17,6 +17,7 @@ from app.core.deps import get_current_user, get_current_tenant
 from app.models.user import User
 from app.models.tenant import Tenant
 from app.services.duplicate_detection import DuplicateDetectionService
+from app.services.audit_logger import audit_duplicate_resolution
 
 logger = logging.getLogger(__name__)
 
@@ -118,6 +119,17 @@ async def resolve_duplicate(
         )
 
         db.commit()
+
+        # Log audit de la resolution
+        audit_duplicate_resolution(
+            duplicate_id=str(duplicate_id),
+            resolution=request.resolution,
+            user_id=str(current_user.id),
+            tenant_id=str(current_tenant.id),
+            new_document_id=str(duplicate.new_document_id),
+            existing_document_id=str(duplicate.existing_document_id),
+            resolution_reason=request.resolution_reason,
+        )
 
         # Invalider le cache des stats pour mise à jour immédiate
         from app.core.cache import clear_cache

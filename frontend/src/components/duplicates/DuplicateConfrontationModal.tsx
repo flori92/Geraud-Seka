@@ -3,7 +3,21 @@
  * Affiche deux documents côte à côte pour comparaison
  */
 import { useState } from "react";
-import { X, AlertCircle, CheckCircle, FileText } from "lucide-react";
+import { X, AlertCircle, CheckCircle, FileText, Eye, EyeOff } from "lucide-react";
+import dynamic from "next/dynamic";
+
+// Chargement dynamique du visualiseur PDF (client-side only)
+const DocumentPdfViewer = dynamic(() => import("../DocumentPdfViewer"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-64 bg-gray-100 flex items-center justify-center">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+    </div>
+  ),
+});
+
+// URL de base de l'API
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 interface DuplicateDocument {
     id: string;
@@ -20,8 +34,8 @@ interface DuplicateDocument {
 interface ComparisonField {
     name: string;
     label: string;
-    new_value: any;
-    existing_value: any;
+    new_value: string | number | null;
+    existing_value: string | number | null;
     identical: boolean;
 }
 
@@ -50,6 +64,15 @@ export default function DuplicateConfrontationModal({
     const [selectedResolution, setSelectedResolution] = useState<string>("");
     const [resolutionReason, setResolutionReason] = useState("");
     const [loading, setLoading] = useState(false);
+    const [showPdfPreview, setShowPdfPreview] = useState(true);
+
+    // Construire les URLs des PDFs
+    const newDocUrl = duplicate.new_document.file_path
+        ? `${API_BASE_URL}/api/v1/documents/download/${duplicate.new_document.file_path}`
+        : null;
+    const existingDocUrl = duplicate.existing_document.file_path
+        ? `${API_BASE_URL}/api/v1/documents/download/${duplicate.existing_document.file_path}`
+        : null;
 
     const handleConfirm = async () => {
         if (!selectedResolution) {
@@ -112,12 +135,22 @@ export default function DuplicateConfrontationModal({
                             </p>
                         </div>
                     </div>
-                    <button
-                        onClick={onClose}
-                        className="text-gray-400 hover:text-gray-600"
-                    >
-                        <X className="w-6 h-6" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setShowPdfPreview(!showPdfPreview)}
+                            className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                            title={showPdfPreview ? "Masquer les PDFs" : "Afficher les PDFs"}
+                        >
+                            {showPdfPreview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            <span>{showPdfPreview ? "Masquer PDFs" : "Voir PDFs"}</span>
+                        </button>
+                        <button
+                            onClick={onClose}
+                            className="text-gray-400 hover:text-gray-600"
+                        >
+                            <X className="w-6 h-6" />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Content */}
@@ -131,16 +164,23 @@ export default function DuplicateConfrontationModal({
                                     <FileText className="w-5 h-5" />
                                     📄 NOUVELLE FACTURE
                                 </h3>
-                                <p className="text-xs text-blue-700 mt-1">(vient d'être uploadée)</p>
+                                <p className="text-xs text-blue-700 mt-1">(vient d&apos;être uploadée)</p>
                             </div>
 
-                            {/* PDF Viewer placeholder */}
-                            <div className="bg-gray-100 h-64 flex items-center justify-center">
-                                <div className="text-center text-gray-500">
-                                    <FileText className="w-16 h-16 mx-auto mb-2 text-gray-400" />
-                                    <p className="text-sm">{duplicate.new_document.filename}</p>
+                            {/* PDF Viewer */}
+                            {showPdfPreview && newDocUrl ? (
+                                <div className="h-72">
+                                    <DocumentPdfViewer url={newDocUrl} />
                                 </div>
-                            </div>
+                            ) : (
+                                <div className="bg-gray-100 h-64 flex items-center justify-center">
+                                    <div className="text-center text-gray-500">
+                                        <FileText className="w-16 h-16 mx-auto mb-2 text-gray-400" />
+                                        <p className="text-sm">{duplicate.new_document.filename}</p>
+                                        {!newDocUrl && <p className="text-xs text-gray-400 mt-1">PDF non disponible</p>}
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Info */}
                             <div className="p-4 space-y-2 bg-white">
@@ -178,13 +218,20 @@ export default function DuplicateConfrontationModal({
                                 <p className="text-xs text-green-700 mt-1">(déjà dans le système)</p>
                             </div>
 
-                            {/* PDF Viewer placeholder */}
-                            <div className="bg-gray-100 h-64 flex items-center justify-center">
-                                <div className="text-center text-gray-500">
-                                    <FileText className="w-16 h-16 mx-auto mb-2 text-gray-400" />
-                                    <p className="text-sm">{duplicate.existing_document.filename}</p>
+                            {/* PDF Viewer */}
+                            {showPdfPreview && existingDocUrl ? (
+                                <div className="h-72">
+                                    <DocumentPdfViewer url={existingDocUrl} />
                                 </div>
-                            </div>
+                            ) : (
+                                <div className="bg-gray-100 h-64 flex items-center justify-center">
+                                    <div className="text-center text-gray-500">
+                                        <FileText className="w-16 h-16 mx-auto mb-2 text-gray-400" />
+                                        <p className="text-sm">{duplicate.existing_document.filename}</p>
+                                        {!existingDocUrl && <p className="text-xs text-gray-400 mt-1">PDF non disponible</p>}
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Info */}
                             <div className="p-4 space-y-2 bg-white">
@@ -272,7 +319,7 @@ export default function DuplicateConfrontationModal({
                             {duplicate.comparison.all_identical && (
                                 <div className="mt-3 p-3 bg-red-100 border border-red-300 rounded-lg">
                                     <p className="text-sm font-medium text-red-900">
-                                        → TOUS LES CHAMPS SONT IDENTIQUES = C'EST UN DOUBLON
+                                        → TOUS LES CHAMPS SONT IDENTIQUES = C&apos;EST UN DOUBLON
                                     </p>
                                 </div>
                             )}
@@ -294,7 +341,7 @@ export default function DuplicateConfrontationModal({
                                     className="mt-1"
                                 />
                                 <div className="flex-1">
-                                    <p className="font-medium text-gray-900">C'est un doublon → Rejeter la nouvelle facture</p>
+                                    <p className="font-medium text-gray-900">C&apos;est un doublon → Rejeter la nouvelle facture</p>
                                     <p className="text-sm text-gray-600 mt-1">(la facture existante sera conservée)</p>
                                 </div>
                             </label>
@@ -309,7 +356,7 @@ export default function DuplicateConfrontationModal({
                                     className="mt-1"
                                 />
                                 <div className="flex-1">
-                                    <p className="font-medium text-gray-900">Ce n'est PAS un doublon → Conserver les deux</p>
+                                    <p className="font-medium text-gray-900">Ce n&apos;est PAS un doublon → Conserver les deux</p>
                                     <p className="text-sm text-gray-600 mt-1">Motif obligatoire:</p>
                                     {selectedResolution === "kept_both" && (
                                         <input
@@ -333,8 +380,8 @@ export default function DuplicateConfrontationModal({
                                     className="mt-1"
                                 />
                                 <div className="flex-1">
-                                    <p className="font-medium text-gray-900">Remplacer l'existante → Utiliser la nouvelle version</p>
-                                    <p className="text-sm text-gray-600 mt-1">(l'ancienne sera archivée)</p>
+                                    <p className="font-medium text-gray-900">Remplacer l&apos;existante → Utiliser la nouvelle version</p>
+                                    <p className="text-sm text-gray-600 mt-1">(l&apos;ancienne sera archivée)</p>
                                 </div>
                             </label>
                         </div>

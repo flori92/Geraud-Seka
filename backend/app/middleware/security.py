@@ -49,17 +49,21 @@ class SecurityMiddleware(BaseHTTPMiddleware):
             "/health",
             "/health/live",
             "/health/ready",
-            "/api/v1/auth/login",
             "/api/v1/auth/me",
             "/api/v1/notifications",
-            "/api/v1/documents/",
-            "/api/v1/clients/",
         }
+        # Endpoints sensibles avec rate limiting strict (30 req/min)
         self.sensitive_endpoints = {
-            "/api/v1/auth/",
+            "/api/v1/auth/login",
+            "/api/v1/auth/register",
+            "/api/v1/auth/reset-password",
             "/api/v1/billing/",
             "/api/v1/settings/",
+            "/api/v1/duplicates/",
+            "/api/v1/documents/upload",
         }
+        # Rate limiter strict pour endpoints sensibles
+        self.sensitive_rate_limiter = RateLimiter(requests_per_minute=30, requests_per_hour=500)
     
     def _get_client_identifier(self, request: Request) -> str:
         forwarded_for = request.headers.get("x-forwarded-for", "")
@@ -132,16 +136,21 @@ class SecurityMiddleware(BaseHTTPMiddleware):
             return response
         
         is_exempt = path in self.rate_limit_exemptions or any(path.startswith(ex) for ex in self.rate_limit_exemptions)
+        is_sensitive = any(path.startswith(ep) for ep in self.sensitive_endpoints)
+
         if not is_exempt:
-            is_limited, limit_reason = self.rate_limiter.is_rate_limited(client_id)
+            # Utiliser le rate limiter strict pour les endpoints sensibles
+            limiter = self.sensitive_rate_limiter if is_sensitive else self.rate_limiter
+            is_limited, limit_reason = limiter.is_rate_limited(client_id)
             if is_limited:
-                logger.warning(f"⚠️ Rate limited client {client_id}: {limit_reason}")
+                endpoint_type = "sensitive" if is_sensitive else "standard"
+                logger.warning(f"⚠️ Rate limited ({endpoint_type}) client {client_id}: {limit_reason} on {path}")
                 response = Response(
                     content='{"error": "Too many requests. Please slow down."}',
                     status_code=429,
                     media_type="application/json"
                 )
-                response.headers["Retry-After"] = "60"
+                response.headers["Retry-After"] = "60" if not is_sensitive else "120"
                 self._add_security_headers(response, request)
                 return response
         
