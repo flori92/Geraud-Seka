@@ -54,4 +54,5 @@ seka.log
 
 # Gemini/Claude temp files
 .claude/
+.ralph/
 
