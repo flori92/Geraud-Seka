@@ -329,19 +329,25 @@ export default function FournisseursPage() {
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Code
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Nom
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Compte 401
+                                        </th>
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Compte auxiliaire
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Règle active
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Comptes (Charge/TVA)
                                         </th>
-                                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Statut règle
+                                        </th>
+                                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Actions
                                         </th>
                                     </tr>
@@ -349,10 +355,10 @@ export default function FournisseursPage() {
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {filteredSuppliers.map((supplier) => (
                                         <tr key={supplier.id} className="hover:bg-gray-50">
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                            <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                                 {supplier.code || '-'}
                                             </td>
-                                            <td className="px-6 py-4 text-sm">
+                                            <td className="px-4 py-4 text-sm">
                                                 <div className="flex items-center gap-2">
                                                     <Building className="h-4 w-4 text-gray-400" />
                                                     <div>
@@ -363,31 +369,53 @@ export default function FournisseursPage() {
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                            <td className="px-4 py-4 whitespace-nowrap text-sm">
+                                                <span className="font-mono text-gray-600 bg-gray-100 px-2 py-1 rounded text-xs">
+                                                    401
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-4 whitespace-nowrap text-sm">
                                                 {supplier.auxiliary_account_code ? (
                                                     <span className="font-mono text-blue-600 font-medium bg-blue-50 px-2 py-1 rounded">
                                                         {supplier.auxiliary_account_code}
                                                     </span>
                                                 ) : (
-                                                    <span className="text-gray-400 text-xs">Non créé</span>
+                                                    <span className="text-amber-600 bg-amber-50 px-2 py-1 rounded text-xs">Non créé</span>
                                                 )}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                            <td className="px-4 py-4 whitespace-nowrap text-sm">
+                                                {supplier.has_active_rule && supplier.default_charge_account ? (
+                                                    <div className="space-y-1">
+                                                        <div className="flex items-center gap-1">
+                                                            <span className="font-mono text-xs bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded">
+                                                                {supplier.default_charge_account}
+                                                            </span>
+                                                            <span className="text-gray-400 text-xs">/</span>
+                                                            <span className="font-mono text-xs bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded">
+                                                                {supplier.default_vat_account || '4454'}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-gray-400 text-xs">-</span>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-4 whitespace-nowrap text-sm">
                                                 {supplier.has_active_rule ? (
-                                                    <div className="flex items-center gap-1 text-green-600">
-                                                        <CheckCircle className="h-4 w-4" />
-                                                        <span className="text-xs">
-                                                            {supplier.default_charge_account && `→ ${supplier.default_charge_account}`}
+                                                    <div className="flex items-center gap-1">
+                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                                                            <CheckCircle className="h-3 w-3" />
+                                                            Créée
                                                         </span>
                                                     </div>
                                                 ) : (
-                                                    <div className="flex items-center gap-1 text-gray-400">
-                                                        <XCircle className="h-4 w-4" />
-                                                        <span className="text-xs">Non</span>
-                                                    </div>
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                                                        <XCircle className="h-3 w-3" />
+                                                        Non créée
+                                                    </span>
                                                 )}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                            <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                                                 <button
                                                     onClick={() => handleEdit(supplier)}
                                                     className="text-blue-600 hover:text-blue-900 inline-flex items-center gap-1"

@@ -65,6 +65,15 @@ class Document(DocumentBase):
     tenant_id: Optional[UUID] = None
     uploaded_by: Optional[UUID] = None
 
+    # Champs de règle comptable (extraits de la règle appliquée)
+    auto_validable: Optional[bool] = None
+    matched_rule_id: Optional[UUID] = None
+    matched_rule_name: Optional[str] = None
+    charge_account: Optional[str] = None       # Compte de charge (ex: 6061)
+    vat_account: Optional[str] = None          # Compte TVA (ex: 4454)
+    supplier_account: Optional[str] = None     # Compte tiers (ex: 401SBEE)
+    journal_code: Optional[str] = None         # Journal (ACH, VTE)
+
     @field_validator("ocr_data", "ai_extracted_data", "custom_fields", mode="before")
     @classmethod
     def parse_json_data(cls, v: Any):
@@ -127,9 +136,9 @@ class Document(DocumentBase):
 
     @classmethod
     def model_validate(cls, obj: Any, **kwargs):
-        """Override model_validate to extract customer_name from ocr_data"""
+        """Override model_validate to extract customer_name and accounting fields from related data"""
         if hasattr(obj, '__dict__'):
-            # SQLAlchemy model - extract customer_name from ocr_data if not present
+            # SQLAlchemy model - extract computed fields
             data = {}
             for key in cls.model_fields.keys():
                 if hasattr(obj, key):
@@ -140,6 +149,21 @@ class Document(DocumentBase):
                         data[key] = ocr.get('customer_name')
                     else:
                         data[key] = None
+
+            # Extraire les comptes de la règle appliquée ou de ai_extracted_data
+            ai_data = getattr(obj, 'ai_extracted_data', None) or {}
+            rule_data = ai_data.get('applied_rule', {}) or ai_data.get('classification', {}) or {}
+
+            # Si pas de charge_account, tenter de l'extraire des données
+            if not data.get('charge_account') and rule_data:
+                data['charge_account'] = rule_data.get('charge_account') or rule_data.get('debit_account')
+            if not data.get('vat_account') and rule_data:
+                data['vat_account'] = rule_data.get('vat_account') or rule_data.get('tva_account', '4454')
+            if not data.get('supplier_account') and rule_data:
+                data['supplier_account'] = rule_data.get('supplier_account') or rule_data.get('credit_account') or rule_data.get('tiers_account')
+            if not data.get('journal_code') and rule_data:
+                data['journal_code'] = rule_data.get('journal_code') or rule_data.get('journal', 'ACH')
+
             return super().model_validate(data, **kwargs)
         return super().model_validate(obj, **kwargs)
 

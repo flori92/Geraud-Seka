@@ -125,35 +125,67 @@ class AccountingRulesEngine:
         return False
 
     def _apply_actions(
-        self, 
-        rule: AccountingRule, 
-        data: Dict[str, Any], 
+        self,
+        rule: AccountingRule,
+        data: Dict[str, Any],
         confidence: float
     ) -> Dict[str, Any]:
         """Applique les actions d'une règle"""
-        
+
+        # Détecter si c'est une règle de vente (customer_name dans les conditions)
+        is_sales_rule = any(
+            cond.get("type") == "customer_name" or
+            cond.get("value") == "INVOICE_SALES"
+            for cond in rule.conditions
+        )
+
+        # Défauts selon le type de règle
+        if is_sales_rule:
+            default_vat_account = "4457"  # TVA collectée
+            default_journal = "VTE"       # Journal ventes
+        else:
+            default_vat_account = "4454"  # TVA déductible
+            default_journal = "ACH"       # Journal achats
+
         result = {
+            "matched": True,  # Flag indiquant qu'une règle a été trouvée
             "rule_id": str(rule.id),
             "rule_name": rule.name,
             "confidence": confidence,
             "auto_apply": rule.auto_apply and confidence >= rule.confidence_threshold,
             "suggested_debit_account": None,
             "suggested_credit_account": None,
+            "suggested_vat_account": default_vat_account,
             "suggested_label": None,
-            "suggested_vat_rate": None,
-            "suggested_analytic_code": None
+            "suggested_vat_rate": 18,  # Par défaut 18%
+            "suggested_analytic_code": None,
+            "journal_code": default_journal,
+            "is_sales": is_sales_rule,
+            "source": "rule"
         }
 
         for action in rule.actions:
             action_type = action.get("type")
-            
+
             if action_type == RuleActionType.ASSIGN_ACCOUNT:
                 result["suggested_debit_account"] = action.get("debit_account")
                 result["suggested_credit_account"] = action.get("credit_account")
+                # Récupérer le compte TVA s'il est spécifié
+                if action.get("vat_account"):
+                    result["suggested_vat_account"] = action.get("vat_account")
             elif action_type == RuleActionType.SET_VAT_RATE:
                 result["suggested_vat_rate"] = action.get("vat_rate")
+                # Déterminer le compte TVA selon le taux
+                vat_rate = action.get("vat_rate", 18)
+                if vat_rate == 18:
+                    result["suggested_vat_account"] = action.get("vat_account", "4454")
+                elif vat_rate == 0:
+                    result["suggested_vat_account"] = None
             elif action_type == RuleActionType.SUGGEST_LABEL:
-                result["suggested_label"] = action.get("label_template", "").format(**data)
+                try:
+                    result["suggested_label"] = action.get("label_template", "").format(**data)
+                except (KeyError, ValueError):
+                    result["suggested_label"] = action.get("label_template", "")
             elif action_type == RuleActionType.ASSIGN_ANALYTIC_CODE:
                 result["suggested_analytic_code"] = action.get("analytic_code")
             elif action_type == RuleActionType.AUTO_VALIDATE:
@@ -164,27 +196,39 @@ class AccountingRulesEngine:
     def _default_suggestions(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Suggestions par défaut basées sur le type de document.
-        
-        Utilise le système d'interconnexion pour trouver le fournisseur
+
+        Utilise le système d'interconnexion pour trouver le fournisseur/client
         et sa règle d'imputation associée.
         """
+        document_type = data.get("document_type", "").upper()
         supplier_name = data.get("supplier_name", "").lower()
+        customer_name = data.get("customer_name", "").lower()
         raw_text = data.get("raw_text", "")
-        
+
+        # ============================================================
+        # FACTURES DE VENTES (INVOICE_SALES)
+        # ============================================================
+        if document_type == "INVOICE_SALES" or (customer_name and not supplier_name):
+            # C'est une facture de vente - retourner les suggestions appropriées
+            return self._default_sales_suggestions(data, customer_name)
+
         # Essayer de trouver le fournisseur via l'interconnexion
         try:
             from app.services.tiers_interconnection import TiersInterconnectionService
             service = TiersInterconnectionService(self.db, self.tenant_id)
-            
+
             supplier, confidence = service.find_supplier_by_ocr_text(
                 raw_text or supplier_name,
                 supplier_name
             )
-            
+
             if supplier and supplier.has_active_rule:
                 # Utiliser la règle du fournisseur
                 auxiliary_code = supplier.auxiliary_account_code or f"401{supplier.code or supplier.name[:4].upper()}"
                 return {
+                    "matched": True,  # Fournisseur avec règle = match
+                    "rule_id": str(supplier.default_rule_id) if supplier.default_rule_id else None,
+                    "rule_name": f"Règle {supplier.name}",
                     "confidence": confidence,
                     "auto_apply": confidence >= 0.7,
                     "suggested_debit_account": supplier.default_charge_account or "601000",
@@ -192,6 +236,7 @@ class AccountingRulesEngine:
                     "suggested_vat_account": supplier.default_vat_account or "4454",
                     "suggested_vat_rate": float(supplier.default_tax_rate or 18),
                     "suggested_label": f"Facture {supplier.name}",
+                    "journal_code": supplier.default_journal or "ACH",
                     "supplier_id": str(supplier.id),
                     "supplier_name": supplier.name,
                     "source": "interconnection"
@@ -200,11 +245,14 @@ class AccountingRulesEngine:
                 # Fournisseur trouvé mais sans règle
                 auxiliary_code = supplier.auxiliary_account_code or "401000"
                 return {
+                    "matched": False,  # Fournisseur sans règle = pas de match
                     "confidence": confidence * 0.8,
                     "auto_apply": False,
                     "suggested_debit_account": supplier.default_charge_account or "601000",
                     "suggested_credit_account": auxiliary_code,
+                    "suggested_vat_account": supplier.default_vat_account or "4454",
                     "suggested_label": f"Facture {supplier.name}",
+                    "journal_code": "ACH",
                     "supplier_id": str(supplier.id),
                     "supplier_name": supplier.name,
                     "source": "supplier_found_no_rule",
@@ -217,60 +265,148 @@ class AccountingRulesEngine:
         # Électricité / Énergie
         if any(keyword in supplier_name for keyword in ["sbee", "edf", "energie", "électricité", "sonelec"]):
             return {
+                "matched": False,
                 "confidence": 0.5,
                 "auto_apply": False,
                 "suggested_debit_account": "6061",  # Électricité
                 "suggested_credit_account": "401",  # Fournisseurs
                 "suggested_vat_account": "4454",
                 "suggested_label": f"Facture électricité - {supplier_name}",
+                "journal_code": "ACH",
                 "source": "heuristic"
             }
-        
+
         # Eau
         if any(keyword in supplier_name for keyword in ["soneb", "water", "eau"]):
             return {
+                "matched": False,
                 "confidence": 0.5,
                 "auto_apply": False,
                 "suggested_debit_account": "6062",  # Eau
                 "suggested_credit_account": "401",
                 "suggested_vat_account": "4454",
                 "suggested_label": f"Facture eau - {supplier_name}",
+                "journal_code": "ACH",
                 "source": "heuristic"
             }
-        
+
         # Télécommunications
         if any(keyword in supplier_name for keyword in ["mtn", "moov", "orange", "telecom", "glo"]):
             return {
+                "matched": False,
                 "confidence": 0.5,
                 "auto_apply": False,
                 "suggested_debit_account": "6261",  # Télécommunications
                 "suggested_credit_account": "401",
                 "suggested_vat_account": "4454",
                 "suggested_label": f"Facture télécom - {supplier_name}",
+                "journal_code": "ACH",
                 "source": "heuristic"
             }
-        
+
         # Carburant
         if any(keyword in supplier_name for keyword in ["oryx", "total", "shell", "carburant", "essence"]):
             return {
+                "matched": False,
                 "confidence": 0.5,
                 "auto_apply": False,
                 "suggested_debit_account": "6063",  # Carburants
                 "suggested_credit_account": "401",
                 "suggested_vat_account": "4454",
                 "suggested_label": f"Facture carburant - {supplier_name}",
+                "journal_code": "ACH",
                 "source": "heuristic"
             }
 
-        # Par défaut
+        # Par défaut pour les achats
         return {
+            "matched": False,
             "confidence": 0.3,
             "auto_apply": False,
             "suggested_debit_account": "601",  # Achats de marchandises
             "suggested_credit_account": "401",  # Fournisseurs
             "suggested_vat_account": "4454",
             "suggested_label": f"Achat - {supplier_name}",
+            "journal_code": "ACH",
+            "is_sales": False,
             "source": "default"
+        }
+
+    def _default_sales_suggestions(self, data: Dict[str, Any], customer_name: str) -> Dict[str, Any]:
+        """
+        Suggestions par défaut pour les factures de ventes.
+
+        Pour les ventes:
+        - Débit: 411XXX (Client)
+        - Crédit: 70X (Produits/Services)
+        - TVA: 4457 (TVA collectée)
+        - Journal: VTE
+        """
+        # Essayer de trouver le client via l'interconnexion
+        try:
+            from app.services.tiers_interconnection import TiersInterconnectionService
+            service = TiersInterconnectionService(self.db, self.tenant_id)
+
+            # Chercher le client
+            client, confidence = service.find_client_by_ocr_text(
+                data.get("raw_text", "") or customer_name,
+                customer_name
+            )
+
+            if client and hasattr(client, 'has_active_rule') and client.has_active_rule:
+                # Utiliser la règle du client
+                auxiliary_code = client.auxiliary_account_code or f"411{client.code or client.name[:4].upper()}"
+                return {
+                    "matched": True,  # Client avec règle = match
+                    "rule_id": str(client.default_rule_id) if hasattr(client, 'default_rule_id') and client.default_rule_id else None,
+                    "rule_name": f"Règle Vente {client.name}",
+                    "confidence": confidence,
+                    "auto_apply": confidence >= 0.7,
+                    "suggested_debit_account": auxiliary_code,  # 411XXX - Client
+                    "suggested_credit_account": getattr(client, 'default_revenue_account', None) or "7011",  # 70X - Produits
+                    "suggested_vat_account": getattr(client, 'default_vat_account', None) or "4457",  # TVA collectée
+                    "suggested_vat_rate": float(getattr(client, 'default_tax_rate', None) or 18),
+                    "suggested_label": f"Vente {client.name}",
+                    "journal_code": getattr(client, 'default_journal', None) or "VTE",
+                    "client_id": str(client.id),
+                    "client_name": client.name,
+                    "is_sales": True,
+                    "source": "interconnection"
+                }
+            elif client:
+                # Client trouvé mais sans règle
+                auxiliary_code = getattr(client, 'auxiliary_account_code', None) or f"411{customer_name[:4].upper()}"
+                return {
+                    "matched": False,  # Client sans règle = pas de match
+                    "confidence": confidence * 0.8,
+                    "auto_apply": False,
+                    "suggested_debit_account": auxiliary_code,  # 411XXX
+                    "suggested_credit_account": "7011",  # Ventes de marchandises
+                    "suggested_vat_account": "4457",  # TVA collectée
+                    "suggested_label": f"Vente {client.name}",
+                    "journal_code": "VTE",
+                    "client_id": str(client.id),
+                    "client_name": client.name,
+                    "is_sales": True,
+                    "source": "client_found_no_rule",
+                    "message": f"Client '{client.name}' trouvé mais sans règle d'imputation"
+                }
+        except Exception as e:
+            print(f"Client interconnection lookup failed: {e}")
+
+        # Fallback: suggestions génériques pour ventes
+        client_code = f"411{customer_name[:4].upper()}" if customer_name else "411000"
+        return {
+            "matched": False,
+            "confidence": 0.3,
+            "auto_apply": False,
+            "suggested_debit_account": client_code,  # Compte client
+            "suggested_credit_account": "7011",  # Ventes de marchandises
+            "suggested_vat_account": "4457",  # TVA collectée
+            "suggested_label": f"Vente - {customer_name}" if customer_name else "Vente",
+            "journal_code": "VTE",
+            "is_sales": True,
+            "source": "default_sales"
         }
 
 

@@ -472,7 +472,7 @@ export default function DocumentsEnAttentePage() {
                                     <table className="w-full">
                                         <thead className="bg-gray-50">
                                             <tr>
-                                                <th className="px-6 py-3 text-left">
+                                                <th className="px-4 py-3 text-left">
                                                     <input
                                                         type="checkbox"
                                                         checked={selectedDocs.length === filteredDocuments.length}
@@ -486,25 +486,34 @@ export default function DocumentsEnAttentePage() {
                                                         className="rounded border-gray-300"
                                                     />
                                                 </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                     Document
                                                 </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Fournisseur/Client
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Fournisseur
                                                 </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                     Date
                                                 </th>
-                                                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Montant TTC
+                                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    HT
                                                 </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    TVA
+                                                </th>
+                                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    TTC
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Comptes
+                                                </th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                     Statut
                                                 </th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                     Type
                                                 </th>
-                                                <th className="px-6 py-3"></th>
+                                                <th className="px-4 py-3"></th>
                                             </tr>
                                         </thead>
                                         <tbody className="bg-white divide-y divide-gray-200">
@@ -520,7 +529,7 @@ export default function DocumentsEnAttentePage() {
                                                         className="hover:bg-gray-50 cursor-pointer"
                                                         onClick={() => router.push(`/documents/${doc.id}/validate`)}
                                                     >
-                                                        <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                                                        <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
                                                             <input
                                                                 type="checkbox"
                                                                 checked={selectedDocs.includes(doc.id)}
@@ -534,63 +543,85 @@ export default function DocumentsEnAttentePage() {
                                                                 className="rounded border-gray-300"
                                                             />
                                                         </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                        <td className="px-4 py-4 whitespace-nowrap">
                                                             <div className="flex items-center">
-                                                                <FileText className="h-5 w-5 text-gray-400 mr-3" />
+                                                                <FileText className="h-5 w-5 text-gray-400 mr-2" />
                                                                 <div>
                                                                     <p className="text-sm font-medium text-gray-900">
                                                                         {doc.reference_number || doc.filename}
                                                                     </p>
-                                                                    <p className="text-xs text-gray-500">{doc.filename}</p>
+                                                                    <p className="text-xs text-gray-500 truncate max-w-[120px]">{doc.filename}</p>
                                                                 </div>
                                                             </div>
                                                         </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                        <td className="px-4 py-4 whitespace-nowrap">
                                                             <span className="text-sm text-gray-900">
                                                                 {doc.supplier_name || doc.customer_name || '-'}
                                                             </span>
                                                         </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
                                                             {doc.date ? formatDate(doc.date) : formatDate(doc.created_at)}
                                                         </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                                                        <td className="px-4 py-4 whitespace-nowrap text-right">
+                                                            <span className="text-sm text-gray-700">
+                                                                {formatCurrency(doc.amount_ht)}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-4 py-4 whitespace-nowrap text-right">
+                                                            <span className="text-sm text-gray-600">
+                                                                {formatCurrency(doc.amount_vat)}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-4 py-4 whitespace-nowrap text-right">
                                                             <span className="text-sm font-semibold text-gray-900">
                                                                 {formatCurrency(doc.amount_ttc)}
                                                             </span>
                                                         </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap">
-                                                            <div className="flex items-center gap-2">
+                                                        <td className="px-4 py-4 whitespace-nowrap">
+                                                            {doc.matched_rule_name ? (
+                                                                <div className="text-xs">
+                                                                    <span className="inline-flex items-center px-2 py-0.5 rounded bg-emerald-100 text-emerald-700" title={`Charge: ${(doc as unknown as Record<string, unknown>).charge_account || '6XXX'} / TVA: ${(doc as unknown as Record<string, unknown>).vat_account || '4454'} / Tiers: ${(doc as unknown as Record<string, unknown>).supplier_account || '401XXX'}`}>
+                                                                        {(doc as unknown as Record<string, unknown>).charge_account || '6XXX'} / {(doc as unknown as Record<string, unknown>).vat_account || '4454'} / {(doc as unknown as Record<string, unknown>).supplier_account || '401XXX'}
+                                                                    </span>
+                                                                </div>
+                                                            ) : (
+                                                                <span className="inline-flex items-center px-2 py-0.5 rounded bg-amber-100 text-amber-700 text-xs">
+                                                                    Sans règle
+                                                                </span>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-4 py-4 whitespace-nowrap">
+                                                            <div className="flex items-center gap-1">
                                                                 {doc.status === 'DUPLICATE_BLOCKED' || doc.status === 'duplicate' ? (
-                                                                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 border-2 border-red-300">
+                                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 border border-red-300">
                                                                         <AlertTriangle className="h-3 w-3" />
-                                                                        🛑 DOUBLON
+                                                                        DOUBLON
                                                                     </span>
                                                                 ) : (
-                                                                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${statusConfig.color}`}>
+                                                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${statusConfig.color}`}>
                                                                         <StatusIcon className={`h-3 w-3 ${doc.status === 'OCR_PROCESSING' ? 'animate-spin' : ''}`} />
                                                                         {statusConfig.label}
                                                                     </span>
                                                                 )}
                                                                 {doc.auto_validable && (
                                                                     <span
-                                                                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700 border border-purple-200"
+                                                                        className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700"
                                                                         title={`Règle: ${doc.matched_rule_name || 'Règle active'}`}
                                                                     >
                                                                         <Zap className="h-3 w-3" />
-                                                                        Auto
                                                                     </span>
                                                                 )}
                                                             </div>
                                                         </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap">
-                                                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${doc.type === 'INVOICE_PURCHASE' ? 'bg-orange-100 text-orange-700' :
+                                                        <td className="px-4 py-4 whitespace-nowrap">
+                                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${doc.type === 'INVOICE_PURCHASE' ? 'bg-orange-100 text-orange-700' :
                                                                 doc.type === 'INVOICE_SALES' ? 'bg-green-100 text-green-700' :
                                                                     'bg-gray-100 text-gray-700'
                                                                 }`}>
                                                                 {docType}
                                                             </span>
                                                         </td>
-                                                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                                                        <td className="px-4 py-4 whitespace-nowrap text-right">
                                                             <ChevronRight className="h-5 w-5 text-gray-400" />
                                                         </td>
                                                     </tr>

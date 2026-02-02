@@ -204,13 +204,30 @@ async def upload_document(
                             "description": ocr_data.get('description', '')
                         })
                         
-                        if result.get("matched"):
+                        if result.get("matched") or result.get("rule_id"):
                             # 🟡 Règle trouvée → Statut PRE_TRAITEE (prête à valider)
                             db_obj.status = DocumentStatus.PRE_TRAITEE
                             db_obj.auto_validable = True
                             db_obj.matched_rule_id = result.get('rule_id')
                             db_obj.matched_rule_name = result.get('rule_name', 'Règle sans nom')
+
+                            # Stocker les comptes de la règle dans ai_extracted_data
+                            if not db_obj.ai_extracted_data:
+                                db_obj.ai_extracted_data = {}
+                            db_obj.ai_extracted_data["applied_rule"] = {
+                                "rule_id": result.get('rule_id'),
+                                "rule_name": result.get('rule_name'),
+                                "charge_account": result.get('suggested_debit_account'),
+                                "vat_account": result.get('suggested_vat_account', '4454'),
+                                "supplier_account": result.get('suggested_credit_account'),
+                                "tiers_account": result.get('suggested_credit_account'),
+                                "journal_code": result.get('journal_code', 'ACH'),
+                                "vat_rate": result.get('suggested_vat_rate', 18),
+                                "confidence": result.get('confidence', 0.0),
+                                "source": result.get('source', 'rule')
+                            }
                             print(f"✅ Document correspond à la règle: {result.get('rule_name')} → Statut PRE_TRAITEE")
+                            print(f"   Comptes: {result.get('suggested_debit_account')} / {result.get('suggested_vat_account', '4454')} / {result.get('suggested_credit_account')}")
                         else:
                             # 🔴 Aucune règle → Statut A_TRAITER (nécessite intervention manuelle)
                             db_obj.status = DocumentStatus.A_TRAITER

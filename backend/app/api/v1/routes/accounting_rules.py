@@ -49,13 +49,12 @@ class SupplierRuleResponse(BaseModel):
     supplier_account_label: Optional[str] = None
     vat_rate: float
     journal_code: str
-    is_active: bool
-    name: str
+    is_active: bool = True
+    name: Optional[str] = None
     description: Optional[str] = None
     priority: float = 0
-    is_active: bool = True
-    conditions: List[dict]
-    actions: List[dict]
+    conditions: List[dict] = []
+    actions: List[dict] = []
     auto_apply: bool = False
     confidence_threshold: float = 0.8
 
@@ -122,7 +121,14 @@ async def list_supplier_rules(
             supplier_account_label=None,
             vat_rate=vat_rate,
             journal_code=journal_code,
-            is_active=True
+            is_active=rule.is_active,
+            name=rule.name,
+            description=rule.description,
+            priority=rule.priority,
+            conditions=rule.conditions or [],
+            actions=rule.actions or [],
+            auto_apply=rule.auto_apply,
+            confidence_threshold=rule.confidence_threshold
         ))
     
     return supplier_rules
@@ -186,7 +192,14 @@ async def create_supplier_rule(
         supplier_account_label=None,
         vat_rate=rule_data.vat_rate,
         journal_code=rule_data.journal_code,
-        is_active=rule_data.is_active
+        is_active=rule_data.is_active,
+        name=rule.name,
+        description=rule.description,
+        priority=rule.priority,
+        conditions=rule.conditions or [],
+        actions=rule.actions or [],
+        auto_apply=rule.auto_apply,
+        confidence_threshold=rule.confidence_threshold
     )
 
 
@@ -246,7 +259,14 @@ async def update_supplier_rule(
         supplier_account_label=None,
         vat_rate=rule_data.vat_rate,
         journal_code=rule_data.journal_code,
-        is_active=rule_data.is_active
+        is_active=rule_data.is_active,
+        name=rule.name,
+        description=rule.description,
+        priority=rule.priority,
+        conditions=rule.conditions or [],
+        actions=rule.actions or [],
+        auto_apply=rule.auto_apply,
+        confidence_threshold=rule.confidence_threshold
     )
 
 
@@ -270,6 +290,286 @@ async def delete_supplier_rule(
     db.commit()
     
     return {"message": "Règle supprimée avec succès"}
+
+
+# ============================================================================
+# CLIENT RULES - For sales invoices (factures de ventes)
+# ============================================================================
+
+class ClientRuleCreate(BaseModel):
+    """Règle client simplifiée pour auto-imputation des ventes"""
+    client_name: str
+    client_code: Optional[str] = None
+    revenue_account: str  # Ex: 7011 - Ventes de marchandises
+    vat_account: str = "4457"  # Par défaut TVA collectée
+    client_account: str  # Ex: 411CLIENT
+    vat_rate: float = 18  # Taux par défaut Bénin
+    journal_code: str = "VTE"  # Journal des ventes
+    is_active: bool = True
+
+
+class ClientRuleResponse(BaseModel):
+    """Réponse pour les règles clients"""
+    id: str
+    client_name: str
+    client_code: Optional[str] = None
+    revenue_account: str
+    revenue_account_label: Optional[str] = None
+    vat_account: str
+    vat_account_label: Optional[str] = None
+    client_account: str
+    client_account_label: Optional[str] = None
+    vat_rate: float
+    journal_code: str
+    is_active: bool
+    name: str
+    description: Optional[str] = None
+    priority: float = 0
+    conditions: List[dict]
+    actions: List[dict]
+    auto_apply: bool = False
+    confidence_threshold: float = 0.8
+
+
+@router.get("/client-rules", response_model=List[ClientRuleResponse])
+async def list_client_rules(
+    current_tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Liste toutes les règles clients (format simplifié pour ventes)"""
+    # On récupère les règles qui correspondent aux clients (ventes)
+    rules = db.query(AccountingRule).filter(
+        AccountingRule.tenant_id == current_tenant.id,
+        AccountingRule.is_active == True
+    ).all()
+
+    # Transformation en format simplifié - filtrer celles qui ont customer_name
+    client_rules = []
+    for rule in rules:
+        # Parser les conditions pour extraire customer_name
+        client_name = None
+        for condition in rule.conditions:
+            if condition.get('type') == 'customer_name':
+                client_name = condition.get('value')
+                break
+
+        if not client_name:
+            continue
+
+        # Parser les actions pour extraire les comptes
+        revenue_account = vat_account = client_account = None
+        vat_rate = 18
+        journal_code = "VTE"
+
+        for action in rule.actions:
+            if action.get('type') == 'assign_account':
+                revenue_account = action.get('credit_account')  # Pour ventes: crédit = produit
+                client_account = action.get('debit_account')    # Pour ventes: débit = client
+                vat_account = action.get('vat_account', '4457')
+            elif action.get('type') == 'set_vat_rate':
+                vat_rate = action.get('vat_rate', 18)
+
+        client_rules.append(ClientRuleResponse(
+            id=str(rule.id),
+            client_name=client_name,
+            client_code=None,
+            revenue_account=revenue_account or '7011',
+            revenue_account_label=None,
+            vat_account=vat_account or '4457',
+            vat_account_label=None,
+            client_account=client_account or f'411{client_name[:4].upper()}',
+            client_account_label=None,
+            vat_rate=vat_rate,
+            journal_code=journal_code,
+            is_active=rule.is_active,
+            name=rule.name,
+            description=rule.description,
+            priority=rule.priority,
+            conditions=rule.conditions,
+            actions=rule.actions,
+            auto_apply=rule.auto_apply,
+            confidence_threshold=rule.confidence_threshold
+        ))
+
+    return client_rules
+
+
+@router.post("/client-rules", response_model=ClientRuleResponse)
+async def create_client_rule(
+    rule_data: ClientRuleCreate,
+    current_tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Crée une règle client simplifiée pour les ventes"""
+    # Convertir en format règle générique
+    # Pour les ventes: Débit 411 (client), Crédit 70X (produit)
+    conditions = [
+        {
+            "type": "customer_name",
+            "operator": "contains",
+            "value": rule_data.client_name
+        },
+        {
+            "type": "document_type",
+            "operator": "equals",
+            "value": "INVOICE_SALES"
+        }
+    ]
+
+    actions = [
+        {
+            "type": "assign_account",
+            "debit_account": rule_data.client_account,   # 411XXX - Client
+            "credit_account": rule_data.revenue_account,  # 70X - Produit
+            "vat_account": rule_data.vat_account          # 4457 - TVA collectée
+        },
+        {
+            "type": "set_vat_rate",
+            "vat_rate": rule_data.vat_rate
+        },
+        {
+            "type": "suggest_label",
+            "label_template": f"Facture vente - {rule_data.client_name}"
+        }
+    ]
+
+    rule = AccountingRule(
+        tenant_id=current_tenant.id,
+        name=f"Règle Vente {rule_data.client_name}",
+        description=f"Auto-imputation ventes pour {rule_data.client_name}",
+        priority=10,
+        conditions=conditions,
+        actions=actions,
+        auto_apply=True,
+        confidence_threshold=0.8,
+        is_active=rule_data.is_active
+    )
+
+    db.add(rule)
+    db.commit()
+    db.refresh(rule)
+
+    return ClientRuleResponse(
+        id=str(rule.id),
+        client_name=rule_data.client_name,
+        client_code=rule_data.client_code,
+        revenue_account=rule_data.revenue_account,
+        revenue_account_label=None,
+        vat_account=rule_data.vat_account,
+        vat_account_label=None,
+        client_account=rule_data.client_account,
+        client_account_label=None,
+        vat_rate=rule_data.vat_rate,
+        journal_code=rule_data.journal_code,
+        is_active=rule_data.is_active,
+        name=rule.name,
+        description=rule.description,
+        priority=rule.priority,
+        conditions=rule.conditions,
+        actions=rule.actions,
+        auto_apply=rule.auto_apply,
+        confidence_threshold=rule.confidence_threshold
+    )
+
+
+@router.put("/client-rules/{rule_id}", response_model=ClientRuleResponse)
+async def update_client_rule(
+    rule_id: UUID,
+    rule_data: ClientRuleCreate,
+    current_tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Modifie une règle client"""
+    rule = db.query(AccountingRule).filter(
+        AccountingRule.id == rule_id,
+        AccountingRule.tenant_id == current_tenant.id
+    ).first()
+
+    if not rule:
+        raise HTTPException(status_code=404, detail="Règle non trouvée")
+
+    # Mettre à jour
+    rule.name = f"Règle Vente {rule_data.client_name}"
+    rule.description = f"Auto-imputation ventes pour {rule_data.client_name}"
+    rule.conditions = [
+        {
+            "type": "customer_name",
+            "operator": "contains",
+            "value": rule_data.client_name
+        },
+        {
+            "type": "document_type",
+            "operator": "equals",
+            "value": "INVOICE_SALES"
+        }
+    ]
+    rule.actions = [
+        {
+            "type": "assign_account",
+            "debit_account": rule_data.client_account,
+            "credit_account": rule_data.revenue_account,
+            "vat_account": rule_data.vat_account
+        },
+        {
+            "type": "set_vat_rate",
+            "vat_rate": rule_data.vat_rate
+        },
+        {
+            "type": "suggest_label",
+            "label_template": f"Facture vente - {rule_data.client_name}"
+        }
+    ]
+    rule.is_active = rule_data.is_active
+
+    db.commit()
+    db.refresh(rule)
+
+    return ClientRuleResponse(
+        id=str(rule.id),
+        client_name=rule_data.client_name,
+        client_code=rule_data.client_code,
+        revenue_account=rule_data.revenue_account,
+        revenue_account_label=None,
+        vat_account=rule_data.vat_account,
+        vat_account_label=None,
+        client_account=rule_data.client_account,
+        client_account_label=None,
+        vat_rate=rule_data.vat_rate,
+        journal_code=rule_data.journal_code,
+        is_active=rule_data.is_active,
+        name=rule.name,
+        description=rule.description,
+        priority=rule.priority,
+        conditions=rule.conditions,
+        actions=rule.actions,
+        auto_apply=rule.auto_apply,
+        confidence_threshold=rule.confidence_threshold
+    )
+
+
+@router.delete("/client-rules/{rule_id}")
+async def delete_client_rule(
+    rule_id: UUID,
+    current_tenant: Tenant = Depends(get_current_tenant),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Supprime une règle client"""
+    rule = db.query(AccountingRule).filter(
+        AccountingRule.id == rule_id,
+        AccountingRule.tenant_id == current_tenant.id
+    ).first()
+
+    if not rule:
+        raise HTTPException(status_code=404, detail="Règle non trouvée")
+
+    db.delete(rule)
+    db.commit()
+
+    return {"message": "Règle client supprimée avec succès"}
 
 
 # ============================================================================

@@ -368,10 +368,62 @@ class TiersInterconnectionService:
         
         return best_match, best_score
     
+    def find_client_by_ocr_text(
+        self,
+        ocr_text: str,
+        customer_name_hint: str = None
+    ) -> Tuple[Optional[Client], float]:
+        """
+        Trouve un client à partir du texte OCR.
+
+        Args:
+            ocr_text: Texte extrait par OCR
+            customer_name_hint: Nom du client suggéré par l'OCR
+
+        Returns:
+            Tuple (Client, confidence_score) ou (None, 0)
+        """
+        ocr_text_lower = ocr_text.lower()
+        customer_name_lower = (customer_name_hint or "").lower()
+
+        # Récupérer tous les clients avec leurs mots-clés
+        clients = self.db.query(Client).filter(
+            Client.tenant_id == self.tenant_id
+        ).all()
+
+        best_match = None
+        best_score = 0.0
+
+        for client in clients:
+            score = 0.0
+
+            # Vérifier le nom du client
+            if client.name.lower() in ocr_text_lower:
+                score = 0.8
+            elif customer_name_lower and client.name.lower() in customer_name_lower:
+                score = 0.9
+
+            # Vérifier le code client
+            if client.code and client.code.lower() in ocr_text_lower:
+                score = max(score, 0.85)
+
+            # Vérifier les mots-clés OCR
+            if hasattr(client, 'ocr_keywords') and client.ocr_keywords:
+                for keyword in client.ocr_keywords:
+                    if keyword.lower() in ocr_text_lower:
+                        score = max(score, 0.75)
+                        break
+
+            if score > best_score:
+                best_score = score
+                best_match = client
+
+        return best_match, best_score
+
     # =========================================================================
     # GÉNÉRATION D'ÉCRITURES COMPTABLES
     # =========================================================================
-    
+
     def generate_entries_from_invoice(
         self,
         document: Document,

@@ -1,6 +1,8 @@
 """Service d'OCR pour l'extraction de données de factures.
 
-Priorité: Gemini Vision > Groq Llama > Fallback basique
+Priorité: Claude Vision > Groq Llama 4 > Gemini Vision > Fallback basique
+
+Claude Vision est le plus précis pour l'extraction structurée.
 """
 from typing import Dict, Any, Optional
 from datetime import date, timedelta
@@ -18,24 +20,36 @@ except (ImportError, Exception):
     PDF_SUPPORT = False
     print("Attention: pdf2image non disponible ou poppler manquant.")
 
-# Try Gemini first (best for vision)
+# Priority 1: Claude Vision (most accurate)
+try:
+    from app.services.ocr_claude import claude_ocr_service, ANTHROPIC_API_KEY
+    USE_CLAUDE = bool(ANTHROPIC_API_KEY)
+    if USE_CLAUDE:
+        print("✅ Claude Vision OCR disponible (PRIORITÉ 1)")
+except ImportError:
+    USE_CLAUDE = False
+    ANTHROPIC_API_KEY = ""
+    print("⚠️ Claude OCR non disponible")
+
+# Priority 2: Groq Llama 4 Vision
+try:
+    from app.services.ocr_enhanced import enhanced_ocr_service
+    USE_ENHANCED = True
+    print("✅ Groq Llama 4 Vision disponible (PRIORITÉ 2)")
+except ImportError:
+    USE_ENHANCED = False
+    print("⚠️ Service OCR Groq non disponible")
+
+# Priority 3: Gemini Vision
 try:
     from app.services.ocr_gemini import gemini_ocr_service, GEMINI_API_KEY
     USE_GEMINI = bool(GEMINI_API_KEY)
     if USE_GEMINI:
-        print("✅ Gemini OCR disponible (prioritaire)")
+        print("✅ Gemini OCR disponible (PRIORITÉ 3)")
 except ImportError:
     USE_GEMINI = False
     GEMINI_API_KEY = ""
     print("⚠️ Gemini OCR non disponible")
-
-# Groq as fallback (no vision models available currently)
-try:
-    from app.services.ocr_enhanced import enhanced_ocr_service
-    USE_ENHANCED = True
-except ImportError:
-    USE_ENHANCED = False
-    print("⚠️ Service OCR Groq non disponible")
 
 try:
     from app.services.invoice_classifier import InvoiceClassifier
@@ -49,40 +63,82 @@ GROQ_MODEL = os.getenv("GROQ_MODEL", "meta-llama/llama-4-scout-17b-16e-instruct"
 
 
 class GroqOCRService:
-    """Service d'extraction de données - Gemini prioritaire, Groq fallback."""
+    """
+    Service d'extraction de données multi-modèles.
+
+    Ordre de priorité:
+    1. Claude Vision (plus précis pour extraction structurée)
+    2. Groq Llama 4 Vision (rapide et efficace)
+    3. Gemini Vision (bon fallback)
+    4. Service basique (dernier recours)
+    """
 
     def __init__(self):
         self.api_key = GROQ_API_KEY
         self.supported_formats = ['.pdf', '.jpg', '.jpeg', '.png', '.tiff', '.heic', '.webp']
+        self.use_claude = USE_CLAUDE
         self.use_enhanced = USE_ENHANCED
         self.use_gemini = USE_GEMINI
 
     async def process_invoice(self, file_path: str, file_content: Optional[bytes] = None, extract_all_pages: bool = True) -> Dict[str, Any]:
-        # Priority 1: Groq Llama 4 Vision (available and working)
+        """
+        Traite une facture avec le meilleur service OCR disponible.
+
+        Cascade: Claude → Groq → Gemini → Basique
+        """
+        errors = []
+
+        # Priority 1: Claude Vision (most accurate for invoices)
+        if self.use_claude:
+            print("🚀 Utilisation de Claude Vision OCR (PRIORITÉ 1)")
+            try:
+                result = await claude_ocr_service.process_invoice(file_path, file_content, extract_all_pages)
+                if result.get("amount_ttc") or result.get("amount_ht") or result.get("supplier_name"):
+                    print(f"✅ Claude OCR succès: {result.get('supplier_name')} - {result.get('amount_ttc')} {result.get('currency')}")
+                    return result
+                print("⚠️ Claude n'a pas extrait de données exploitables, essai Groq...")
+            except Exception as e:
+                errors.append(f"Claude: {e}")
+                print(f"⚠️ Claude OCR échec: {e}, fallback Groq...")
+
+        # Priority 2: Groq Llama 4 Vision (fast and efficient)
         if self.use_enhanced and self.api_key:
-            print("🚀 Utilisation de Groq Llama 4 Vision OCR")
+            print("🔄 Utilisation de Groq Llama 4 Vision OCR (PRIORITÉ 2)")
             try:
                 result = await enhanced_ocr_service.process_invoice(file_path, file_content, extract_all_pages)
-                if result.get("amount_ttc") or result.get("supplier_name"):
+                if result.get("amount_ttc") or result.get("amount_ht") or result.get("supplier_name"):
+                    print(f"✅ Groq OCR succès: {result.get('supplier_name')} - {result.get('amount_ttc')} {result.get('currency')}")
                     return result
-                print("⚠️ Groq n'a pas extrait de données, essai Gemini...")
+                print("⚠️ Groq n'a pas extrait de données exploitables, essai Gemini...")
             except Exception as e:
+                errors.append(f"Groq: {e}")
                 print(f"⚠️ Groq OCR échec: {e}, fallback Gemini...")
-        
-        # Priority 2: Gemini Vision (quota may be exceeded)
+
+        # Priority 3: Gemini Vision
         if self.use_gemini:
-            print("🔄 Utilisation de Gemini Vision OCR (fallback)")
+            print("🔄 Utilisation de Gemini Vision OCR (PRIORITÉ 3)")
             try:
-                return await gemini_ocr_service.process_invoice(file_path, file_content, extract_all_pages)
+                result = await gemini_ocr_service.process_invoice(file_path, file_content, extract_all_pages)
+                if result.get("amount_ttc") or result.get("amount_ht") or result.get("supplier_name"):
+                    print(f"✅ Gemini OCR succès: {result.get('supplier_name')} - {result.get('amount_ttc')} {result.get('currency')}")
+                    return result
+                print("⚠️ Gemini n'a pas extrait de données exploitables...")
             except Exception as e:
+                errors.append(f"Gemini: {e}")
                 print(f"⚠️ Gemini OCR échec: {e}")
-        
-        # Priority 3: Basic Groq fallback
+
+        # Priority 4: Basic Groq fallback
         if self.api_key:
-            print("⚠️ Utilisation du service OCR basique")
-            return await self._process_invoice_basic(file_path, file_content, extract_all_pages)
-        
-        raise RuntimeError("Aucun service OCR disponible. Configurez GROQ_API_KEY ou GEMINI_API_KEY.")
+            print("⚠️ Utilisation du service OCR basique (dernier recours)")
+            try:
+                return await self._process_invoice_basic(file_path, file_content, extract_all_pages)
+            except Exception as e:
+                errors.append(f"Basique: {e}")
+                print(f"❌ Service basique échec: {e}")
+
+        # Aucun service n'a fonctionné
+        error_summary = " | ".join(errors) if errors else "Aucun service configuré"
+        raise RuntimeError(f"Tous les services OCR ont échoué: {error_summary}. Configurez ANTHROPIC_API_KEY, GROQ_API_KEY ou GEMINI_API_KEY.")
 
     async def _process_invoice_basic(self, file_path: str, file_content: Optional[bytes] = None, extract_all_pages: bool = True) -> Dict[str, Any]:
         """

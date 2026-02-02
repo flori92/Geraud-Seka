@@ -244,6 +244,11 @@ export interface Document {
   auto_validable?: boolean;
   matched_rule_id?: string;
   matched_rule_name?: string;
+  // Comptes comptables (si règle appliquée)
+  charge_account?: string;       // Compte de charge (ex: 6061)
+  vat_account?: string;          // Compte TVA (ex: 4454)
+  supplier_account?: string;     // Compte fournisseur/client (ex: 401SBEE)
+  journal_code?: string;         // Journal (ACH, VTE)
 }
 
 export type DocumentStatus = 'UPLOADED' | 'OCR_PROCESSING' | 'OCR_COMPLETED' | 'A_TRAITER' | 'PRE_TRAITEE' | 'VALIDEE' | 'REJECTED' | 'ARCHIVED';
