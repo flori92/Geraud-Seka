@@ -2,9 +2,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Head from "next/head";
 import {
-    FileText, Filter, Search, CheckSquare, Square,
-    AlertCircle, Clock, CheckCircle, Eye, Trash2,
-    MoreVertical, Download, Upload, Loader2, ChevronRight, CheckCheck,
+    FileText, Search, Clock, CheckCircle, Trash2,
+    Upload, Loader2, ChevronRight,
     Zap, X, AlertTriangle
 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api";
@@ -31,7 +30,7 @@ export default function DocumentsEnAttentePage() {
     const [isDeleting, setIsDeleting] = useState(false);
     const [isValidating, setIsValidating] = useState(false);
     const [showBatchModal, setShowBatchModal] = useState(false);
-    const [batchPreview, setBatchPreview] = useState<any>(null);
+    const [batchPreview, setBatchPreview] = useState<{ rules_applied?: Array<{ rule_name: string; document_count: number }>; eligible_documents: number; estimated_time: number; documents_without_rules: number; total_documents: number; documents_with_rules: number } | null>(null);
     const [loadingPreview, setLoadingPreview] = useState(false);
 
     useEffect(() => {
@@ -699,7 +698,7 @@ export default function DocumentsEnAttentePage() {
                                         <div className="mb-6">
                                             <h3 className="font-semibold text-gray-900 mb-3">Règles appliquées</h3>
                                             <div className="space-y-2">
-                                                {batchPreview.rules_applied.map((rule: any, idx: number) => (
+                                                {batchPreview.rules_applied.map((rule: { rule_name: string; document_count: number }, idx: number) => (
                                                     <div key={idx} className="flex justify-between items-center bg-gray-50 rounded-lg p-3">
                                                         <span className="text-sm text-gray-700">{rule.rule_name}</span>
                                                         <span className="text-sm font-semibold text-purple-600">
@@ -733,7 +732,7 @@ export default function DocumentsEnAttentePage() {
                                     {batchPreview.documents_without_rules > 0 && (
                                         <div className="bg-amber-50 rounded-lg p-4 mb-6 border border-amber-100">
                                             <p className="text-sm text-amber-800">
-                                                ⚠️ {batchPreview.documents_without_rules} document(s) n'ont pas de règle applicable et devront être validés manuellement.
+                                                ⚠️ {batchPreview.documents_without_rules} document(s) n&apos;ont pas de règle applicable et devront être validés manuellement.
                                             </p>
                                         </div>
                                     )}
