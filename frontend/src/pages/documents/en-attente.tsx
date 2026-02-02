@@ -581,7 +581,7 @@ export default function DocumentsEnAttentePage() {
                                                             {doc.matched_rule_name ? (
                                                                 <div className="text-xs">
                                                                     <span className="inline-flex items-center px-2 py-0.5 rounded bg-emerald-100 text-emerald-700" title={`Charge: ${(doc as unknown as Record<string, unknown>).charge_account || '6XXX'} / TVA: ${(doc as unknown as Record<string, unknown>).vat_account || '4454'} / Tiers: ${(doc as unknown as Record<string, unknown>).supplier_account || '401XXX'}`}>
-                                                                        {(doc as unknown as Record<string, unknown>).charge_account || '6XXX'} / {(doc as unknown as Record<string, unknown>).vat_account || '4454'} / {(doc as unknown as Record<string, unknown>).supplier_account || '401XXX'}
+                                                                        {String((doc as unknown as Record<string, unknown>).charge_account || '6XXX')} / {String((doc as unknown as Record<string, unknown>).vat_account || '4454')} / {String((doc as unknown as Record<string, unknown>).supplier_account || '401XXX')}
                                                                     </span>
                                                                 </div>
                                                             ) : (
