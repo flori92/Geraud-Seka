@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import Head from "next/head";
 import {
     FileText, Search, CheckCircle, Download, Loader2,
-    ArrowRight, Database, TrendingDown
+    ArrowRight, Database, TrendingDown, Filter
 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api";
 import { getValidatedPurchaseDocuments, type Document } from "@/lib/api";
@@ -24,7 +24,8 @@ export default function AchatsFacturesPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
     const [isExporting, setIsExporting] = useState(false);
-    
+    const [showExported, setShowExported] = useState(false);
+
     // Hook pour la gestion des doublons avec fallback
     const {
         pendingDuplicates = [],
@@ -59,12 +60,14 @@ export default function AchatsFacturesPage() {
     };
 
     const filteredDocuments = documents.filter(doc => {
-        const matchesSearch = searchQuery === '' || 
+        const matchesSearch = searchQuery === '' ||
             doc.filename?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             doc.supplier_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             doc.reference_number?.toLowerCase().includes(searchQuery.toLowerCase());
-        
-        return matchesSearch;
+
+        const matchesExportFilter = showExported || doc.status !== 'EXPORTED';
+
+        return matchesSearch && matchesExportFilter;
     });
 
     const handleSelectDoc = (docId: string) => {
@@ -149,10 +152,12 @@ export default function AchatsFacturesPage() {
     };
 
     const getStats = (): DocumentStats => {
+        const exported = documents.filter(d => d.status === 'EXPORTED').length;
+        const notExported = documents.filter(d => d.status !== 'EXPORTED').length;
         return {
             total: documents.length,
-            invoices: documents.filter(d => d.type === 'INVOICE_PURCHASE').length,
-            ready_for_accounting: documents.length,
+            invoices: notExported,
+            ready_for_accounting: exported,
         };
     };
 
@@ -253,16 +258,16 @@ const stats = getStats();
                             <div className="flex items-center">
                                 <CheckCircle className="h-8 w-8 text-green-500" />
                                 <div className="ml-4">
-                                    <p className="text-sm font-medium text-gray-600">Validées</p>
+                                    <p className="text-sm font-medium text-gray-600">A exporter</p>
                                     <p className="text-2xl font-bold text-gray-900">{stats.invoices}</p>
                                 </div>
                             </div>
                         </div>
                         <div className="bg-white p-4 rounded-lg shadow">
                             <div className="flex items-center">
-                                <ArrowRight className="h-8 w-8 text-orange-500" />
+                                <Database className="h-8 w-8 text-blue-500" />
                                 <div className="ml-4">
-                                    <p className="text-sm font-medium text-gray-600">Prêtes comptabilité</p>
+                                    <p className="text-sm font-medium text-gray-600">Exportées</p>
                                     <p className="text-2xl font-bold text-gray-900">{stats.ready_for_accounting}</p>
                                 </div>
                             </div>
@@ -285,6 +290,17 @@ const stats = getStats();
                                         className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a5f] focus:border-transparent"
                                     />
                                 </div>
+                                <button
+                                    onClick={() => setShowExported(!showExported)}
+                                    className={`flex items-center px-3 py-2 rounded-lg text-sm font-medium transition ${
+                                        showExported
+                                            ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                                            : 'bg-gray-100 text-gray-600 border border-gray-300 hover:bg-gray-200'
+                                    }`}
+                                >
+                                    <Filter className="h-4 w-4 mr-2" />
+                                    {showExported ? 'Masquer exportées' : 'Voir exportées'}
+                                </button>
                             </div>
                         </div>
                     </div>

@@ -251,7 +251,7 @@ export interface Document {
   journal_code?: string;         // Journal (ACH, VTE)
 }
 
-export type DocumentStatus = 'UPLOADED' | 'OCR_PROCESSING' | 'OCR_COMPLETED' | 'A_TRAITER' | 'PRE_TRAITEE' | 'VALIDEE' | 'REJECTED' | 'ARCHIVED';
+export type DocumentStatus = 'UPLOADED' | 'OCR_PROCESSING' | 'OCR_COMPLETED' | 'A_TRAITER' | 'A_TRAITER_DOUBLON' | 'PRE_TRAITEE' | 'VALIDEE' | 'EXPORTED' | 'IN_ACCOUNTING' | 'REJECTED' | 'ARCHIVED';
 export type DocumentType = 'INVOICE_PURCHASE' | 'INVOICE_SALES' | 'RECEIPT' | 'EXPENSE_REPORT' | 'QUOTE' | 'DELIVERY_NOTE' | 'PURCHASE_ORDER' | 'OTHER';
 
 export interface DocumentFilters {
