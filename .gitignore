@@ -59,6 +59,7 @@ seka.log
 # AI Agents & IDE configs
 .agent/
 .agents/
+.github/
 .cline/
 .codex/
 .continue/
