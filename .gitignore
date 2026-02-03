@@ -56,3 +56,16 @@ seka.log
 .claude/
 .ralph/
 
+# AI Agents & IDE configs
+.agent/
+.agents/
+.cline/
+.codex/
+.continue/
+.cursor/
+.factory/
+.gemini/
+.kiro/
+.opencode/
+.trae/
+.windsurf/
