@@ -632,7 +632,7 @@ export default function DocumentValidatePage() {
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center justify-between">
+                                        <label className="text-xs font-medium text-gray-700 mb-1 flex items-center justify-between">
                                             <span>Nom du fournisseur/client</span>
                                             {fieldConfidence.supplier_name && (
                                                 <ConfidenceIndicator 
@@ -701,7 +701,7 @@ export default function DocumentValidatePage() {
                             </h3>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center justify-between">
+                                    <label className="text-xs font-medium text-gray-700 mb-1 flex items-center justify-between">
                                         <span>Date pièce</span>
                                         {fieldConfidence.date && (
                                             <ConfidenceIndicator 
@@ -733,7 +733,7 @@ export default function DocumentValidatePage() {
                                     />
                                 </div>
                                 <div className="col-span-2">
-                                    <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center justify-between">
+                                    <label className="text-xs font-medium text-gray-700 mb-1 flex items-center justify-between">
                                         <span>Référence Pièce / Facture N°</span>
                                         {fieldConfidence.reference_number && (
                                             <ConfidenceIndicator 
@@ -776,7 +776,7 @@ export default function DocumentValidatePage() {
                             </h3>
                             <div className="grid grid-cols-3 gap-4">
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center justify-between">
+                                    <label className="text-xs font-medium text-gray-700 mb-1 flex items-center justify-between">
                                         <span>HT</span>
                                         {fieldConfidence.amount_ht && (
                                             <ConfidenceIndicator 
@@ -799,7 +799,7 @@ export default function DocumentValidatePage() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center justify-between">
+                                    <label className="text-xs font-medium text-gray-700 mb-1 flex items-center justify-between">
                                         <span>TVA</span>
                                         {fieldConfidence.amount_vat && (
                                             <ConfidenceIndicator 
@@ -822,7 +822,7 @@ export default function DocumentValidatePage() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center justify-between">
+                                    <label className="text-xs font-medium text-gray-700 mb-1 flex items-center justify-between">
                                         <span>TTC</span>
                                         {fieldConfidence.amount_ttc && (
                                             <ConfidenceIndicator 
