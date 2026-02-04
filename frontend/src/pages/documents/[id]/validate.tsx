@@ -73,7 +73,8 @@ export default function DocumentValidatePage() {
     const [showQuickActions, setShowQuickActions] = useState(false);
     const [fieldConfidence, setFieldConfidence] = useState<Record<string, { score: number; level: ConfidenceLevel; reasons: string[] }>>({});
     const [accountingEntries, setAccountingEntries] = useState<AccountingEntry[]>([]);
-    const [supplierRule, setSupplierRule] = useState<SupplierRule | null>(null);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const [supplierRule, _setSupplierRule] = useState<SupplierRule | null>(null);
     const [generatingEntries, setGeneratingEntries] = useState(false);
 
     const [formData, setFormData] = useState<ValidationFormData>({
