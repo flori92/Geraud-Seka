@@ -4,7 +4,7 @@ import Head from "next/head";
 import {
     FileText, Search, Clock, CheckCircle, Trash2,
     Upload, Loader2, ChevronRight,
-    Zap, X, AlertTriangle
+    Zap, X, AlertTriangle, Settings2, Eye, EyeOff
 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api";
 import { getPendingDocuments, deleteDocument, type Document } from "@/lib/api";
@@ -32,6 +32,41 @@ export default function DocumentsEnAttentePage() {
     const [showBatchModal, setShowBatchModal] = useState(false);
     const [batchPreview, setBatchPreview] = useState<{ rules_applied?: Array<{ rule_name: string; document_count: number }>; eligible_documents: number; estimated_time: number; documents_without_rules: number; total_documents: number; documents_with_rules: number } | null>(null);
     const [loadingPreview, setLoadingPreview] = useState(false);
+    const [showColumnSettings, setShowColumnSettings] = useState(false);
+    
+    // Colonnes disponibles avec leur configuration
+    const allColumns = [
+        { id: 'document', label: 'Document', default: true, sortable: true },
+        { id: 'supplier', label: 'Fournisseur', default: true, sortable: true },
+        { id: 'date_emission', label: "Date d'émission", default: true, sortable: true },
+        { id: 'date_ajout', label: "Date d'ajout", default: true, sortable: true },
+        { id: 'amount_ht', label: 'HT', default: true, sortable: true, align: 'right' },
+        { id: 'amount_vat', label: 'TVA', default: true, sortable: true, align: 'right' },
+        { id: 'vat_rate', label: 'Taux TVA', default: true, sortable: true, align: 'right' },
+        { id: 'amount_ttc', label: 'TTC', default: true, sortable: true, align: 'right' },
+        { id: 'accounts', label: 'Comptes', default: true, sortable: false },
+        { id: 'status', label: 'Statut', default: true, sortable: true },
+        { id: 'type', label: 'Type', default: true, sortable: true },
+    ];
+    
+    // Charger les colonnes visibles depuis localStorage
+    const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('seka_pending_columns');
+            if (saved) return JSON.parse(saved);
+        }
+        return allColumns.filter(c => c.default).map(c => c.id);
+    });
+    
+    const toggleColumn = (columnId: string) => {
+        const newColumns = visibleColumns.includes(columnId)
+            ? visibleColumns.filter(id => id !== columnId)
+            : [...visibleColumns, columnId];
+        setVisibleColumns(newColumns);
+        localStorage.setItem('seka_pending_columns', JSON.stringify(newColumns));
+    };
+    
+    const isColumnVisible = (columnId: string) => visibleColumns.includes(columnId);
 
     useEffect(() => {
         fetchDocuments();
@@ -449,6 +484,40 @@ export default function DocumentsEnAttentePage() {
                             )}
 
 
+                            {/* Bouton configuration colonnes */}
+                            <div className="px-6 py-2 border-b border-gray-200 flex justify-end">
+                                <div className="relative">
+                                    <button
+                                        onClick={() => setShowColumnSettings(!showColumnSettings)}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                                    >
+                                        <Settings2 className="h-3.5 w-3.5" />
+                                        Colonnes
+                                    </button>
+                                    {showColumnSettings && (
+                                        <div className="absolute right-0 top-full mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50 py-2">
+                                            <div className="px-3 py-2 border-b border-gray-100">
+                                                <span className="text-xs font-medium text-gray-500 uppercase">Colonnes visibles</span>
+                                            </div>
+                                            {allColumns.map(col => (
+                                                <button
+                                                    key={col.id}
+                                                    onClick={() => toggleColumn(col.id)}
+                                                    className="w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-gray-50"
+                                                >
+                                                    <span className="text-gray-700">{col.label}</span>
+                                                    {isColumnVisible(col.id) ? (
+                                                        <Eye className="h-4 w-4 text-[#1e3a5f]" />
+                                                    ) : (
+                                                        <EyeOff className="h-4 w-4 text-gray-400" />
+                                                    )}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
                             {loading ? (
                                 <div className="p-12 text-center">
                                     <Loader2 className="h-8 w-8 animate-spin text-[#1e3a5f] mx-auto" />
@@ -485,33 +554,61 @@ export default function DocumentsEnAttentePage() {
                                                         className="rounded border-gray-300"
                                                     />
                                                 </th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Document
-                                                </th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Fournisseur
-                                                </th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Date
-                                                </th>
-                                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    HT
-                                                </th>
-                                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    TVA
-                                                </th>
-                                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    TTC
-                                                </th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Comptes
-                                                </th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Statut
-                                                </th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Type
-                                                </th>
+                                                {isColumnVisible('document') && (
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Document
+                                                    </th>
+                                                )}
+                                                {isColumnVisible('supplier') && (
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Fournisseur
+                                                    </th>
+                                                )}
+                                                {isColumnVisible('date_emission') && (
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Date d&apos;émission
+                                                    </th>
+                                                )}
+                                                {isColumnVisible('date_ajout') && (
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Date d&apos;ajout
+                                                    </th>
+                                                )}
+                                                {isColumnVisible('amount_ht') && (
+                                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        HT
+                                                    </th>
+                                                )}
+                                                {isColumnVisible('amount_vat') && (
+                                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        TVA
+                                                    </th>
+                                                )}
+                                                {isColumnVisible('vat_rate') && (
+                                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Taux TVA
+                                                    </th>
+                                                )}
+                                                {isColumnVisible('amount_ttc') && (
+                                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        TTC
+                                                    </th>
+                                                )}
+                                                {isColumnVisible('accounts') && (
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Comptes
+                                                    </th>
+                                                )}
+                                                {isColumnVisible('status') && (
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Statut
+                                                    </th>
+                                                )}
+                                                {isColumnVisible('type') && (
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Type
+                                                    </th>
+                                                )}
                                                 <th className="px-4 py-3"></th>
                                             </tr>
                                         </thead>
@@ -542,45 +639,70 @@ export default function DocumentsEnAttentePage() {
                                                                 className="rounded border-gray-300"
                                                             />
                                                         </td>
-                                                        <td className="px-4 py-4 whitespace-nowrap">
-                                                            <div className="flex items-center">
-                                                                <FileText className="h-5 w-5 text-gray-400 mr-2" />
-                                                                <div>
-                                                                    <p className="text-sm font-medium text-gray-900">
-                                                                        {doc.reference_number || doc.filename}
-                                                                    </p>
-                                                                    <p className="text-xs text-gray-500 truncate max-w-[120px]">{doc.filename}</p>
+                                                        {isColumnVisible('document') && (
+                                                            <td className="px-4 py-4 whitespace-nowrap">
+                                                                <div className="flex items-center">
+                                                                    <FileText className="h-5 w-5 text-gray-400 mr-2" />
+                                                                    <div>
+                                                                        <p className="text-sm font-medium text-gray-900">
+                                                                            {doc.reference_number || doc.filename}
+                                                                        </p>
+                                                                        <p className="text-xs text-gray-500 truncate max-w-[120px]">{doc.filename}</p>
+                                                                    </div>
                                                                 </div>
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-4 py-4 whitespace-nowrap">
-                                                            <span className="text-sm text-gray-900">
-                                                                {doc.supplier_name || doc.customer_name || '-'}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-4 py-4 whitespace-nowrap text-sm">
-                                                            {doc.date ? (
-                                                                <span className="text-gray-900">{formatDate(doc.date)}</span>
-                                                            ) : (
-                                                                <span className="text-amber-600 italic text-xs">Date non extraite</span>
-                                                            )}
-                                                        </td>
-                                                        <td className="px-4 py-4 whitespace-nowrap text-right">
-                                                            <span className="text-sm text-gray-700">
-                                                                {formatCurrency(doc.amount_ht)}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-4 py-4 whitespace-nowrap text-right">
-                                                            <span className="text-sm text-gray-600">
-                                                                {formatCurrency(doc.amount_vat)}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-4 py-4 whitespace-nowrap text-right">
-                                                            <span className="text-sm font-semibold text-gray-900">
-                                                                {formatCurrency(doc.amount_ttc)}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-4 py-4 whitespace-nowrap">
+                                                            </td>
+                                                        )}
+                                                        {isColumnVisible('supplier') && (
+                                                            <td className="px-4 py-4 whitespace-nowrap">
+                                                                <span className="text-sm text-gray-900">
+                                                                    {doc.supplier_name || doc.customer_name || '-'}
+                                                                </span>
+                                                            </td>
+                                                        )}
+                                                        {isColumnVisible('date_emission') && (
+                                                            <td className="px-4 py-4 whitespace-nowrap text-sm">
+                                                                {doc.date ? (
+                                                                    <span className="text-gray-900">{formatDate(doc.date)}</span>
+                                                                ) : (
+                                                                    <span className="text-amber-600 italic text-xs">Non extraite</span>
+                                                                )}
+                                                            </td>
+                                                        )}
+                                                        {isColumnVisible('date_ajout') && (
+                                                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                                {formatDate(doc.created_at)}
+                                                            </td>
+                                                        )}
+                                                        {isColumnVisible('amount_ht') && (
+                                                            <td className="px-4 py-4 whitespace-nowrap text-right">
+                                                                <span className="text-sm text-gray-700">
+                                                                    {formatCurrency(doc.amount_ht)}
+                                                                </span>
+                                                            </td>
+                                                        )}
+                                                        {isColumnVisible('amount_vat') && (
+                                                            <td className="px-4 py-4 whitespace-nowrap text-right">
+                                                                <span className="text-sm text-gray-600">
+                                                                    {formatCurrency(doc.amount_vat)}
+                                                                </span>
+                                                            </td>
+                                                        )}
+                                                        {isColumnVisible('vat_rate') && (
+                                                            <td className="px-4 py-4 whitespace-nowrap text-right">
+                                                                <span className="text-sm text-gray-600">
+                                                                    {(doc as unknown as Record<string, unknown>).vat_rate ? `${(doc as unknown as Record<string, unknown>).vat_rate}%` : '18%'}
+                                                                </span>
+                                                            </td>
+                                                        )}
+                                                        {isColumnVisible('amount_ttc') && (
+                                                            <td className="px-4 py-4 whitespace-nowrap text-right">
+                                                                <span className="text-sm font-semibold text-gray-900">
+                                                                    {formatCurrency(doc.amount_ttc)}
+                                                                </span>
+                                                            </td>
+                                                        )}
+                                                        {isColumnVisible('accounts') && (
+                                                            <td className="px-4 py-4 whitespace-nowrap">
                                                             {(() => {
                                                                 const chargeAcc = (doc as unknown as Record<string, unknown>).charge_account as string | undefined;
                                                                 const vatAcc = (doc as unknown as Record<string, unknown>).vat_account as string | undefined;
@@ -622,38 +744,43 @@ export default function DocumentsEnAttentePage() {
                                                                     </span>
                                                                 );
                                                             })()}
-                                                        </td>
-                                                        <td className="px-4 py-4 whitespace-nowrap">
-                                                            <div className="flex items-center gap-1">
-                                                                {doc.status === 'DUPLICATE_BLOCKED' || doc.status === 'duplicate' ? (
-                                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 border border-red-300">
-                                                                        <AlertTriangle className="h-3 w-3" />
-                                                                        DOUBLON
-                                                                    </span>
-                                                                ) : (
-                                                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${statusConfig.color}`}>
-                                                                        <StatusIcon className={`h-3 w-3 ${doc.status === 'OCR_PROCESSING' ? 'animate-spin' : ''}`} />
-                                                                        {statusConfig.label}
-                                                                    </span>
-                                                                )}
-                                                                {doc.auto_validable && (
-                                                                    <span
-                                                                        className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700"
-                                                                        title={`Règle: ${doc.matched_rule_name || 'Règle active'}`}
-                                                                    >
-                                                                        <Zap className="h-3 w-3" />
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-4 py-4 whitespace-nowrap">
-                                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${doc.type === 'INVOICE_PURCHASE' ? 'bg-orange-100 text-orange-700' :
-                                                                doc.type === 'INVOICE_SALES' ? 'bg-green-100 text-green-700' :
-                                                                    'bg-gray-100 text-gray-700'
-                                                                }`}>
-                                                                {docType}
-                                                            </span>
-                                                        </td>
+                                                            </td>
+                                                        )}
+                                                        {isColumnVisible('status') && (
+                                                            <td className="px-4 py-4 whitespace-nowrap">
+                                                                <div className="flex items-center gap-1">
+                                                                    {doc.status === 'DUPLICATE_BLOCKED' || doc.status === 'duplicate' ? (
+                                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 border border-red-300">
+                                                                            <AlertTriangle className="h-3 w-3" />
+                                                                            DOUBLON
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${statusConfig.color}`}>
+                                                                            <StatusIcon className={`h-3 w-3 ${doc.status === 'OCR_PROCESSING' ? 'animate-spin' : ''}`} />
+                                                                            {statusConfig.label}
+                                                                        </span>
+                                                                    )}
+                                                                    {doc.auto_validable && (
+                                                                        <span
+                                                                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700"
+                                                                            title={`Règle: ${doc.matched_rule_name || 'Règle active'}`}
+                                                                        >
+                                                                            <Zap className="h-3 w-3" />
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                        )}
+                                                        {isColumnVisible('type') && (
+                                                            <td className="px-4 py-4 whitespace-nowrap">
+                                                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${doc.type === 'INVOICE_PURCHASE' ? 'bg-orange-100 text-orange-700' :
+                                                                    doc.type === 'INVOICE_SALES' ? 'bg-green-100 text-green-700' :
+                                                                        'bg-gray-100 text-gray-700'
+                                                                    }`}>
+                                                                    {docType}
+                                                                </span>
+                                                            </td>
+                                                        )}
                                                         <td className="px-4 py-4 whitespace-nowrap text-right">
                                                             <ChevronRight className="h-5 w-5 text-gray-400" />
                                                         </td>
