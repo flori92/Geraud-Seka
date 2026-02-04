@@ -113,9 +113,16 @@ export default function AchatsFacturesPage() {
             });
 
             if (response.ok) {
+                // Mettre à jour localement le statut des documents exportés
+                setDocuments(prevDocs => 
+                    prevDocs.map(doc => 
+                        selectedDocs.includes(doc.id) 
+                            ? { ...doc, status: 'EXPORTED' as const, exported_at: new Date().toISOString() }
+                            : doc
+                    )
+                );
                 alert(`${selectedDocs.length} facture(s) exportée(s) avec succès vers la comptabilité`);
                 setSelectedDocs([]);
-                fetchDocuments(); // Rafraîchir la liste
             } else {
                 const errorData = await response.json();
                 if (response.status === 422 && errorData.detail?.includes('doublon')) {
