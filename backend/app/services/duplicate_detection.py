@@ -18,17 +18,35 @@ class DuplicateDetectionService:
         supplier_name: str,
         invoice_number: Optional[str],
         amount_ttc: Optional[float],
-        document_date: Optional[date]
+        document_date: Optional[date],
+        exclude_document_id: Optional[str] = None
     ) -> Optional[Tuple[Document, DuplicateDetectionReason]]:
+        """
+        Détecte si un document est un doublon d'un document existant.
         
-        # CRITÈRE 1: Même fournisseur + Même N° facture
-        if supplier_name and invoice_number:
+        Critères de détection:
+        1. Même fournisseur + Même N° facture
+        2. Même fournisseur + Même montant TTC + Même date
+        3. Même N° facture seul (si unique)
+        4. Hash du fichier (si disponible)
+        """
+        
+        # Construire les conditions de base
+        base_conditions = [
+            Document.tenant_id == self.tenant_id,
+            Document.status != DocumentStatus.REJECTED
+        ]
+        
+        # IMPORTANT: Exclure le document actuel de la recherche
+        if exclude_document_id:
+            base_conditions.append(Document.id != exclude_document_id)
+        
+        # CRITÈRE 1: Même N° facture (critère le plus fiable)
+        if invoice_number and invoice_number.strip():
             existing = self.db.query(Document).filter(
                 and_(
-                    Document.tenant_id == self.tenant_id,
-                    Document.supplier_name.ilike(f"%{supplier_name}%"),
-                    Document.reference_number == invoice_number,
-                    Document.status != DocumentStatus.REJECTED  # Ignorer les documents rejetés
+                    *base_conditions,
+                    Document.reference_number == invoice_number.strip()
                 )
             ).first()
             
@@ -37,13 +55,28 @@ class DuplicateDetectionService:
         
         # CRITÈRE 2: Même fournisseur + Même montant TTC + Même date
         if supplier_name and amount_ttc and document_date:
+            # Tolérance de 1 FCFA pour les erreurs d'arrondi
+            tolerance = 1.0
             existing = self.db.query(Document).filter(
                 and_(
-                    Document.tenant_id == self.tenant_id,
+                    *base_conditions,
                     Document.supplier_name.ilike(f"%{supplier_name}%"),
-                    Document.amount_ttc == amount_ttc,
-                    Document.document_date == document_date,
-                    Document.status != DocumentStatus.REJECTED
+                    Document.amount_ttc.between(amount_ttc - tolerance, amount_ttc + tolerance),
+                    Document.document_date == document_date
+                )
+            ).first()
+            
+            if existing:
+                return (existing, DuplicateDetectionReason.SAME_AMOUNT_DATE)
+        
+        # CRITÈRE 3: Même fournisseur + Même montant (sans date - pour les factures sans date extraite)
+        if supplier_name and amount_ttc:
+            tolerance = 1.0
+            existing = self.db.query(Document).filter(
+                and_(
+                    *base_conditions,
+                    Document.supplier_name.ilike(f"%{supplier_name}%"),
+                    Document.amount_ttc.between(amount_ttc - tolerance, amount_ttc + tolerance)
                 )
             ).first()
             

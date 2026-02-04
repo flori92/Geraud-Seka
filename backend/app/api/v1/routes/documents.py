@@ -147,12 +147,13 @@ async def upload_document(
                     
                     duplicate_service = DuplicateDetectionService(db, str(current_user.tenant_id))
                     
-                    # Détecter si c'est un doublon
+                    # Détecter si c'est un doublon (exclure le document actuel)
                     duplicate_result = duplicate_service.detect_duplicate(
                         supplier_name=ocr_data.get('supplier_name'),
                         invoice_number=ocr_data.get('reference_number'),
                         amount_ttc=ocr_data.get('amount_ttc'),
-                        document_date=db_obj.document_date
+                        document_date=db_obj.document_date,
+                        exclude_document_id=str(db_obj.id)
                     )
                     
                     if duplicate_result:
