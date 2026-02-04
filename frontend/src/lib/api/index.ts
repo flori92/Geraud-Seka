@@ -82,15 +82,5 @@ export type {
 // Legacy Re-exports for Backward Compatibility
 // ============================================
 
-// Note: Ces fonctions sont dépréciées et seront supprimées dans une future version.
-// Utilisez les imports directs des modules spécifiques.
-
-/**
- * @deprecated Import directly from '@/lib/api/auth' instead
- */
-export const loginUser = login;
-
-/**
- * @deprecated Import directly from '@/lib/api/auth' instead
- */
-export const registerUser = register;
+// Note: loginUser et registerUser ont été supprimés.
+// Utilisez directement `login` et `register` depuis '@/lib/api/auth'.

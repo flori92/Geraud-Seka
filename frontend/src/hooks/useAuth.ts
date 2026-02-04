@@ -19,8 +19,8 @@ import {
   getCurrentUser,
   refreshAccessToken,
   tokenManager,
-} from "@/lib/api/index";
-import type { User } from "@/lib/api/index";
+} from "@/lib/api";
+import type { User } from "@/lib/api";
 
 // ============================================
 // Types
@@ -112,7 +112,7 @@ export function useAuth(): UseAuthReturn {
 
       // Verify token with server
       try {
-        const user = await getCurrentUser();
+        const user = await getCurrentUser(token);
         setStoredUser(user);
         setState({
           user,
@@ -120,7 +120,7 @@ export function useAuth(): UseAuthReturn {
           isLoading: false,
           error: null,
         });
-      } catch (error) {
+      } catch {
         // Token invalid - clear everything
         tokenManager.clearTokens();
         setStoredUser(null);
@@ -218,8 +218,11 @@ export function useAuth(): UseAuthReturn {
   const refreshUser = useCallback(async () => {
     if (!state.isAuthenticated) return;
 
+    const token = tokenManager.getAccessToken();
+    if (!token) return;
+
     try {
-      const user = await getCurrentUser();
+      const user = await getCurrentUser(token);
       setStoredUser(user);
       setState((prev) => ({ ...prev, user }));
     } catch {
