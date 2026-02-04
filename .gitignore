@@ -9,8 +9,13 @@ build/
 .env
 .env.local
 .env.*.local
-!.env.production
+.env.production
 !.env.example
+secrets/
+*.pem
+*.key
+.secrets
+.secrets.*
 
 # Logs
 npm-debug.log*
@@ -59,7 +64,6 @@ seka.log
 # AI Agents & IDE configs
 .agent/
 .agents/
-.github/
 .cline/
 .codex/
 .continue/

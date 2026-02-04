@@ -1,10 +1,11 @@
+import logging
 from typing import List, Any, Optional
 from uuid import UUID
 from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, case, and_, or_
 
 from app.core import deps
 from app.models.client import Client
@@ -13,6 +14,8 @@ from app.models.sales_invoice import SalesInvoice
 from app.schemas import client as client_schema
 from app.services.tiers_interconnection import TiersInterconnectionService
 from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -51,114 +54,142 @@ async def get_clients_balance(
 ):
     """
     Get client balances for the current tenant.
-    MVP: calculs basés sur les factures de vente (sales_invoices).
+    Optimized: Single query with aggregations instead of N+1.
     """
     try:
         today = date.today()
         horizon = today + timedelta(days=30)
 
-        requested_sort = (sort_by or "balance").strip()
-        sort_key = requested_sort
-        if requested_sort == "name":
-            sort_key = "client_name"
-        elif requested_sort == "overdue":
-            sort_key = "overdue_amount"
-
-        allowed_sort_keys = {
-            "balance",
-            "client_name",
-            "overdue_amount",
-            "upcoming_30d_amount",
+        # Mapping des clés de tri
+        sort_mapping = {
+            "name": "client_name",
+            "overdue": "overdue_amount",
+            "balance": "balance",
+            "client_name": "client_name",
+            "overdue_amount": "overdue_amount",
+            "upcoming_30d_amount": "upcoming_30d_amount",
         }
-        if sort_key not in allowed_sort_keys:
-            sort_key = "balance"
+        sort_key = sort_mapping.get((sort_by or "balance").strip(), "balance")
+        reverse = (sort_order or "desc").strip().lower() != "asc"
 
-        order = (sort_order or "desc").strip().lower()
-        reverse = order != "asc"
-
-        clients = db.query(Client).filter(Client.tenant_id == current_user.tenant_id).all()
-
-        rows: list[dict] = []
-        for client in clients:
-            if search and search.strip():
-                q = search.strip().lower()
-                if q not in (client.name or "").lower():
-                    continue
-
-            inv_query = db.query(SalesInvoice).filter(
-                SalesInvoice.tenant_id == current_user.tenant_id,
-                SalesInvoice.client_id == client.id,
+        # ===== OPTIMIZED: Single query with all aggregations =====
+        # Subquery pour les agrégations par client
+        invoice_stats = (
+            db.query(
+                SalesInvoice.client_id,
+                func.count(SalesInvoice.id).label("invoices_count"),
+                func.coalesce(func.sum(SalesInvoice.balance_due), 0).label("total_due"),
+                # Overdue: due_date < today AND unpaid/partial
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (and_(
+                                SalesInvoice.due_date < today,
+                                SalesInvoice.payment_status.in_(["unpaid", "partial"])
+                            ), SalesInvoice.balance_due),
+                            else_=0
+                        )
+                    ), 0
+                ).label("overdue_amount"),
+                # Upcoming 30d: today <= due_date <= horizon AND unpaid/partial
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (and_(
+                                SalesInvoice.due_date >= today,
+                                SalesInvoice.due_date <= horizon,
+                                SalesInvoice.payment_status.in_(["unpaid", "partial"])
+                            ), SalesInvoice.balance_due),
+                            else_=0
+                        )
+                    ), 0
+                ).label("upcoming_30d"),
+                # Oldest overdue date
+                func.min(
+                    case(
+                        (and_(
+                            SalesInvoice.due_date < today,
+                            SalesInvoice.payment_status.in_(["unpaid", "partial"])
+                        ), SalesInvoice.due_date),
+                        else_=None
+                    )
+                ).label("oldest_overdue_date"),
+                # Last invoice info
+                func.max(SalesInvoice.issue_date).label("last_invoice_date"),
             )
+            .filter(SalesInvoice.tenant_id == current_user.tenant_id)
+            .group_by(SalesInvoice.client_id)
+            .subquery()
+        )
 
-            invoices_count = inv_query.count()
-            total_due = float(inv_query.with_entities(func.coalesce(func.sum(SalesInvoice.balance_due), 0)).scalar() or 0)
-
-            overdue_amount = float(
-                inv_query.filter(
-                    SalesInvoice.due_date < today,
-                    SalesInvoice.payment_status.in_(["unpaid", "partial"])
-                ).with_entities(func.coalesce(func.sum(SalesInvoice.balance_due), 0)).scalar() or 0
+        # Subquery pour le dernier numéro de facture par client
+        last_invoice_subq = (
+            db.query(
+                SalesInvoice.client_id,
+                SalesInvoice.invoice_number,
             )
+            .filter(SalesInvoice.tenant_id == current_user.tenant_id)
+            .distinct(SalesInvoice.client_id)
+            .order_by(SalesInvoice.client_id, SalesInvoice.issue_date.desc())
+            .subquery()
+        )
 
-            upcoming_30d_amount = float(
-                inv_query.filter(
-                    SalesInvoice.due_date >= today,
-                    SalesInvoice.due_date <= horizon,
-                    SalesInvoice.payment_status.in_(["unpaid", "partial"])
-                ).with_entities(func.coalesce(func.sum(SalesInvoice.balance_due), 0)).scalar() or 0
+        # Query principale avec LEFT JOIN
+        query = (
+            db.query(
+                Client.id,
+                Client.name,
+                Client.code,
+                Client.email,
+                Client.phone,
+                func.coalesce(invoice_stats.c.invoices_count, 0).label("invoices_count"),
+                func.coalesce(invoice_stats.c.total_due, 0).label("balance"),
+                func.coalesce(invoice_stats.c.overdue_amount, 0).label("overdue_amount"),
+                func.coalesce(invoice_stats.c.upcoming_30d, 0).label("upcoming_30d_amount"),
+                invoice_stats.c.oldest_overdue_date,
+                invoice_stats.c.last_invoice_date,
+                last_invoice_subq.c.invoice_number.label("last_invoice_number"),
             )
+            .outerjoin(invoice_stats, Client.id == invoice_stats.c.client_id)
+            .outerjoin(last_invoice_subq, Client.id == last_invoice_subq.c.client_id)
+            .filter(Client.tenant_id == current_user.tenant_id)
+        )
 
-            oldest_overdue = (
-                inv_query.filter(
-                    SalesInvoice.due_date < today,
-                    SalesInvoice.payment_status.in_(["unpaid", "partial"])
-                )
-                .order_by(SalesInvoice.due_date.asc())
-                .with_entities(SalesInvoice.due_date)
-                .first()
-            )
+        # Filtre de recherche
+        if search and search.strip():
+            search_filter = f"%{search.strip()}%"
+            query = query.filter(Client.name.ilike(search_filter))
 
-            last_inv = (
-                inv_query.order_by(SalesInvoice.issue_date.desc())
-                .with_entities(
-                    SalesInvoice.issue_date,
-                    SalesInvoice.invoice_number,
-                )
-                .first()
-            )
+        results = query.all()
 
-            last_invoice_date = last_inv.issue_date.isoformat() if last_inv and last_inv.issue_date else ""
-            last_invoice_number = last_inv.invoice_number if last_inv and last_inv.invoice_number else ""
-            payment_terms = ""
+        # Construire la réponse
+        rows = [
+            {
+                "id": str(row.id),
+                "client_name": row.name,
+                "client_code": row.code or str(row.id)[:8],
+                "balance": float(row.balance),
+                "overdue_amount": float(row.overdue_amount),
+                "upcoming_30d_amount": float(row.upcoming_30d_amount),
+                "last_invoice_date": row.last_invoice_date.isoformat() if row.last_invoice_date else "",
+                "last_invoice_number": row.last_invoice_number or "",
+                "payment_terms": "",
+                "contact_email": row.email,
+                "contact_phone": row.phone,
+                "invoices_count": int(row.invoices_count),
+                "oldest_overdue_date": row.oldest_overdue_date.isoformat() if row.oldest_overdue_date else None,
+            }
+            for row in results
+        ]
 
-            client_code = str(client.id)[:8]
-
-            rows.append(
-                {
-                    "id": str(client.id),
-                    "client_name": client.name,
-                    "client_code": client_code,
-                    "balance": total_due,
-                    "overdue_amount": overdue_amount,
-                    "upcoming_30d_amount": upcoming_30d_amount,
-                    "last_invoice_date": last_invoice_date,
-                    "last_invoice_number": last_invoice_number,
-                    "payment_terms": payment_terms,
-                    "contact_email": None,
-                    "contact_phone": None,
-                    "invoices_count": invoices_count,
-                    "oldest_overdue_date": oldest_overdue.due_date.isoformat() if oldest_overdue and oldest_overdue.due_date else None,
-                }
-            )
-
+        # Tri en Python (plus flexible pour les différentes colonnes)
         rows.sort(key=lambda x: x.get(sort_key) or 0, reverse=reverse)
+
         return rows[skip : skip + limit]
 
     except Exception as e:
-        print(f"Error getting client balances: {e}")
-        import traceback
-        traceback.print_exc()
-        return []
+        logger.exception("Error getting client balances")
+        raise HTTPException(status_code=500, detail="Erreur lors du calcul des soldes clients")
 
 
 @router.get("/balance/stats", response_model=ClientBalanceStatsResponse)
@@ -229,15 +260,8 @@ async def get_clients_balance_stats(
         }
 
     except Exception as e:
-        print(f"Error getting client balance stats: {e}")
-        import traceback
-        traceback.print_exc()
-        return {
-            "total_du": 0,
-            "en_retard": 0,
-            "a_payer_30j": 0,
-            "clients_actifs": 0,
-        }
+        logger.exception("Error getting client balance stats")
+        raise HTTPException(status_code=500, detail="Erreur lors du calcul des statistiques")
 
 
 @router.get("/", response_model=List[dict])

@@ -104,8 +104,8 @@ class Document(Base, TimestampMixin):
     
     title = Column(String(500))  # Titre du document
     description = Column(Text)  # Description
-    status = Column(Enum(DocumentStatus), default=DocumentStatus.UPLOADED, nullable=False)
-    type = Column(Enum(DocumentType), default=DocumentType.OTHER, nullable=True)
+    status = Column(Enum(DocumentStatus), default=DocumentStatus.UPLOADED, nullable=False, index=True)
+    type = Column(Enum(DocumentType), default=DocumentType.OTHER, nullable=True, index=True)
     category = Column(Enum(DocumentCategory), default=DocumentCategory.OTHER, nullable=True)
     
     tags = Column(JSON)  # Liste de tags
@@ -149,13 +149,13 @@ class Document(Base, TimestampMixin):
     journal_type = Column(String(50), nullable=True)  # Type de journal comptable
     
     folder_id = Column(UUID(as_uuid=True), ForeignKey("document_folders.id", ondelete="SET NULL"))
-    client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id", ondelete="SET NULL"), nullable=True)
-    supplier_id = Column(UUID(as_uuid=True), ForeignKey("suppliers.id", ondelete="SET NULL"), nullable=True)
+    client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id", ondelete="SET NULL"), nullable=True, index=True)
+    supplier_id = Column(UUID(as_uuid=True), ForeignKey("suppliers.id", ondelete="SET NULL"), nullable=True, index=True)
     lead_id = Column(UUID(as_uuid=True), nullable=True)  # CRM removed - kept for DB compatibility (no FK constraint)
     opportunity_id = Column(UUID(as_uuid=True), nullable=True)  # CRM removed - kept for DB compatibility (no FK constraint)
     
-    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
-    uploaded_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
+    uploaded_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
     
     tenant = relationship("Tenant")
     uploader = relationship("User", foreign_keys=[uploaded_by])

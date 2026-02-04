@@ -44,7 +44,7 @@ class Supplier(Base, TimestampMixin):
     # ===== RÈGLE D'IMPUTATION PAR DÉFAUT =====
     # Référence vers la règle d'imputation associée
     default_rule_id = Column(UUID(as_uuid=True), ForeignKey("accounting_rules.id", ondelete="SET NULL"), nullable=True)
-    has_active_rule = Column(Boolean, default=False)  # Flag pour affichage rapide
+    has_active_rule = Column(Boolean, default=False, index=True)  # Flag pour affichage rapide
     
     # Comptes par défaut pour imputation (utilisés si pas de règle)
     default_charge_account = Column(String(20), nullable=True)  # Compte de charge (ex: 6061)
@@ -61,8 +61,8 @@ class Supplier(Base, TimestampMixin):
     supplier_metadata = Column(JSON, nullable=True)  # {"learning_corrections": [...], "conditional_rules": [...]}
     
     # Tenant (entreprise)
-    client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id", ondelete="CASCADE"), nullable=False)
-    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True)
+    client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id", ondelete="CASCADE"), nullable=False, index=True)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True)
     
     # Relations
     client = relationship("Client", backref="suppliers")

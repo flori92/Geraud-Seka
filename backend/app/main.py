@@ -4,17 +4,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 import os
-import logging
 
 from app.api.v1.router import api_router
 from app.core.config import get_settings
+from app.core.logging import setup_logging, get_logger
 from app.middleware.monitoring import MonitoringMiddleware
 from app.middleware.proxy_headers import ProxyHeadersMiddleware
 from app.middleware.security import SecurityMiddleware, RequestValidationMiddleware
 from app.middleware.cors_fallback import CORSFallbackMiddleware
 from app.services.monitoring import monitoring_service
 
-logger = logging.getLogger(__name__)
+# Initialize logging at module load
+setup_logging()
+logger = get_logger(__name__)
 
 
 def create_application() -> FastAPI:

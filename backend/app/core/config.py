@@ -2,8 +2,10 @@ from functools import lru_cache
 from typing import List, Optional
 import json
 import os
+import secrets
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import field_validator, model_validator
 
 
 class Settings(BaseSettings):
@@ -31,7 +33,7 @@ class Settings(BaseSettings):
 
     redis_url: str = "redis://localhost:6379/0"
 
-    secret_key: str = "CHANGE_ME"
+    secret_key: str = ""
     access_token_expire_minutes: int = 60
     refresh_token_expire_minutes: int = 60 * 24 * 7
     token_algorithm: str = "HS256"
@@ -67,7 +69,36 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    from pydantic import field_validator, model_validator
+    @field_validator("secret_key", mode="before")
+    @classmethod
+    def validate_secret_key(cls, v: str, info) -> str:
+        """Valide et génère une clé secrète sécurisée."""
+        # Valeurs par défaut dangereuses
+        UNSAFE_KEYS = {"", "CHANGE_ME", "secret", "supersecret", "dev", "test"}
+
+        if not v or v in UNSAFE_KEYS:
+            # En production, on refuse de démarrer sans clé valide
+            env = os.getenv("ENVIRONMENT", "local")
+            if env in ("production", "prod", "staging"):
+                raise ValueError(
+                    "SECRET_KEY must be set to a secure value in production! "
+                    "Generate one with: python -c \"import secrets; print(secrets.token_urlsafe(32))\""
+                )
+            # En dev, on génère une clé temporaire avec warning
+            import warnings
+            generated_key = secrets.token_urlsafe(32)
+            warnings.warn(
+                f"SECRET_KEY not set or insecure. Using generated key for development. "
+                f"Set SECRET_KEY env variable for production.",
+                UserWarning
+            )
+            return generated_key
+
+        # Vérifier la longueur minimale
+        if len(v) < 32:
+            raise ValueError("SECRET_KEY must be at least 32 characters long")
+
+        return v
 
     @field_validator("backend_cors_origins", mode="before")
     @classmethod
