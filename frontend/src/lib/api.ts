@@ -2508,5 +2508,87 @@ export async function uploadFECFile(file: File, accessToken: string): Promise<Un
   return response.data;
 }
 
+// ============================================
+// Token Management (for new useAuth hook)
+// ============================================
+
+const TOKEN_KEYS = {
+  ACCESS: "seka_access_token",
+  REFRESH: "seka_refresh_token",
+  USER: "user",
+  SELECTED_CLIENT: "seka_selected_client",
+} as const;
+
+export const tokenManager = {
+  getAccessToken: (): string | null => {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem(TOKEN_KEYS.ACCESS);
+  },
+
+  getRefreshToken: (): string | null => {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem(TOKEN_KEYS.REFRESH);
+  },
+
+  setTokens: (access: string, refresh: string): void => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(TOKEN_KEYS.ACCESS, access);
+    localStorage.setItem(TOKEN_KEYS.REFRESH, refresh);
+  },
+
+  clearTokens: (): void => {
+    if (typeof window === "undefined") return;
+    localStorage.removeItem(TOKEN_KEYS.ACCESS);
+    localStorage.removeItem(TOKEN_KEYS.REFRESH);
+    localStorage.removeItem(TOKEN_KEYS.USER);
+  },
+
+  getSelectedClient: (): string | null => {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem(TOKEN_KEYS.SELECTED_CLIENT);
+  },
+
+  setSelectedClient: (clientId: string): void => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(TOKEN_KEYS.SELECTED_CLIENT, clientId);
+  },
+
+  clearSelectedClient: (): void => {
+    if (typeof window === "undefined") return;
+    localStorage.removeItem(TOKEN_KEYS.SELECTED_CLIENT);
+  },
+};
+
+/**
+ * Logout - Clear all tokens and session data
+ */
+export function logout(): void {
+  tokenManager.clearTokens();
+  tokenManager.clearSelectedClient();
+  if (typeof window !== "undefined") {
+    sessionStorage.clear();
+  }
+}
+
+/**
+ * Refresh access token using refresh token
+ */
+export async function refreshAccessToken(): Promise<TokenPair> {
+  const refreshToken = tokenManager.getRefreshToken();
+  if (!refreshToken) {
+    throw new Error("No refresh token available");
+  }
+
+  const response = await api.post<TokenPair>("/auth/refresh", {
+    refresh_token: refreshToken,
+  });
+
+  if (response.data.access_token && response.data.refresh_token) {
+    tokenManager.setTokens(response.data.access_token, response.data.refresh_token);
+  }
+
+  return response.data;
+}
+
 
 
