@@ -558,8 +558,12 @@ export default function DocumentsEnAttentePage() {
                                                                 {doc.supplier_name || doc.customer_name || '-'}
                                                             </span>
                                                         </td>
-                                                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
-                                                            {doc.date ? formatDate(doc.date) : formatDate(doc.created_at)}
+                                                        <td className="px-4 py-4 whitespace-nowrap text-sm">
+                                                            {doc.date ? (
+                                                                <span className="text-gray-900">{formatDate(doc.date)}</span>
+                                                            ) : (
+                                                                <span className="text-amber-600 italic text-xs">Date non extraite</span>
+                                                            )}
                                                         </td>
                                                         <td className="px-4 py-4 whitespace-nowrap text-right">
                                                             <span className="text-sm text-gray-700">
@@ -577,17 +581,47 @@ export default function DocumentsEnAttentePage() {
                                                             </span>
                                                         </td>
                                                         <td className="px-4 py-4 whitespace-nowrap">
-                                                            {doc.matched_rule_name ? (
-                                                                <div className="text-xs">
-                                                                    <span className="inline-flex items-center px-2 py-0.5 rounded bg-emerald-100 text-emerald-700" title={`Charge: ${(doc as unknown as Record<string, unknown>).charge_account || '6XXX'} / TVA: ${(doc as unknown as Record<string, unknown>).vat_account || '4454'} / Tiers: ${(doc as unknown as Record<string, unknown>).supplier_account || '401XXX'}`}>
-                                                                        {String((doc as unknown as Record<string, unknown>).charge_account || '6XXX')} / {String((doc as unknown as Record<string, unknown>).vat_account || '4454')} / {String((doc as unknown as Record<string, unknown>).supplier_account || '401XXX')}
+                                                            {(() => {
+                                                                const chargeAcc = (doc as unknown as Record<string, unknown>).charge_account as string | undefined;
+                                                                const vatAcc = (doc as unknown as Record<string, unknown>).vat_account as string | undefined;
+                                                                const supplierAcc = (doc as unknown as Record<string, unknown>).supplier_account as string | undefined;
+                                                                const hasAccounts = chargeAcc || vatAcc || supplierAcc;
+                                                                
+                                                                if (doc.matched_rule_name || hasAccounts) {
+                                                                    return (
+                                                                        <div className="text-xs space-y-0.5">
+                                                                            {chargeAcc && (
+                                                                                <div className="flex items-center gap-1">
+                                                                                    <span className="text-gray-500">Charge:</span>
+                                                                                    <span className="font-mono text-blue-600">{chargeAcc}</span>
+                                                                                </div>
+                                                                            )}
+                                                                            {vatAcc && (
+                                                                                <div className="flex items-center gap-1">
+                                                                                    <span className="text-gray-500">TVA:</span>
+                                                                                    <span className="font-mono text-orange-600">{vatAcc}</span>
+                                                                                </div>
+                                                                            )}
+                                                                            {supplierAcc && (
+                                                                                <div className="flex items-center gap-1">
+                                                                                    <span className="text-gray-500">Tiers:</span>
+                                                                                    <span className="font-mono text-green-600">{supplierAcc}</span>
+                                                                                </div>
+                                                                            )}
+                                                                            {doc.matched_rule_name && (
+                                                                                <div className="text-[10px] text-emerald-600 mt-0.5">
+                                                                                    ✓ Règle: {doc.matched_rule_name}
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    );
+                                                                }
+                                                                return (
+                                                                    <span className="inline-flex items-center px-2 py-0.5 rounded bg-amber-100 text-amber-700 text-xs">
+                                                                        Sans compte
                                                                     </span>
-                                                                </div>
-                                                            ) : (
-                                                                <span className="inline-flex items-center px-2 py-0.5 rounded bg-amber-100 text-amber-700 text-xs">
-                                                                    Sans règle
-                                                                </span>
-                                                            )}
+                                                                );
+                                                            })()}
                                                         </td>
                                                         <td className="px-4 py-4 whitespace-nowrap">
                                                             <div className="flex items-center gap-1">
