@@ -69,14 +69,33 @@ class DuplicateDetectionService:
             if existing:
                 return (existing, DuplicateDetectionReason.SAME_AMOUNT_DATE)
         
-        # CRITÈRE 3: Même fournisseur + Même montant (sans date - pour les factures sans date extraite)
-        if supplier_name and amount_ttc:
+        # CRITÈRE 3: Même fournisseur + Même montant + Même N° facture (si les deux ont un N°)
+        # Plus strict pour éviter les faux positifs sur factures récurrentes
+        if supplier_name and amount_ttc and invoice_number:
             tolerance = 1.0
             existing = self.db.query(Document).filter(
                 and_(
                     *base_conditions,
                     Document.supplier_name.ilike(f"%{supplier_name}%"),
-                    Document.amount_ttc.between(amount_ttc - tolerance, amount_ttc + tolerance)
+                    Document.amount_ttc.between(amount_ttc - tolerance, amount_ttc + tolerance),
+                    Document.reference_number.isnot(None),
+                    Document.reference_number == invoice_number.strip()
+                )
+            ).first()
+            
+            if existing:
+                return (existing, DuplicateDetectionReason.SAME_AMOUNT_DATE)
+        
+        # CRITÈRE 4: Même fournisseur + Même montant TTC exact (sans N° - suspicion de doublon)
+        # Retourne une alerte mais ne bloque pas automatiquement
+        # Uniquement si les montants sont identiques à l'unité près ET même fournisseur exact
+        if supplier_name and amount_ttc and not document_date:
+            # Recherche plus stricte : nom fournisseur exact
+            existing = self.db.query(Document).filter(
+                and_(
+                    *base_conditions,
+                    Document.supplier_name == supplier_name,  # Nom exact, pas ILIKE
+                    Document.amount_ttc == amount_ttc  # Montant exact, pas de tolérance
                 )
             ).first()
             
