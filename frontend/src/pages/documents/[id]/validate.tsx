@@ -4,7 +4,7 @@ import { useRouter } from "next/router";
 import {
     CheckCircle, X, Calendar, Building, DollarSign,
     ArrowLeft, ArrowRight, FileText, Hash, Loader2, Save, AlertCircle, 
-    ChevronLeft, ChevronRight, MessageSquare, MoreVertical, Edit2, Zap, Trash2, Copy, Archive
+    MoreVertical, Zap, Trash2, Copy, Archive
 } from "lucide-react";
 import { API_BASE_URL, getPendingDocuments } from "@/lib/api";
 import AccountAutocomplete, { type Account } from "@/components/AccountAutocomplete";
@@ -363,9 +363,12 @@ export default function DocumentValidatePage() {
         }
     }, [currentIndex, pendingDocIds, router]);
 
+    const [isDuplicateError, setIsDuplicateError] = useState(false);
+
     const handleSave = async (validateAndNext = false) => {
         setSaving(true);
         setError(null);
+        setIsDuplicateError(false);
         const token = localStorage.getItem("seka_access_token");
         try {
             const response = await fetch(`${API_BASE_URL}/api/v1/documents/${id}/validate`, {
@@ -386,7 +389,15 @@ export default function DocumentValidatePage() {
                 }
             } else {
                 const errData = await response.json().catch(() => ({ detail: "Erreur inconnue" }));
-                setError(errData.detail || "Erreur lors de la validation");
+                const errorMessage = errData.detail || "Erreur lors de la validation";
+                
+                // Détecter si c'est une erreur de doublon
+                if (response.status === 422 && errorMessage.toLowerCase().includes("doublon")) {
+                    setIsDuplicateError(true);
+                    setError("Ce document a été détecté comme un doublon potentiel. Vous devez d'abord résoudre ce doublon avant de pouvoir valider.");
+                } else {
+                    setError(errorMessage);
+                }
             }
         } catch (err) {
             console.error("Error saving:", err);
@@ -568,9 +579,27 @@ export default function DocumentValidatePage() {
 
                     {/* Message d'erreur si présent */}
                     {error && (
-                        <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700 text-sm">
-                            <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                            {error}
+                        <div className={`mx-6 mt-4 p-3 rounded-lg border ${isDuplicateError ? 'bg-amber-50 border-amber-300' : 'bg-red-50 border-red-200'}`}>
+                            <div className="flex items-start gap-2">
+                                <AlertCircle className={`h-5 w-5 flex-shrink-0 mt-0.5 ${isDuplicateError ? 'text-amber-600' : 'text-red-600'}`} />
+                                <div className="flex-1">
+                                    <p className={`text-sm font-medium ${isDuplicateError ? 'text-amber-800' : 'text-red-700'}`}>
+                                        {isDuplicateError ? 'Doublon détecté' : 'Erreur'}
+                                    </p>
+                                    <p className={`text-sm mt-1 ${isDuplicateError ? 'text-amber-700' : 'text-red-600'}`}>
+                                        {error}
+                                    </p>
+                                    {isDuplicateError && (
+                                        <button
+                                            onClick={() => router.push('/documents/doublons')}
+                                            className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition-colors"
+                                        >
+                                            <AlertCircle className="h-4 w-4" />
+                                            Résoudre le doublon
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     )}
 
