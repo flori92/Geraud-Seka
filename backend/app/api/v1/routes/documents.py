@@ -182,39 +182,61 @@ async def upload_document(
                     import traceback
                     traceback.print_exc()
 
-                # Vérifier si le document correspond à une règle active
+                # ===== DÉTECTION FOURNISSEUR ET RÈGLES =====
                 try:
                     from app.services.accounting_rules import AccountingRulesEngine
                     from app.models.accounting_rules import AccountingRule
+                    from app.services.supplier_detection import SupplierDetectionService
                     
+                    supplier_name = ocr_data.get('supplier_name', '')
+                    
+                    # 1. Détecter si le fournisseur existe
+                    supplier_service = SupplierDetectionService(db, str(current_user.tenant_id))
+                    supplier_result = supplier_service.get_supplier_suggestion(supplier_name)
+                    
+                    # Stocker l'info fournisseur dans ai_extracted_data
+                    if not db_obj.ai_extracted_data:
+                        db_obj.ai_extracted_data = {}
+                    
+                    db_obj.ai_extracted_data["supplier_detection"] = {
+                        "found": supplier_result.get("found", False),
+                        "confidence": supplier_result.get("confidence", 0.0),
+                        "supplier": supplier_result.get("supplier"),
+                        "suggestion": supplier_result.get("suggestion")
+                    }
+                    
+                    if supplier_result.get("found") and supplier_result.get("supplier"):
+                        # Fournisseur trouvé - lier le document
+                        db_obj.supplier_id = supplier_result["supplier"]["id"]
+                        print(f"✅ Fournisseur reconnu: {supplier_result['supplier']['name']} (confiance: {supplier_result['confidence']:.0%})")
+                    else:
+                        # Fournisseur inconnu - marquer pour création
+                        print(f"⚠️ Fournisseur inconnu: '{supplier_name}' → Suggestion de création")
+                    
+                    # 2. Vérifier les règles d'imputation
                     rules_service = AccountingRulesEngine(db, str(current_user.tenant_id))
                     
-                    # Récupérer toutes les règles actives
                     active_rules = db.query(AccountingRule).filter(
                         AccountingRule.tenant_id == current_user.tenant_id,
                         AccountingRule.is_active == True
                     ).all()
                     
-                    if active_rules and ocr_data.get('supplier_name'):
-                        # Appliquer les règles au document
+                    if active_rules and supplier_name:
                         result = rules_service.apply_rules({
-                            "supplier_name": ocr_data.get('supplier_name', ''),
+                            "supplier_name": supplier_name,
                             "reference_number": ocr_data.get('reference_number', ''),
-                            "amount_ttc": float(ocr_data.get('amount_ttc', 0)),
+                            "amount_ttc": float(ocr_data.get('amount_ttc', 0) or 0),
                             "document_date": ocr_data.get('date'),
                             "description": ocr_data.get('description', '')
                         })
                         
                         if result.get("matched") or result.get("rule_id"):
-                            # 🟡 Règle trouvée → Statut PRE_TRAITEE (prête à valider)
+                            # 🟡 Règle trouvée → Statut PRE_TRAITEE
                             db_obj.status = DocumentStatus.PRE_TRAITEE
                             db_obj.auto_validable = True
                             db_obj.matched_rule_id = result.get('rule_id')
                             db_obj.matched_rule_name = result.get('rule_name', 'Règle sans nom')
 
-                            # Stocker les comptes de la règle dans ai_extracted_data
-                            if not db_obj.ai_extracted_data:
-                                db_obj.ai_extracted_data = {}
                             db_obj.ai_extracted_data["applied_rule"] = {
                                 "rule_id": result.get('rule_id'),
                                 "rule_name": result.get('rule_name'),
@@ -227,19 +249,28 @@ async def upload_document(
                                 "confidence": result.get('confidence', 0.0),
                                 "source": result.get('source', 'rule')
                             }
-                            print(f"✅ Document correspond à la règle: {result.get('rule_name')} → Statut PRE_TRAITEE")
-                            print(f"   Comptes: {result.get('suggested_debit_account')} / {result.get('suggested_vat_account', '4454')} / {result.get('suggested_credit_account')}")
+                            print(f"✅ Règle appliquée: {result.get('rule_name')} → PRE_TRAITEE")
                         else:
-                            # 🔴 Aucune règle → Statut A_TRAITER (nécessite intervention manuelle)
+                            # 🔴 Aucune règle → A_TRAITER
                             db_obj.status = DocumentStatus.A_TRAITER
                             db_obj.auto_validable = False
-                            print(f"ℹ️  Aucune règle active ne correspond → Statut A_TRAITER")
+                            
+                            # Si fournisseur inconnu, ajouter un flag spécial
+                            if not supplier_result.get("found"):
+                                db_obj.ai_extracted_data["needs_supplier_creation"] = True
+                                print(f"🔴 Fournisseur inconnu + Pas de règle → Création fournisseur requise")
+                            else:
+                                print(f"🟠 Fournisseur connu mais pas de règle → A_TRAITER")
                     else:
                         db_obj.status = DocumentStatus.A_TRAITER
                         db_obj.auto_validable = False
+                        if not supplier_result.get("found"):
+                            db_obj.ai_extracted_data["needs_supplier_creation"] = True
                         
                 except Exception as rule_err:
-                    print(f"⚠️ Erreur vérification règles: {rule_err}")
+                    print(f"⚠️ Erreur vérification règles/fournisseur: {rule_err}")
+                    import traceback
+                    traceback.print_exc()
                     db_obj.auto_validable = False
 
                 # Flush nested changes; commit below will persist them.

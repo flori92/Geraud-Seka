@@ -631,3 +631,148 @@ async def delete_supplier(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=f"Erreur lors de la suppression: {str(e)}")
+
+
+# ============================================================================
+# ENDPOINTS POUR DÉTECTION ET CRÉATION RAPIDE DE FOURNISSEURS
+# ============================================================================
+
+class SupplierDetectionRequest(BaseModel):
+    """Requête de détection de fournisseur"""
+    supplier_name: str
+
+
+class SupplierQuickCreateRequest(BaseModel):
+    """Requête de création rapide de fournisseur avec règle"""
+    name: str
+    code: Optional[str] = None
+    charge_account: Optional[str] = None  # Compte de charge (6061, 6261, etc.)
+    vat_account: str = "4454"  # Compte TVA déductible
+    tax_rate: float = 18.0  # Taux TVA
+    supplier_account: Optional[str] = None  # Compte fournisseur (401XXX)
+    ocr_keywords: Optional[List[str]] = None
+    rule_condition_type: str = "contains"  # equals, contains, starts_with, ends_with
+    create_rule: bool = True
+    # Infos supplémentaires optionnelles
+    nif: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    address: Optional[str] = None
+
+
+@router.post("/detect")
+async def detect_supplier(
+    request: SupplierDetectionRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Détecte si un fournisseur existe à partir du nom extrait par OCR.
+    
+    Retourne:
+    - Si trouvé: infos du fournisseur et sa règle associée
+    - Si non trouvé: suggestion de création avec valeurs pré-remplies
+    
+    Utilisé après OCR pour proposer automatiquement la création de fournisseur.
+    """
+    try:
+        from app.services.supplier_detection import SupplierDetectionService
+        
+        service = SupplierDetectionService(db, str(current_user.tenant_id))
+        result = service.get_supplier_suggestion(request.supplier_name)
+        
+        return result
+        
+    except Exception as e:
+        print(f"Erreur détection fournisseur: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/quick-create")
+async def quick_create_supplier_with_rule(
+    request: SupplierQuickCreateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Crée rapidement un fournisseur avec sa règle d'imputation.
+    
+    Utilisé depuis la page de validation de facture quand un fournisseur n'existe pas.
+    
+    Crée automatiquement:
+    1. Le fournisseur avec ses infos
+    2. Le compte auxiliaire (401XXX)
+    3. La règle d'imputation si create_rule=True et charge_account fourni
+    
+    Paramètres de la règle:
+    - rule_condition_type: Comment identifier le fournisseur
+        - "equals": Le nom doit être exactement égal
+        - "contains": Le nom doit contenir le texte (défaut)
+        - "starts_with": Le nom doit commencer par le texte
+        - "ends_with": Le nom doit finir par le texte
+    """
+    try:
+        from app.services.supplier_detection import SupplierDetectionService
+        
+        service = SupplierDetectionService(db, str(current_user.tenant_id))
+        
+        result = service.create_supplier_with_rule(
+            name=request.name,
+            code=request.code,
+            charge_account=request.charge_account,
+            vat_account=request.vat_account,
+            tax_rate=request.tax_rate,
+            supplier_account=request.supplier_account,
+            ocr_keywords=request.ocr_keywords,
+            rule_condition_type=request.rule_condition_type,
+            create_rule=request.create_rule
+        )
+        
+        # Mettre à jour les infos supplémentaires si fournies
+        if request.nif or request.email or request.phone or request.address:
+            supplier = db.query(Supplier).filter(
+                Supplier.id == result["supplier"]["id"]
+            ).first()
+            if supplier:
+                if request.nif:
+                    supplier.nif = request.nif
+                if request.email:
+                    supplier.email = request.email
+                if request.phone:
+                    supplier.phone = request.phone
+                if request.address:
+                    supplier.address = request.address
+                db.commit()
+        
+        return {
+            "success": True,
+            "message": f"Fournisseur '{request.name}' créé avec succès",
+            **result
+        }
+        
+    except Exception as e:
+        db.rollback()
+        print(f"Erreur création fournisseur: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/rule-condition-types")
+async def get_rule_condition_types(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retourne les types de conditions disponibles pour les règles fournisseurs.
+    
+    Utilisé pour le dropdown dans le formulaire de création de fournisseur.
+    """
+    return [
+        {"value": "equals", "label": "Est égal à", "description": "Le nom du fournisseur doit correspondre exactement"},
+        {"value": "contains", "label": "Contient", "description": "Le nom du fournisseur doit contenir ce texte"},
+        {"value": "starts_with", "label": "Commence par", "description": "Le nom du fournisseur doit commencer par ce texte"},
+        {"value": "ends_with", "label": "Finit par", "description": "Le nom du fournisseur doit finir par ce texte"},
+        {"value": "regex", "label": "Expression régulière", "description": "Le nom doit correspondre à l'expression régulière (avancé)"}
+    ]
