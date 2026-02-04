@@ -309,6 +309,9 @@ const stats = getStats();
                                                 Montant TTC
                                             </th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Comptes
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Statut
                                             </th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -359,7 +362,32 @@ const stats = getStats();
                                                     </td>
                                                     <td className="px-6 py-4">
                                                         <div className="text-sm font-medium text-gray-900">
-                                                            {doc.amount_ttc ? `${doc.amount_ttc.toFixed(2)} €` : 'N/A'}
+                                                            {doc.amount_ttc ? `${doc.amount_ttc.toLocaleString('fr-FR')} FCFA` : 'N/A'}
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="text-xs space-y-1">
+                                                            {doc.charge_account && (
+                                                                <div className="flex items-center gap-1">
+                                                                    <span className="text-gray-500">Produit:</span>
+                                                                    <span className="font-mono text-blue-600">{doc.charge_account}</span>
+                                                                </div>
+                                                            )}
+                                                            {doc.vat_account && (
+                                                                <div className="flex items-center gap-1">
+                                                                    <span className="text-gray-500">TVA:</span>
+                                                                    <span className="font-mono text-orange-600">{doc.vat_account}</span>
+                                                                </div>
+                                                            )}
+                                                            {doc.supplier_account && (
+                                                                <div className="flex items-center gap-1">
+                                                                    <span className="text-gray-500">Client:</span>
+                                                                    <span className="font-mono text-green-600">{doc.supplier_account}</span>
+                                                                </div>
+                                                            )}
+                                                            {!doc.charge_account && !doc.vat_account && !doc.supplier_account && (
+                                                                <span className="text-gray-400">-</span>
+                                                            )}
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-4">
