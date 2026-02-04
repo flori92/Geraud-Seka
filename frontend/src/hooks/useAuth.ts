@@ -19,8 +19,8 @@ import {
   getCurrentUser,
   refreshAccessToken,
   tokenManager,
-} from "@/lib/api";
-import type { User, TokenPair } from "@/lib/api";
+} from "@/lib/api/index";
+import type { User } from "@/lib/api/index";
 
 // ============================================
 // Types
