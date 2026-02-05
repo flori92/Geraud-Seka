@@ -60,6 +60,10 @@ class Supplier(Base, TimestampMixin):
     # Métadonnées pour apprentissage et données additionnelles
     supplier_metadata = Column(JSON, nullable=True)  # {"learning_corrections": [...], "conditional_rules": [...]}
     
+    # ===== CATEGORIE FOURNISSEUR =====
+    # Lien vers la categorie pour auto-suggestion de compte
+    category_id = Column(UUID(as_uuid=True), ForeignKey("supplier_categories.id", ondelete="SET NULL"), nullable=True, index=True)
+
     # Tenant (entreprise)
     client_id = Column(UUID(as_uuid=True), ForeignKey("clients.id", ondelete="CASCADE"), nullable=False, index=True)
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=True, index=True)
@@ -75,6 +79,9 @@ class Supplier(Base, TimestampMixin):
     
     # Relation vers la règle d'imputation
     default_rule = relationship("AccountingRule", foreign_keys=[default_rule_id])
+
+    # Relation vers la categorie fournisseur
+    category = relationship("SupplierCategory", backref="suppliers")
 
     __table_args__ = ({"sqlite_autoincrement": True},)
     

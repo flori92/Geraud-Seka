@@ -29,6 +29,7 @@ except Exception:
     pass
 
 from app.models.accounting_rules import AccountingRule, DocumentClassification
+from app.models.syscohada import SyscohadaAccount, SupplierCategory, AccountKeyword
 
 __all__ = [
     "Tenant",
@@ -53,5 +54,8 @@ __all__ = [
     "PaymentSchedule",
     "AccountingRule",
     "DocumentClassification",
+    "SyscohadaAccount",
+    "SupplierCategory",
+    "AccountKeyword",
 ]
 from app.models.upload_job import UploadJob, UploadJobStatus
