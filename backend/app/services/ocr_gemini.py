@@ -139,9 +139,20 @@ Règles:
         elif ttc > 0 and vat > 0 and ht == 0:
             ht = round(ttc - vat, 2)
         
+        # Ne pas utiliser la date d'aujourd'hui par défaut - laisser null si non trouvée
+        # Cela permet à l'utilisateur de savoir que l'OCR n'a pas trouvé la date
+        extracted_date = data.get("date")
+        if extracted_date:
+            # Valider le format de la date
+            try:
+                from datetime import datetime as dt
+                dt.strptime(str(extracted_date), "%Y-%m-%d")
+            except ValueError:
+                extracted_date = None  # Format invalide
+
         return {
             "reference_number": data.get("reference_number") or "",
-            "date": data.get("date") or date.today().isoformat(),
+            "date": extracted_date,  # Peut être None si non trouvé
             "due_date": data.get("due_date"),
             "amount_ht": ht,
             "amount_vat": vat,

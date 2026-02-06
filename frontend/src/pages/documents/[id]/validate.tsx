@@ -39,6 +39,29 @@ interface DocumentInfo {
     file_path?: string;
     status?: string;
     type?: string;
+    ocr_data?: {
+        vat_rate?: number;
+        [key: string]: unknown;
+    };
+    ai_extracted_data?: {
+        applied_rule?: {
+            tiers_account?: string;
+            supplier_account?: string;
+            charge_account?: string;
+            vat_account?: string;
+            vat_rate?: number;
+            journal_code?: string;
+        };
+        supplier_detection?: {
+            found?: boolean;
+            confidence?: number;
+            supplier?: {
+                id?: string;
+                name?: string;
+                auxiliary_account_code?: string;
+            };
+        };
+    };
 }
 
 interface AccountingEntry {
@@ -278,19 +301,45 @@ export default function DocumentValidatePage() {
 
             const docType = doc.type || "INVOICE_PURCHASE";
             const defaultJournal = docType === "INVOICE_SALES" ? "VTE" : "ACH";
+
+            // Récupérer le compte tiers automatiquement depuis les données extraites
+            // Priorité: 1) Règle appliquée, 2) Fournisseur détecté, 3) Compte par défaut
+            let autoAccountNumber = "";
+            const aiData = doc.ai_extracted_data;
+
+            if (aiData?.applied_rule?.tiers_account) {
+                // Compte tiers de la règle d'imputation
+                autoAccountNumber = aiData.applied_rule.tiers_account;
+            } else if (aiData?.applied_rule?.supplier_account) {
+                // Compte fournisseur de la règle
+                autoAccountNumber = aiData.applied_rule.supplier_account;
+            } else if (aiData?.supplier_detection?.supplier?.auxiliary_account_code) {
+                // Compte auxiliaire du fournisseur détecté
+                autoAccountNumber = aiData.supplier_detection.supplier.auxiliary_account_code;
+            } else if (docType === "INVOICE_SALES") {
+                // Défaut pour ventes
+                autoAccountNumber = "411000";
+            } else {
+                // Défaut pour achats
+                autoAccountNumber = "401000";
+            }
+
+            // Récupérer le taux TVA depuis les données extraites
+            const autoVatRate = aiData?.applied_rule?.vat_rate || doc.ocr_data?.vat_rate || 18;
+
             setFormData({
                 supplier_name: doc.supplier_name || "",
-                date: doc.document_date || new Date().toISOString().split('T')[0],
+                date: doc.document_date || "",  // Ne pas utiliser la date d'aujourd'hui par défaut - indiquer que l'OCR n'a pas trouvé
                 due_date: doc.due_date || "",
                 amount_ht: doc.amount_ht || 0,
                 amount_vat: doc.amount_vat || 0,
                 amount_ttc: doc.amount_ttc || 0,
                 reference_number: doc.reference_number || "",
-                account_number: "",
-                journal_code: defaultJournal,
+                account_number: autoAccountNumber,
+                journal_code: aiData?.applied_rule?.journal_code || defaultJournal,
                 description: doc.supplier_name ? `Facture ${doc.supplier_name}` : "Facture",
                 document_type: docType as ValidationFormData['document_type'],
-                vat_rate: 0
+                vat_rate: autoVatRate
             });
 
             // Calculate confidence scores
