@@ -15,7 +15,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 revision = 'syscohada_ref_001'
-down_revision = 'dup_detect_idx_001'
+down_revision = '20260202_fix_suppliers'
 branch_labels = None
 depends_on = None
 

@@ -298,10 +298,9 @@ SYSCOHADA_ACCOUNTS = [
     {"number": "637", "label": "Remunerations du personnel exterieur", "class": 6, "level": 3, "parent": "63", "is_detail": True},
     {"number": "638", "label": "Autres charges externes", "class": 6, "level": 3, "parent": "63", "is_detail": True},
 
-    {"number": "626", "label": "Frais de telecommunications", "class": 6, "level": 2, "is_detail": False},
-    {"number": "6261", "label": "Telephone", "class": 6, "level": 4, "parent": "626", "is_detail": True, "description": "MTN, Moov, Orange, lignes fixes"},
-    {"number": "6262", "label": "Internet", "class": 6, "level": 4, "parent": "626", "is_detail": True},
-    {"number": "6263", "label": "Affranchissements", "class": 6, "level": 4, "parent": "626", "is_detail": True},
+    {"number": "6281", "label": "Telephone", "class": 6, "level": 4, "parent": "628", "is_detail": True, "description": "MTN, Moov, Orange, lignes fixes"},
+    {"number": "6282", "label": "Internet", "class": 6, "level": 4, "parent": "628", "is_detail": True},
+    {"number": "6283", "label": "Affranchissements", "class": 6, "level": 4, "parent": "628", "is_detail": True},
 
     {"number": "64", "label": "Impots et taxes", "class": 6, "level": 2, "is_detail": False},
     {"number": "641", "label": "Impots et taxes directs", "class": 6, "level": 3, "parent": "64", "is_detail": True},
@@ -442,7 +441,7 @@ SUPPLIER_CATEGORIES = [
     {
         "code": "TELECOM",
         "label": "Telecommunications",
-        "account": "6261",
+        "account": "6281",
         "keywords": ["telephone", "telecom", "mtn", "moov", "orange", "airtel", "glo", "internet", "mobile", "communication", "togocel", "expresso", "free"]
     },
     {

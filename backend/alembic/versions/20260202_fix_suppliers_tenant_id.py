@@ -13,7 +13,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = '20260202_fix_suppliers'
-down_revision = 'add_duplicate_detection_indexes'
+down_revision = 'dup_detect_idx_001'
 branch_labels = None
 depends_on = None
 
