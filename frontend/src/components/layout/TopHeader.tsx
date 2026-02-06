@@ -5,6 +5,7 @@ import { Bell, Search, MessageSquare, HelpCircle, Menu, X, ChevronRight, Book, M
 import Link from "next/link";
 import { ClientSelector } from "./ClientSelector";
 import { getCurrentUser, type User } from "@/lib/api";
+import { useLayout } from "@/contexts/LayoutContext";
 
 interface TopHeaderProps {
     onMenuToggle?: () => void;
@@ -24,8 +25,12 @@ export default function TopHeader({ onMenuToggle }: TopHeaderProps) {
     const [notifications, setNotifications] = useState<NotificationItem[]>([]);
     const [showHelp, setShowHelp] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
+    const { sidebarCollapsed } = useLayout();
 
     const unreadCount = notifications.filter(n => !n.is_read).length;
+
+    // Position dynamique basée sur l'état du sidebar
+    const headerLeftPosition = sidebarCollapsed ? "lg:left-[72px]" : "lg:left-[240px]";
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -66,7 +71,7 @@ export default function TopHeader({ onMenuToggle }: TopHeaderProps) {
 
     return (
         <>
-        <header className="fixed top-0 left-0 lg:left-[240px] right-0 h-14 bg-white border-b border-gray-200 z-30 flex items-center justify-between px-3 sm:px-4 shadow-sm">
+        <header className={`fixed top-0 left-0 ${headerLeftPosition} right-0 h-14 bg-white border-b border-gray-200 z-30 flex items-center justify-between px-3 sm:px-4 shadow-sm transition-all duration-300`}>
             {/* Left side - Client Selector */}
             <div className="flex items-center gap-3 sm:gap-4">
                 <button

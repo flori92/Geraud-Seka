@@ -14,14 +14,17 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
     const router = useRouter();
-    const { appMode } = useLayout();
+    const { appMode, sidebarCollapsed } = useLayout();
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     const noSidebarPages = ['/login', '/register', '/landing', '/pricing', '/about', '/blog', '/faq', '/privacy', '/terms'];
     const showSidebar = !noSidebarPages.includes(router.pathname);
 
+    // Marge dynamique basée sur l'état du sidebar (240px ouvert, 72px fermé)
+    const sidebarMargin = sidebarCollapsed ? "lg:ml-[72px]" : "lg:ml-[240px]";
+
     const mainClass = showSidebar
-        ? "lg:ml-[240px] transition-all duration-300 pt-14 px-3 sm:px-4 min-h-screen bg-gray-50"
+        ? `${sidebarMargin} transition-all duration-300 pt-14 px-3 sm:px-4 min-h-screen bg-gray-50`
         : "px-3 sm:px-4 min-h-screen bg-gray-50";
 
     if (!showSidebar) {

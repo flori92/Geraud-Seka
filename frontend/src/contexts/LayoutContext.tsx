@@ -13,15 +13,33 @@ interface LayoutContextType {
     availableTenants: Client[];
     refreshTenants: () => Promise<void>;
     user: User | null;
+    sidebarCollapsed: boolean;
+    setSidebarCollapsed: (collapsed: boolean) => void;
 }
 
 const LayoutContext = createContext<LayoutContextType | undefined>(undefined);
+
+const SIDEBAR_COLLAPSED_KEY = "seka_sidebar_collapsed";
 
 export function LayoutProvider({ children }: { children: ReactNode }) {
     const [appMode, setAppMode] = useState<AppMode>('ENTREPRISE');
     const [currentTenant, setCurrentTenant] = useState<Client | null>(null);
     const [availableTenants, setAvailableTenants] = useState<Client[]>([]);
     const [user, setUser] = useState<User | null>(null);
+    const [sidebarCollapsed, setSidebarCollapsedState] = useState(false);
+
+    // Charger l'état du sidebar depuis localStorage
+    useEffect(() => {
+        const saved = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+        if (saved === "true") {
+            setSidebarCollapsedState(true);
+        }
+    }, []);
+
+    const setSidebarCollapsed = (collapsed: boolean) => {
+        setSidebarCollapsedState(collapsed);
+        localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(collapsed));
+    };
 
     const refreshTenants = async () => {
         const token = localStorage.getItem("seka_access_token");
@@ -71,7 +89,9 @@ export function LayoutProvider({ children }: { children: ReactNode }) {
             setCurrentTenant,
             availableTenants,
             refreshTenants,
-            user
+            user,
+            sidebarCollapsed,
+            setSidebarCollapsed
         }}>
             {children}
         </LayoutContext.Provider>

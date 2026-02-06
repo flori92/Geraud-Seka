@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { getCurrentUser, type User } from "@/lib/api";
+import { useLayout } from "@/contexts/LayoutContext";
 import {
   LayoutDashboard,
   FileText,
@@ -127,27 +128,15 @@ interface PennylaneSidebarProps {
   onClose?: () => void;
 }
 
-const SIDEBAR_COLLAPSED_KEY = "seka_sidebar_collapsed";
-
 export function PennylaneSidebar({ isOpen = true, onClose }: PennylaneSidebarProps) {
   const [openMenus, setOpenMenus] = useState<string[]>([]);
   const [user, setUser] = useState<User | null>(null);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const { sidebarCollapsed: isCollapsed, setSidebarCollapsed } = useLayout();
   const router = useRouter();
   const pathname = router.pathname || "";
 
-  // Charger l'état collapsed depuis localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
-    if (saved === "true") {
-      setIsCollapsed(true);
-    }
-  }, []);
-
   const toggleCollapsed = () => {
-    const newState = !isCollapsed;
-    setIsCollapsed(newState);
-    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(newState));
+    setSidebarCollapsed(!isCollapsed);
   };
 
   useEffect(() => {
