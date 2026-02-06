@@ -122,3 +122,6 @@ api_router.include_router(ledger_accounts.router, prefix="/ledger-accounts", tag
 api_router.include_router(tiers_interconnection.router, prefix="/interconnection", tags=["tiers-interconnection"])
 api_router.include_router(rules_advanced.router, prefix="/rules-advanced", tags=["rules-advanced"])
 api_router.include_router(duplicates.router, prefix="/duplicates", tags=["duplicates"])
+
+from app.api.v1.routes import syscohada
+api_router.include_router(syscohada.router, prefix="/syscohada", tags=["syscohada", "accounting"])
