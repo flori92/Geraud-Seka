@@ -135,7 +135,12 @@ class SupplierDetectionService:
         
         # Fournisseur non trouvé - préparer suggestion de création
         suggested_code = self._generate_supplier_code(ocr_supplier_name)
-        
+
+        # Obtenir suggestion de compte SYSCOHADA
+        from app.services.account_suggestion_service import AccountSuggestionService
+        account_service = AccountSuggestionService(self.db, self.tenant_id)
+        account_suggestion = account_service.suggest_for_supplier(ocr_supplier_name)
+
         return {
             "found": False,
             "supplier": None,
@@ -147,7 +152,11 @@ class SupplierDetectionService:
                 "suggested_code": suggested_code,
                 "suggested_auxiliary_account": f"401{suggested_code}",
                 "suggested_ocr_keywords": self._extract_keywords(ocr_supplier_name),
-                "default_charge_account": None,  # À définir par l'utilisateur
+                # Suggestion SYSCOHADA enrichie
+                "default_charge_account": account_suggestion.get("charge_account"),
+                "suggested_category": account_suggestion.get("category"),
+                "suggestion_confidence": account_suggestion.get("confidence", 0),
+                "suggestion_source": account_suggestion.get("source", "default"),
                 "default_vat_account": "4454",
                 "default_tax_rate": 18.0
             }

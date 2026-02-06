@@ -1,10 +1,17 @@
 /**
  * Modal de création rapide de fournisseur avec règle d'imputation
  * Utilisée quand l'OCR détecte un fournisseur inconnu
+ *
+ * Intègre:
+ * - AccountSelector pour sélection compte SYSCOHADA
+ * - CategorySelector pour catégorie fournisseur
+ * - Auto-suggestion basée sur le nom
  */
 import { useState, useEffect } from "react";
-import { X, Building2, Hash, CreditCard, Percent, FileText, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
+import { X, Building2, Hash, CreditCard, Percent, FileText, AlertCircle, CheckCircle, Loader2, Sparkles } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api";
+import { AccountSelector, CategorySelector } from "@/components/accounting";
+import { useAccounts, SupplierCategory, AccountSuggestion } from "@/hooks/useAccounts";
 
 interface SupplierSuggestion {
     type: string;
@@ -42,6 +49,11 @@ export default function SupplierQuickCreateModal({
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [conditionTypes, setConditionTypes] = useState<RuleConditionType[]>([]);
+
+    // SYSCOHADA integration
+    const { suggestAccount } = useAccounts();
+    const [accountSuggestion, setAccountSuggestion] = useState<AccountSuggestion | null>(null);
+    const [selectedCategory, setSelectedCategory] = useState<SupplierCategory | null>(null);
     
     // Formulaire
     const [formData, setFormData] = useState({
@@ -108,7 +120,7 @@ export default function SupplierQuickCreateModal({
             setFormData(prev => {
                 // Ne pas écraser si déjà défini manuellement
                 if (prev.code) return prev;
-                
+
                 const words = formData.name.replace(/[^a-zA-Z\s]/g, '').toUpperCase().split(' ').filter(w => w);
                 let code = "";
                 if (words.length === 1) {
@@ -126,6 +138,35 @@ export default function SupplierQuickCreateModal({
             });
         }
     }, [formData.name]);
+
+    // Auto-suggestion SYSCOHADA basée sur le nom
+    useEffect(() => {
+        if (formData.name && formData.name.length >= 3) {
+            const timer = setTimeout(async () => {
+                const suggestion = await suggestAccount(formData.name);
+                if (suggestion) {
+                    setAccountSuggestion(suggestion);
+                    // Auto-remplir le compte de charge si pas déjà défini et confiance > 70%
+                    if (!formData.charge_account && suggestion.confidence >= 0.7) {
+                        setFormData(prev => ({ ...prev, charge_account: suggestion.charge_account }));
+                    }
+                    // Auto-sélectionner la catégorie si suggérée
+                    if (suggestion.category && !selectedCategory) {
+                        setSelectedCategory(suggestion.category as SupplierCategory);
+                    }
+                }
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [formData.name, suggestAccount, formData.charge_account, selectedCategory]);
+
+    // Quand une catégorie est sélectionnée, mettre à jour le compte de charge
+    const handleCategoryChange = (category: SupplierCategory | null) => {
+        setSelectedCategory(category);
+        if (category) {
+            setFormData(prev => ({ ...prev, charge_account: category.default_charge_account }));
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -274,6 +315,25 @@ export default function SupplierQuickCreateModal({
                         </div>
                     </div>
 
+                    {/* Section Catégorie fournisseur */}
+                    {accountSuggestion && accountSuggestion.confidence >= 0.7 && (
+                        <div className="p-3 bg-green-50 border border-green-200 rounded-lg flex items-start gap-2">
+                            <Sparkles className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                            <div>
+                                <p className="text-sm text-green-800 font-medium">Suggestion automatique</p>
+                                <p className="text-xs text-green-700 mt-0.5">
+                                    Compte suggéré : <strong>{accountSuggestion.charge_account}</strong>
+                                    {accountSuggestion.category && (
+                                        <> | Catégorie : <strong>{accountSuggestion.category.label}</strong></>
+                                    )}
+                                    <span className="text-green-600 ml-1">
+                                        ({Math.round(accountSuggestion.confidence * 100)}% confiance)
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Section Comptes comptables */}
                     <div className="space-y-4">
                         <h3 className="font-semibold text-gray-900 border-b pb-2 flex items-center gap-2">
@@ -281,20 +341,26 @@ export default function SupplierQuickCreateModal({
                             Comptes comptables
                         </h3>
 
+                        {/* Catégorie fournisseur */}
+                        <CategorySelector
+                            value={selectedCategory?.id || null}
+                            onChange={handleCategoryChange}
+                            suggestedCategory={accountSuggestion?.category as SupplierCategory | undefined}
+                            label="Catégorie fournisseur"
+                            helperText="Sélectionnez une catégorie pour pré-remplir le compte de charge"
+                        />
+
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Compte de charge *
-                                </label>
-                                <input
-                                    type="text"
-                                    required={formData.create_rule}
+                                <AccountSelector
                                     value={formData.charge_account}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, charge_account: e.target.value }))}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1e3a5f] focus:border-transparent font-mono"
-                                    placeholder="6061, 6261..."
+                                    onChange={(account) => setFormData(prev => ({ ...prev, charge_account: account }))}
+                                    filterClass={[6]}
+                                    label="Compte de charge"
+                                    helperText="Compte débité (classe 6)"
+                                    required={formData.create_rule}
+                                    showBrowseButton={true}
                                 />
-                                <p className="text-xs text-gray-500 mt-1">Compte débité (classe 6)</p>
                             </div>
 
                             <div>
