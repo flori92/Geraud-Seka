@@ -27,6 +27,109 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
+def _build_applied_rule_from_supplier_defaults(supplier_info: dict, confidence: float) -> dict:
+    """Construit un applied_rule à partir des comptes par défaut du fournisseur."""
+    return {
+        "rule_id": None,
+        "rule_name": None,
+        "charge_account": supplier_info.get("default_charge_account"),
+        "vat_account": supplier_info.get("default_vat_account") or "4454",
+        "supplier_account": supplier_info.get("auxiliary_account_code"),
+        "tiers_account": supplier_info.get("auxiliary_account_code"),
+        "journal_code": "ACH",
+        "vat_rate": supplier_info.get("default_tax_rate") or 18,
+        "confidence": confidence,
+        "source": "supplier_defaults"
+    }
+
+
+def _auto_create_rule_for_supplier(db: Session, db_obj, supplier_info: dict, confidence: float, tenant_id) -> None:
+    """
+    Auto-crée une règle d'imputation pour un fournisseur connu qui n'en a pas.
+
+    Tout fournisseur connu DOIT avoir une règle associée pour que l'imputation
+    automatique fonctionne. Si le fournisseur a des comptes par défaut, on crée
+    la règle et on passe le document en PRE_TRAITEE.
+    """
+    from app.services.tiers_interconnection import TiersInterconnectionService
+    from app.models.supplier import Supplier
+
+    charge_account = supplier_info.get("default_charge_account")
+    vat_account = supplier_info.get("default_vat_account") or "4454"
+    auxiliary_account = supplier_info.get("auxiliary_account_code")
+
+    if not charge_account:
+        # Pas de compte de charge → on ne peut pas créer une règle complète
+        # Utiliser les comptes par défaut comme fallback
+        db_obj.status = DocumentStatus.A_TRAITER
+        db_obj.auto_validable = False
+        if auxiliary_account:
+            db_obj.ai_extracted_data["applied_rule"] = _build_applied_rule_from_supplier_defaults(
+                supplier_info, confidence
+            )
+        print(f"🟠 Fournisseur connu sans compte de charge → A_TRAITER (comptes par défaut si disponibles)")
+        return
+
+    # Récupérer l'objet Supplier depuis la DB pour créer la règle
+    supplier_id = supplier_info.get("id")
+    supplier_obj = db.query(Supplier).filter(Supplier.id == supplier_id).first() if supplier_id else None
+
+    if not supplier_obj:
+        # Fallback si on ne retrouve pas le fournisseur en DB
+        db_obj.status = DocumentStatus.A_TRAITER
+        db_obj.auto_validable = False
+        db_obj.ai_extracted_data["applied_rule"] = _build_applied_rule_from_supplier_defaults(
+            supplier_info, confidence
+        )
+        print(f"🟠 Fournisseur non trouvé en DB → Comptes par défaut appliqués")
+        return
+
+    try:
+        tiers_service = TiersInterconnectionService(db, str(tenant_id))
+        rule = tiers_service.update_supplier_rule(
+            supplier=supplier_obj,
+            charge_account=charge_account,
+            vat_account=vat_account,
+            vat_rate=float(supplier_info.get("default_tax_rate") or 18),
+        )
+
+        if rule:
+            # Règle créée → appliquer comme si elle avait matché
+            db_obj.status = DocumentStatus.PRE_TRAITEE
+            db_obj.auto_validable = True
+            db_obj.matched_rule_id = rule.id
+            db_obj.matched_rule_name = rule.name
+
+            db_obj.ai_extracted_data["applied_rule"] = {
+                "rule_id": str(rule.id),
+                "rule_name": rule.name,
+                "charge_account": charge_account,
+                "vat_account": vat_account,
+                "supplier_account": auxiliary_account,
+                "tiers_account": auxiliary_account,
+                "journal_code": "ACH",
+                "vat_rate": float(supplier_info.get("default_tax_rate") or 18),
+                "confidence": confidence,
+                "source": "auto_created_rule"
+            }
+            print(f"✅ Règle auto-créée pour {supplier_obj.name}: {rule.name} → PRE_TRAITEE")
+        else:
+            # Échec création règle → fallback comptes par défaut
+            db_obj.status = DocumentStatus.A_TRAITER
+            db_obj.auto_validable = False
+            db_obj.ai_extracted_data["applied_rule"] = _build_applied_rule_from_supplier_defaults(
+                supplier_info, confidence
+            )
+            print(f"🟠 Échec création règle pour {supplier_obj.name} → Comptes par défaut")
+    except Exception as e:
+        print(f"⚠️ Erreur auto-création règle: {e}")
+        db_obj.status = DocumentStatus.A_TRAITER
+        db_obj.auto_validable = False
+        db_obj.ai_extracted_data["applied_rule"] = _build_applied_rule_from_supplier_defaults(
+            supplier_info, confidence
+        )
+
+
 @router.post("/", response_model=DocumentSchema)
 async def upload_document(
     *,
@@ -251,21 +354,32 @@ async def upload_document(
                             }
                             print(f"✅ Règle appliquée: {result.get('rule_name')} → PRE_TRAITEE")
                         else:
-                            # 🔴 Aucune règle → A_TRAITER
-                            db_obj.status = DocumentStatus.A_TRAITER
-                            db_obj.auto_validable = False
-                            
-                            # Si fournisseur inconnu, ajouter un flag spécial
+                            # Aucune règle matchée
                             if not supplier_result.get("found"):
+                                # 🔴 Fournisseur inconnu → Création requise
+                                db_obj.status = DocumentStatus.A_TRAITER
+                                db_obj.auto_validable = False
                                 db_obj.ai_extracted_data["needs_supplier_creation"] = True
                                 print(f"🔴 Fournisseur inconnu + Pas de règle → Création fournisseur requise")
                             else:
-                                print(f"🟠 Fournisseur connu mais pas de règle → A_TRAITER")
+                                # 🟡 Fournisseur connu sans règle → Auto-créer la règle
+                                supplier_info = supplier_result.get("supplier", {})
+                                _auto_create_rule_for_supplier(
+                                    db, db_obj, supplier_info, supplier_result.get("confidence", 0.0),
+                                    current_user.tenant_id
+                                )
                     else:
-                        db_obj.status = DocumentStatus.A_TRAITER
-                        db_obj.auto_validable = False
                         if not supplier_result.get("found"):
+                            db_obj.status = DocumentStatus.A_TRAITER
+                            db_obj.auto_validable = False
                             db_obj.ai_extracted_data["needs_supplier_creation"] = True
+                        else:
+                            # Pas de règles actives mais fournisseur connu → Auto-créer la règle
+                            supplier_info = supplier_result.get("supplier", {})
+                            _auto_create_rule_for_supplier(
+                                db, db_obj, supplier_info, supplier_result.get("confidence", 0.0),
+                                current_user.tenant_id
+                            )
                         
                 except Exception as rule_err:
                     print(f"⚠️ Erreur vérification règles/fournisseur: {rule_err}")

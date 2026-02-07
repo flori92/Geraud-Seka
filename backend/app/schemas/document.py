@@ -164,6 +164,18 @@ class Document(DocumentBase):
             if not data.get('journal_code') and rule_data:
                 data['journal_code'] = rule_data.get('journal_code') or rule_data.get('journal', 'ACH')
 
+            # Fallback: vérifier les données du fournisseur détecté (pour docs existants avant le fix)
+            supplier_data = (ai_data.get('supplier_detection', {}) or {}).get('supplier', {}) or {}
+            if supplier_data:
+                if not data.get('charge_account'):
+                    data['charge_account'] = supplier_data.get('default_charge_account')
+                if not data.get('vat_account'):
+                    data['vat_account'] = supplier_data.get('default_vat_account') or '4454'
+                if not data.get('supplier_account'):
+                    data['supplier_account'] = supplier_data.get('auxiliary_account_code')
+                if not data.get('journal_code'):
+                    data['journal_code'] = 'ACH'
+
             return super().model_validate(data, **kwargs)
         return super().model_validate(obj, **kwargs)
 

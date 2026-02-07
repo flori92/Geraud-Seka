@@ -141,6 +141,14 @@ export default function DocumentsEnAttentePage() {
         });
     };
 
+    const formatDateOnly = (dateString: string) => {
+        return new Date(dateString).toLocaleDateString('fr-FR', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+        });
+    };
+
     const formatCurrency = (amount?: number) => {
         if (!amount) return '-';
         return new Intl.NumberFormat('fr-FR', {
@@ -662,7 +670,7 @@ export default function DocumentsEnAttentePage() {
                                                         {isColumnVisible('date_emission') && (
                                                             <td className="px-4 py-4 whitespace-nowrap text-sm">
                                                                 {doc.date ? (
-                                                                    <span className="text-gray-900">{formatDate(doc.date)}</span>
+                                                                    <span className="text-gray-900">{formatDateOnly(doc.date)}</span>
                                                                 ) : (
                                                                     <span className="text-amber-600 italic text-xs">Non extraite</span>
                                                                 )}

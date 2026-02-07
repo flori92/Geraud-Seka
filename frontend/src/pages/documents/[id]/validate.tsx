@@ -751,7 +751,7 @@ export default function DocumentValidatePage() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="text-xs font-medium text-gray-700 mb-1 flex items-center justify-between">
-                                        <span>Date pièce</span>
+                                        <span>Date d&apos;émission</span>
                                         {fieldConfidence.date && (
                                             <ConfidenceIndicator 
                                                 level={fieldConfidence.date.level}
