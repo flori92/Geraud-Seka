@@ -815,26 +815,132 @@ def delete_document(
     current_user: User = Depends(deps.get_current_user),
 ) -> None:
     """
-    Delete a document.
+    Delete a document and all associated data (duplicates, accounting entries, R2 file).
     """
     document = db.query(Document).filter(
         Document.id == id,
         Document.tenant_id == current_user.tenant_id
     ).first()
-    
+
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
-    
-    # Optionnel: supprimer le fichier du storage
+
+    doc_id_str = str(id)
+
+    # 1. Supprimer les enregistrements de doublons associés
+    try:
+        from app.models.duplicate import DocumentDuplicate
+        duplicates_deleted = db.query(DocumentDuplicate).filter(
+            (DocumentDuplicate.new_document_id == doc_id_str) |
+            (DocumentDuplicate.existing_document_id == doc_id_str)
+        ).delete(synchronize_session=False)
+        if duplicates_deleted:
+            print(f"🗑️  {duplicates_deleted} enregistrement(s) de doublon supprimé(s)")
+    except Exception as e:
+        print(f"⚠️  Erreur suppression doublons: {e}")
+
+    # 2. Supprimer les écritures comptables associées
+    try:
+        from app.models.accounting_entries import AccountingEntryHeader, AccountingEntryLine
+        if document.accounting_entry_id:
+            # Supprimer les lignes d'abord
+            lines_deleted = db.query(AccountingEntryLine).filter(
+                AccountingEntryLine.entry_header_id == document.accounting_entry_id
+            ).delete(synchronize_session=False)
+            # Puis l'en-tête
+            headers_deleted = db.query(AccountingEntryHeader).filter(
+                AccountingEntryHeader.id == document.accounting_entry_id
+            ).delete(synchronize_session=False)
+            if headers_deleted:
+                print(f"🗑️  Écriture comptable supprimée ({lines_deleted} lignes)")
+    except Exception as e:
+        print(f"⚠️  Erreur suppression écritures: {e}")
+
+    # 3. Supprimer le fichier du storage R2
     if document.file_path:
         try:
             storage_service.delete_file(document.file_path)
+            print(f"🗑️  Fichier R2 supprimé: {document.file_path}")
         except Exception as e:
             print(f"⚠️  Erreur suppression fichier storage: {e}")
-    
+
+    # 4. Supprimer le document de la base
     db.delete(document)
     db.commit()
-    print(f"🗑️  Document {id} supprimé")
+    print(f"🗑️  Document {id} supprimé complètement")
+
+
+@router.delete("/cleanup/all-exported", status_code=200)
+def cleanup_all_exported_documents(
+    *,
+    db: Session = Depends(deps.get_db_session),
+    current_user: User = Depends(deps.get_current_user),
+):
+    """
+    Supprime TOUS les documents exportés et leurs données associées.
+    ⚠️ ATTENTION: Action irréversible!
+    """
+    try:
+        from app.models.duplicate import DocumentDuplicate
+        from app.models.accounting_entries import AccountingEntryHeader, AccountingEntryLine
+
+        # Récupérer tous les documents exportés
+        exported_docs = db.query(Document).filter(
+            Document.tenant_id == current_user.tenant_id,
+            Document.status == DocumentStatus.EXPORTED
+        ).all()
+
+        if not exported_docs:
+            return {"message": "Aucun document exporté à supprimer", "deleted_count": 0}
+
+        deleted_count = 0
+        errors = []
+
+        for doc in exported_docs:
+            try:
+                doc_id_str = str(doc.id)
+
+                # Supprimer doublons
+                db.query(DocumentDuplicate).filter(
+                    (DocumentDuplicate.new_document_id == doc_id_str) |
+                    (DocumentDuplicate.existing_document_id == doc_id_str)
+                ).delete(synchronize_session=False)
+
+                # Supprimer écritures comptables
+                if doc.accounting_entry_id:
+                    db.query(AccountingEntryLine).filter(
+                        AccountingEntryLine.entry_header_id == doc.accounting_entry_id
+                    ).delete(synchronize_session=False)
+                    db.query(AccountingEntryHeader).filter(
+                        AccountingEntryHeader.id == doc.accounting_entry_id
+                    ).delete(synchronize_session=False)
+
+                # Supprimer fichier R2
+                if doc.file_path:
+                    try:
+                        storage_service.delete_file(doc.file_path)
+                    except Exception:
+                        pass
+
+                # Supprimer document
+                db.delete(doc)
+                deleted_count += 1
+
+            except Exception as e:
+                errors.append(f"{doc.filename}: {str(e)}")
+
+        db.commit()
+
+        print(f"🧹 Nettoyage terminé: {deleted_count} documents exportés supprimés")
+        return {
+            "message": f"{deleted_count} documents exportés supprimés",
+            "deleted_count": deleted_count,
+            "errors": errors
+        }
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Erreur nettoyage: {str(e)}")
 
 
 @router.get("/{document_id}/view-url")
