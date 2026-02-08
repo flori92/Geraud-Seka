@@ -162,6 +162,37 @@ export default function DocumentsEnAttentePage() {
         }).format(amount);
     };
 
+    // Naviguer vers la page de confrontation pour un doublon
+    const handleGoToConfrontation = async (documentId: string) => {
+        const token = localStorage.getItem("seka_access_token");
+        if (!token) return;
+
+        try {
+            // Récupérer le doublon associé à ce document
+            const response = await fetch(`${API_BASE_URL}/api/v1/duplicates/pending`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (response.ok) {
+                const duplicates = await response.json();
+                // Trouver le doublon pour ce document
+                const duplicate = duplicates.find(
+                    (d: { new_document: { id: string } }) => d.new_document.id === documentId
+                );
+
+                if (duplicate) {
+                    router.push(`/documents/confrontation?new=${duplicate.new_document.id}&existing=${duplicate.existing_document.id}`);
+                } else {
+                    // Fallback: aller à la page des doublons
+                    router.push('/documents/doublons');
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching duplicate:", error);
+            router.push('/documents/doublons');
+        }
+    };
+
     const handleBulkDelete = async () => {
         const token = localStorage.getItem("seka_access_token");
         if (!token || selectedDocs.length === 0) return;
@@ -767,10 +798,17 @@ export default function DocumentsEnAttentePage() {
                                                             <td className="px-4 py-4 whitespace-nowrap">
                                                                 <div className="flex items-center gap-1">
                                                                     {doc.status === 'DUPLICATE_BLOCKED' || doc.status === 'duplicate' || doc.status === 'A_TRAITER_DOUBLON' ? (
-                                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 border border-red-300">
+                                                                        <button
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                handleGoToConfrontation(doc.id);
+                                                                            }}
+                                                                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 border border-red-300 hover:bg-red-200 transition-colors cursor-pointer"
+                                                                            title="Cliquez pour résoudre ce doublon"
+                                                                        >
                                                                             <AlertTriangle className="h-3 w-3" />
                                                                             DOUBLON
-                                                                        </span>
+                                                                        </button>
                                                                     ) : (
                                                                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${statusConfig.color}`}>
                                                                             <StatusIcon className={`h-3 w-3 ${doc.status === 'OCR_PROCESSING' ? 'animate-spin' : ''}`} />

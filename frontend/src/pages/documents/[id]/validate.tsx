@@ -414,11 +414,42 @@ export default function DocumentValidatePage() {
     }, [currentIndex, pendingDocIds, router]);
 
     const [isDuplicateError, setIsDuplicateError] = useState(false);
+    const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+    const [duplicateInfo, setDuplicateInfo] = useState<{ newDocId: string; existingDocId: string } | null>(null);
+
+    // Récupérer les infos du doublon pour redirection
+    const fetchDuplicateInfo = async (documentId: string) => {
+        const token = localStorage.getItem("seka_access_token");
+        if (!token) return;
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/v1/duplicates/pending`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (response.ok) {
+                const duplicates = await response.json();
+                const duplicate = duplicates.find(
+                    (d: { new_document: { id: string } }) => d.new_document.id === documentId
+                );
+
+                if (duplicate) {
+                    setDuplicateInfo({
+                        newDocId: duplicate.new_document.id,
+                        existingDocId: duplicate.existing_document.id
+                    });
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching duplicate info:", error);
+        }
+    };
 
     const handleSave = async (validateAndNext = false) => {
         setSaving(true);
         setError(null);
         setIsDuplicateError(false);
+        setShowDuplicateModal(false);
         const token = localStorage.getItem("seka_access_token");
         try {
             const response = await fetch(`${API_BASE_URL}/api/v1/documents/${id}/validate`, {
@@ -440,11 +471,16 @@ export default function DocumentValidatePage() {
             } else {
                 const errData = await response.json().catch(() => ({ detail: "Erreur inconnue" }));
                 const errorMessage = errData.detail || "Erreur lors de la validation";
-                
+
                 // Détecter si c'est une erreur de doublon
                 if (response.status === 422 && errorMessage.toLowerCase().includes("doublon")) {
                     setIsDuplicateError(true);
+                    setShowDuplicateModal(true);
                     setError("Ce document a été détecté comme un doublon potentiel. Vous devez d'abord résoudre ce doublon avant de pouvoir valider.");
+                    // Récupérer les infos du doublon pour permettre la redirection
+                    if (typeof id === 'string') {
+                        fetchDuplicateInfo(id);
+                    }
                 } else {
                     setError(errorMessage);
                 }
@@ -1069,6 +1105,63 @@ export default function DocumentValidatePage() {
 
                 </div>
             </div>
+
+            {/* Modal Popup pour Doublon */}
+            {showDuplicateModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowDuplicateModal(false)}>
+                    <div
+                        className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header rouge */}
+                        <div className="bg-red-600 px-6 py-4 flex items-center gap-3">
+                            <div className="p-2 bg-white/20 rounded-full">
+                                <AlertCircle className="h-6 w-6 text-white" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-white">Doublon Détecté</h3>
+                                <p className="text-red-100 text-sm">Action requise avant validation</p>
+                            </div>
+                        </div>
+
+                        {/* Contenu */}
+                        <div className="p-6">
+                            <p className="text-gray-700 mb-4">
+                                Ce document a été identifié comme un <strong>doublon potentiel</strong> d&apos;une facture existante.
+                            </p>
+                            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+                                <p className="text-amber-800 text-sm">
+                                    <strong>Attention :</strong> Vous devez résoudre ce doublon avant de pouvoir valider cette facture.
+                                    Cela garantit l&apos;intégrité de votre comptabilité.
+                                </p>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex flex-col gap-3">
+                                <button
+                                    onClick={() => {
+                                        if (duplicateInfo) {
+                                            router.push(`/documents/confrontation?new=${duplicateInfo.newDocId}&existing=${duplicateInfo.existingDocId}`);
+                                        } else {
+                                            router.push('/documents/doublons');
+                                        }
+                                    }}
+                                    className="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
+                                >
+                                    <AlertCircle className="h-5 w-5" />
+                                    Résoudre le doublon maintenant
+                                </button>
+                                <button
+                                    onClick={() => setShowDuplicateModal(false)}
+                                    className="w-full py-2 text-gray-600 hover:text-gray-800 text-sm"
+                                >
+                                    Fermer et revenir au document
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }
