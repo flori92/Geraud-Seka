@@ -3,7 +3,7 @@ import json
 from typing import Any, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.models.document import DocumentStatus, DocumentType, DocumentCategory
 
@@ -114,6 +114,38 @@ class Document(DocumentBase):
         if v is None:
             return None
         return v
+
+    @model_validator(mode="after")
+    def extract_accounting_fields(self):
+        """Extract accounting fields from ai_extracted_data.applied_rule after model construction"""
+        if self.ai_extracted_data and isinstance(self.ai_extracted_data, dict):
+            rule_data = self.ai_extracted_data.get('applied_rule', {}) or {}
+
+            # Extraire les comptes si non définis
+            if not self.charge_account and rule_data:
+                object.__setattr__(self, 'charge_account',
+                    rule_data.get('charge_account') or rule_data.get('debit_account'))
+            if not self.vat_account and rule_data:
+                object.__setattr__(self, 'vat_account',
+                    rule_data.get('vat_account') or rule_data.get('tva_account'))
+            if not self.supplier_account and rule_data:
+                object.__setattr__(self, 'supplier_account',
+                    rule_data.get('supplier_account') or rule_data.get('credit_account') or rule_data.get('tiers_account'))
+            if not self.journal_code and rule_data:
+                object.__setattr__(self, 'journal_code',
+                    rule_data.get('journal_code') or rule_data.get('journal'))
+
+            # Fallback: données fournisseur
+            supplier_data = (self.ai_extracted_data.get('supplier_detection', {}) or {}).get('supplier', {}) or {}
+            if supplier_data:
+                if not self.charge_account:
+                    object.__setattr__(self, 'charge_account', supplier_data.get('default_charge_account'))
+                if not self.vat_account:
+                    object.__setattr__(self, 'vat_account', supplier_data.get('default_vat_account'))
+                if not self.supplier_account:
+                    object.__setattr__(self, 'supplier_account', supplier_data.get('auxiliary_account_code'))
+
+        return self
 
     @staticmethod
     def _sanitize_dict(d: dict) -> dict:
