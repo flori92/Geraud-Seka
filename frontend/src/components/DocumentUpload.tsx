@@ -109,7 +109,31 @@ export function DocumentUpload({ onUploadSuccess, onDuplicateDetected }: Documen
             const result = await response.json();
             const documentId = result.id || result.document_id;
             const extractedData = result.ai_extracted_data || result.extracted_data || {};
-            
+
+            // 1. Vérifier si le backend a déjà détecté un doublon via le statut
+            if (result.status === 'A_TRAITER_DOUBLON') {
+                setUploadStatus(`⚠️ Doublon détecté pour "${result.supplier_name || result.reference_number || file.name}"`);
+                setStatusType("warning");
+
+                // Émettre une notification pour l'interface
+                const event = new CustomEvent('seka:duplicate-detected', {
+                    detail: {
+                        type: 'duplicate',
+                        documentId: documentId,
+                        supplierName: result.supplier_name,
+                        referenceNumber: result.reference_number,
+                        message: 'Ce document a été détecté comme un doublon potentiel'
+                    }
+                });
+                window.dispatchEvent(event);
+
+                if (onUploadSuccess) {
+                    setTimeout(() => onUploadSuccess(), 500);
+                }
+                return;
+            }
+
+            // 2. Sinon, faire une vérification supplémentaire via l'API
             if (documentId && (extractedData.supplier_name || extractedData.reference_number)) {
                 const duplicateCheck = await checkForDuplicate(
                     token,
@@ -119,27 +143,27 @@ export function DocumentUpload({ onUploadSuccess, onDuplicateDetected }: Documen
                     extractedData.amount_ttc,
                     extractedData.document_date || extractedData.invoice_date
                 );
-                
+
                 if (duplicateCheck && duplicateCheck.is_duplicate) {
                     const info: DuplicateInfo = {
                         ...duplicateCheck,
                         new_document_id: documentId
                     };
-                    
+
                     setDuplicateInfo(info);
                     setShowDuplicateAlert(true);
                     setUploadStatus(`⚠️ Doublon détecté: ${duplicateCheck.reason_text}`);
                     setStatusType("warning");
-                    
+
                     if (onDuplicateDetected) {
                         onDuplicateDetected(info);
                     }
-                    
+
                     emitDuplicateNotification(info);
                     return;
                 }
             }
-            
+
             if (result.documents_created !== undefined) {
                 setUploadStatus(`✅ ${result.documents_created} factures extraites de ${file.name}`);
             } else {

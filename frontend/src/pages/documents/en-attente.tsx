@@ -127,6 +127,10 @@ export default function DocumentsEnAttentePage() {
             UPLOADED: { label: 'Uploadé', color: 'bg-gray-100 text-gray-700', icon: Upload },
             OCR_PROCESSING: { label: 'Traitement IA', color: 'bg-yellow-100 text-yellow-700', icon: Loader2 },
             OCR_COMPLETED: { label: 'Prêt à valider', color: 'bg-blue-100 text-blue-700', icon: CheckCircle },
+            A_TRAITER: { label: 'À traiter', color: 'bg-amber-100 text-amber-700', icon: Clock },
+            A_TRAITER_DOUBLON: { label: 'Doublon', color: 'bg-red-100 text-red-700', icon: AlertTriangle },
+            PRE_TRAITEE: { label: 'Pré-traitée', color: 'bg-purple-100 text-purple-700', icon: Zap },
+            VALIDEE: { label: 'Validée', color: 'bg-green-100 text-green-700', icon: CheckCircle },
         };
         return configs[status] || { label: status, color: 'bg-gray-100 text-gray-700', icon: Clock };
     };
@@ -712,12 +716,14 @@ export default function DocumentsEnAttentePage() {
                                                         {isColumnVisible('accounts') && (
                                                             <td className="px-4 py-4 whitespace-nowrap">
                                                             {(() => {
-                                                                const chargeAcc = (doc as unknown as Record<string, unknown>).charge_account as string | undefined;
-                                                                const vatAcc = (doc as unknown as Record<string, unknown>).vat_account as string | undefined;
-                                                                const supplierAcc = (doc as unknown as Record<string, unknown>).supplier_account as string | undefined;
+                                                                // Récupérer les comptes depuis ai_extracted_data.applied_rule ou directement
+                                                                const appliedRule = doc.ai_extracted_data?.applied_rule;
+                                                                const chargeAcc = doc.charge_account || appliedRule?.charge_account;
+                                                                const vatAcc = doc.vat_account || appliedRule?.vat_account;
+                                                                const supplierAcc = doc.supplier_account || appliedRule?.supplier_account || appliedRule?.tiers_account;
                                                                 const hasAccounts = chargeAcc || vatAcc || supplierAcc;
-                                                                
-                                                                if (doc.matched_rule_name || hasAccounts) {
+
+                                                                if (hasAccounts) {
                                                                     return (
                                                                         <div className="text-xs space-y-0.5">
                                                                             {chargeAcc && (
@@ -738,12 +744,15 @@ export default function DocumentsEnAttentePage() {
                                                                                     <span className="font-mono text-green-600">{supplierAcc}</span>
                                                                                 </div>
                                                                             )}
-                                                                            {doc.matched_rule_name && (
-                                                                                <div className="text-[10px] text-emerald-600 mt-0.5">
-                                                                                    ✓ Règle: {doc.matched_rule_name}
-                                                                                </div>
-                                                                            )}
                                                                         </div>
+                                                                    );
+                                                                }
+                                                                // Pas de comptes mais une règle est associée
+                                                                if (doc.matched_rule_name) {
+                                                                    return (
+                                                                        <span className="inline-flex items-center px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 text-xs" title={`Règle: ${doc.matched_rule_name}`}>
+                                                                            ✓ {doc.matched_rule_name}
+                                                                        </span>
                                                                     );
                                                                 }
                                                                 return (
@@ -757,7 +766,7 @@ export default function DocumentsEnAttentePage() {
                                                         {isColumnVisible('status') && (
                                                             <td className="px-4 py-4 whitespace-nowrap">
                                                                 <div className="flex items-center gap-1">
-                                                                    {doc.status === 'DUPLICATE_BLOCKED' || doc.status === 'duplicate' ? (
+                                                                    {doc.status === 'DUPLICATE_BLOCKED' || doc.status === 'duplicate' || doc.status === 'A_TRAITER_DOUBLON' ? (
                                                                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 border border-red-300">
                                                                             <AlertTriangle className="h-3 w-3" />
                                                                             DOUBLON

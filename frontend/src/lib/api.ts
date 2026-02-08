@@ -249,6 +249,29 @@ export interface Document {
   vat_account?: string;          // Compte TVA (ex: 4454)
   supplier_account?: string;     // Compte fournisseur/client (ex: 401SBEE)
   journal_code?: string;         // Journal (ACH, VTE)
+  // Données extraites par l'IA
+  ai_extracted_data?: {
+    applied_rule?: {
+      charge_account?: string;
+      vat_account?: string;
+      supplier_account?: string;
+      tiers_account?: string;
+      journal_code?: string;
+      vat_rate?: number;
+      rule_name?: string;
+      rule_id?: string;
+    };
+    supplier_detection?: {
+      found?: boolean;
+      confidence?: number;
+      supplier?: {
+        id?: string;
+        name?: string;
+        auxiliary_account_code?: string;
+      };
+    };
+    needs_supplier_creation?: boolean;
+  };
 }
 
 export type DocumentStatus = 'UPLOADED' | 'OCR_PROCESSING' | 'OCR_COMPLETED' | 'A_TRAITER' | 'A_TRAITER_DOUBLON' | 'PRE_TRAITEE' | 'VALIDEE' | 'EXPORTED' | 'IN_ACCOUNTING' | 'REJECTED' | 'ARCHIVED';
