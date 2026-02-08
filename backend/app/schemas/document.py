@@ -151,7 +151,18 @@ class Document(DocumentBase):
                         data[key] = None
 
             # Extraire les comptes de la règle appliquée ou de ai_extracted_data
-            ai_data = getattr(obj, 'ai_extracted_data', None) or {}
+            raw_ai_data = getattr(obj, 'ai_extracted_data', None)
+            # Parser le JSON si c'est une chaîne
+            if isinstance(raw_ai_data, str):
+                try:
+                    ai_data = json.loads(raw_ai_data)
+                except (json.JSONDecodeError, TypeError):
+                    ai_data = {}
+            elif isinstance(raw_ai_data, dict):
+                ai_data = raw_ai_data
+            else:
+                ai_data = {}
+
             rule_data = ai_data.get('applied_rule', {}) or ai_data.get('classification', {}) or {}
 
             # Si pas de charge_account, tenter de l'extraire des données

@@ -2,6 +2,7 @@ import { useState, useRef, ChangeEvent } from "react";
 import { useRouter } from "next/router";
 import { API_BASE_URL } from "@/lib/api";
 import DuplicateAlert from "./DuplicateAlert";
+import { useToast } from "@/components/ui/ToastContainer";
 
 interface ExistingDocument {
     id: string;
@@ -31,6 +32,7 @@ interface DocumentUploadProps {
 
 export function DocumentUpload({ onUploadSuccess, onDuplicateDetected }: DocumentUploadProps) {
     const router = useRouter();
+    const toast = useToast();
     const [dragActive, setDragActive] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [uploadStatus, setUploadStatus] = useState<string>("");
@@ -112,8 +114,15 @@ export function DocumentUpload({ onUploadSuccess, onDuplicateDetected }: Documen
 
             // 1. Vérifier si le backend a déjà détecté un doublon via le statut
             if (result.status === 'A_TRAITER_DOUBLON') {
-                setUploadStatus(`⚠️ Doublon détecté pour "${result.supplier_name || result.reference_number || file.name}"`);
+                const displayName = result.supplier_name || result.reference_number || file.name;
+                setUploadStatus(`⚠️ Doublon détecté pour "${displayName}"`);
                 setStatusType("warning");
+
+                // Afficher une notification toast bien visible
+                toast.warning(
+                    `🛑 DOUBLON DÉTECTÉ: "${displayName}" - Ce document a été identifié comme un doublon potentiel. Veuillez le traiter avant validation.`,
+                    10000 // 10 secondes
+                );
 
                 // Émettre une notification pour l'interface
                 const event = new CustomEvent('seka:duplicate-detected', {
@@ -154,6 +163,12 @@ export function DocumentUpload({ onUploadSuccess, onDuplicateDetected }: Documen
                     setShowDuplicateAlert(true);
                     setUploadStatus(`⚠️ Doublon détecté: ${duplicateCheck.reason_text}`);
                     setStatusType("warning");
+
+                    // Afficher une notification toast bien visible
+                    toast.warning(
+                        `🛑 DOUBLON DÉTECTÉ: ${duplicateCheck.reason_text}. Veuillez résoudre ce doublon avant validation.`,
+                        10000 // 10 secondes
+                    );
 
                     if (onDuplicateDetected) {
                         onDuplicateDetected(info);
