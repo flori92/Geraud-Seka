@@ -60,7 +60,9 @@ def _auto_create_rule_for_supplier(db: Session, db_obj, supplier_info: dict, con
 
     if not supplier_obj:
         # Fallback si on ne retrouve pas le fournisseur en DB
-        db_obj.status = DocumentStatus.A_TRAITER
+        # ⚠️ Ne pas écraser le statut A_TRAITER_DOUBLON - priorité au doublon
+        if db_obj.status != DocumentStatus.A_TRAITER_DOUBLON:
+            db_obj.status = DocumentStatus.A_TRAITER
         db_obj.auto_validable = False
         db_obj.ai_extracted_data["applied_rule"] = _build_applied_rule_from_supplier_defaults(
             supplier_info, confidence
@@ -88,8 +90,13 @@ def _auto_create_rule_for_supplier(db: Session, db_obj, supplier_info: dict, con
             actual_charge = charge_account or supplier_obj.default_charge_account or "601"
             actual_auxiliary = supplier_obj.auxiliary_account_code
 
-            db_obj.status = DocumentStatus.PRE_TRAITEE
-            db_obj.auto_validable = True
+            # ⚠️ Ne pas écraser le statut A_TRAITER_DOUBLON - priorité au doublon
+            if db_obj.status != DocumentStatus.A_TRAITER_DOUBLON:
+                db_obj.status = DocumentStatus.PRE_TRAITEE
+                db_obj.auto_validable = True
+            else:
+                db_obj.auto_validable = False
+
             db_obj.matched_rule_id = rule.id
             db_obj.matched_rule_name = rule.name
             db_obj.supplier_id = supplier_obj.id
@@ -106,9 +113,12 @@ def _auto_create_rule_for_supplier(db: Session, db_obj, supplier_info: dict, con
                 "confidence": confidence,
                 "source": "auto_created_rule"
             }
-            print(f"✅ Règle auto-créée pour {supplier_obj.name}: {rule.name} (charge={actual_charge}, aux={actual_auxiliary}) → PRE_TRAITEE")
+            status_msg = "A_TRAITER_DOUBLON (doublon détecté)" if db_obj.status == DocumentStatus.A_TRAITER_DOUBLON else "PRE_TRAITEE"
+            print(f"✅ Règle auto-créée pour {supplier_obj.name}: {rule.name} (charge={actual_charge}, aux={actual_auxiliary}) → {status_msg}")
         else:
-            db_obj.status = DocumentStatus.A_TRAITER
+            # ⚠️ Ne pas écraser le statut A_TRAITER_DOUBLON
+            if db_obj.status != DocumentStatus.A_TRAITER_DOUBLON:
+                db_obj.status = DocumentStatus.A_TRAITER
             db_obj.auto_validable = False
             db_obj.ai_extracted_data["applied_rule"] = _build_applied_rule_from_supplier_defaults(
                 supplier_info, confidence
@@ -118,7 +128,9 @@ def _auto_create_rule_for_supplier(db: Session, db_obj, supplier_info: dict, con
         print(f"⚠️ Erreur auto-création règle: {e}")
         import traceback
         traceback.print_exc()
-        db_obj.status = DocumentStatus.A_TRAITER
+        # ⚠️ Ne pas écraser le statut A_TRAITER_DOUBLON
+        if db_obj.status != DocumentStatus.A_TRAITER_DOUBLON:
+            db_obj.status = DocumentStatus.A_TRAITER
         db_obj.auto_validable = False
         db_obj.ai_extracted_data["applied_rule"] = _build_applied_rule_from_supplier_defaults(
             supplier_info, confidence
@@ -329,9 +341,15 @@ async def upload_document(
                         })
                         
                         if result.get("matched") or result.get("rule_id"):
-                            # 🟡 Règle trouvée → Statut PRE_TRAITEE
-                            db_obj.status = DocumentStatus.PRE_TRAITEE
-                            db_obj.auto_validable = True
+                            # 🟡 Règle trouvée
+                            # ⚠️ Ne pas écraser le statut A_TRAITER_DOUBLON - priorité au doublon
+                            if db_obj.status != DocumentStatus.A_TRAITER_DOUBLON:
+                                db_obj.status = DocumentStatus.PRE_TRAITEE
+                                db_obj.auto_validable = True
+                            else:
+                                # Doublon détecté - on garde les infos de règle mais pas auto_validable
+                                db_obj.auto_validable = False
+
                             db_obj.matched_rule_id = result.get('rule_id')
                             db_obj.matched_rule_name = result.get('rule_name', 'Règle sans nom')
 
@@ -347,12 +365,15 @@ async def upload_document(
                                 "confidence": result.get('confidence', 0.0),
                                 "source": result.get('source', 'rule')
                             }
-                            print(f"✅ Règle appliquée: {result.get('rule_name')} → PRE_TRAITEE")
+                            status_msg = "A_TRAITER_DOUBLON (doublon détecté)" if db_obj.status == DocumentStatus.A_TRAITER_DOUBLON else "PRE_TRAITEE"
+                            print(f"✅ Règle appliquée: {result.get('rule_name')} → {status_msg}")
                         else:
                             # Aucune règle matchée
                             if not supplier_result.get("found"):
                                 # 🔴 Fournisseur inconnu → Création requise
-                                db_obj.status = DocumentStatus.A_TRAITER
+                                # ⚠️ Ne pas écraser le statut A_TRAITER_DOUBLON
+                                if db_obj.status != DocumentStatus.A_TRAITER_DOUBLON:
+                                    db_obj.status = DocumentStatus.A_TRAITER
                                 db_obj.auto_validable = False
                                 db_obj.ai_extracted_data["needs_supplier_creation"] = True
                                 print(f"🔴 Fournisseur inconnu + Pas de règle → Création fournisseur requise")
@@ -365,7 +386,9 @@ async def upload_document(
                                 )
                     else:
                         if not supplier_result.get("found"):
-                            db_obj.status = DocumentStatus.A_TRAITER
+                            # ⚠️ Ne pas écraser le statut A_TRAITER_DOUBLON
+                            if db_obj.status != DocumentStatus.A_TRAITER_DOUBLON:
+                                db_obj.status = DocumentStatus.A_TRAITER
                             db_obj.auto_validable = False
                             db_obj.ai_extracted_data["needs_supplier_creation"] = True
                         else:
