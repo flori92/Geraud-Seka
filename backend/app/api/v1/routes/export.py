@@ -36,10 +36,18 @@ def export_documents(
         ).all()
         
         if len(documents) != len(export_request.document_ids):
-            raise HTTPException(
-                status_code=400, 
-                detail="Some documents are not valid for export"
-            )
+            # Certains documents ne sont pas trouvés ou pas au statut VALIDEE
+            # On continue avec ceux qu'on a trouvés, ou on bloque ?
+            # Pour la cohérence, on va filtrer ceux qui sont valides
+            valid_ids = [str(d.id) for d in documents]
+            invalid_ids = set(export_request.document_ids) - set(valid_ids)
+            print(f"⚠️ {len(invalid_ids)} documents ignorés car non valides/introuvables: {invalid_ids}")
+            
+            if not documents:
+                raise HTTPException(
+                    status_code=400, 
+                    detail="Aucun document valide pour l'export (vérifiez s'ils sont déjà exportés)"
+                )
         
         # Bloquer l'export si un doublon est en attente pour un des documents
         from app.models.duplicate import DocumentDuplicate
@@ -58,119 +66,127 @@ def export_documents(
         
         for document in documents:
             try:
-                # Generate accounting entries
-                entry_generator = AccountingEntryGenerator(db, current_user.tenant_id)
+                # Use nested transaction to isolate each document export
+                # If one fails, it won't break the entire batch commit
+                with db.begin_nested():
+                    # Generate accounting entries
+                    # entry_generator = AccountingEntryGenerator(db, current_user.tenant_id)
+                    
+                    # Determine document type for journal
+                    if document.type == 'INVOICE_PURCHASE':
+                        journal_type = 'ACHAT'
+                    elif document.type == 'INVOICE_SALES':
+                        journal_type = 'VENTE'
+                    else:
+                        journal_type = 'BANQUE'
+                    
+                    # Create accounting entry header
+                    entry_header = AccountingEntryHeader(
+                        tenant_id=current_user.tenant_id,
+                        journal_type=journal_type,
+                        entry_date=datetime.utcnow(),
+                        reference_number=document.reference_number,
+                        description=f"Export automatique - {document.filename}",
+                        total_amount=document.amount_ttc or 0,
+                        created_by_id=current_user.id,
+                        document_id=document.id
+                    )
+                    
+                    db.add(entry_header)
+                    db.flush() # Flush to get entry_header.id
+                    
+                    # Generate entry lines based on document data
+                    lines = []
+                    if document.type == 'INVOICE_PURCHASE':
+                        # Purchase invoice: Debit expense, VAT, Credit supplier
+                        lines = [
+                            AccountingEntryLine(
+                                entry_header_id=entry_header.id,
+                                tenant_id=current_user.tenant_id,
+                                account_code='607000',  # Achats de marchandises
+                                debit=document.amount_ht or (document.amount_ttc or 0) / 1.2,
+                                credit=0,
+                                description=f"Achat - {document.supplier_name or 'Fournisseur'}"
+                            ),
+                            AccountingEntryLine(
+                                entry_header_id=entry_header.id,
+                                tenant_id=current_user.tenant_id,
+                                account_code='445660',  # TVA déductible
+                                debit=(document.amount_ttc or 0) - (document.amount_ht or (document.amount_ttc or 0) / 1.2),
+                                credit=0,
+                                description="TVA déductible"
+                            ),
+                            AccountingEntryLine(
+                                entry_header_id=entry_header.id,
+                                tenant_id=current_user.tenant_id,
+                                account_code='401000',  # Fournisseurs
+                                debit=0,
+                                credit=document.amount_ttc or 0,
+                                description=f"Fournisseur - {document.supplier_name or 'N/A'}"
+                            )
+                        ]
+                    elif document.type == 'INVOICE_SALES':
+                        # Sales invoice: Debit customer, Credit revenue, VAT
+                        lines = [
+                            AccountingEntryLine(
+                                entry_header_id=entry_header.id,
+                                tenant_id=current_user.tenant_id,
+                                account_code='411000',  # Clients
+                                debit=document.amount_ttc or 0,
+                                credit=0,
+                                description=f"Client - {document.client_name or 'N/A'}"
+                            ),
+                            AccountingEntryLine(
+                                entry_header_id=entry_header.id,
+                                tenant_id=current_user.tenant_id,
+                                account_code='707000',  # Ventes de marchandises
+                                debit=0,
+                                credit=document.amount_ht or (document.amount_ttc or 0) / 1.2,
+                                description="Ventes de marchandises"
+                            ),
+                            AccountingEntryLine(
+                                entry_header_id=entry_header.id,
+                                tenant_id=current_user.tenant_id,
+                                account_code='445710',  # TVA collectée
+                                debit=0,
+                                credit=(document.amount_ttc or 0) - (document.amount_ht or (document.amount_ttc or 0) / 1.2),
+                                description="TVA collectée"
+                            )
+                        ]
+                    else:
+                        # Default entry for other document types
+                        lines = [
+                            AccountingEntryLine(
+                                entry_header_id=entry_header.id,
+                                tenant_id=current_user.tenant_id,
+                                account_code='512000',  # Banque
+                                debit=document.amount_ttc or 0,
+                                credit=0,
+                                description=f"Document - {document.filename}"
+                            )
+                        ]
+                    
+                    # Add all lines
+                    for line in lines:
+                        db.add(line)
+                    
+                    # Update document status
+                    document.status = DocumentStatus.EXPORTED
+                    document.exported_at = datetime.utcnow()
+                    document.accounting_entry_id = entry_header.id
+                    db.add(document) # Explicit add to ensure tracking
                 
-                # Determine document type for journal
-                if document.type == 'INVOICE_PURCHASE':
-                    journal_type = 'ACHAT'
-                elif document.type == 'INVOICE_SALES':
-                    journal_type = 'VENTE'
-                else:
-                    journal_type = 'BANQUE'
-                
-                # Create accounting entry header
-                entry_header = AccountingEntryHeader(
-                    tenant_id=current_user.tenant_id,
-                    journal_type=journal_type,
-                    entry_date=datetime.utcnow(),
-                    reference_number=document.reference_number,
-                    description=f"Export automatique - {document.filename}",
-                    total_amount=document.amount_ttc or 0,
-                    created_by_id=current_user.id,
-                    document_id=document.id
-                )
-                
-                db.add(entry_header)
-                db.flush()
-                
-                # Generate entry lines based on document data
-                if document.type == 'INVOICE_PURCHASE':
-                    # Purchase invoice: Debit expense, VAT, Credit supplier
-                    lines = [
-                        AccountingEntryLine(
-                            entry_header_id=entry_header.id,
-                            tenant_id=current_user.tenant_id,
-                            account_code='607000',  # Achats de marchandises
-                            debit=document.amount_ht or (document.amount_ttc or 0) / 1.2,
-                            credit=0,
-                            description=f"Achat - {document.supplier_name or 'Fournisseur'}"
-                        ),
-                        AccountingEntryLine(
-                            entry_header_id=entry_header.id,
-                            tenant_id=current_user.tenant_id,
-                            account_code='445660',  # TVA déductible
-                            debit=(document.amount_ttc or 0) - (document.amount_ht or (document.amount_ttc or 0) / 1.2),
-                            credit=0,
-                            description="TVA déductible"
-                        ),
-                        AccountingEntryLine(
-                            entry_header_id=entry_header.id,
-                            tenant_id=current_user.tenant_id,
-                            account_code='401000',  # Fournisseurs
-                            debit=0,
-                            credit=document.amount_ttc or 0,
-                            description=f"Fournisseur - {document.supplier_name or 'N/A'}"
-                        )
-                    ]
-                elif document.type == 'INVOICE_SALES':
-                    # Sales invoice: Debit customer, Credit revenue, VAT
-                    lines = [
-                        AccountingEntryLine(
-                            entry_header_id=entry_header.id,
-                            tenant_id=current_user.tenant_id,
-                            account_code='411000',  # Clients
-                            debit=document.amount_ttc or 0,
-                            credit=0,
-                            description=f"Client - {document.client_name or 'N/A'}"
-                        ),
-                        AccountingEntryLine(
-                            entry_header_id=entry_header.id,
-                            tenant_id=current_user.tenant_id,
-                            account_code='707000',  # Ventes de marchandises
-                            debit=0,
-                            credit=document.amount_ht or (document.amount_ttc or 0) / 1.2,
-                            description="Ventes de marchandises"
-                        ),
-                        AccountingEntryLine(
-                            entry_header_id=entry_header.id,
-                            tenant_id=current_user.tenant_id,
-                            account_code='445710',  # TVA collectée
-                            debit=0,
-                            credit=(document.amount_ttc or 0) - (document.amount_ht or (document.amount_ttc or 0) / 1.2),
-                            description="TVA collectée"
-                        )
-                    ]
-                else:
-                    # Default entry for other document types
-                    lines = [
-                        AccountingEntryLine(
-                            entry_header_id=entry_header.id,
-                            tenant_id=current_user.tenant_id,
-                            account_code='512000',  # Banque
-                            debit=document.amount_ttc or 0,
-                            credit=0,
-                            description=f"Document - {document.filename}"
-                        )
-                    ]
-                
-                # Add all lines
-                for line in lines:
-                    db.add(line)
-                
-                # Update document status
-                document.status = DocumentStatus.EXPORTED
-                document.exported_at = datetime.utcnow()
-                document.accounting_entry_id = entry_header.id
-                
+                # If we are here, nested transaction succeeded
                 exported_count += 1
                 print(f"✅ Document {document.id} exported successfully")
                 
             except Exception as e:
                 print(f"❌ Error exporting document {document.id}: {e}")
                 errors.append(f"Document {document.reference_number}: {str(e)}")
+                # Nested transaction is automatically rolled back by context manager on exception
                 continue
         
+        # Commit all successful exports
         db.commit()
         
         # Invalider le cache des stats pour mise à jour immédiate
@@ -182,7 +198,7 @@ def export_documents(
             return {
                 "success": True,
                 "exported_count": exported_count,
-                "total_count": len(export_request.document_ids),
+                "total_count": len(documents),
                 "errors": errors
             }
         else:
@@ -190,7 +206,7 @@ def export_documents(
             return {
                 "success": True,
                 "exported_count": exported_count,
-                "total_count": len(export_request.document_ids),
+                "total_count": len(documents),
                 "errors": []
             }
             

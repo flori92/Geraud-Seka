@@ -366,29 +366,40 @@ const stats = getStats();
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-4">
-                                                        <div className="text-xs space-y-1">
-                                                            {doc.charge_account && (
-                                                                <div className="flex items-center gap-1">
-                                                                    <span className="text-gray-500">Produit:</span>
-                                                                    <span className="font-mono text-blue-600">{doc.charge_account}</span>
-                                                                </div>
-                                                            )}
-                                                            {doc.vat_account && (
-                                                                <div className="flex items-center gap-1">
-                                                                    <span className="text-gray-500">TVA:</span>
-                                                                    <span className="font-mono text-orange-600">{doc.vat_account}</span>
-                                                                </div>
-                                                            )}
-                                                            {doc.supplier_account && (
-                                                                <div className="flex items-center gap-1">
-                                                                    <span className="text-gray-500">Client:</span>
-                                                                    <span className="font-mono text-green-600">{doc.supplier_account}</span>
-                                                                </div>
-                                                            )}
-                                                            {!doc.charge_account && !doc.vat_account && !doc.supplier_account && (
-                                                                <span className="text-gray-400">-</span>
-                                                            )}
-                                                        </div>
+                                                        {(() => {
+                                                            // Fallback: chercher dans ai_extracted_data.applied_rule si les champs directs sont vides
+                                                            const appliedRule = doc.ai_extracted_data?.applied_rule;
+                                                            const chargeAcc = doc.charge_account || appliedRule?.charge_account;
+                                                            const vatAcc = doc.vat_account || appliedRule?.vat_account;
+                                                            const clientAcc = doc.supplier_account || appliedRule?.supplier_account || appliedRule?.tiers_account;
+                                                            const hasAccounts = chargeAcc || vatAcc || clientAcc;
+
+                                                            if (hasAccounts) {
+                                                                return (
+                                                                    <div className="text-xs space-y-1">
+                                                                        {chargeAcc && (
+                                                                            <div className="flex items-center gap-1">
+                                                                                <span className="text-gray-500">Produit:</span>
+                                                                                <span className="font-mono text-blue-600">{chargeAcc}</span>
+                                                                            </div>
+                                                                        )}
+                                                                        {vatAcc && (
+                                                                            <div className="flex items-center gap-1">
+                                                                                <span className="text-gray-500">TVA:</span>
+                                                                                <span className="font-mono text-orange-600">{vatAcc}</span>
+                                                                            </div>
+                                                                        )}
+                                                                        {clientAcc && (
+                                                                            <div className="flex items-center gap-1">
+                                                                                <span className="text-gray-500">Client:</span>
+                                                                                <span className="font-mono text-green-600">{clientAcc}</span>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            }
+                                                            return <span className="text-gray-400">-</span>;
+                                                        })()}
                                                     </td>
                                                     <td className="px-6 py-4">
                                                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusConfig.color}`}>
