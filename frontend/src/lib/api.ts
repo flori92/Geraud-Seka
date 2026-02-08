@@ -307,10 +307,11 @@ export async function getDocumentsFiltered(accessToken: string, filters?: Docume
 export async function getPendingDocuments(accessToken: string): Promise<Document[]> {
   const docs = await getDocuments(accessToken);
   return docs.filter((d: Document) =>
-    d.status === 'UPLOADED' || 
-    d.status === 'OCR_PROCESSING' || 
+    d.status === 'UPLOADED' ||
+    d.status === 'OCR_PROCESSING' ||
     d.status === 'OCR_COMPLETED' ||
     d.status === 'A_TRAITER' ||
+    d.status === 'A_TRAITER_DOUBLON' ||  // Documents avec doublon à résoudre
     d.status === 'PRE_TRAITEE'
   );
 }
