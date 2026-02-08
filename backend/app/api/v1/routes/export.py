@@ -96,22 +96,57 @@ def export_documents(
                     db.flush() # Flush to get entry_header.id
                     
                     # Generate entry lines based on document data
+                 # Generate entry lines based on document data
                     lines = []
+                    
+                    # --- Determine Accounts to Use ---
+                    # Use accounts from document (set by rules/validation) or fallbacks
+                    
+                    # 1. Charge/Product Account (6xxx or 7xxx)
+                    charge_account = document.charge_account or (
+                        '607000' if document.type == 'INVOICE_PURCHASE' else '707000'
+                    )
+                    
+                    # 2. VAT Account (445x)
+                    vat_account = document.vat_account or (
+                        '445660' if document.type == 'INVOICE_PURCHASE' else '445710'
+                    )
+                    
+                    # 3. Third Party Account (401x or 411x)
+                    third_party_account = document.supplier_account 
+                    if not third_party_account:
+                        if document.type == 'INVOICE_PURCHASE':
+                            third_party_account = '401000'
+                        else:
+                            third_party_account = '411000'
+                            
+                    # --- Determine Labels ---
+                    supplier_label = document.supplier_name or 'Fournisseur Inconnu'
+                    
+                    # Handle Client Name safely (Document model has client relationship but not client_name column)
+                    client_label = 'Client Inconnu'
+                    if document.client:
+                        client_label = document.client.name
+                    elif document.ai_extracted_data and 'customer_name' in document.ai_extracted_data:
+                        client_label = document.ai_extracted_data['customer_name'] or 'Client Inconnu'
+                    elif document.ocr_data and 'customer_name' in document.ocr_data:
+                        client_label = document.ocr_data['customer_name'] or 'Client Inconnu'
+
                     if document.type == 'INVOICE_PURCHASE':
                         # Purchase invoice: Debit expense, VAT, Credit supplier
                         lines = [
                             AccountingEntryLine(
                                 entry_header_id=entry_header.id,
                                 tenant_id=current_user.tenant_id,
-                                account_code='607000',  # Achats de marchandises
+                                account_code=charge_account,
                                 debit=document.amount_ht or (document.amount_ttc or 0) / 1.2,
                                 credit=0,
-                                description=f"Achat - {document.supplier_name or 'Fournisseur'}"
+                                description=f"Achat - {supplier_label}"
                             ),
                             AccountingEntryLine(
                                 entry_header_id=entry_header.id,
                                 tenant_id=current_user.tenant_id,
-                                account_code='445660',  # TVA déductible
+                                account_code=vat_account,
                                 debit=(document.amount_ttc or 0) - (document.amount_ht or (document.amount_ttc or 0) / 1.2),
                                 credit=0,
                                 description="TVA déductible"
@@ -119,10 +154,10 @@ def export_documents(
                             AccountingEntryLine(
                                 entry_header_id=entry_header.id,
                                 tenant_id=current_user.tenant_id,
-                                account_code='401000',  # Fournisseurs
+                                account_code=third_party_account,
                                 debit=0,
                                 credit=document.amount_ttc or 0,
-                                description=f"Fournisseur - {document.supplier_name or 'N/A'}"
+                                description=f"Fournisseur - {supplier_label}"
                             )
                         ]
                     elif document.type == 'INVOICE_SALES':
@@ -131,15 +166,15 @@ def export_documents(
                             AccountingEntryLine(
                                 entry_header_id=entry_header.id,
                                 tenant_id=current_user.tenant_id,
-                                account_code='411000',  # Clients
+                                account_code=third_party_account,
                                 debit=document.amount_ttc or 0,
                                 credit=0,
-                                description=f"Client - {document.client_name or 'N/A'}"
+                                description=f"Client - {client_label}"
                             ),
                             AccountingEntryLine(
                                 entry_header_id=entry_header.id,
                                 tenant_id=current_user.tenant_id,
-                                account_code='707000',  # Ventes de marchandises
+                                account_code=charge_account,
                                 debit=0,
                                 credit=document.amount_ht or (document.amount_ttc or 0) / 1.2,
                                 description="Ventes de marchandises"
@@ -147,7 +182,7 @@ def export_documents(
                             AccountingEntryLine(
                                 entry_header_id=entry_header.id,
                                 tenant_id=current_user.tenant_id,
-                                account_code='445710',  # TVA collectée
+                                account_code=vat_account,
                                 debit=0,
                                 credit=(document.amount_ttc or 0) - (document.amount_ht or (document.amount_ttc or 0) / 1.2),
                                 description="TVA collectée"
