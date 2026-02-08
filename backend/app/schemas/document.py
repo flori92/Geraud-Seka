@@ -115,37 +115,56 @@ class Document(DocumentBase):
             return None
         return v
 
-    @model_validator(mode="after")
-    def extract_accounting_fields(self):
-        """Extract accounting fields from ai_extracted_data.applied_rule after model construction"""
-        if self.ai_extracted_data and isinstance(self.ai_extracted_data, dict):
-            rule_data = self.ai_extracted_data.get('applied_rule', {}) or {}
+    @model_validator(mode="before")
+    @classmethod
+    def extract_accounting_fields(cls, data: Any) -> Any:
+        """Extract accounting fields from ai_extracted_data.applied_rule before model construction"""
+        if not isinstance(data, dict):
+            # Si c'est un objet SQLAlchemy, le convertir en dict
+            if hasattr(data, '__dict__'):
+                obj_dict = {}
+                for key in cls.model_fields.keys():
+                    if hasattr(data, key):
+                        obj_dict[key] = getattr(data, key)
+                data = obj_dict
+            else:
+                return data
 
-            # Extraire les comptes si non définis
-            if not self.charge_account and rule_data:
-                object.__setattr__(self, 'charge_account',
-                    rule_data.get('charge_account') or rule_data.get('debit_account'))
-            if not self.vat_account and rule_data:
-                object.__setattr__(self, 'vat_account',
-                    rule_data.get('vat_account') or rule_data.get('tva_account'))
-            if not self.supplier_account and rule_data:
-                object.__setattr__(self, 'supplier_account',
-                    rule_data.get('supplier_account') or rule_data.get('credit_account') or rule_data.get('tiers_account'))
-            if not self.journal_code and rule_data:
-                object.__setattr__(self, 'journal_code',
-                    rule_data.get('journal_code') or rule_data.get('journal'))
+        # Récupérer ai_extracted_data
+        raw_ai_data = data.get('ai_extracted_data')
+        if isinstance(raw_ai_data, str):
+            try:
+                ai_data = json.loads(raw_ai_data)
+            except (json.JSONDecodeError, TypeError):
+                ai_data = {}
+        elif isinstance(raw_ai_data, dict):
+            ai_data = raw_ai_data
+        else:
+            ai_data = {}
 
-            # Fallback: données fournisseur
-            supplier_data = (self.ai_extracted_data.get('supplier_detection', {}) or {}).get('supplier', {}) or {}
-            if supplier_data:
-                if not self.charge_account:
-                    object.__setattr__(self, 'charge_account', supplier_data.get('default_charge_account'))
-                if not self.vat_account:
-                    object.__setattr__(self, 'vat_account', supplier_data.get('default_vat_account'))
-                if not self.supplier_account:
-                    object.__setattr__(self, 'supplier_account', supplier_data.get('auxiliary_account_code'))
+        rule_data = ai_data.get('applied_rule', {}) or {}
 
-        return self
+        # Extraire les comptes si non définis
+        if not data.get('charge_account') and rule_data:
+            data['charge_account'] = rule_data.get('charge_account') or rule_data.get('debit_account')
+        if not data.get('vat_account') and rule_data:
+            data['vat_account'] = rule_data.get('vat_account') or rule_data.get('tva_account')
+        if not data.get('supplier_account') and rule_data:
+            data['supplier_account'] = rule_data.get('supplier_account') or rule_data.get('credit_account') or rule_data.get('tiers_account')
+        if not data.get('journal_code') and rule_data:
+            data['journal_code'] = rule_data.get('journal_code') or rule_data.get('journal')
+
+        # Fallback: données fournisseur
+        supplier_data = (ai_data.get('supplier_detection', {}) or {}).get('supplier', {}) or {}
+        if supplier_data:
+            if not data.get('charge_account'):
+                data['charge_account'] = supplier_data.get('default_charge_account')
+            if not data.get('vat_account'):
+                data['vat_account'] = supplier_data.get('default_vat_account')
+            if not data.get('supplier_account'):
+                data['supplier_account'] = supplier_data.get('auxiliary_account_code')
+
+        return data
 
     @staticmethod
     def _sanitize_dict(d: dict) -> dict:
