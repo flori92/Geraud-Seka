@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
+import { api, getApiErrorMessage } from "@/lib/api";
 
 interface CreateAccountModalProps {
   isOpen: boolean;
@@ -20,6 +21,15 @@ interface AccountFormData {
   is_active: boolean;
 }
 
+const INITIAL_FORM: AccountFormData = {
+  account_code: "",
+  account_name: "",
+  account_type: "asset",
+  currency: "XOF",
+  description: "",
+  is_active: true,
+};
+
 export function CreateAccountModal({
   isOpen,
   onClose,
@@ -27,14 +37,7 @@ export function CreateAccountModal({
 }: CreateAccountModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [formData, setFormData] = useState<AccountFormData>({
-    account_code: "",
-    account_name: "",
-    account_type: "asset",
-    currency: "XOF",
-    description: "",
-    is_active: true,
-  });
+  const [formData, setFormData] = useState<AccountFormData>(INITIAL_FORM);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,40 +45,13 @@ export function CreateAccountModal({
     setError(null);
 
     try {
-      const token = localStorage.getItem("seka_access_token");
-      if (!token) {
-        setError("Vous devez être connecté");
-        return;
-      }
-
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      
-      const response = await fetch(`${API_BASE_URL}/api/v1/accounting/ledger-accounts/`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (response.ok) {
-        onSuccess();
-        onClose();
-        setFormData({
-          account_code: "",
-          account_name: "",
-          account_type: "asset",
-          currency: "XOF",
-          description: "",
-          is_active: true,
-        });
-      } else {
-        const errorData = await response.json();
-        setError(errorData.detail || "Erreur lors de la création du compte");
-      }
-    } catch (err: any) {
-      setError(err.message || "Erreur lors de la création du compte");
+      await api.post("/ledger-accounts", formData);
+      setFormData(INITIAL_FORM);
+      onSuccess();
+      onClose();
+    } catch (err: unknown) {
+      const message = getApiErrorMessage(err);
+      setError(message ?? "Erreur lors de la création du compte");
     } finally {
       setLoading(false);
     }

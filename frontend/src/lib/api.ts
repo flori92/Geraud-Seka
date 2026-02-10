@@ -1203,6 +1203,10 @@ export interface LedgerAccount {
   account_type: "asset" | "liability" | "equity" | "revenue" | "expense";
   balance: number;
   currency: string;
+  is_active: boolean;
+  parent_account_id?: string | null;
+  is_auxiliary: boolean;
+  is_collective: boolean;
 }
 
 export interface LedgerAccountCreate {
@@ -1211,6 +1215,18 @@ export interface LedgerAccountCreate {
   account_type: "asset" | "liability" | "equity" | "revenue" | "expense";
   currency?: string;
   initial_balance?: number;
+  parent_account_id?: string;
+  is_auxiliary?: boolean;
+  is_collective?: boolean;
+}
+
+export interface LedgerAccountUpdate {
+  account_name?: string;
+  account_type?: string;
+  is_active?: boolean;
+  parent_account_id?: string | null;
+  is_auxiliary?: boolean;
+  is_collective?: boolean;
 }
 
 export async function getLedgerAccounts(accessToken: string): Promise<LedgerAccount[]> {
@@ -1230,6 +1246,23 @@ export async function createLedgerAccount(data: LedgerAccountCreate, accessToken
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   return response.data;
+}
+
+export async function updateLedgerAccount(
+  id: string,
+  data: LedgerAccountUpdate,
+  accessToken: string
+): Promise<LedgerAccount> {
+  const response = await api.put<LedgerAccount>(`/ledger-accounts/${id}`, data, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  return response.data;
+}
+
+export async function deleteLedgerAccount(id: string, accessToken: string): Promise<void> {
+  await api.delete(`/ledger-accounts/${id}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
 }
 
 export interface TreasuryAlert {

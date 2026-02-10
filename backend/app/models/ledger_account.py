@@ -25,15 +25,21 @@ class LedgerAccount(Base):
     __tablename__ = "ledger_accounts"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    
+
     tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
-    
+
     account_code = Column(String(20), nullable=False, index=True)  # Code SYSCOHADA
     account_name = Column(String(255), nullable=False)
     account_type = Column(SQLEnum(AccountType), nullable=False, index=True)
-    
+
     balance = Column(Numeric(15, 2), default=0, nullable=False)
     currency = Column(String(3), default="XOF", nullable=False)
-    
+
     description = Column(String(500), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
+
+    parent_account_id = Column(UUID(as_uuid=True), ForeignKey("ledger_accounts.id", ondelete="SET NULL"), nullable=True, index=True)
+    is_auxiliary = Column(Boolean, default=False, nullable=False)
+    is_collective = Column(Boolean, default=False, nullable=False)
+
+    parent_account = relationship("LedgerAccount", remote_side=[id], backref="child_accounts")

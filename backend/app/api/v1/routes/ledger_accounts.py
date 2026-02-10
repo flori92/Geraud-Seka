@@ -2,8 +2,9 @@
 API Routes pour la gestion du Plan Comptable
 """
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from pydantic import BaseModel
 from uuid import UUID
 
@@ -12,6 +13,7 @@ from app.core.deps import get_current_user, get_current_tenant
 from app.models.user import User
 from app.models.tenant import Tenant
 from app.models.ledger_account import LedgerAccount
+from app.models.accounting_entries import AccountingEntryLine
 
 router = APIRouter()
 
@@ -23,6 +25,15 @@ class LedgerAccountCreate(BaseModel):
     is_auxiliary: bool = False
     is_collective: bool = False
     account_type: Optional[str] = None
+
+
+class LedgerAccountUpdate(BaseModel):
+    account_name: Optional[str] = None
+    account_type: Optional[str] = None
+    is_active: Optional[bool] = None
+    parent_account_id: Optional[str] = None
+    is_auxiliary: Optional[bool] = None
+    is_collective: Optional[bool] = None
 
 
 class LedgerAccountResponse(BaseModel):
@@ -142,3 +153,103 @@ async def create_auxiliary_account(
         "parent_account_code": parent_account_code,
         "message": "Compte auxiliaire créé avec succès"
     }
+
+
+def _has_circular_reference(db: Session, account_id: UUID, new_parent_id: str) -> bool:
+    """Check if setting new_parent_id would create a circular reference."""
+    current_id = new_parent_id
+    visited: set[str] = set()
+
+    while current_id:
+        if str(current_id) == str(account_id):
+            return True
+        if current_id in visited:
+            break
+        visited.add(current_id)
+
+        parent = db.query(LedgerAccount).filter(
+            LedgerAccount.id == current_id
+        ).first()
+        current_id = str(parent.parent_account_id) if parent and parent.parent_account_id else None
+
+    return False
+
+
+@router.put("/{account_id}", response_model=LedgerAccountResponse)
+async def update_ledger_account(
+    account_id: UUID,
+    data: LedgerAccountUpdate,
+    current_user: User = Depends(get_current_user),
+    current_tenant: Tenant = Depends(get_current_tenant),
+    db: Session = Depends(get_db)
+):
+    """Met à jour un compte du plan comptable."""
+
+    account = db.query(LedgerAccount).filter(
+        LedgerAccount.id == account_id,
+        LedgerAccount.tenant_id == current_tenant.id
+    ).first()
+
+    if not account:
+        raise HTTPException(status_code=404, detail="Compte introuvable")
+
+    update_data = data.model_dump(exclude_unset=True)
+
+    if "parent_account_id" in update_data and update_data["parent_account_id"]:
+        if _has_circular_reference(db, account_id, update_data["parent_account_id"]):
+            raise HTTPException(
+                status_code=400,
+                detail="Référence circulaire détectée dans la hiérarchie des comptes"
+            )
+
+    for field, value in update_data.items():
+        setattr(account, field, value)
+
+    db.commit()
+    db.refresh(account)
+
+    return account
+
+
+@router.delete("/{account_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_ledger_account(
+    account_id: UUID,
+    current_user: User = Depends(get_current_user),
+    current_tenant: Tenant = Depends(get_current_tenant),
+    db: Session = Depends(get_db)
+):
+    """Supprime un compte du plan comptable."""
+
+    account = db.query(LedgerAccount).filter(
+        LedgerAccount.id == account_id,
+        LedgerAccount.tenant_id == current_tenant.id
+    ).first()
+
+    if not account:
+        raise HTTPException(status_code=404, detail="Compte introuvable")
+
+    # Vérifier qu'il n'a pas d'enfants
+    children_count = db.query(func.count(LedgerAccount.id)).filter(
+        LedgerAccount.parent_account_id == account_id,
+        LedgerAccount.tenant_id == current_tenant.id
+    ).scalar()
+
+    if children_count > 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Impossible de supprimer ce compte : il possède des comptes auxiliaires rattachés"
+        )
+
+    # Vérifier qu'il n'est pas utilisé dans des écritures comptables
+    entries_count = db.query(func.count(AccountingEntryLine.id)).filter(
+        AccountingEntryLine.account_id == account_id
+    ).scalar()
+
+    if entries_count > 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Impossible de supprimer ce compte : il est utilisé dans des écritures comptables"
+        )
+
+    db.delete(account)
+    db.commit()

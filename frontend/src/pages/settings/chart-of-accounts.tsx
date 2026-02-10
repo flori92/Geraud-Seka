@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import {
     FolderTree, Plus, Edit2, Trash2, ChevronRight, ChevronDown,
-    Building2, Users, TrendingUp, Search, Filter, CheckCircle
+    Search, X, AlertTriangle
 } from 'lucide-react';
 import { PennylaneSidebar } from '@/components/layout/PennylaneSidebar';
-import { api } from '@/lib/api';
+import { api, getApiErrorMessage } from '@/lib/api';
+import { CreateAccountModal } from '@/components/forms/CreateAccountModal';
 
 interface LedgerAccount {
     id: string;
@@ -19,12 +20,28 @@ interface LedgerAccount {
     child_accounts?: LedgerAccount[];
 }
 
+interface EditFormData {
+    account_name: string;
+    account_type: string;
+    is_active: boolean;
+}
+
 export default function ChartOfAccountsPage() {
     const [accounts, setAccounts] = useState<LedgerAccount[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set());
     const [filterType, setFilterType] = useState<string>('all');
+
+    // Modal states
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [editingAccount, setEditingAccount] = useState<LedgerAccount | null>(null);
+    const [deletingAccount, setDeletingAccount] = useState<LedgerAccount | null>(null);
+    const [editForm, setEditForm] = useState<EditFormData>({ account_name: '', account_type: 'asset', is_active: true });
+    const [editLoading, setEditLoading] = useState(false);
+    const [editError, setEditError] = useState<string | null>(null);
+    const [deleteLoading, setDeleteLoading] = useState(false);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
 
     useEffect(() => {
         loadAccounts();
@@ -35,12 +52,10 @@ export default function ChartOfAccountsPage() {
             setLoading(true);
             const response = await api.get('/ledger-accounts');
             const accountsData = response.data;
-
-            // Organiser en hiérarchie
             const hierarchy = buildHierarchy(accountsData);
             setAccounts(hierarchy);
         } catch (error) {
-            console.error('Erreur chargement plan comptable:', error);
+            // Silently handle - empty state is shown
         } finally {
             setLoading(false);
         }
@@ -50,17 +65,15 @@ export default function ChartOfAccountsPage() {
         const map = new Map<string, LedgerAccount>();
         const roots: LedgerAccount[] = [];
 
-        // Créer une map de tous les comptes
         flatAccounts.forEach(acc => {
             map.set(acc.id, { ...acc, child_accounts: [] });
         });
 
-        // Construire la hiérarchie
         flatAccounts.forEach(acc => {
             const account = map.get(acc.id)!;
             if (acc.parent_account_id && map.has(acc.parent_account_id)) {
                 const parent = map.get(acc.parent_account_id)!;
-                parent.child_accounts = parent.child_accounts || [];
+                parent.child_accounts = parent.child_accounts ?? [];
                 parent.child_accounts.push(account);
             } else {
                 roots.push(account);
@@ -71,13 +84,73 @@ export default function ChartOfAccountsPage() {
     };
 
     const toggleExpand = (accountId: string) => {
-        const newExpanded = new Set(expandedAccounts);
-        if (newExpanded.has(accountId)) {
-            newExpanded.delete(accountId);
-        } else {
-            newExpanded.add(accountId);
+        setExpandedAccounts(prev => {
+            const next = new Set(prev);
+            if (next.has(accountId)) {
+                next.delete(accountId);
+            } else {
+                next.add(accountId);
+            }
+            return next;
+        });
+    };
+
+    // --- Edit handlers ---
+    const handleEditOpen = (account: LedgerAccount) => {
+        setEditingAccount(account);
+        setEditForm({
+            account_name: account.account_name,
+            account_type: account.account_type ?? 'asset',
+            is_active: account.is_active,
+        });
+        setEditError(null);
+    };
+
+    const handleEditSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingAccount) return;
+
+        setEditLoading(true);
+        setEditError(null);
+
+        try {
+            await api.put(`/ledger-accounts/${editingAccount.id}`, {
+                account_name: editForm.account_name,
+                account_type: editForm.account_type,
+                is_active: editForm.is_active,
+            });
+            setEditingAccount(null);
+            await loadAccounts();
+        } catch (err: unknown) {
+            const message = getApiErrorMessage(err);
+            setEditError(message ?? "Erreur lors de la modification du compte");
+        } finally {
+            setEditLoading(false);
         }
-        setExpandedAccounts(newExpanded);
+    };
+
+    // --- Delete handlers ---
+    const handleDeleteOpen = (account: LedgerAccount) => {
+        setDeletingAccount(account);
+        setDeleteError(null);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!deletingAccount) return;
+
+        setDeleteLoading(true);
+        setDeleteError(null);
+
+        try {
+            await api.delete(`/ledger-accounts/${deletingAccount.id}`);
+            setDeletingAccount(null);
+            await loadAccounts();
+        } catch (err: unknown) {
+            const message = getApiErrorMessage(err);
+            setDeleteError(message ?? "Erreur lors de la suppression du compte");
+        } finally {
+            setDeleteLoading(false);
+        }
     };
 
     const renderAccount = (account: LedgerAccount, level: number = 0) => {
@@ -138,7 +211,7 @@ export default function ChartOfAccountsPage() {
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
-                                // TODO: handleEdit
+                                handleEditOpen(account);
                             }}
                             className="p-2 text-gray-600 hover:bg-gray-200 rounded-lg"
                         >
@@ -148,7 +221,7 @@ export default function ChartOfAccountsPage() {
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    // TODO: handleDelete
+                                    handleDeleteOpen(account);
                                 }}
                                 className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
                             >
@@ -211,7 +284,7 @@ export default function ChartOfAccountsPage() {
                                 </p>
                             </div>
                             <button
-                                onClick={() => {/* TODO: handleCreate */ }}
+                                onClick={() => setShowCreateModal(true)}
                                 className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-lg transition"
                             >
                                 <Plus className="h-5 w-5" />
@@ -293,12 +366,167 @@ export default function ChartOfAccountsPage() {
                             </div>
                             <div className="flex items-center gap-2">
                                 <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">Auxiliaire</span>
-                                <span>Sous-compte d'un collectif (401SBEE)</span>
+                                <span>Sous-compte d&apos;un collectif (401SBEE)</span>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            {/* Create Modal */}
+            <CreateAccountModal
+                isOpen={showCreateModal}
+                onClose={() => setShowCreateModal(false)}
+                onSuccess={loadAccounts}
+            />
+
+            {/* Edit Modal */}
+            {editingAccount && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg">
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                            <h2 className="text-lg font-bold text-gray-900">Modifier le compte</h2>
+                            <button
+                                onClick={() => setEditingAccount(null)}
+                                className="p-2 hover:bg-gray-100 rounded-lg"
+                            >
+                                <X className="h-5 w-5 text-gray-500" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
+                            {editError && (
+                                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                                    {editError}
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Code compte</label>
+                                <input
+                                    type="text"
+                                    value={editingAccount.account_code}
+                                    disabled
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">Le code compte ne peut pas être modifié</p>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Nom du compte *</label>
+                                <input
+                                    type="text"
+                                    value={editForm.account_name}
+                                    onChange={(e) => setEditForm({ ...editForm, account_name: e.target.value })}
+                                    required
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Type de compte</label>
+                                <select
+                                    value={editForm.account_type}
+                                    onChange={(e) => setEditForm({ ...editForm, account_type: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                >
+                                    <option value="asset">Actif</option>
+                                    <option value="liability">Passif</option>
+                                    <option value="equity">Capitaux propres</option>
+                                    <option value="revenue">Produits</option>
+                                    <option value="expense">Charges</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={editForm.is_active}
+                                        onChange={(e) => setEditForm({ ...editForm, is_active: e.target.checked })}
+                                        className="w-4 h-4 text-green-600 rounded"
+                                    />
+                                    <span className="text-sm text-gray-700">Compte actif</span>
+                                </label>
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                                <button
+                                    type="button"
+                                    onClick={() => setEditingAccount(null)}
+                                    className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+                                >
+                                    Annuler
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={editLoading}
+                                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                                >
+                                    {editLoading ? 'Enregistrement...' : 'Enregistrer'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {deletingAccount && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                            <h2 className="text-lg font-bold text-gray-900">Supprimer le compte</h2>
+                            <button
+                                onClick={() => setDeletingAccount(null)}
+                                className="p-2 hover:bg-gray-100 rounded-lg"
+                            >
+                                <X className="h-5 w-5 text-gray-500" />
+                            </button>
+                        </div>
+
+                        <div className="p-6">
+                            {deleteError && (
+                                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                                    {deleteError}
+                                </div>
+                            )}
+
+                            <div className="flex items-start gap-3 mb-4">
+                                <AlertTriangle className="h-6 w-6 text-amber-500 flex-shrink-0 mt-0.5" />
+                                <div>
+                                    <p className="text-sm text-gray-900">
+                                        Voulez-vous vraiment supprimer le compte{' '}
+                                        <strong>{deletingAccount.account_code}</strong> -{' '}
+                                        <strong>{deletingAccount.account_name}</strong> ?
+                                    </p>
+                                    <p className="text-xs text-gray-500 mt-2">
+                                        Cette action est irréversible. Le compte sera définitivement supprimé.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                                <button
+                                    type="button"
+                                    onClick={() => setDeletingAccount(null)}
+                                    className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+                                >
+                                    Annuler
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleDeleteConfirm}
+                                    disabled={deleteLoading}
+                                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+                                >
+                                    {deleteLoading ? 'Suppression...' : 'Supprimer'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }
